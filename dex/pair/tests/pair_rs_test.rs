@@ -282,7 +282,7 @@ fn test_safe_price() {
         second_token_accumulated,
     );
 
-    // At this point the index shifts to 0
+    // Skip 3 rounds for linear interpolation
     weight = 3;
     block_round += weight;
     first_token_reserve += payment_amount;

@@ -17,7 +17,7 @@ use multiversx_sc_scenario::{
     whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
-use pair::{config::ConfigModule as OtherConfigModule, safe_price::SafePriceModule, Pair};
+use pair::{config::ConfigModule as OtherConfigModule, Pair};
 use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
 use sc_whitelist_module::SCWhitelistModule;
@@ -31,7 +31,6 @@ pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
 // Pair
 pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
-pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
 
 // Farm
 pub static FARM_LOCKED_TOKEN_ID: &[u8] = b"FARML-123456";
@@ -254,7 +253,6 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(State::Active);
-            sc.set_safe_price_max_observations(SAFE_PRICE_MAX_OBSERVATIONS);
         })
         .assert_ok();
 

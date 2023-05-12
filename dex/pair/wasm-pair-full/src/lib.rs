@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           58
+// Endpoints:                           62
 // Async Callback (empty):               1
-// Total number of exported functions:  60
+// Total number of exported functions:  64
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -54,10 +54,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getTotalSupply
         getInitialLiquidtyAdder
         getReserve
-        setSafePriceMaxObservations
         getPriceObservations
         getSafePriceCurrentIndex
-        getSafePriceMaxObservations
         setLockingDeadlineEpoch
         setLockingScAddress
         setUnlockEpoch
@@ -73,7 +71,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         pause
         resume
         getState
-        getTokensForGivenPositionWithSafePrice
+        getLpTokensSafePriceByDefaultOffset
+        getLpTokensSafePriceByRoundOffset
+        getLpTokensSafePriceByTimestampOffset
+        getLpTokensSafePrice
+        getSafePriceByDefaultOffset
+        getSafePriceByRoundOffset
+        getSafePriceByTimestampOffset
         getSafePrice
         getPriceObservation
     )

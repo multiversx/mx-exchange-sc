@@ -5,11 +5,12 @@ use core::cmp::Ordering;
 
 use crate::{
     amm, config,
-    errors::{ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST, ERROR_ZERO_AMOUNT},
-    safe_price::{self, PriceObservation, Round},
+    errors::{ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST, ERROR_SAFE_PRICE_SAME_ROUNDS},
+    safe_price::{self, PriceObservation, Round, MAX_OBSERVATIONS},
 };
 
 pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60 * 24;
+pub const SECONDS_PER_ROUND: u64 = 6;
 
 #[multiversx_sc::module]
 pub trait SafePriceViewModule:
@@ -21,11 +22,62 @@ pub trait SafePriceViewModule:
     + pausable::PausableModule
 {
     #[label("safe-price-view")]
-    #[view(getTokensForGivenPositionWithSafePrice)]
-    fn get_tokens_for_given_position_with_safe_price(
+    #[view(getLpTokensSafePriceByDefaultOffset)]
+    fn get_lp_tokens_safe_price_by_default_offset(
         &self,
         liquidity: BigUint,
     ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+        let current_round = self.blockchain().get_block_round();
+        let start_round = current_round - DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+
+        self.get_lp_tokens_safe_price(start_round, current_round, liquidity)
+    }
+
+    #[label("safe-price-view")]
+    #[view(getLpTokensSafePriceByRoundOffset)]
+    fn get_lp_tokens_safe_price_by_round_offset(
+        &self,
+        round_offset: Round,
+        liquidity: BigUint,
+    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+        let current_round = self.blockchain().get_block_round();
+        require!(
+            round_offset > 0 && round_offset < current_round,
+            ERROR_PARAMETERS
+        );
+        let start_round = current_round - round_offset;
+
+        self.get_lp_tokens_safe_price(start_round, current_round, liquidity)
+    }
+
+    #[label("safe-price-view")]
+    #[view(getLpTokensSafePriceByTimestampOffset)]
+    fn get_lp_tokens_safe_price_by_timestamp_offset(
+        &self,
+        timestamp_offset: u64,
+        liquidity: BigUint,
+    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+        let current_round = self.blockchain().get_block_round();
+        let round_offset = timestamp_offset / SECONDS_PER_ROUND;
+        require!(
+            round_offset > 0 && round_offset < current_round,
+            ERROR_PARAMETERS
+        );
+        let start_round = current_round - round_offset;
+
+        self.get_lp_tokens_safe_price(start_round, current_round, liquidity)
+    }
+
+    #[label("safe-price-view")]
+    #[view(getLpTokensSafePrice)]
+    fn get_lp_tokens_safe_price(
+        &self,
+        start_round: Round,
+        end_round: Round,
+        liquidity: BigUint,
+    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+        require!(end_round > start_round, ERROR_PARAMETERS);
+
         let lp_total_supply = self.lp_token_supply().get();
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -36,63 +88,76 @@ pub trait SafePriceViewModule:
             ));
         }
 
-        let current_round = self.blockchain().get_block_round();
         let safe_price_current_index = self.safe_price_current_index().get();
-        let safe_price_max_observations = self.safe_price_max_observations().get();
-        let price_observations = self.price_observations().get();
+        let price_observations = self.price_observations();
 
-        let last_price_observation = self.get_price_observation(
-            safe_price_current_index,
-            safe_price_max_observations,
-            &price_observations,
-            current_round,
+        let last_price_observation =
+            self.get_price_observation(safe_price_current_index, &price_observations, end_round);
+
+        let oldest_price_observation =
+            self.get_oldest_price_observation(safe_price_current_index, &price_observations);
+
+        require!(
+            start_round >= oldest_price_observation.recording_round,
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
         );
 
-        let oldest_observation_index = if price_observations.len() < safe_price_max_observations {
-            0
-        } else {
-            (safe_price_current_index + 1) % safe_price_max_observations
-        };
+        let first_price_observation =
+            self.get_price_observation(safe_price_current_index, &price_observations, start_round);
 
-        let oldest_observation = match price_observations.try_get(oldest_observation_index) {
-            Some(obs) => obs,
-            None => sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST),
-        };
+        let (weighted_first_token_reserve, weighted_second_token_reserve) =
+            self.compute_weighted_reserves(&first_price_observation, &last_price_observation);
 
-        let mut first_price_observation = oldest_observation;
-        if (last_price_observation.recording_round - first_price_observation.recording_round)
-            > DEFAULT_SAFE_PRICE_ROUNDS_OFFSET
-        {
-            let offset_round =
-                last_price_observation.recording_round - DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
-            first_price_observation = self.get_price_observation(
-                safe_price_current_index,
-                safe_price_max_observations,
-                &price_observations,
-                offset_round,
-            );
-        }
-
-        let first_token_reserve = self.pair_reserve(&first_token_id).get();
-        let second_token_reserve = self.pair_reserve(&second_token_id).get();
-        let first_token_worth = &liquidity * &first_token_reserve / &lp_total_supply;
-        let second_token_worth = &liquidity * &second_token_reserve / &lp_total_supply;
-
+        let first_token_worth = &liquidity * &weighted_first_token_reserve / &lp_total_supply;
+        let second_token_worth = &liquidity * &weighted_second_token_reserve / &lp_total_supply;
         let first_token_payment = EsdtTokenPayment::new(first_token_id, 0, first_token_worth);
         let second_token_payment = EsdtTokenPayment::new(second_token_id, 0, second_token_worth);
-        let first_token_weighted = self.compute_weighted_price(
-            second_token_payment,
-            &first_price_observation,
-            &last_price_observation,
-        );
 
-        let second_token_weighted = self.compute_weighted_price(
-            first_token_payment,
-            &first_price_observation,
-            &last_price_observation,
-        );
+        MultiValue2::from((first_token_payment, second_token_payment))
+    }
 
-        MultiValue2::from((first_token_weighted, second_token_weighted))
+    #[label("safe-price-view")]
+    #[view(getSafePriceByDefaultOffset)]
+    fn get_safe_price_by_default_offset(
+        &self,
+        input_payment: EsdtTokenPayment<Self::Api>,
+    ) -> EsdtTokenPayment<Self::Api> {
+        let current_round = self.blockchain().get_block_round();
+        let start_round = current_round - DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+        self.get_safe_price(start_round, current_round, input_payment)
+    }
+
+    #[label("safe-price-view")]
+    #[view(getSafePriceByRoundOffset)]
+    fn get_safe_price_by_round_offset(
+        &self,
+        round_offset: u64,
+        input_payment: EsdtTokenPayment<Self::Api>,
+    ) -> EsdtTokenPayment<Self::Api> {
+        let current_round = self.blockchain().get_block_round();
+        require!(
+            round_offset > 0 && round_offset < current_round,
+            ERROR_PARAMETERS
+        );
+        let start_round = current_round - round_offset;
+        self.get_safe_price(start_round, current_round, input_payment)
+    }
+
+    #[label("safe-price-view")]
+    #[view(getSafePriceByTimestampOffset)]
+    fn get_safe_price_by_timestamp_offset(
+        &self,
+        timestamp_offset: u64,
+        input_payment: EsdtTokenPayment<Self::Api>,
+    ) -> EsdtTokenPayment<Self::Api> {
+        let current_round = self.blockchain().get_block_round();
+        let round_offset = timestamp_offset / SECONDS_PER_ROUND;
+        require!(
+            round_offset > 0 && round_offset < current_round,
+            ERROR_PARAMETERS
+        );
+        let start_round = current_round - round_offset;
+        self.get_safe_price(start_round, current_round, input_payment)
     }
 
     #[label("safe-price-view")]
@@ -103,24 +168,22 @@ pub trait SafePriceViewModule:
         end_round: Round,
         input_payment: EsdtTokenPayment<Self::Api>,
     ) -> EsdtTokenPayment<Self::Api> {
-        require!(end_round >= start_round, ERROR_PARAMETERS);
+        require!(end_round > start_round, ERROR_PARAMETERS);
 
         let safe_price_current_index = self.safe_price_current_index().get();
-        let safe_price_max_observations = self.safe_price_max_observations().get();
+        let price_observations = self.price_observations();
 
-        let price_observations = self.price_observations().get();
-        let first_price_observation = self.get_price_observation(
-            safe_price_current_index,
-            safe_price_max_observations,
-            &price_observations,
-            start_round,
+        let oldest_price_observation =
+            self.get_oldest_price_observation(safe_price_current_index, &price_observations);
+        require!(
+            oldest_price_observation.recording_round <= start_round,
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
         );
-        let last_price_observation = self.get_price_observation(
-            safe_price_current_index,
-            safe_price_max_observations,
-            &price_observations,
-            end_round,
-        );
+
+        let first_price_observation =
+            self.get_price_observation(safe_price_current_index, &price_observations, start_round);
+        let last_price_observation =
+            self.get_price_observation(safe_price_current_index, &price_observations, end_round);
 
         self.compute_weighted_price(
             input_payment,
@@ -133,15 +196,9 @@ pub trait SafePriceViewModule:
     #[view(getPriceObservation)]
     fn get_price_observation_view(&self, search_round: Round) -> PriceObservation<Self::Api> {
         let safe_price_current_index = self.safe_price_current_index().get();
-        let safe_price_max_observations = self.safe_price_max_observations().get();
-        let price_observations = self.price_observations().get();
+        let price_observations = self.price_observations();
 
-        self.get_price_observation(
-            safe_price_current_index,
-            safe_price_max_observations,
-            &price_observations,
-            search_round,
-        )
+        self.get_price_observation(safe_price_current_index, &price_observations, search_round)
     }
 
     fn compute_weighted_price(
@@ -162,7 +219,7 @@ pub trait SafePriceViewModule:
         let (weighted_first_token_reserve, weighted_second_token_reserve) =
             self.compute_weighted_reserves(first_price_observation, last_price_observation);
 
-        let output_payment = if input_payment.token_identifier == first_token_id {
+        if input_payment.token_identifier == first_token_id {
             let output_amount =
                 input_payment.amount * weighted_second_token_reserve / weighted_first_token_reserve;
             EsdtTokenPayment::new(second_token_id, 0, output_amount)
@@ -170,16 +227,13 @@ pub trait SafePriceViewModule:
             let output_amount =
                 input_payment.amount * weighted_first_token_reserve / weighted_second_token_reserve;
             EsdtTokenPayment::new(first_token_id, 0, output_amount)
-        };
-        require!(output_payment.amount > 0u64, ERROR_ZERO_AMOUNT);
-        output_payment
+        }
     }
 
     fn get_price_observation(
         &self,
         current_index: usize,
-        max_observations: usize,
-        price_observations: &ManagedVec<PriceObservation<Self::Api>>,
+        price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>>,
         search_round: Round,
     ) -> PriceObservation<Self::Api> {
         require!(
@@ -193,29 +247,8 @@ pub trait SafePriceViewModule:
             return last_observation;
         }
 
-        // Check if the observation round exists in the list
-        let oldest_observation_index = if price_observations.len() < max_observations {
-            0
-        } else {
-            (current_index + 1) % max_observations
-        };
-        let oldest_observation_option = price_observations.try_get(oldest_observation_index);
-        match oldest_observation_option {
-            Some(oldest_observation) => {
-                if search_round == oldest_observation.recording_round {
-                    return oldest_observation;
-                }
-                require!(
-                    search_round > oldest_observation.recording_round,
-                    ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
-                );
-            }
-            None => sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST),
-        }
-
         let (mut price_observation, last_search_index) = self.price_observation_by_binary_search(
             current_index,
-            max_observations,
             price_observations,
             search_round,
         );
@@ -225,7 +258,6 @@ pub trait SafePriceViewModule:
         }
 
         price_observation = self.price_observation_by_linear_interpolation(
-            max_observations,
             price_observations,
             search_round,
             last_search_index,
@@ -234,23 +266,35 @@ pub trait SafePriceViewModule:
         price_observation
     }
 
+    fn get_oldest_price_observation(
+        &self,
+        current_index: usize,
+        price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>>,
+    ) -> PriceObservation<Self::Api> {
+        // VecMapper index starts at 1
+        let mut oldest_observation_index = 1;
+        if price_observations.len() == MAX_OBSERVATIONS {
+            oldest_observation_index = (current_index % MAX_OBSERVATIONS) + 1
+        }
+        price_observations.get(oldest_observation_index)
+    }
+
     fn price_observation_by_binary_search(
         &self,
         current_index: usize,
-        max_observations: usize,
-        price_observations: &ManagedVec<PriceObservation<Self::Api>>,
+        price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>>,
         search_round: Round,
     ) -> (PriceObservation<Self::Api>, usize) {
-        let mut search_index = 0;
+        let mut search_index = 1;
         let mut left_index;
         let mut right_index;
-        let observation_at_index_0 = price_observations.get(0);
-        if observation_at_index_0.recording_round <= search_round {
-            left_index = 0;
+        let observation_at_index_1 = price_observations.get(search_index);
+        if observation_at_index_1.recording_round <= search_round {
+            left_index = search_index;
             right_index = current_index - 1;
         } else {
             left_index = current_index + 1;
-            right_index = max_observations - 1;
+            right_index = price_observations.len();
         }
 
         while left_index <= right_index {
@@ -268,8 +312,7 @@ pub trait SafePriceViewModule:
 
     fn price_observation_by_linear_interpolation(
         &self,
-        max_observations: usize,
-        price_observations: &ManagedVec<PriceObservation<Self::Api>>,
+        price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>>,
         search_round: Round,
         search_index: usize,
     ) -> PriceObservation<Self::Api> {
@@ -278,11 +321,11 @@ pub trait SafePriceViewModule:
         let right_observation;
         if last_found_observation.recording_round < search_round {
             left_observation = last_found_observation;
-            let right_observation_index = (search_index + 1) % max_observations;
+            let right_observation_index = (search_index % MAX_OBSERVATIONS) + 1;
             right_observation = price_observations.get(right_observation_index);
         } else {
-            let left_observation_index = if search_index == 0 {
-                max_observations - 1
+            let left_observation_index = if search_index == 1 {
+                MAX_OBSERVATIONS
             } else {
                 search_index - 1
             };
@@ -320,16 +363,8 @@ pub trait SafePriceViewModule:
     ) -> (BigUint, BigUint) {
         let weight_diff =
             last_price_observation.weight_accumulated - first_price_observation.weight_accumulated;
-        if weight_diff == 0 {
-            return (
-                last_price_observation
-                    .first_token_reserve_accumulated
-                    .clone(),
-                last_price_observation
-                    .second_token_reserve_accumulated
-                    .clone(),
-            );
-        }
+
+        require!(weight_diff > 0, ERROR_SAFE_PRICE_SAME_ROUNDS);
 
         let first_token_reserve_diff = last_price_observation
             .first_token_reserve_accumulated

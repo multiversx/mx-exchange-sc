@@ -4,7 +4,7 @@ use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
     types::{EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded},
 };
-use pair::{config::ConfigModule, safe_price::SafePriceModule, Pair};
+use pair::{config::ConfigModule, Pair};
 use pausable::{PausableModule, State};
 use router::{
     enable_swap_by_user::EnableSwapByUserModule,
@@ -183,7 +183,6 @@ fn user_enable_pair_swaps_through_router_test() {
 
             sc.lp_token_identifier()
                 .set(&managed_token_id!(LPUSDC_TOKEN_ID));
-            sc.set_safe_price_max_observations(SAFE_PRICE_MAX_OBSERVATIONS);
         })
         .assert_ok();
 

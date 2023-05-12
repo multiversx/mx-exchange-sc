@@ -18,10 +18,7 @@ pub const LP_PROXY_TOKEN_ID: &[u8] = b"LPPROXY-abcdef";
 pub const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
-pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
-
 use pair::config::ConfigModule as PairConfigModule;
-use pair::safe_price::*;
 use pair::safe_price_view::*;
 use pair::*;
 use pausable::{PausableModule, State};
@@ -72,7 +69,6 @@ where
                 sc.lp_token_identifier().set(&lp_token_id);
 
                 sc.state().set(State::Active);
-                sc.set_safe_price_max_observations(SAFE_PRICE_MAX_OBSERVATIONS);
             })
             .assert_ok();
 

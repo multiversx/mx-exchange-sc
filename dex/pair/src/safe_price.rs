@@ -1,15 +1,12 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{
-    amm, config,
-    errors::{
-        ERROR_SAFE_PRICE_CURRENT_INDEX, ERROR_SAFE_PRICE_MAX_OBSERVATIONS,
-        ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS,
-    },
-};
+use crate::{amm, config, errors::ERROR_SAFE_PRICE_CURRENT_INDEX};
 
 pub type Round = u64;
+
+pub const MAX_OBSERVATIONS: usize = 72_000; // 5 epochs
+pub const MAX_OBSERVATION_WEIGHT: u64 = 14_400; // equivalent to 1 epoch
 
 #[derive(ManagedVecItem, Clone, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
 pub struct PriceObservation<M: ManagedTypeApi> {
@@ -45,26 +42,18 @@ pub trait SafePriceModule:
         }
 
         let current_round = self.blockchain().get_block_round();
-        let safe_price_max_observations = self.safe_price_max_observations().get();
         let safe_price_current_index = self.safe_price_current_index().get();
         require!(
-            safe_price_max_observations > 0,
-            ERROR_SAFE_PRICE_MAX_OBSERVATIONS
-        );
-        require!(
-            safe_price_current_index < safe_price_max_observations,
+            safe_price_current_index <= MAX_OBSERVATIONS,
             ERROR_SAFE_PRICE_CURRENT_INDEX
         );
 
-        let price_observations_mapper = self.price_observations();
-
-        let mut price_observations = ManagedVec::new();
+        let mut price_observations = self.price_observations();
         let mut last_price_observation = PriceObservation::default();
-        let mut new_index = 0;
-        if !price_observations_mapper.is_empty() {
-            price_observations = price_observations_mapper.get();
+        let mut new_index = 1;
+        if !price_observations.is_empty() {
             last_price_observation = price_observations.get(safe_price_current_index);
-            new_index = (safe_price_current_index + 1) % safe_price_max_observations;
+            new_index = (safe_price_current_index % MAX_OBSERVATIONS) + 1;
         }
 
         if last_price_observation.recording_round == current_round {
@@ -78,13 +67,12 @@ pub trait SafePriceModule:
             &last_price_observation,
         );
 
-        if price_observations.len() == safe_price_max_observations {
-            let _ = price_observations.set(new_index, &new_price_observation);
+        if price_observations.len() == MAX_OBSERVATIONS {
+            price_observations.set(new_index, &new_price_observation);
         } else {
-            price_observations.push(new_price_observation);
+            price_observations.push(&new_price_observation);
         }
 
-        price_observations_mapper.set(&price_observations);
         self.safe_price_current_index().set(new_index);
     }
 
@@ -95,10 +83,12 @@ pub trait SafePriceModule:
         new_second_reserve: &BigUint,
         current_price_observation: &PriceObservation<Self::Api>,
     ) -> PriceObservation<Self::Api> {
-        let new_weight = if current_price_observation.recording_round > 0 {
-            new_round - current_price_observation.recording_round
-        } else {
+        let new_weight = if current_price_observation.recording_round == 0 {
             1
+        } else if new_round - current_price_observation.recording_round >= MAX_OBSERVATION_WEIGHT {
+            MAX_OBSERVATION_WEIGHT
+        } else {
+            new_round - current_price_observation.recording_round
         };
 
         // Create a new variable, to avoid overwriting the old price observation
@@ -113,28 +103,11 @@ pub trait SafePriceModule:
         new_price_observation
     }
 
-    #[endpoint(setSafePriceMaxObservations)]
-    fn set_safe_price_max_observations(&self, new_max_observations: usize) {
-        self.require_caller_has_owner_permissions();
-        self.safe_price_max_observations()
-            .update(|max_observations| {
-                require!(
-                    &new_max_observations >= max_observations && new_max_observations > 0,
-                    ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS
-                );
-                *max_observations = new_max_observations
-            });
-    }
-
     #[view(getPriceObservations)]
     #[storage_mapper("price_observations")]
-    fn price_observations(&self) -> SingleValueMapper<ManagedVec<PriceObservation<Self::Api>>>;
+    fn price_observations(&self) -> VecMapper<PriceObservation<Self::Api>>;
 
     #[view(getSafePriceCurrentIndex)]
     #[storage_mapper("safe_price_current_index")]
     fn safe_price_current_index(&self) -> SingleValueMapper<usize>;
-
-    #[view(getSafePriceMaxObservations)]
-    #[storage_mapper("safe_price_max_observations")]
-    fn safe_price_max_observations(&self) -> SingleValueMapper<usize>;
 }
