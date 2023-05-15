@@ -435,16 +435,44 @@ fn test_safe_price_linear_interpolation() {
         first_token_accumulated,
         second_token_accumulated,
     );
+
     first_token_reserve += first_token_payment_amount;
     second_token_reserve -= second_token_expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
 
+    weight = 1;
     block_round += weight;
     pair_setup.b_mock.set_block_round(block_round);
-    let second_token_payment_amount = 5_000_000;
-    let first_token_expected_amount = 142_774;
+    second_token_expected_amount = 29_820;
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        first_token_payment_amount,
+        MEX_TOKEN_ID,
+        second_token_expected_amount,
+        second_token_expected_amount,
+    );
 
+    pair_setup.check_price_observation(
+        block_round,
+        block_round,
+        first_token_accumulated,
+        second_token_accumulated,
+    );
+
+    // Skip 1000 rounds
+    weight = 1_000;
+    block_round += weight;
+    pair_setup.b_mock.set_block_round(block_round);
+    first_token_reserve += first_token_payment_amount;
+    second_token_reserve -= second_token_expected_amount;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
+
+    let second_token_payment_amount = 5_000_000;
+    let first_token_expected_amount = 143_038;
+
+    // First swap in the block after 1000 rounds, we save the reserves from the previous round (round 2)
     pair_setup.swap_fixed_input(
         MEX_TOKEN_ID,
         second_token_payment_amount,
@@ -460,8 +488,7 @@ fn test_safe_price_linear_interpolation() {
         second_token_accumulated,
     );
 
-    // Skip 1000 rounds
-    weight = 1_000;
+    weight = 1;
     block_round += weight;
     first_token_reserve -= first_token_expected_amount;
     second_token_reserve += second_token_payment_amount;
@@ -470,8 +497,9 @@ fn test_safe_price_linear_interpolation() {
 
     // Final price ~ 40
     first_token_payment_amount = 1_000;
-    second_token_expected_amount = 40_565;
+    second_token_expected_amount = 40_495;
 
+    // In the new round (1003), we save the new reserves that impacted the price from ~30 to ~40
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
         WEGLD_TOKEN_ID,
@@ -488,9 +516,15 @@ fn test_safe_price_linear_interpolation() {
         second_token_accumulated,
     );
 
-    // Check interpolation calculation
+    // Check linear interpolation for rounds 980 (computed between rounds 2 and 1002)
+    // and last round (1003), where we have the new updated price
     let interpolation_round = 980;
-    let safe_price_expected_amount = 40_734;
+
+    // The expected output price should be closer to ~30, instead of ~40
+    // as the last values of the reserves from the last round (round 2, saved at the round 1002 price observation),
+    // before the 1000 rounds pause, have a bigger weight (weight 1000)
+    // than that from the last round (weight 1 at round 1003)
+    let safe_price_expected_amount = 29_890;
     pair_setup.check_safe_price(
         interpolation_round,
         block_round,
