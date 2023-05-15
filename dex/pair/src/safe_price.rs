@@ -5,8 +5,7 @@ use crate::{amm, config, errors::ERROR_SAFE_PRICE_CURRENT_INDEX};
 
 pub type Round = u64;
 
-pub const MAX_OBSERVATIONS: usize = 72_000; // 5 epochs
-pub const MAX_OBSERVATION_WEIGHT: u64 = 14_400; // equivalent to 1 epoch
+pub const MAX_OBSERVATIONS: usize = 65_536; // 2^{16} records, to optimise binary search
 
 #[derive(ManagedVecItem, Clone, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
 pub struct PriceObservation<M: ManagedTypeApi> {
@@ -85,8 +84,6 @@ pub trait SafePriceModule:
     ) -> PriceObservation<Self::Api> {
         let new_weight = if current_price_observation.recording_round == 0 {
             1
-        } else if new_round - current_price_observation.recording_round >= MAX_OBSERVATION_WEIGHT {
-            MAX_OBSERVATION_WEIGHT
         } else {
             new_round - current_price_observation.recording_round
         };
