@@ -5,6 +5,7 @@ use core::cmp::Ordering;
 
 use crate::{
     amm, config,
+    contexts::base::StorageCache,
     errors::{ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST, ERROR_SAFE_PRICE_SAME_ROUNDS},
     safe_price::{self, PriceObservation, Round, MAX_OBSERVATIONS},
 };
@@ -243,8 +244,22 @@ pub trait SafePriceViewModule:
 
         // Check if the requested price observation is the last one
         let last_observation = price_observations.get(current_index);
-        if last_observation.recording_round <= search_round {
+        if last_observation.recording_round == search_round {
             return last_observation;
+        }
+
+        // Simulate a future price observation, based on the current reserves,
+        // in case the searched round is bigger than the last recording round
+        // The search round is limited to the current blockchain round
+        if last_observation.recording_round < search_round {
+            let current_round = self.blockchain().get_block_round();
+            let storage_cache = StorageCache::new(self);
+            return self.compute_new_observation(
+                core::cmp::min(search_round, current_round),
+                &storage_cache.first_token_reserve,
+                &storage_cache.second_token_reserve,
+                &last_observation,
+            );
         }
 
         let (mut price_observation, last_search_index) = self.price_observation_by_binary_search(

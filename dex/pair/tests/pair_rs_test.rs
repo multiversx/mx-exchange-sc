@@ -495,7 +495,7 @@ fn test_safe_price_linear_interpolation() {
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
 
-    // Final price ~ 40
+    // New price ~ 40
     first_token_payment_amount = 1_000;
     second_token_expected_amount = 40_495;
 
@@ -524,7 +524,85 @@ fn test_safe_price_linear_interpolation() {
     // as the last values of the reserves from the last round (round 2, saved at the round 1002 price observation),
     // before the 1000 rounds pause, have a bigger weight (weight 1000)
     // than that from the last round (weight 1 at round 1003)
-    let safe_price_expected_amount = 29_890;
+    let mut safe_price_expected_amount = 29_890;
+    pair_setup.check_safe_price(
+        interpolation_round,
+        block_round,
+        WEGLD_TOKEN_ID,
+        first_token_payment_amount,
+        MEX_TOKEN_ID,
+        safe_price_expected_amount,
+    );
+
+    weight = 100;
+    block_round += weight;
+    first_token_reserve += first_token_payment_amount;
+    second_token_reserve -= second_token_expected_amount;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
+
+    first_token_payment_amount = 1_000;
+    second_token_expected_amount = 40_402;
+
+    // Save a new price observation after another 100 rounds
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        first_token_payment_amount,
+        MEX_TOKEN_ID,
+        second_token_expected_amount,
+        second_token_expected_amount,
+    );
+
+    pair_setup.check_price_observation(
+        block_round,
+        block_round,
+        first_token_accumulated,
+        second_token_accumulated,
+    );
+
+    // Check that the price last price observation is limited the the current blockchain round
+    let end_search_round = block_round + 10;
+
+    // The safe price is shifting towards the actual prices as rounds are passing
+    safe_price_expected_amount = 30_751;
+    pair_setup.check_safe_price(
+        interpolation_round,
+        end_search_round,
+        WEGLD_TOKEN_ID,
+        first_token_payment_amount,
+        MEX_TOKEN_ID,
+        safe_price_expected_amount,
+    );
+
+    weight = 900;
+    block_round += weight;
+    first_token_reserve += first_token_payment_amount;
+    second_token_reserve -= second_token_expected_amount;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
+
+    first_token_payment_amount = 1_000;
+    second_token_expected_amount = 40_308;
+
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        first_token_payment_amount,
+        MEX_TOKEN_ID,
+        second_token_expected_amount,
+        second_token_expected_amount,
+    );
+
+    pair_setup.check_price_observation(
+        block_round,
+        block_round,
+        first_token_accumulated,
+        second_token_accumulated,
+    );
+
+    // After another 900 rounds, the safe price is stabilizing at a median price, between ~30 and ~40
+    safe_price_expected_amount = 34_843;
     pair_setup.check_safe_price(
         interpolation_round,
         block_round,

@@ -35,7 +35,6 @@ pub trait SafePriceModule:
     + pausable::PausableModule
 {
     fn update_safe_price(&self, first_token_reserve: &BigUint, second_token_reserve: &BigUint) {
-        //Skip executing if reserves are 0. This will only happen once, first add_liq after init.
         if first_token_reserve == &0u64 || second_token_reserve == &0u64 {
             return;
         }
@@ -88,7 +87,6 @@ pub trait SafePriceModule:
             new_round - current_price_observation.recording_round
         };
 
-        // Create a new variable, to avoid overwriting the old price observation
         let mut new_price_observation = current_price_observation.clone();
         new_price_observation.first_token_reserve_accumulated +=
             BigUint::from(new_weight) * new_first_reserve;
