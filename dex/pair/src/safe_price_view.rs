@@ -10,7 +10,7 @@ use crate::{
     safe_price::{self, PriceObservation, Round, MAX_OBSERVATIONS},
 };
 
-pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60 * 24;
+pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
 pub const SECONDS_PER_ROUND: u64 = 6;
 
 #[multiversx_sc::module]
