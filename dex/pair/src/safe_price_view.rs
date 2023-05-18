@@ -27,7 +27,7 @@ pub trait SafePriceViewModule:
     fn get_lp_tokens_safe_price_by_default_offset(
         &self,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
         let current_round = self.blockchain().get_block_round();
         let default_offset_rounds = self.get_default_offset_rounds(current_round);
         let start_round = current_round - default_offset_rounds;
@@ -41,7 +41,7 @@ pub trait SafePriceViewModule:
         &self,
         round_offset: Round,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
         let current_round = self.blockchain().get_block_round();
         require!(
             round_offset > 0 && round_offset < current_round,
@@ -58,7 +58,7 @@ pub trait SafePriceViewModule:
         &self,
         timestamp_offset: u64,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
         let current_round = self.blockchain().get_block_round();
         let round_offset = timestamp_offset / SECONDS_PER_ROUND;
         require!(
@@ -77,17 +77,18 @@ pub trait SafePriceViewModule:
         start_round: Round,
         end_round: Round,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
         require!(end_round > start_round, ERROR_PARAMETERS);
 
         let lp_total_supply = self.lp_token_supply().get();
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
         if lp_total_supply == 0 {
-            return MultiValue2::from((
+            return (
                 EsdtTokenPayment::new(first_token_id, 0, BigUint::zero()),
                 EsdtTokenPayment::new(second_token_id, 0, BigUint::zero()),
-            ));
+            )
+                .into();
         }
 
         let safe_price_current_index = self.safe_price_current_index().get();
@@ -115,15 +116,15 @@ pub trait SafePriceViewModule:
         let first_token_payment = EsdtTokenPayment::new(first_token_id, 0, first_token_worth);
         let second_token_payment = EsdtTokenPayment::new(second_token_id, 0, second_token_worth);
 
-        MultiValue2::from((first_token_payment, second_token_payment))
+        (first_token_payment, second_token_payment).into()
     }
 
     #[label("safe-price-view")]
     #[view(getSafePriceByDefaultOffset)]
     fn get_safe_price_by_default_offset(
         &self,
-        input_payment: EsdtTokenPayment<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
+        input_payment: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
         let current_round = self.blockchain().get_block_round();
         let default_offset_rounds = self.get_default_offset_rounds(current_round);
         let start_round = current_round - default_offset_rounds;
@@ -135,8 +136,8 @@ pub trait SafePriceViewModule:
     fn get_safe_price_by_round_offset(
         &self,
         round_offset: u64,
-        input_payment: EsdtTokenPayment<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
+        input_payment: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
         let current_round = self.blockchain().get_block_round();
         require!(
             round_offset > 0 && round_offset < current_round,
@@ -151,8 +152,8 @@ pub trait SafePriceViewModule:
     fn get_safe_price_by_timestamp_offset(
         &self,
         timestamp_offset: u64,
-        input_payment: EsdtTokenPayment<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
+        input_payment: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
         let current_round = self.blockchain().get_block_round();
         let round_offset = timestamp_offset / SECONDS_PER_ROUND;
         require!(
@@ -169,8 +170,8 @@ pub trait SafePriceViewModule:
         &self,
         start_round: Round,
         end_round: Round,
-        input_payment: EsdtTokenPayment<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
+        input_payment: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
         require!(end_round > start_round, ERROR_PARAMETERS);
 
         let safe_price_current_index = self.safe_price_current_index().get();
@@ -206,10 +207,10 @@ pub trait SafePriceViewModule:
 
     fn compute_weighted_price(
         &self,
-        input_payment: EsdtTokenPayment<Self::Api>,
+        input_payment: EsdtTokenPayment,
         first_price_observation: &PriceObservation<Self::Api>,
         last_price_observation: &PriceObservation<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
 
@@ -226,10 +227,12 @@ pub trait SafePriceViewModule:
             let output_amount =
                 input_payment.amount * weighted_second_token_reserve / weighted_first_token_reserve;
             EsdtTokenPayment::new(second_token_id, 0, output_amount)
-        } else {
+        } else if input_payment.token_identifier == second_token_id {
             let output_amount =
                 input_payment.amount * weighted_first_token_reserve / weighted_second_token_reserve;
             EsdtTokenPayment::new(first_token_id, 0, output_amount)
+        } else {
+            sc_panic!(ERROR_BAD_INPUT_TOKEN);
         }
     }
 

@@ -98,7 +98,6 @@ pub trait SafePriceModule:
         new_price_observation
     }
 
-    #[view(getPriceObservations)]
     #[storage_mapper("price_observations")]
     fn price_observations(&self) -> VecMapper<PriceObservation<Self::Api>>;
 
