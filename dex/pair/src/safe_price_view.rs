@@ -29,7 +29,8 @@ pub trait SafePriceViewModule:
         liquidity: BigUint,
     ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         let current_round = self.blockchain().get_block_round();
-        let start_round = current_round - DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+        let default_offset_rounds = self.get_default_offset_rounds(current_round);
+        let start_round = current_round - default_offset_rounds;
 
         self.get_lp_tokens_safe_price(start_round, current_round, liquidity)
     }
@@ -124,7 +125,8 @@ pub trait SafePriceViewModule:
         input_payment: EsdtTokenPayment<Self::Api>,
     ) -> EsdtTokenPayment<Self::Api> {
         let current_round = self.blockchain().get_block_round();
-        let start_round = current_round - DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+        let default_offset_rounds = self.get_default_offset_rounds(current_round);
+        let start_round = current_round - default_offset_rounds;
         self.get_safe_price(start_round, current_round, input_payment)
     }
 
@@ -286,6 +288,11 @@ pub trait SafePriceViewModule:
         current_index: usize,
         price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>>,
     ) -> PriceObservation<Self::Api> {
+        require!(
+            !price_observations.is_empty(),
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
+
         // VecMapper index starts at 1
         let mut oldest_observation_index = 1;
         if price_observations.len() == MAX_OBSERVATIONS {
@@ -397,5 +404,19 @@ pub trait SafePriceViewModule:
         let weighted_first_token_reserve = first_token_reserve_diff / weight_diff;
         let weighted_second_token_reserve = second_token_reserve_diff / weight_diff;
         (weighted_first_token_reserve, weighted_second_token_reserve)
+    }
+
+    fn get_default_offset_rounds(&self, end_round: Round) -> u64 {
+        let safe_price_current_index = self.safe_price_current_index().get();
+        let price_observations = self.price_observations();
+        let oldest_price_observation =
+            self.get_oldest_price_observation(safe_price_current_index, &price_observations);
+
+        let mut default_offset_rounds = end_round - oldest_price_observation.recording_round;
+        if default_offset_rounds > DEFAULT_SAFE_PRICE_ROUNDS_OFFSET {
+            default_offset_rounds = DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+        }
+
+        default_offset_rounds
     }
 }
