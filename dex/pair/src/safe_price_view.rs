@@ -214,12 +214,6 @@ pub trait SafePriceViewModule:
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
 
-        require!(
-            input_payment.token_identifier == first_token_id
-                || input_payment.token_identifier == second_token_id,
-            ERROR_BAD_INPUT_TOKEN
-        );
-
         let (weighted_first_token_reserve, weighted_second_token_reserve) =
             self.compute_weighted_reserves(first_price_observation, last_price_observation);
 
