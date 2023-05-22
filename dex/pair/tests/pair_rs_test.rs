@@ -524,7 +524,7 @@ fn test_safe_price_linear_interpolation() {
     // as the last values of the reserves from the last round (round 2, saved at the round 1002 price observation),
     // before the 1000 rounds pause, have a bigger weight (weight 1000)
     // than that from the last round (weight 1 at round 1003)
-    let mut safe_price_expected_amount = 29_890;
+    let mut safe_price_expected_amount = 30_285;
     pair_setup.check_safe_price(
         interpolation_round,
         block_round,
@@ -564,8 +564,8 @@ fn test_safe_price_linear_interpolation() {
     // Check that the price last price observation is limited the the current blockchain round
     let end_search_round = block_round + 10;
 
-    // The safe price is shifting towards the actual prices as rounds are passing
-    safe_price_expected_amount = 30_751;
+    // The safe price is heavily shifting towards the actual prices as rounds are passing
+    safe_price_expected_amount = 38_407;
     pair_setup.check_safe_price(
         interpolation_round,
         end_search_round,
@@ -601,8 +601,8 @@ fn test_safe_price_linear_interpolation() {
         second_token_accumulated,
     );
 
-    // After another 900 rounds, the safe price is stabilizing at a median price, between ~30 and ~40
-    safe_price_expected_amount = 34_843;
+    // After another 900 rounds, the safe price has completely shifted towards the 40s price range
+    safe_price_expected_amount = 40_221;
     pair_setup.check_safe_price(
         interpolation_round,
         block_round,

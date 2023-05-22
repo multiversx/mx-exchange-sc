@@ -352,8 +352,12 @@ pub trait SafePriceViewModule:
             right_observation = last_found_observation;
         };
 
-        let left_weight = search_round - left_observation.recording_round;
-        let right_weight = right_observation.recording_round - search_round;
+        // For a proper linear interpolation calculation, we compute the weights as follows
+        // Left observation has a weight equal to the remaining time, starting from the searched round until the end round
+        // Right observation has a weight equal to the elapsed time, from starting round until the searched round
+        let left_weight = right_observation.recording_round - search_round;
+        let right_weight = search_round - left_observation.recording_round;
+
         let weight_sum = left_weight + right_weight;
         let first_token_reserve_sum = BigUint::from(left_weight)
             * left_observation.first_token_reserve_accumulated
