@@ -561,14 +561,11 @@ fn test_safe_price_linear_interpolation() {
         second_token_accumulated,
     );
 
-    // Check that the price last price observation is limited the the current blockchain round
-    let end_search_round = block_round + 10;
-
     // The safe price is heavily shifting towards the actual prices as rounds are passing
     safe_price_expected_amount = 38_407;
     pair_setup.check_safe_price(
         interpolation_round,
-        end_search_round,
+        block_round,
         WEGLD_TOKEN_ID,
         first_token_payment_amount,
         MEX_TOKEN_ID,

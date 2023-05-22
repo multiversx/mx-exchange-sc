@@ -247,14 +247,18 @@ pub trait SafePriceViewModule:
             return last_observation;
         }
 
-        // Simulate a future price observation, based on the current reserves,
+        // Simulate a new price observation, based on the current reserves,
         // in case the searched round is bigger than the last recording round
         // The search round is limited to the current blockchain round
         if last_observation.recording_round < search_round {
             let current_round = self.blockchain().get_block_round();
+            require!(
+                search_round <= current_round,
+                ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+            );
             let storage_cache = StorageCache::new(self);
             return self.compute_new_observation(
-                core::cmp::min(search_round, current_round),
+                search_round,
                 &storage_cache.first_token_reserve,
                 &storage_cache.second_token_reserve,
                 &last_observation,
