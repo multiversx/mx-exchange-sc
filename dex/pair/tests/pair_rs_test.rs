@@ -11,7 +11,10 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     whitebox::TxTokenTransfer, DebugApi,
 };
-use pair::{config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule, Pair};
+use pair::{
+    config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule,
+    safe_price::MAX_OBSERVATIONS, Pair,
+};
 use pair_setup::*;
 use simple_lock::{
     locked_token::{LockedTokenAttributes, LockedTokenModule},
@@ -575,6 +578,146 @@ fn test_safe_price_linear_interpolation() {
         safe_price_expected_amount,
     );
 }
+
+// Test is commented as it needs a variable change in order to run succesfully
+// In order to run the test with the current setup, MAX_OBSERVATIONS const must be set to 100
+// This is necessary as using the MAINNET variable requires too many operations for a unit test
+// #[test]
+// fn test_safe_price_max_length() {
+//     let mut pair_setup = PairSetup::new(pair::contract_obj);
+//     let max_observations = MAX_OBSERVATIONS.try_into().unwrap(); // should be 100
+//     let min_pool_reserve = 1_000;
+//     let weight = 1;
+//     let mut block_round = 0u64;
+
+//     let mut first_token_reserve = 1_001_000;
+//     let mut second_token_reserve = 30_030_000;
+//     let mut first_token_accumulated = weight * first_token_reserve;
+//     let mut second_token_accumulated = weight * second_token_reserve;
+
+//     pair_setup.add_liquidity(
+//         first_token_reserve,
+//         first_token_reserve,
+//         second_token_reserve,
+//         first_token_reserve,
+//         first_token_reserve - min_pool_reserve,
+//         first_token_reserve,
+//         second_token_reserve,
+//     );
+
+//     let mut first_token_payment_amount = 1;
+//     let mut second_token_expected_amount = 29;
+
+//     while block_round <= max_observations {
+//         // println!("Round: {}", (block_round));
+
+//         block_round += weight;
+//         pair_setup.b_mock.set_block_round(block_round);
+//         pair_setup.swap_fixed_input(
+//             WEGLD_TOKEN_ID,
+//             first_token_payment_amount,
+//             MEX_TOKEN_ID,
+//             1,
+//             second_token_expected_amount,
+//         );
+
+//         first_token_reserve += first_token_payment_amount;
+//         second_token_reserve -= second_token_expected_amount;
+//         first_token_accumulated += weight * first_token_reserve;
+//         second_token_accumulated += weight * second_token_reserve;
+
+//         second_token_expected_amount = second_token_reserve / first_token_reserve;
+//     }
+
+//     let mut second_token_payment_amount = 1_000_000;
+//     let mut first_token_expected_amount = 32_171;
+
+//     // Price change
+//     block_round += weight;
+//     println!("Price change round: {}", (block_round));
+//     pair_setup.b_mock.set_block_round(block_round);
+//     pair_setup.swap_fixed_input(
+//         MEX_TOKEN_ID,
+//         second_token_payment_amount,
+//         WEGLD_TOKEN_ID,
+//         1,
+//         first_token_expected_amount,
+//     );
+
+//     pair_setup.check_price_observation(
+//         block_round,
+//         block_round,
+//         first_token_accumulated,
+//         second_token_accumulated,
+//     );
+
+//     first_token_reserve -= first_token_expected_amount;
+//     second_token_reserve += second_token_payment_amount;
+//     first_token_accumulated += weight * first_token_reserve;
+//     second_token_accumulated += weight * second_token_reserve;
+
+//     second_token_payment_amount = 1_000;
+//     first_token_expected_amount =
+//         second_token_payment_amount * first_token_reserve / second_token_reserve;
+
+//     // Save 10 more price observations, at the beginning of the list
+//     while block_round % max_observations <= 10 {
+//         // println!("Round: {}", (block_round));
+
+//         block_round += weight;
+//         pair_setup.b_mock.set_block_round(block_round);
+//         pair_setup.swap_fixed_input(
+//             MEX_TOKEN_ID,
+//             second_token_payment_amount,
+//             WEGLD_TOKEN_ID,
+//             1,
+//             first_token_expected_amount,
+//         );
+
+//         first_token_reserve -= first_token_expected_amount;
+//         second_token_reserve += second_token_payment_amount;
+//         first_token_accumulated += weight * first_token_reserve;
+//         second_token_accumulated += weight * second_token_reserve;
+
+//         first_token_expected_amount =
+//             second_token_payment_amount * first_token_reserve / second_token_reserve;
+//     }
+
+//     first_token_payment_amount = 1_000;
+
+//     let mut safe_price_rounds_offset = 20;
+//     let mut safe_price_expected_amount = 30_894;
+//     pair_setup.check_safe_price(
+//         block_round - safe_price_rounds_offset,
+//         block_round,
+//         WEGLD_TOKEN_ID,
+//         first_token_payment_amount,
+//         MEX_TOKEN_ID,
+//         safe_price_expected_amount,
+//     );
+
+//     safe_price_rounds_offset = 10;
+//     safe_price_expected_amount = 31_820;
+//     pair_setup.check_safe_price(
+//         block_round - safe_price_rounds_offset,
+//         block_round,
+//         WEGLD_TOKEN_ID,
+//         first_token_payment_amount,
+//         MEX_TOKEN_ID,
+//         safe_price_expected_amount,
+//     );
+
+//     safe_price_rounds_offset = 1;
+//     safe_price_expected_amount = 32_038;
+//     pair_setup.check_safe_price(
+//         block_round - safe_price_rounds_offset,
+//         block_round,
+//         WEGLD_TOKEN_ID,
+//         first_token_payment_amount,
+//         MEX_TOKEN_ID,
+//         safe_price_expected_amount,
+//     );
+// }
 
 #[test]
 fn test_locked_asset() {
