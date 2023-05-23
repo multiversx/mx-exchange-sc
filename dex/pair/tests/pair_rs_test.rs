@@ -11,10 +11,8 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     whitebox::TxTokenTransfer, DebugApi,
 };
-use pair::{
-    config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule,
-    safe_price::MAX_OBSERVATIONS, Pair,
-};
+// use pair::safe_price::MAX_OBSERVATIONS;
+use pair::{config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule, Pair};
 use pair_setup::*;
 use simple_lock::{
     locked_token::{LockedTokenAttributes, LockedTokenModule},
