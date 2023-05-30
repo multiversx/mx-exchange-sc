@@ -13,7 +13,6 @@ static PAIR_STATE_STORAGE_KEY: &[u8] = b"state";
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
-    pub locked_token_id: TokenIdentifier<M>,
     pub min_locked_token_value: BigUint<M>,
     pub min_lock_period_epochs: u64,
 }
@@ -42,9 +41,8 @@ pub trait EnableSwapByUserModule:
             "Invalid locked token ID"
         );
 
-        self.enable_swap_by_user_config()
+        self.enable_swap_by_user_config(&locked_token_id)
             .set(&EnableSwapByUserConfig {
-                locked_token_id,
                 min_locked_token_value,
                 min_lock_period_epochs,
             });
@@ -78,11 +76,7 @@ pub trait EnableSwapByUserModule:
         self.require_state_active_no_swaps(&pair_address);
 
         let payment = self.call_value().single_esdt();
-        let config = self.try_get_config();
-        require!(
-            payment.token_identifier == config.locked_token_id,
-            "Invalid payment token"
-        );
+        let config = self.try_get_config(&payment.token_identifier);
 
         let own_sc_address = self.blockchain().get_sc_address();
         let locked_token_data = self.blockchain().get_esdt_token_data(
@@ -140,8 +134,8 @@ pub trait EnableSwapByUserModule:
     }
 
     #[view(getEnableSwapByUserConfig)]
-    fn try_get_config(&self) -> EnableSwapByUserConfig<Self::Api> {
-        let mapper = self.enable_swap_by_user_config();
+    fn try_get_config(&self, token_id: &TokenIdentifier) -> EnableSwapByUserConfig<Self::Api> {
+        let mapper = self.enable_swap_by_user_config(token_id);
         require!(!mapper.is_empty(), "No config set");
 
         mapper.get()
@@ -240,7 +234,10 @@ pub trait EnableSwapByUserModule:
     fn user_pair_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[storage_mapper("enableSwapByUserConfig")]
-    fn enable_swap_by_user_config(&self) -> SingleValueMapper<EnableSwapByUserConfig<Self::Api>>;
+    fn enable_swap_by_user_config(
+        &self,
+        token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<EnableSwapByUserConfig<Self::Api>>;
 
     #[view(getCommonTokensForUserPairs)]
     #[storage_mapper("commonTokensForUserPairs")]
