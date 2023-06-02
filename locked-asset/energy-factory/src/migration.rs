@@ -162,13 +162,7 @@ pub trait SimpleLockMigrationModule:
             weight_sum += &epoch_amount_pair.amount;
         }
 
-        let base_lock_epochs_biguint_lower_estimate = weighted_epochs_sum.clone() / weight_sum.clone();
-        let base_lock_epochs_biguint =
-          if weighted_epochs_sum % weight_sum == 0 {
-            base_lock_epochs_biguint_lower_estimate
-          } else {
-            base_lock_epochs_biguint_lower_estimate + BigUint::from(1u32)
-          };
+        let base_lock_epochs_biguint = weighted_epochs_sum / weight_sum;
         let base_lock_epochs = base_lock_epochs_biguint
             .to_u64()
             .unwrap_or_panic::<Self::Api>();
