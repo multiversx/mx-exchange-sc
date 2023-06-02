@@ -159,8 +159,8 @@ pub trait LiquidityPoolModule:
         ERROR_INSUFFICIENT_FIRST_TOKEN
       );
       require!(
-          context.second_token_optimal_amount >= context.second_token_amount_min,
-          ERROR_INSUFFICIENT_SECOND_TOKEN
+        context.second_token_optimal_amount >= context.second_token_amount_min,
+        ERROR_INSUFFICIENT_SECOND_TOKEN
       );
     }
 
