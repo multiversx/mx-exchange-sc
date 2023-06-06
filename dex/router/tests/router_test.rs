@@ -152,7 +152,7 @@ fn user_enable_pair_swaps_through_router_test() {
             );
 
             sc.config_enable_by_user_parameters(
-                managed_token_id!(LOCKED_TOKEN_ID),
+                managed_token_id!(USDC_TOKEN_ID),
                 managed_biguint!(MIN_LOCKED_TOKEN_VALUE),
                 MIN_LOCKED_PERIOD_EPOCHS,
                 ManagedVec::from_single_item(managed_token_id!(USDC_TOKEN_ID)).into(),

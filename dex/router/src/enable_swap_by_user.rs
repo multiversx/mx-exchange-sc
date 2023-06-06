@@ -20,6 +20,7 @@ pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
 pub struct SafePriceResult<M: ManagedTypeApi> {
     pub first_token_id: TokenIdentifier<M>,
     pub second_token_id: TokenIdentifier<M>,
+    pub common_token_id: TokenIdentifier<M>,
     pub safe_price_in_common_token: BigUint<M>,
 }
 
@@ -31,17 +32,17 @@ pub trait EnableSwapByUserModule:
     #[endpoint(configEnableByUserParameters)]
     fn config_enable_by_user_parameters(
         &self,
-        locked_token_id: TokenIdentifier,
+        common_token_id: TokenIdentifier,
         min_locked_token_value: BigUint,
         min_lock_period_epochs: u64,
         common_tokens_for_user_pairs: MultiValueEncoded<TokenIdentifier>,
     ) {
         require!(
-            locked_token_id.is_valid_esdt_identifier(),
+            common_token_id.is_valid_esdt_identifier(),
             "Invalid locked token ID"
         );
 
-        self.enable_swap_by_user_config(&locked_token_id)
+        self.enable_swap_by_user_config(&common_token_id)
             .set(&EnableSwapByUserConfig {
                 min_locked_token_value,
                 min_lock_period_epochs,
@@ -76,7 +77,6 @@ pub trait EnableSwapByUserModule:
         self.require_state_active_no_swaps(&pair_address);
 
         let payment = self.call_value().single_esdt();
-        let config = self.try_get_config(&payment.token_identifier);
 
         let own_sc_address = self.blockchain().get_sc_address();
         let locked_token_data = self.blockchain().get_esdt_token_data(
@@ -96,6 +96,7 @@ pub trait EnableSwapByUserModule:
         let locked_lp_token_amount = payment.amount.clone();
         let lp_token_safe_price_result =
             self.get_lp_token_value(pair_address.clone(), locked_lp_token_amount);
+        let config = self.try_get_config(&lp_token_safe_price_result.common_token_id);
         require!(
             lp_token_safe_price_result.safe_price_in_common_token >= config.min_locked_token_value,
             "Not enough value locked"
@@ -163,20 +164,23 @@ pub trait EnableSwapByUserModule:
                 .execute_on_dest_context();
 
         let (first_result, second_result) = multi_value.into_tuple();
+        let mut safe_price_result = SafePriceResult {
+            first_token_id: first_result.token_identifier.clone(),
+            second_token_id: second_result.token_identifier.clone(),
+            common_token_id: first_result.token_identifier,
+            safe_price_in_common_token: BigUint::zero(),
+        };
         let whitelist = self.common_tokens_for_user_pairs();
-        let safe_price_in_common_token = if whitelist.contains(&first_result.token_identifier) {
-            first_result.amount
+        if whitelist.contains(&safe_price_result.first_token_id) {
+            safe_price_result.safe_price_in_common_token = first_result.amount;
         } else if whitelist.contains(&second_result.token_identifier) {
-            second_result.amount
+            safe_price_result.common_token_id = second_result.token_identifier;
+            safe_price_result.safe_price_in_common_token = second_result.amount;
         } else {
             sc_panic!("Invalid tokens in Pair contract");
         };
 
-        SafePriceResult {
-            first_token_id: first_result.token_identifier,
-            second_token_id: second_result.token_identifier,
-            safe_price_in_common_token,
-        }
+        safe_price_result
     }
 
     fn require_state_active_no_swaps(&self, pair_address: &ManagedAddress) {
