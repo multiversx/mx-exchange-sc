@@ -13,6 +13,7 @@ static PAIR_STATE_STORAGE_KEY: &[u8] = b"state";
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
+    pub locked_token_id: TokenIdentifier<M>,
     pub min_locked_token_value: BigUint<M>,
     pub min_lock_period_epochs: u64,
 }
@@ -33,22 +34,31 @@ pub trait EnableSwapByUserModule:
     fn config_enable_by_user_parameters(
         &self,
         common_token_id: TokenIdentifier,
+        locked_token_id: TokenIdentifier,
         min_locked_token_value: BigUint,
         min_lock_period_epochs: u64,
-        common_tokens_for_user_pairs: MultiValueEncoded<TokenIdentifier>,
     ) {
         require!(
             common_token_id.is_valid_esdt_identifier(),
             "Invalid locked token ID"
         );
+        require!(
+            locked_token_id.is_valid_esdt_identifier(),
+            "Invalid locked token ID"
+        );
+
+        let whitelist = self.common_tokens_for_user_pairs();
+        require!(
+            whitelist.contains(&common_token_id),
+            "Common token not whitelisted"
+        );
 
         self.enable_swap_by_user_config(&common_token_id)
             .set(&EnableSwapByUserConfig {
+                locked_token_id,
                 min_locked_token_value,
                 min_lock_period_epochs,
             });
-
-        self.add_common_tokens_for_user_pairs(common_tokens_for_user_pairs);
     }
 
     #[only_owner]
@@ -97,6 +107,10 @@ pub trait EnableSwapByUserModule:
         let lp_token_safe_price_result =
             self.get_lp_token_value(pair_address.clone(), locked_lp_token_amount);
         let config = self.try_get_config(&lp_token_safe_price_result.common_token_id);
+        require!(
+            payment.token_identifier == config.locked_token_id,
+            "Invalid locked token"
+        );
         require!(
             lp_token_safe_price_result.safe_price_in_common_token >= config.min_locked_token_value,
             "Not enough value locked"
