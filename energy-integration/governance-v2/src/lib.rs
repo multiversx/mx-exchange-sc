@@ -31,6 +31,7 @@ pub trait GovernanceV2:
     + permissions_module::PermissionsModule
 {
     /// - `min_energy_for_propose` - the minimum energy required for submitting a proposal
+    /// - `min_fee_for_propose` - the minimum fee required for submitting a proposal
     /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
     /// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have  
     /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
@@ -188,75 +189,6 @@ pub trait GovernanceV2:
                 self.abstain_vote_cast_event(&voter, proposal_id, &voting_power);
             }
         }
-    }
-
-    /// Queue a proposal for execution.
-    /// This can be done only if the proposal has reached the quorum.
-    /// A proposal is considered successful and ready for queing if
-    /// total_votes + total_downvotes >= quorum && total_votes > total_downvotes
-    /// i.e. at least 50% + 1 of the people voted "yes".
-    ///
-    /// Additionally, all the required payments must be deposited before calling this endpoint.
-    #[endpoint]
-    fn queue(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-        require!(
-            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Succeeded,
-            "Can only queue succeeded proposals"
-        );
-
-        let current_block = self.blockchain().get_block_nonce();
-        self.proposal_queue_block(proposal_id).set(current_block);
-
-        self.proposal_queued_event(proposal_id, current_block);
-    }
-
-    /// Execute a previously queued proposal.
-    /// This will also clear the proposal from storage.
-    #[endpoint]
-    fn execute(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-        require!(
-            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Queued,
-            "Can only execute queued proposals"
-        );
-
-        let current_block = self.blockchain().get_block_nonce();
-        let lock_blocks = self.lock_time_after_voting_ends_in_blocks().get();
-
-        let lock_start = self.proposal_queue_block(proposal_id).get();
-        let lock_end = lock_start + lock_blocks;
-
-        require!(
-            current_block >= lock_end,
-            "Proposal is in timelock status. Try again later"
-        );
-
-        let proposal = self.proposals().get(proposal_id);
-        let total_gas_needed = self.total_gas_needed(&proposal.actions);
-        let gas_left = self.blockchain().get_gas_left();
-
-        require!(
-            gas_left > total_gas_needed,
-            "Not enough gas to execute all proposals"
-        );
-
-        self.clear_proposal(proposal_id);
-
-        for action in proposal.actions {
-            let mut contract_call = self
-                .send()
-                .contract_call::<()>(action.dest_address, action.function_name)
-                .with_gas_limit(action.gas_limit);
-
-            for arg in &action.arguments {
-                contract_call.push_raw_argument(arg);
-            }
-
-            contract_call.transfer_execute();
-        }
-
-        self.proposal_executed_event(proposal_id);
     }
 
     /// Cancel a proposed action. This can be done:
