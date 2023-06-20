@@ -9,6 +9,7 @@ pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
     + crate::configurable::ConfigurablePropertiesModule
     + crate::caller_check::CallerCheckModule
+    + permissions_module::PermissionsModule
     + energy_query::EnergyQueryModule
 {
     #[view(getProposalStatus)]
@@ -17,9 +18,9 @@ pub trait ViewsModule:
             return GovernanceProposalStatus::None;
         }
 
-        if !self.proposal_reached_min_fees(proposal_id) {
-            return GovernanceProposalStatus::WaitingForFees;
-        }
+        // if !self.proposal_reached_min_fees(proposal_id) {
+        //     return GovernanceProposalStatus::WaitingForFees;
+        // }
 
         let queue_block = self.proposal_queue_block(proposal_id).get();
         if queue_block > 0 {
@@ -105,11 +106,11 @@ pub trait ViewsModule:
         proposal_id >= 1 && proposal_id <= self.proposals().len()
     }
 
-    fn proposal_reached_min_fees(&self, proposal_id: ProposalId) -> bool {
-        let accumulated_fees = self.proposals().get(proposal_id).fees.total_amount;
-        let min_fees = self.min_fee_for_propose().get();
-        accumulated_fees >= min_fees
-    }
+    // fn proposal_reached_min_fees(&self, proposal_id: ProposalId) -> bool {
+    //     let accumulated_fees = self.proposals().get(proposal_id).fees.total_amount;
+    //     let min_fees = self.min_fee_for_propose().get();
+    //     accumulated_fees >= min_fees
+    // }
 
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {
         self.is_valid_proposal_id(proposal_id) && !self.proposals().item_is_empty(proposal_id)

@@ -87,5 +87,5 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub proposer: ManagedAddress<M>,
     pub actions: ArrayVec<GovernanceAction<M>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,
     pub description: ManagedBuffer<M>,
-    pub fees: ProposalFees<M>,
+    pub fee_payment: EsdtTokenPayment<M>,
 }

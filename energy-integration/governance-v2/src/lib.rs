@@ -6,7 +6,6 @@ pub mod caller_check;
 pub mod configurable;
 mod errors;
 pub mod events;
-pub mod gov_fees;
 pub mod proposal;
 pub mod proposal_storage;
 pub mod views;
@@ -26,10 +25,10 @@ pub trait GovernanceV2:
     configurable::ConfigurablePropertiesModule
     + events::EventsModule
     + proposal_storage::ProposalStorageModule
-    + gov_fees::GovFeesModule
     + caller_check::CallerCheckModule
     + views::ViewsModule
     + energy_query::EnergyQueryModule
+    + permissions_module::PermissionsModule
 {
     /// - `min_energy_for_propose` - the minimum energy required for submitting a proposal
     /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
@@ -91,13 +90,17 @@ pub trait GovernanceV2:
 
         require!(
             user_energy >= min_energy_for_propose,
-            "Not enough energy for propose"
+            NOT_ENOUGH_ENERGY
         );
 
         let user_fee = self.call_value().single_esdt();
         require!(
             self.fee_token_id().get() == user_fee.token_identifier,
             WRONG_TOKEN_ID
+        );
+        require!(
+            self.min_fee_for_propose().get() == user_fee.amount,
+            NOT_ENOUGH_FEE
         );
 
         let mut gov_actions = ArrayVec::new();
@@ -115,22 +118,19 @@ pub trait GovernanceV2:
 
         require!(
             self.total_gas_needed(&gov_actions) < MAX_GAS_LIMIT_PER_BLOCK,
-            "Actions require too much gas to be executed"
+            TOO_MUCH_GAS
         );
 
-        let fees_entries = ManagedVec::from_single_item(FeeEntry {
-            depositor_addr: proposer.clone(),
-            tokens: user_fee.clone(),
-        });
+        // let fees_entries = ManagedVec::from_single_item(FeeEntry {
+        //     depositor_addr: proposer.clone(),
+        //     tokens: user_fee.clone(),
+        // });
 
         let proposal = GovernanceProposal {
             proposer: proposer.clone(),
             description,
             actions: gov_actions,
-            fees: ProposalFees {
-                total_amount: user_fee.amount,
-                entries: fees_entries,
-            },
+            fee_payment: user_fee,
         };
         let proposal_id = self.proposals().push(&proposal);
 
@@ -305,16 +305,12 @@ pub trait GovernanceV2:
     }
 
     fn refund_payments(&self, proposal_id: ProposalId) {
-        let payments = self.proposals().get(proposal_id).fees;
-
-        for fee_entry in payments.entries.iter() {
-            let payment = fee_entry.tokens;
+        let proposal = self.proposals().get(proposal_id);
             self.send().direct_esdt(
-                &fee_entry.depositor_addr,
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
+                &proposal.proposer,
+                &proposal.fee_payment.token_identifier,
+                proposal.fee_payment.token_nonce,
+                &proposal.fee_payment.amount,
             );
-        }
     }
 }
