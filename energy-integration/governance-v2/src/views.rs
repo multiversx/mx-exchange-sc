@@ -49,15 +49,15 @@ pub trait ViewsModule:
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
         let total_up_votes = proposal_votes.up_votes;
-        let total_down_votes = proposal_votes.down_votes;
         let total_down_veto_votes = proposal_votes.down_veto_votes;
         let third_total_votes = &total_votes / 3u64;
+        let half_total_votes = &total_votes / 3u64;
         let quorum = self.quorum().get();
 
         if total_down_veto_votes > third_total_votes {
             false
         } else {
-            total_votes >= quorum && total_up_votes > (total_down_votes + total_down_veto_votes)
+            total_votes >= quorum && total_up_votes > half_total_votes
         }
     }
 

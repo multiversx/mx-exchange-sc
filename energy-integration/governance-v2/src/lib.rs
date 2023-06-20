@@ -87,7 +87,6 @@ pub trait GovernanceV2:
         let proposer = self.blockchain().get_caller();
         let user_energy = self.get_energy_amount_non_zero(&proposer);
         let min_energy_for_propose = self.min_energy_for_propose().get();
-
         require!(
             user_energy >= min_energy_for_propose,
             NOT_ENOUGH_ENERGY
@@ -121,11 +120,6 @@ pub trait GovernanceV2:
             TOO_MUCH_GAS
         );
 
-        // let fees_entries = ManagedVec::from_single_item(FeeEntry {
-        //     depositor_addr: proposer.clone(),
-        //     tokens: user_fee.clone(),
-        // });
-
         let proposal = GovernanceProposal {
             proposer: proposer.clone(),
             description,
@@ -134,9 +128,14 @@ pub trait GovernanceV2:
         };
         let proposal_id = self.proposals().push(&proposal);
 
-        let proposal_votes = ProposalVotes::new();
+        let proposer_voting_power = user_energy.sqrt();
+        let proposal_votes = ProposalVotes {
+            up_votes: proposer_voting_power.clone(),
+            ..Default::default()
+        };
 
         self.proposal_votes(proposal_id).set(proposal_votes);
+        self.up_vote_cast_event(&proposer, proposal_id, &proposer_voting_power);
 
         let current_block = self.blockchain().get_block_nonce();
         self.proposal_start_block(proposal_id).set(current_block);
@@ -153,7 +152,7 @@ pub trait GovernanceV2:
         self.require_valid_proposal_id(proposal_id);
         require!(
             self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Active,
-            "Proposal is not active"
+            PROPOSAL_NOT_ACTIVE
         );
 
         let voter = self.blockchain().get_caller();
@@ -161,31 +160,32 @@ pub trait GovernanceV2:
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
         let user_energy = self.get_energy_amount_non_zero(&voter);
+        let voting_power = user_energy.sqrt();
 
         match vote {
             VoteType::UpVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
-                    proposal_votes.up_votes += &user_energy.clone();
+                    proposal_votes.up_votes += &voting_power.clone();
                 });
-                self.up_vote_cast_event(&voter, proposal_id, &user_energy);
+                self.up_vote_cast_event(&voter, proposal_id, &voting_power);
             }
             VoteType::DownVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
-                    proposal_votes.down_votes += &user_energy.clone();
+                    proposal_votes.down_votes += &voting_power.clone();
                 });
-                self.down_vote_cast_event(&voter, proposal_id, &user_energy);
+                self.down_vote_cast_event(&voter, proposal_id, &voting_power);
             }
             VoteType::DownVetoVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
-                    proposal_votes.down_veto_votes += &user_energy.clone();
+                    proposal_votes.down_veto_votes += &voting_power.clone();
                 });
-                self.down_veto_vote_cast_event(&voter, proposal_id, &user_energy);
+                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power);
             }
             VoteType::AbstainVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
-                    proposal_votes.abstain_votes += &user_energy.clone();
+                    proposal_votes.abstain_votes += &voting_power.clone();
                 });
-                self.abstain_vote_cast_event(&voter, proposal_id, &user_energy);
+                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power);
             }
         }
     }
@@ -280,9 +280,6 @@ pub trait GovernanceV2:
                 );
             }
             GovernanceProposalStatus::Defeated => {}
-            GovernanceProposalStatus::WaitingForFees => {
-                self.refund_payments(proposal_id);
-            }
             _ => {
                 sc_panic!("Action may not be cancelled");
             }
