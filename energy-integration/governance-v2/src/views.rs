@@ -18,10 +18,6 @@ pub trait ViewsModule:
             return GovernanceProposalStatus::None;
         }
 
-        // if !self.proposal_reached_min_fees(proposal_id) {
-        //     return GovernanceProposalStatus::WaitingForFees;
-        // }
-
         let queue_block = self.proposal_queue_block(proposal_id).get();
         if queue_block > 0 {
             return GovernanceProposalStatus::Queued;
