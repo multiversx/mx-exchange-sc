@@ -21,6 +21,7 @@ pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
 pub struct SafePriceResult<M: ManagedTypeApi> {
     pub first_token_id: TokenIdentifier<M>,
     pub second_token_id: TokenIdentifier<M>,
+    pub common_token_id: TokenIdentifier<M>,
     pub safe_price_in_common_token: BigUint<M>,
 }
 
@@ -32,24 +33,32 @@ pub trait EnableSwapByUserModule:
     #[endpoint(configEnableByUserParameters)]
     fn config_enable_by_user_parameters(
         &self,
+        common_token_id: TokenIdentifier,
         locked_token_id: TokenIdentifier,
         min_locked_token_value: BigUint,
         min_lock_period_epochs: u64,
-        common_tokens_for_user_pairs: MultiValueEncoded<TokenIdentifier>,
     ) {
+        require!(
+            common_token_id.is_valid_esdt_identifier(),
+            "Invalid locked token ID"
+        );
         require!(
             locked_token_id.is_valid_esdt_identifier(),
             "Invalid locked token ID"
         );
 
-        self.enable_swap_by_user_config()
+        let whitelist = self.common_tokens_for_user_pairs();
+        require!(
+            whitelist.contains(&common_token_id),
+            "Common token not whitelisted"
+        );
+
+        self.enable_swap_by_user_config(&common_token_id)
             .set(&EnableSwapByUserConfig {
                 locked_token_id,
                 min_locked_token_value,
                 min_lock_period_epochs,
             });
-
-        self.add_common_tokens_for_user_pairs(common_tokens_for_user_pairs);
     }
 
     #[only_owner]
@@ -78,11 +87,6 @@ pub trait EnableSwapByUserModule:
         self.require_state_active_no_swaps(&pair_address);
 
         let payment = self.call_value().single_esdt();
-        let config = self.try_get_config();
-        require!(
-            payment.token_identifier == config.locked_token_id,
-            "Invalid payment token"
-        );
 
         let own_sc_address = self.blockchain().get_sc_address();
         let locked_token_data = self.blockchain().get_esdt_token_data(
@@ -102,6 +106,11 @@ pub trait EnableSwapByUserModule:
         let locked_lp_token_amount = payment.amount.clone();
         let lp_token_safe_price_result =
             self.get_lp_token_value(pair_address.clone(), locked_lp_token_amount);
+        let config = self.try_get_config(&lp_token_safe_price_result.common_token_id);
+        require!(
+            payment.token_identifier == config.locked_token_id,
+            "Invalid locked token"
+        );
         require!(
             lp_token_safe_price_result.safe_price_in_common_token >= config.min_locked_token_value,
             "Not enough value locked"
@@ -140,8 +149,8 @@ pub trait EnableSwapByUserModule:
     }
 
     #[view(getEnableSwapByUserConfig)]
-    fn try_get_config(&self) -> EnableSwapByUserConfig<Self::Api> {
-        let mapper = self.enable_swap_by_user_config();
+    fn try_get_config(&self, token_id: &TokenIdentifier) -> EnableSwapByUserConfig<Self::Api> {
+        let mapper = self.enable_swap_by_user_config(token_id);
         require!(!mapper.is_empty(), "No config set");
 
         mapper.get()
@@ -169,20 +178,23 @@ pub trait EnableSwapByUserModule:
                 .execute_on_dest_context();
 
         let (first_result, second_result) = multi_value.into_tuple();
+        let mut safe_price_result = SafePriceResult {
+            first_token_id: first_result.token_identifier.clone(),
+            second_token_id: second_result.token_identifier.clone(),
+            common_token_id: first_result.token_identifier,
+            safe_price_in_common_token: BigUint::zero(),
+        };
         let whitelist = self.common_tokens_for_user_pairs();
-        let safe_price_in_common_token = if whitelist.contains(&first_result.token_identifier) {
-            first_result.amount
+        if whitelist.contains(&safe_price_result.first_token_id) {
+            safe_price_result.safe_price_in_common_token = first_result.amount;
         } else if whitelist.contains(&second_result.token_identifier) {
-            second_result.amount
+            safe_price_result.common_token_id = second_result.token_identifier;
+            safe_price_result.safe_price_in_common_token = second_result.amount;
         } else {
             sc_panic!("Invalid tokens in Pair contract");
         };
 
-        SafePriceResult {
-            first_token_id: first_result.token_identifier,
-            second_token_id: second_result.token_identifier,
-            safe_price_in_common_token,
-        }
+        safe_price_result
     }
 
     fn require_state_active_no_swaps(&self, pair_address: &ManagedAddress) {
@@ -240,7 +252,10 @@ pub trait EnableSwapByUserModule:
     fn user_pair_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[storage_mapper("enableSwapByUserConfig")]
-    fn enable_swap_by_user_config(&self) -> SingleValueMapper<EnableSwapByUserConfig<Self::Api>>;
+    fn enable_swap_by_user_config(
+        &self,
+        token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<EnableSwapByUserConfig<Self::Api>>;
 
     #[view(getCommonTokensForUserPairs)]
     #[storage_mapper("commonTokensForUserPairs")]
