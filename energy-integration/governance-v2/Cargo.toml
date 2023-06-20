@@ -22,3 +22,6 @@ version = "=0.39.4"
 
 [dev-dependencies.energy-factory-mock]
 path = "../energy-factory-mock"
+
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"

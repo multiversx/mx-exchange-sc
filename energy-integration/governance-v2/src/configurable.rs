@@ -29,49 +29,51 @@ multiversx_sc::imports!();
 ///
 #[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule:
-    crate::caller_check::CallerCheckModule + energy_query::EnergyQueryModule
+    energy_query::EnergyQueryModule
+    + permissions_module::PermissionsModule
 {
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
 
     #[endpoint(changeMinEnergyForProposal)]
     fn change_min_energy_for_propose(&self, new_value: BigUint) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
+
 
         self.try_change_min_energy_for_propose(new_value);
     }
 
     #[endpoint(changeMinFeeForProposal)]
     fn change_min_fee_for_propose(&self, new_value: BigUint) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
-        self.try_change_min_energy_for_propose(new_value);
+        self.try_change_min_fee_for_propose(new_value);
     }
 
     #[endpoint(changeQuorum)]
     fn change_quorum(&self, new_value: BigUint) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
         self.try_change_quorum(new_value);
     }
 
     #[endpoint(changeVotingDelayInBlocks)]
     fn change_voting_delay_in_blocks(&self, new_value: u64) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
         self.try_change_voting_delay_in_blocks(new_value);
     }
 
     #[endpoint(changeVotingPeriodInBlocks)]
     fn change_voting_period_in_blocks(&self, new_value: u64) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
         self.try_change_voting_period_in_blocks(new_value);
     }
 
     #[endpoint(changeLockTimeAfterVotingEndsInBlocks)]
     fn change_lock_time_after_voting_ends_in_blocks(&self, new_value: u64) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
         self.try_change_lock_time_after_voting_ends_in_blocks(new_value);
     }
