@@ -17,7 +17,9 @@ pub const QUORUM: u64 = 5;
 pub const VOTING_DELAY_BLOCKS: u64 = 10;
 pub const VOTING_PERIOD_BLOCKS: u64 = 20;
 pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
+pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
 pub static WXMEX_TOKEN_ID: &[u8] = b"wXMEX";
+
 
 pub const USER_ENERGY: u64 = 100;
 pub const GAS_LIMIT: u64 = 1_000_000;
@@ -98,6 +100,7 @@ where
                     VOTING_DELAY_BLOCKS,
                     VOTING_PERIOD_BLOCKS,
                     LOCKING_PERIOD_BLOCKS,
+                    WITHDRAW_PERCENTAGE,
                     managed_address!(energy_factory_wrapper.address_ref()),
                 );
             })
@@ -154,7 +157,7 @@ where
                         .into(),
                 );
 
-                proposal_id = sc.propose(managed_buffer!(b"change TODO"), actions);
+                proposal_id = sc.propose(managed_buffer!(b"changeTODO"), actions);
             },
         );
 
@@ -189,10 +192,10 @@ where
             })
     }
 
-    pub fn cancel(&mut self, caller: &Address, proposal_id: usize) -> TxResult {
+    pub fn withdraw_after_defeated(&mut self, caller: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.cancel(proposal_id);
+                sc.withdraw_after_defeated(proposal_id);
             })
     }
 

@@ -2,18 +2,11 @@ mod gov_test_setup;
 
 use gov_test_setup::*;
 use governance_v2::{
-    configurable::ConfigurablePropertiesModule,
-    proposal::{FeeEntry, GovernanceAction, GovernanceProposal, ProposalFees},
-    proposal_storage::ProposalStorageModule,
+    configurable::ConfigurablePropertiesModule, proposal::GovernanceProposalStatus,
+    proposal_storage::ProposalStorageModule, views::ViewsModule,
 };
-use multiversx_sc::{
-    arrayvec::ArrayVec,
-    codec::Empty,
-    types::{EsdtTokenPayment, ManagedVec},
-};
-use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint, DebugApi,
-};
+use multiversx_sc::{codec::Empty, types::ManagedVec};
+use multiversx_sc_scenario::{managed_biguint, managed_buffer, rust_biguint};
 
 #[test]
 fn init_gov_test() {
@@ -21,7 +14,7 @@ fn init_gov_test() {
 }
 
 #[test]
-fn change_gov_config_test() {
+fn gov_propose_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
     let first_user_addr = gov_setup.first_user.clone();
@@ -72,14 +65,29 @@ fn change_gov_config_test() {
     // execute ok
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
 
-    // after execution, quorum changed from 1_500 to the proposed 1_000
     gov_setup
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
-            let action = sc.proposals().get(1).actions.get(0).unwrap();
-            assert!(action.function_name == b"changeTODO", "Wrong Action - Endpoint Name");
-            assert!(action.arguments == vec![1_000u64.to_be_bytes().to_vec()], "Wrong Action - Arguments");
+            assert!(
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Succeeded,
+                "Action should have been Succeeded"
+            );
+        })
+        .assert_ok();
 
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let proposal = sc.proposals().get(1);
+            let action = proposal.actions.get(0).unwrap();
+            let mut args_managed = ManagedVec::new();
+            args_managed.push(managed_buffer!(&1_000u64.to_be_bytes()));
+
+            assert!(
+                action.function_name == b"changeTODO",
+                "Wrong Action - Endpoint Name"
+            );
+            assert!(action.arguments == args_managed, "Wrong Action - Arguments");
         })
         .assert_ok();
 }
@@ -112,17 +120,15 @@ fn gov_no_veto_vote_test() {
     result.assert_ok();
     assert_eq!(proposal_id, 1);
 
-    // quorum is 1_500
     gov_setup
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
-            assert_eq!(sc.quorum().get(), managed_biguint!(1_500));
+            assert_eq!(sc.quorum().get(), managed_biguint!(QUORUM));
         })
         .assert_ok();
 
     gov_setup.set_block_nonce(20);
 
-    // First user Up Vote
     // Second User Up Vote
     gov_setup
         .up_vote(&second_user_addr, proposal_id)
@@ -133,11 +139,18 @@ fn gov_no_veto_vote_test() {
         .down_veto_vote(&third_user_addr, proposal_id)
         .assert_ok();
 
-    // queue Vote failed: 1001 DownVetoVotes > (3001 TotalVotes / 3)
+    // queue Vote failed: 11 DownVetoVotes > (31 TotalVotes / 3)
     gov_setup.set_block_nonce(45);
+
     gov_setup
-        .queue(proposal_id)
-        .assert_user_error("Can only queue succeeded proposals");
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            assert!(
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
+                "Action should have been Defeated"
+            );
+        })
+        .assert_ok();
 }
 
 #[test]
@@ -145,7 +158,7 @@ fn gov_abstain_vote_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
     let first_user_addr = gov_setup.first_user.clone();
-    let second_user_addr = gov_setup.second_user.clone();
+    let third_user_addr = gov_setup.third_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
 
     // Give proposer the minimum fee
@@ -153,10 +166,11 @@ fn gov_abstain_vote_test() {
         &first_user_addr,
         WXMEX_TOKEN_ID,
         1,
-        &rust_biguint!(1_000),
+        &rust_biguint!(MIN_FEE_FOR_PROPOSE),
         &Empty,
     );
 
+    // First user Propose + Up Vote
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
         MIN_FEE_FOR_PROPOSE,
@@ -167,48 +181,45 @@ fn gov_abstain_vote_test() {
     result.assert_ok();
     assert_eq!(proposal_id, 1);
 
-    // quorum is 1_500
+    // quorum is 5
     gov_setup
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
-            assert_eq!(sc.quorum().get(), managed_biguint!(1_500));
+            assert_eq!(sc.quorum().get(), managed_biguint!(QUORUM));
         })
         .assert_ok();
 
     gov_setup.set_block_nonce(20);
 
-    // First user Up Vote
     // Second user Abstain Vote
-    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
-
     gov_setup
-        .abstain_vote(&second_user_addr, proposal_id)
+        .abstain_vote(&third_user_addr, proposal_id)
         .assert_ok();
 
-    // queue: Vote passed: 1000 UP, 0 down, 0 DownVeto, 1000 Abstain
+    // queue: Vote passed: 10 UP, 0 down, 0 DownVeto, 10 Abstain
     gov_setup.set_block_nonce(45);
-    gov_setup.queue(proposal_id).assert_ok();
 
     // execute
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
-    gov_setup.execute(proposal_id).assert_ok();
 
-    // after execution, quorum changed from 1_500 to the proposed 1_000
+    // UpVotes = 10, TotalVotes = 20
     gov_setup
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
-            assert_eq!(sc.quorum().get(), managed_biguint!(1_000));
-            assert!(sc.proposals().item_is_empty(1));
+            assert!(
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
+                "Action should have been Defeated"
+            );
         })
         .assert_ok();
 }
 
 #[test]
-fn gov_cancel_defeated_proposal_test() {
+fn gov_withdraw_defeated_proposal_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
     let first_user_addr = gov_setup.first_user.clone();
-    let second_user_addr = gov_setup.second_user.clone();
+    let third_user_addr = gov_setup.third_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
 
     // Give proposer the minimum fee
@@ -216,10 +227,11 @@ fn gov_cancel_defeated_proposal_test() {
         &first_user_addr,
         WXMEX_TOKEN_ID,
         1,
-        &rust_biguint!(1_000),
+        &rust_biguint!(MIN_FEE_FOR_PROPOSE),
         &Empty,
     );
 
+    // First user Propose + Up Vote
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
         MIN_FEE_FOR_PROPOSE,
@@ -230,16 +242,62 @@ fn gov_cancel_defeated_proposal_test() {
     result.assert_ok();
     assert_eq!(proposal_id, 1);
 
-    gov_setup.increment_block_nonce(VOTING_DELAY_BLOCKS);
+    // Check proposer balance
+    gov_setup.b_mock.check_nft_balance::<Empty>(
+        &first_user_addr,
+        WXMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(0),
+        None,
+    );
+
+    // quorum is 5
     gov_setup
-        .down_vote(&second_user_addr, proposal_id)
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            assert_eq!(sc.quorum().get(), managed_biguint!(QUORUM));
+        })
         .assert_ok();
 
-    // try cancel too early
-    gov_setup
-        .cancel(&second_user_addr, proposal_id)
-        .assert_user_error("Action may not be cancelled");
+    gov_setup.set_block_nonce(20);
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
-    gov_setup.cancel(&second_user_addr, proposal_id).assert_ok();
+    // Second user Abstain Vote
+    gov_setup
+        .down_vote(&third_user_addr, proposal_id)
+        .assert_ok();
+
+    // queue: Vote passed: 10 UP, 10 down, 0 DownVeto, 0 Abstain
+    gov_setup.set_block_nonce(45);
+
+    // execute
+    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+
+    // UpVotes = 10, TotalVotes = 20
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            assert!(
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
+                "Action should have been Defeated"
+            );
+        })
+        .assert_ok();
+
+    // Other user (not proposer) try to withdraw the fee -> Fail
+    gov_setup
+        .withdraw_after_defeated(&third_user_addr, proposal_id)
+        .assert_error(4, "Only original proposer may cancel a pending proposal");
+
+    gov_setup
+        .withdraw_after_defeated(&first_user_addr, proposal_id)
+        .assert_ok();
+
+    // Check proposer balance (fee / 2)
+    gov_setup.b_mock.check_nft_balance::<Empty>(
+        &first_user_addr,
+        WXMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(MIN_FEE_FOR_PROPOSE / 2u64),
+        None,
+    );
 }
