@@ -17,6 +17,7 @@ use crate::errors::*;
 use crate::proposal_storage::ProposalVotes;
 
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
+const BASE_PERCENTAGE: u64 = 10_000;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
 
 /// An empty contract. To be used as a template when starting a new contract from scratch.
@@ -46,6 +47,7 @@ pub trait GovernanceV2:
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
         lock_time_after_voting_ends_in_blocks: u64,
+        withdraw_percentage_defeated: u64,
         energy_factory_address: ManagedAddress,
     ) {
         self.try_change_min_energy_for_propose(min_energy_for_propose);
@@ -56,6 +58,7 @@ pub trait GovernanceV2:
         self.try_change_lock_time_after_voting_ends_in_blocks(
             lock_time_after_voting_ends_in_blocks,
         );
+        self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
         self.set_energy_factory_address(energy_factory_address);
     }
 
@@ -88,10 +91,7 @@ pub trait GovernanceV2:
         let proposer = self.blockchain().get_caller();
         let user_energy = self.get_energy_amount_non_zero(&proposer);
         let min_energy_for_propose = self.min_energy_for_propose().get();
-        require!(
-            user_energy >= min_energy_for_propose,
-            NOT_ENOUGH_ENERGY
-        );
+        require!(user_energy >= min_energy_for_propose, NOT_ENOUGH_ENERGY);
 
         let user_fee = self.call_value().single_esdt();
         require!(
@@ -221,6 +221,34 @@ pub trait GovernanceV2:
         self.proposal_canceled_event(proposal_id);
     }
 
+    /// When a proposal was defeated, the proposer can withdraw
+    /// a part of the FEE.
+    #[endpoint]
+    fn withdraw_after_defeated(&self, proposal_id: ProposalId) {
+        self.require_caller_not_self();
+        let refund_percentage = self.withdraw_percentage_defeated().get();
+
+        match self.get_proposal_status(proposal_id) {
+            GovernanceProposalStatus::None => {
+                sc_panic!("Proposal does not exist");
+            }
+            GovernanceProposalStatus::Defeated => {
+                let proposal = self.proposals().get(proposal_id);
+                let caller = self.blockchain().get_caller();
+
+                require!(
+                    caller == proposal.proposer,
+                    "Only original proposer may cancel a pending proposal"
+                );
+
+                self.refund_proposal_fee(proposal_id, refund_percentage)
+            }
+            _ => {
+                sc_panic!("Action may not be cancelled");
+            }
+        }
+    }
+
     fn total_gas_needed(
         &self,
         actions: &ArrayVec<GovernanceAction<Self::Api>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,
@@ -233,13 +261,20 @@ pub trait GovernanceV2:
         total
     }
 
-    fn refund_payments(&self, proposal_id: ProposalId) {
-        let proposal = self.proposals().get(proposal_id);
-            self.send().direct_esdt(
-                &proposal.proposer,
-                &proposal.fee_payment.token_identifier,
-                proposal.fee_payment.token_nonce,
-                &proposal.fee_payment.amount,
-            );
+    fn refund_proposal_fee(&self, proposal_id: ProposalId, refund_percentage: u64) {
+        let proposal: GovernanceProposal<<Self as ContractBase>::Api> =
+            self.proposals().get(proposal_id);
+        let refund_amount = proposal
+            .fee_payment
+            .amount
+            .mul(BigUint::from(refund_percentage))
+            / BASE_PERCENTAGE;
+
+        self.send().direct_esdt(
+            &proposal.proposer,
+            &proposal.fee_payment.token_identifier,
+            proposal.fee_payment.token_nonce,
+            &refund_amount,
+        );
     }
 }

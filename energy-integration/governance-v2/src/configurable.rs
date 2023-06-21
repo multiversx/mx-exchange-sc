@@ -120,6 +120,16 @@ pub trait ConfigurablePropertiesModule:
         self.lock_time_after_voting_ends_in_blocks().set(new_value);
     }
 
+    fn try_change_withdraw_percentage_defeated(&self, new_value: u64) {
+        require!(
+            new_value != 0,
+            "Withdraw percentage defeated can't be set to 0"
+        );
+
+        self.withdraw_percentage_defeated().set(new_value);
+
+    }
+
     #[view(getMinEnergyForPropose)]
     #[storage_mapper("minEnergyForPropose")]
     fn min_energy_for_propose(&self) -> SingleValueMapper<BigUint>;
@@ -147,4 +157,9 @@ pub trait ConfigurablePropertiesModule:
     #[view(getFeeTokenId)]
     #[storage_mapper("feeTokenId")]
     fn fee_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[view(getWithdrawPercentageDefeated)]
+    #[storage_mapper("witdrawPercentageDefeated")]
+    fn withdraw_percentage_defeated(&self) -> SingleValueMapper<u64>;
+
 }
