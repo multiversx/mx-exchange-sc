@@ -25,3 +25,6 @@ path = "../energy-factory-mock"
 
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
+
+[dev-dependencies.fees-collector]
+path = "../fees-collector"
