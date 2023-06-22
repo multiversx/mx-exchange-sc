@@ -215,15 +215,15 @@ pub trait GovernanceV2:
                     caller == proposal.proposer,
                     "Only original proposer may cancel a pending proposal"
                 );
+                self.refund_proposal_fee(proposal_id, BASE_PERCENTAGE);
+                self.clear_proposal(proposal_id);
+                self.proposal_canceled_event(proposal_id);
             }
             GovernanceProposalStatus::Defeated => {}
             _ => {
                 sc_panic!("Action may not be cancelled");
             }
         }
-
-        self.clear_proposal(proposal_id);
-        self.proposal_canceled_event(proposal_id);
     }
 
     /// When a proposal was defeated, the proposer can withdraw
@@ -248,10 +248,10 @@ pub trait GovernanceV2:
 
                 self.refund_proposal_fee(proposal_id, refund_percentage);
                 self.clear_proposal(proposal_id);
-                self.proposal_withdraw_after_defeated(proposal_id);
+                self.proposal_withdraw_after_defeated_event(proposal_id);
             }
             _ => {
-                sc_panic!("Action may not be cancelled");
+                sc_panic!("You may not withdraw funds from this proposal!");
             }
         }
     }

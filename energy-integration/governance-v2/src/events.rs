@@ -50,5 +50,5 @@ pub trait EventsModule {
     fn proposal_canceled_event(&self, #[indexed] proposal_id: ProposalId);
 
     #[event("proposalWithdrawAfterDefeated")]
-    fn proposal_withdraw_after_defeated(&self, #[indexed] proposal_id: ProposalId);
+    fn proposal_withdraw_after_defeated_event(&self, #[indexed] proposal_id: ProposalId);
 }
