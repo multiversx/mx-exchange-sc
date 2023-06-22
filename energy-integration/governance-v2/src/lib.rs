@@ -117,11 +117,20 @@ pub trait GovernanceV2:
             TOO_MUCH_GAS
         );
 
+        let quorum = self.quorum().get();
+        let voting_delay_in_blocks = self.voting_delay_in_blocks().get();
+        let voting_period_in_blocks = self.voting_period_in_blocks().get();
+        let withdraw_percentage_defeated = self.withdraw_percentage_defeated().get();
+
         let proposal = GovernanceProposal {
             proposer: proposer.clone(),
             description,
             actions: gov_actions,
             fee_payment: user_fee,
+            quorum,
+            voting_delay_in_blocks,
+            voting_period_in_blocks,
+            withdraw_percentage_defeated,
         };
         let proposal_id = self.proposals().push(&proposal);
 
