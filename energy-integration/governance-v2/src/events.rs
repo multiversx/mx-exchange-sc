@@ -49,29 +49,6 @@ pub trait EventsModule {
     #[event("proposalCanceled")]
     fn proposal_canceled_event(&self, #[indexed] proposal_id: ProposalId);
 
-    #[event("proposalQueued")]
-    fn proposal_queued_event(
-        &self,
-        #[indexed] proposal_id: ProposalId,
-        #[indexed] queued_block: u64,
-    );
-
-    #[event("proposalExecuted")]
-    fn proposal_executed_event(&self, #[indexed] proposal_id: ProposalId);
-
-    #[event("userDeposit")]
-    fn user_deposit_event(
-        &self,
-        #[indexed] address: &ManagedAddress,
-        #[indexed] proposal_id: ProposalId,
-        payment: &EsdtTokenPayment,
-    );
-
-    #[event("userClaimDepositedTokens")]
-    fn user_claim_deposited_tokens_event(
-        &self,
-        #[indexed] address: &ManagedAddress,
-        #[indexed] proposal_id: ProposalId,
-        payments: &ManagedVec<EsdtTokenPayment>,
-    );
+    #[event("proposalWithdrawAfterDefeated")]
+    fn proposal_withdraw_after_defeated(&self, #[indexed] proposal_id: ProposalId);
 }

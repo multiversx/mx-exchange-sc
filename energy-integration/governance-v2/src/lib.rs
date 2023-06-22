@@ -132,6 +132,7 @@ pub trait GovernanceV2:
         let proposer_voting_power = user_energy.sqrt();
         let proposal_votes = ProposalVotes {
             up_votes: proposer_voting_power.clone(),
+            quorum: user_energy,
             ..Default::default()
         };
 
@@ -167,24 +168,28 @@ pub trait GovernanceV2:
             VoteType::UpVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.up_votes += &voting_power.clone();
+                    proposal_votes.quorum += &user_energy.clone();
                 });
                 self.up_vote_cast_event(&voter, proposal_id, &voting_power);
             }
             VoteType::DownVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_votes += &voting_power.clone();
+                    proposal_votes.quorum += &user_energy.clone();
                 });
                 self.down_vote_cast_event(&voter, proposal_id, &voting_power);
             }
             VoteType::DownVetoVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_veto_votes += &voting_power.clone();
+                    proposal_votes.quorum += &user_energy.clone();
                 });
                 self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power);
             }
             VoteType::AbstainVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.abstain_votes += &voting_power.clone();
+                    proposal_votes.quorum += &user_energy.clone();
                 });
                 self.abstain_vote_cast_event(&voter, proposal_id, &voting_power);
             }
@@ -241,7 +246,9 @@ pub trait GovernanceV2:
                     "Only original proposer may cancel a pending proposal"
                 );
 
-                self.refund_proposal_fee(proposal_id, refund_percentage)
+                self.refund_proposal_fee(proposal_id, refund_percentage);
+                self.clear_proposal(proposal_id);
+                self.proposal_withdraw_after_defeated(proposal_id);
             }
             _ => {
                 sc_panic!("Action may not be cancelled");
