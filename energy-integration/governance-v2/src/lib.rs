@@ -17,7 +17,7 @@ use crate::errors::*;
 use crate::proposal_storage::ProposalVotes;
 
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
-const BASE_PERCENTAGE: u64 = 10_000;
+const FULL_PERCENTAGE: u64 = 10_000;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
 
 /// An empty contract. To be used as a template when starting a new contract from scratch.
@@ -211,7 +211,7 @@ pub trait GovernanceV2:
                     caller == proposal.proposer,
                     "Only original proposer may cancel a pending proposal"
                 );
-                self.refund_proposal_fee(proposal_id, BASE_PERCENTAGE);
+                self.refund_proposal_fee(proposal_id, FULL_PERCENTAGE);
                 self.clear_proposal(proposal_id);
                 self.proposal_canceled_event(proposal_id);
             }
@@ -228,14 +228,24 @@ pub trait GovernanceV2:
     fn withdraw_after_defeated(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
         let refund_percentage = self.withdraw_percentage_defeated().get();
+        let caller = self.blockchain().get_caller();
 
         match self.get_proposal_status(proposal_id) {
             GovernanceProposalStatus::None => {
                 sc_panic!("Proposal does not exist");
             }
-            GovernanceProposalStatus::Defeated => {
+            GovernanceProposalStatus::Succeeded | GovernanceProposalStatus::Defeated => {
                 let proposal = self.proposals().get(proposal_id);
-                let caller = self.blockchain().get_caller();
+
+                require!(
+                    caller == proposal.proposer,
+                    "Only original proposer may cancel a pending proposal"
+                );
+
+                self.refund_proposal_fee(proposal_id, FULL_PERCENTAGE);
+            }
+            GovernanceProposalStatus::DefeatedWithVeto => {
+                let proposal = self.proposals().get(proposal_id);
 
                 require!(
                     caller == proposal.proposer,
@@ -243,13 +253,15 @@ pub trait GovernanceV2:
                 );
 
                 self.refund_proposal_fee(proposal_id, refund_percentage);
-                self.clear_proposal(proposal_id);
-                self.proposal_withdraw_after_defeated_event(proposal_id);
+
             }
             _ => {
                 sc_panic!("You may not withdraw funds from this proposal!");
             }
         }
+        self.clear_proposal(proposal_id);
+        self.proposal_withdraw_after_defeated_event(proposal_id);
+
     }
 
     fn total_gas_needed(
@@ -271,7 +283,7 @@ pub trait GovernanceV2:
             .fee_payment
             .amount
             .mul(BigUint::from(refund_percentage))
-            / BASE_PERCENTAGE;
+            / FULL_PERCENTAGE;
 
         self.send().direct_esdt(
             &proposal.proposer,

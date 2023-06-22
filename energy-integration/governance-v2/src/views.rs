@@ -35,6 +35,8 @@ pub trait ViewsModule:
 
         if self.quorum_reached(proposal_id) && self.vote_reached(proposal_id) {
             GovernanceProposalStatus::Succeeded
+        } else if self.vote_down_with_veto(proposal_id) {
+            GovernanceProposalStatus::DefeatedWithVeto
         } else {
             GovernanceProposalStatus::Defeated
         }
@@ -54,6 +56,15 @@ pub trait ViewsModule:
         } else {
             total_votes >= quorum && total_up_votes > half_total_votes
         }
+    }
+
+    fn vote_down_with_veto(&self, proposal_id: ProposalId) -> bool {
+        let proposal_votes = self.proposal_votes(proposal_id).get();
+        let total_votes = proposal_votes.get_total_votes();
+        let total_down_veto_votes = proposal_votes.down_veto_votes;
+        let third_total_votes = &total_votes / 3u64;
+
+        total_down_veto_votes > third_total_votes
     }
 
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
@@ -123,7 +134,4 @@ pub trait ViewsModule:
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {
         self.is_valid_proposal_id(proposal_id) && !self.proposals().item_is_empty(proposal_id)
     }
-
-    #[proxy]
-    fn fee_collector_proxy(&self, to: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
 }

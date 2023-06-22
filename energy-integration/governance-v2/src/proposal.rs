@@ -14,6 +14,7 @@ pub enum GovernanceProposalStatus {
     Pending,
     Active,
     Defeated,
+    DefeatedWithVeto,
     Succeeded,
 }
 #[derive(

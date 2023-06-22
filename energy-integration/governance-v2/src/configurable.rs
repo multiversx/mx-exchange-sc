@@ -1,4 +1,4 @@
-use crate::BASE_PERCENTAGE;
+use crate::FULL_PERCENTAGE;
 
 multiversx_sc::imports!();
 
@@ -71,12 +71,6 @@ pub trait ConfigurablePropertiesModule:
         self.try_change_voting_period_in_blocks(new_value);
     }
 
-    #[endpoint(changeLockTimeAfterVotingEndsInBlocks)]
-    fn change_lock_time_after_voting_ends_in_blocks(&self, new_value: u64) {
-        self.require_caller_has_owner_or_admin_permissions();
-
-        self.try_change_lock_time_after_voting_ends_in_blocks(new_value);
-    }
 
     fn try_change_min_energy_for_propose(&self, new_value: BigUint) {
         require!(new_value != 0, "Min energy for proposal can't be set to 0");
@@ -111,18 +105,10 @@ pub trait ConfigurablePropertiesModule:
         self.voting_period_in_blocks().set(new_value);
     }
 
-    fn try_change_lock_time_after_voting_ends_in_blocks(&self, new_value: u64) {
-        require!(
-            new_value != 0,
-            "Lock time after voting ends (in blocks) can't be set to 0"
-        );
-
-        self.lock_time_after_voting_ends_in_blocks().set(new_value);
-    }
 
     fn try_change_withdraw_percentage_defeated(&self, new_value: u64) {
         require!(
-            new_value > 0 && new_value < BASE_PERCENTAGE,
+            new_value > 0 && new_value < FULL_PERCENTAGE,
             "Withdraw percentage defeated can't be set to 0"
         );
 
@@ -148,10 +134,6 @@ pub trait ConfigurablePropertiesModule:
     #[view(getVotingPeriodInBlocks)]
     #[storage_mapper("votingPeriodInBlocks")]
     fn voting_period_in_blocks(&self) -> SingleValueMapper<u64>;
-
-    #[view(getLockTimeAfterVotingEndsInBlocks)]
-    #[storage_mapper("lockTimeAfterVotingEndsInBlocks")]
-    fn lock_time_after_voting_ends_in_blocks(&self) -> SingleValueMapper<u64>;
 
     #[view(getFeeTokenId)]
     #[storage_mapper("feeTokenId")]
