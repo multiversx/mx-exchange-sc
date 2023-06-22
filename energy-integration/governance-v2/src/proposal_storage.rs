@@ -17,6 +17,7 @@ pub struct ProposalVotes<M: ManagedTypeApi> {
     pub down_votes: BigUint<M>,
     pub down_veto_votes: BigUint<M>,
     pub abstain_votes: BigUint<M>,
+    pub quorum: BigUint<M>,
 }
 
 impl<M: ManagedTypeApi> Default for ProposalVotes<M> {
@@ -32,6 +33,7 @@ impl<M: ManagedTypeApi> ProposalVotes<M> {
             down_votes: BigUint::zero(),
             down_veto_votes: BigUint::zero(),
             abstain_votes: BigUint::zero(),
+            quorum: BigUint::zero(),
         }
     }
     pub fn get_total_votes(&self) -> BigUint<M> {

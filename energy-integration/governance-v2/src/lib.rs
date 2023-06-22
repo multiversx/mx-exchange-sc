@@ -46,7 +46,6 @@ pub trait GovernanceV2:
         quorum: BigUint,
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
-        lock_time_after_voting_ends_in_blocks: u64,
         withdraw_percentage_defeated: u64,
         energy_factory_address: ManagedAddress,
     ) {
@@ -55,9 +54,6 @@ pub trait GovernanceV2:
         self.try_change_quorum(quorum);
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
-        self.try_change_lock_time_after_voting_ends_in_blocks(
-            lock_time_after_voting_ends_in_blocks,
-        );
         self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
         self.set_energy_factory_address(energy_factory_address);
     }

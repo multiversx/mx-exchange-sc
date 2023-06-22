@@ -15,7 +15,6 @@ pub enum GovernanceProposalStatus {
     Active,
     Defeated,
     Succeeded,
-    Queued,
 }
 #[derive(
     TopEncode,

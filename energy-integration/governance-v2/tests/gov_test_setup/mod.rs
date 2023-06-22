@@ -20,7 +20,6 @@ pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
 pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
 pub static WXMEX_TOKEN_ID: &[u8] = b"wXMEX";
 
-
 pub const USER_ENERGY: u64 = 100;
 pub const GAS_LIMIT: u64 = 1_000_000;
 
@@ -99,7 +98,6 @@ where
                     managed_biguint!(QUORUM),
                     VOTING_DELAY_BLOCKS,
                     VOTING_PERIOD_BLOCKS,
-                    LOCKING_PERIOD_BLOCKS,
                     WITHDRAW_PERCENTAGE,
                     managed_address!(energy_factory_wrapper.address_ref()),
                 );
