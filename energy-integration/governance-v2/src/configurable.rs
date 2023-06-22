@@ -71,7 +71,6 @@ pub trait ConfigurablePropertiesModule:
         self.try_change_voting_period_in_blocks(new_value);
     }
 
-
     fn try_change_min_energy_for_propose(&self, new_value: BigUint) {
         require!(new_value != 0, "Min energy for proposal can't be set to 0");
 
@@ -104,7 +103,6 @@ pub trait ConfigurablePropertiesModule:
 
         self.voting_period_in_blocks().set(new_value);
     }
-
 
     fn try_change_withdraw_percentage_defeated(&self, new_value: u64) {
         require!(

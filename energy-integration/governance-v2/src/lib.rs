@@ -262,7 +262,6 @@ pub trait GovernanceV2:
                 );
 
                 self.refund_proposal_fee(proposal_id, refund_percentage);
-
             }
             _ => {
                 sc_panic!("You may not withdraw funds from this proposal!");
@@ -270,7 +269,6 @@ pub trait GovernanceV2:
         }
         self.clear_proposal(proposal_id);
         self.proposal_withdraw_after_defeated_event(proposal_id);
-
     }
 
     fn total_gas_needed(

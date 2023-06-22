@@ -17,37 +17,6 @@ pub enum GovernanceProposalStatus {
     DefeatedWithVeto,
     Succeeded,
 }
-#[derive(
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    ManagedVecItem,
-    TypeAbi,
-    PartialEq,
-    Debug,
-    Clone,
-)]
-pub struct ProposalFees<M: ManagedTypeApi> {
-    pub total_amount: BigUint<M>,
-    pub entries: ManagedVec<M, FeeEntry<M>>,
-}
-
-#[derive(
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    ManagedVecItem,
-    TypeAbi,
-    PartialEq,
-    Debug,
-    Clone,
-)]
-pub struct FeeEntry<M: ManagedTypeApi> {
-    pub depositor_addr: ManagedAddress<M>,
-    pub tokens: EsdtTokenPayment<M>,
-}
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct GovernanceAction<M: ManagedTypeApi> {
