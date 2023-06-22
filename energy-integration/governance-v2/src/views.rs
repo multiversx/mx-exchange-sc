@@ -4,6 +4,8 @@ use crate::proposal::{
     GovernanceAction, GovernanceProposalStatus, ProposalId, MAX_GOVERNANCE_PROPOSAL_ACTIONS,
 };
 
+use weekly_rewards_splitting::{events::Week, global_info::ProxyTrait as _};
+
 #[multiversx_sc::module]
 pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
@@ -68,17 +70,22 @@ pub trait ViewsModule:
     }
 
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
+        let fees_collector_addr = self.fees_collector_address().get();
+        let last_global_update_week: Week = self
+            .fees_collector_proxy(fees_collector_addr.clone())
+            .last_global_update_week()
+            .execute_on_dest_context();
+
+        let total_energy: BigUint = self
+            .fees_collector_proxy(fees_collector_addr)
+            .total_energy_for_week(last_global_update_week)
+            .execute_on_dest_context();
+
         let current_quorum = self.get_quorum(proposal_id);
-        let total_energy = BigUint::zero(); // TODO
-        let required_quorum = self.quorum().get();
+        let required_minimum_percentage = self.quorum().get();
+        let current_quorum_percentage = current_quorum / total_energy;
 
-        //sc.last_global_update_week().get()
-        // sc.total_energy_for_week(1).get()
-
-        if current_quorum / total_energy > required_quorum {
-            return true;
-        }
-        false
+        current_quorum_percentage > required_minimum_percentage
     }
 
     #[view(getQuorum)]
@@ -134,4 +141,11 @@ pub trait ViewsModule:
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {
         self.is_valid_proposal_id(proposal_id) && !self.proposals().item_is_empty(proposal_id)
     }
+
+    #[proxy]
+    fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
+
+    #[view(getFeesCollectorAddress)]
+    #[storage_mapper("feesCollectorAddress")]
+    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 }
