@@ -85,7 +85,7 @@ pub trait ViewsModule:
 
         let proposal = self.proposals().get(proposal_id);
         let required_minimum_percentage = proposal.minimum_quorum;
-        
+
         let current_quorum = self.get_current_quorum(proposal_id);
         let current_quorum_percentage = current_quorum / total_energy;
 

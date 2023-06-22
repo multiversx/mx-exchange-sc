@@ -226,7 +226,6 @@ pub trait GovernanceV2:
                 self.clear_proposal(proposal_id);
                 self.proposal_canceled_event(proposal_id);
             }
-            GovernanceProposalStatus::Defeated => {}
             _ => {
                 sc_panic!("Action may not be cancelled");
             }
@@ -264,6 +263,16 @@ pub trait GovernanceV2:
                 );
 
                 self.refund_proposal_fee(proposal_id, refund_percentage);
+
+                let proposal_remaining_fees = FULL_PERCENTAGE - refund_percentage;
+                let proposal_payment = proposal.fee_payment;
+                self.proposal_remaining_fees().update(|fees| {
+                    fees.push(EsdtTokenPayment::new(
+                        proposal_payment.token_identifier,
+                        proposal_payment.token_nonce,
+                        proposal_payment.amount * proposal_remaining_fees,
+                    ));
+                });
             }
             _ => {
                 sc_panic!("You may not withdraw funds from this proposal!");
@@ -301,4 +310,8 @@ pub trait GovernanceV2:
             &refund_amount,
         );
     }
+
+    #[storage_mapper("proposalRemainingFees")]
+    fn proposal_remaining_fees(&self)
+        -> SingleValueMapper<ManagedVec<EsdtTokenPayment<Self::Api>>>;
 }
