@@ -62,7 +62,6 @@ pub trait ProposalStorageModule {
     fn clear_proposal(&self, proposal_id: ProposalId) {
         self.proposals().clear_entry(proposal_id);
         self.proposal_start_block(proposal_id).clear();
-        self.proposal_queue_block(proposal_id).clear();
         self.proposal_votes(proposal_id).clear();
     }
 
@@ -72,10 +71,7 @@ pub trait ProposalStorageModule {
     #[storage_mapper("proposalStartBlock")]
     fn proposal_start_block(&self, proposal_id: ProposalId) -> SingleValueMapper<u64>;
 
-    #[storage_mapper("proposalQueueBlock")]
-    fn proposal_queue_block(&self, proposal_id: ProposalId) -> SingleValueMapper<u64>;
-
-    #[storage_mapper("governance:userVotedProposals")]
+    #[storage_mapper("userVotedProposals")]
     fn user_voted_proposals(&self, user: &ManagedAddress) -> UnorderedSetMapper<ProposalId>;
 
     #[view(getProposalVotes)]
