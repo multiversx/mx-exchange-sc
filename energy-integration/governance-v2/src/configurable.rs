@@ -1,3 +1,5 @@
+use crate::BASE_PERCENTAGE;
+
 multiversx_sc::imports!();
 
 /// # MultiversX smart contract module - Governance
@@ -29,8 +31,7 @@ multiversx_sc::imports!();
 ///
 #[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule:
-    energy_query::EnergyQueryModule
-    + permissions_module::PermissionsModule
+    energy_query::EnergyQueryModule + permissions_module::PermissionsModule
 {
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
@@ -38,7 +39,6 @@ pub trait ConfigurablePropertiesModule:
     #[endpoint(changeMinEnergyForProposal)]
     fn change_min_energy_for_propose(&self, new_value: BigUint) {
         self.require_caller_has_owner_or_admin_permissions();
-
 
         self.try_change_min_energy_for_propose(new_value);
     }
@@ -122,12 +122,11 @@ pub trait ConfigurablePropertiesModule:
 
     fn try_change_withdraw_percentage_defeated(&self, new_value: u64) {
         require!(
-            new_value != 0,
+            new_value > 0 && new_value < BASE_PERCENTAGE,
             "Withdraw percentage defeated can't be set to 0"
         );
 
         self.withdraw_percentage_defeated().set(new_value);
-
     }
 
     #[view(getMinEnergyForPropose)]
@@ -161,5 +160,4 @@ pub trait ConfigurablePropertiesModule:
     #[view(getWithdrawPercentageDefeated)]
     #[storage_mapper("witdrawPercentageDefeated")]
     fn withdraw_percentage_defeated(&self) -> SingleValueMapper<u64>;
-
 }
