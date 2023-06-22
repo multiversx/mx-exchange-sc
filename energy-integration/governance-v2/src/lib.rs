@@ -119,7 +119,7 @@ pub trait GovernanceV2:
             TOO_MUCH_GAS
         );
 
-        let quorum = self.quorum().get();
+        let minimum_quorum = self.quorum().get();
         let voting_delay_in_blocks = self.voting_delay_in_blocks().get();
         let voting_period_in_blocks = self.voting_period_in_blocks().get();
         let withdraw_percentage_defeated = self.withdraw_percentage_defeated().get();
@@ -129,7 +129,7 @@ pub trait GovernanceV2:
             description,
             actions: gov_actions,
             fee_payment: user_fee,
-            quorum,
+            minimum_quorum,
             voting_delay_in_blocks,
             voting_period_in_blocks,
             withdraw_percentage_defeated,
@@ -238,7 +238,6 @@ pub trait GovernanceV2:
     #[endpoint]
     fn withdraw_after_defeated(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
-        let refund_percentage = self.withdraw_percentage_defeated().get();
         let caller = self.blockchain().get_caller();
 
         match self.get_proposal_status(proposal_id) {
@@ -257,6 +256,7 @@ pub trait GovernanceV2:
             }
             GovernanceProposalStatus::DefeatedWithVeto => {
                 let proposal = self.proposals().get(proposal_id);
+                let refund_percentage = proposal.withdraw_percentage_defeated;
 
                 require!(
                     caller == proposal.proposer,

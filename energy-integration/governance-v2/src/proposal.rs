@@ -56,7 +56,7 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub actions: ArrayVec<GovernanceAction<M>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,
     pub description: ManagedBuffer<M>,
     pub fee_payment: EsdtTokenPayment<M>,
-    pub quorum: BigUint<M>,
+    pub minimum_quorum: BigUint<M>,
     pub voting_delay_in_blocks: u64,
     pub voting_period_in_blocks: u64,
     pub withdraw_percentage_defeated: u64,

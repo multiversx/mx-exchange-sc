@@ -51,7 +51,9 @@ pub trait ViewsModule:
         let total_down_veto_votes = proposal_votes.down_veto_votes;
         let third_total_votes = &total_votes / 3u64;
         let half_total_votes = &total_votes / 2u64;
-        let quorum = self.quorum().get();
+
+        let proposal = self.proposals().get(proposal_id);
+        let quorum = proposal.minimum_quorum;
 
         if total_down_veto_votes > third_total_votes {
             false
@@ -81,15 +83,17 @@ pub trait ViewsModule:
             .total_energy_for_week(last_global_update_week)
             .execute_on_dest_context();
 
-        let current_quorum = self.get_quorum(proposal_id);
-        let required_minimum_percentage = self.quorum().get();
+        let proposal = self.proposals().get(proposal_id);
+        let required_minimum_percentage = proposal.minimum_quorum;
+        
+        let current_quorum = self.get_current_quorum(proposal_id);
         let current_quorum_percentage = current_quorum / total_energy;
 
         current_quorum_percentage > required_minimum_percentage
     }
 
     #[view(getQuorum)]
-    fn get_quorum(&self, proposal_id: ProposalId) -> BigUint {
+    fn get_current_quorum(&self, proposal_id: ProposalId) -> BigUint {
         if !self.proposal_exists(proposal_id) {
             sc_panic!("Proposal does not exist");
         }
