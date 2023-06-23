@@ -86,7 +86,7 @@ pub trait ConfigurablePropertiesModule:
     fn try_change_quorum(&self, new_value: BigUint) {
         require!(new_value != 0, "Quorum can't be set to 0");
 
-        self.quorum().set(&new_value);
+        self.quorum_percentage().set(&new_value);
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
@@ -122,8 +122,8 @@ pub trait ConfigurablePropertiesModule:
     fn min_fee_for_propose(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getQuorum)]
-    #[storage_mapper("quorum")]
-    fn quorum(&self) -> SingleValueMapper<BigUint>;
+    #[storage_mapper("quorumPercentage")]
+    fn quorum_percentage(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getVotingDelayInBlocks)]
     #[storage_mapper("votingDelayInBlocks")]

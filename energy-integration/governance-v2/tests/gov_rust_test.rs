@@ -118,7 +118,7 @@ fn gov_no_veto_vote_test() {
     gov_setup
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
-            assert_eq!(sc.quorum().get(), managed_biguint!(QUORUM_PERCENTAGE));
+            assert_eq!(sc.quorum_percentage().get(), managed_biguint!(QUORUM_PERCENTAGE));
         })
         .assert_ok();
 

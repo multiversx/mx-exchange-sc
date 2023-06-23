@@ -119,7 +119,7 @@ pub trait GovernanceV2:
             TOO_MUCH_GAS
         );
 
-        let minimum_quorum = self.quorum().get();
+        let minimum_quorum = self.quorum_percentage().get();
         let voting_delay_in_blocks = self.voting_delay_in_blocks().get();
         let voting_period_in_blocks = self.voting_period_in_blocks().get();
         let withdraw_percentage_defeated = self.withdraw_percentage_defeated().get();
