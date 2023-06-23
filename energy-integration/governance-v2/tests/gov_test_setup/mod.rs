@@ -104,7 +104,7 @@ where
             .execute_tx(&owner, &fees_collector_wrapper, &rust_biguint!(0), |sc| {
                 sc.init(
                     managed_token_id!(LOCKED_TOKEN_ID),
-                    managed_address!(&energy_factory_wrapper.address_ref()),
+                    managed_address!(energy_factory_wrapper.address_ref()),
                 );
             })
             .assert_ok();
