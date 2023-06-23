@@ -1,9 +1,13 @@
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
+use fees_collector::FeesCollector;
 use governance_v2::{
     configurable::ConfigurablePropertiesModule, proposal_storage::VoteType, GovernanceV2,
 };
-use multiversx_sc::types::{Address, BigInt, ManagedVec, MultiValueEncoded};
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
+    types::{Address, BigInt, ManagedVec, MultiValueEncoded},
+};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
     whitebox::TxResult,
@@ -11,16 +15,17 @@ use multiversx_sc_scenario::{
     DebugApi,
 };
 
-pub const MIN_ENERGY_FOR_PROPOSE: u64 = 90;
+pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500_000;
 pub const MIN_FEE_FOR_PROPOSE: u64 = 1_000;
-pub const QUORUM: u64 = 5;
+pub const QUORUM_PERCENTAGE: u64 = 5000;
 pub const VOTING_DELAY_BLOCKS: u64 = 10;
 pub const VOTING_PERIOD_BLOCKS: u64 = 20;
 pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
 pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
-pub static WXMEX_TOKEN_ID: &[u8] = b"wXMEX";
+pub static WXMEX_TOKEN_ID: &[u8] = b"wXMEX-123456";
+pub const LOCKED_TOKEN_ID: &[u8] = b"LOCKED-abcdef";
 
-pub const USER_ENERGY: u64 = 100;
+pub const USER_ENERGY: u64 = 1_000_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
 
 #[derive(Clone)]
@@ -62,6 +67,15 @@ where
             energy_factory_mock::contract_obj,
             "energy factory path",
         );
+
+        // init fees collector
+        let fees_collector_wrapper = b_mock.create_sc_account(
+            &rust_biguint!(0),
+            None,
+            fees_collector::contract_obj,
+            "fees collector path",
+        );
+
         b_mock
             .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 sc.init();
@@ -79,11 +93,53 @@ where
                     ));
                 sc.user_energy(&managed_address!(&third_user))
                     .set(&Energy::new(
-                        BigInt::from(managed_biguint!(USER_ENERGY + 21u64)),
+                        BigInt::from(managed_biguint!(USER_ENERGY + 210_000)),
                         0,
                         managed_biguint!(0),
                     ));
             })
+            .assert_ok();
+
+        b_mock
+            .execute_tx(&owner, &fees_collector_wrapper, &rust_biguint!(0), |sc| {
+                sc.init(
+                    managed_token_id!(LOCKED_TOKEN_ID),
+                    managed_address!(&energy_factory_wrapper.address_ref()),
+                );
+            })
+            .assert_ok();
+
+        b_mock
+            .execute_tx(
+                &first_user,
+                &fees_collector_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.claim_rewards(OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
+        b_mock
+            .execute_tx(
+                &second_user,
+                &fees_collector_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.claim_rewards(OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
+        b_mock
+            .execute_tx(
+                &third_user,
+                &fees_collector_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.claim_rewards(OptionalValue::None);
+                },
+            )
             .assert_ok();
 
         // init governance sc
@@ -95,11 +151,12 @@ where
                 sc.init(
                     managed_biguint!(MIN_ENERGY_FOR_PROPOSE),
                     managed_biguint!(MIN_FEE_FOR_PROPOSE),
-                    managed_biguint!(QUORUM),
+                    managed_biguint!(QUORUM_PERCENTAGE),
                     VOTING_DELAY_BLOCKS,
                     VOTING_PERIOD_BLOCKS,
                     WITHDRAW_PERCENTAGE,
                     managed_address!(energy_factory_wrapper.address_ref()),
+                    managed_address!(fees_collector_wrapper.address_ref()),
                 );
             })
             .assert_ok();
@@ -110,8 +167,6 @@ where
             })
             .assert_ok();
 
-        b_mock.set_block_nonce(10);
-
         Self {
             b_mock,
             owner,
@@ -119,7 +174,7 @@ where
             second_user,
             third_user,
             gov_wrapper,
-            current_block: 10,
+            current_block: 0,
         }
     }
 
@@ -199,11 +254,6 @@ where
 
     pub fn increment_block_nonce(&mut self, inc_amount: u64) {
         self.current_block += inc_amount;
-        self.b_mock.set_block_nonce(self.current_block);
-    }
-
-    pub fn set_block_nonce(&mut self, block_nonce: u64) {
-        self.current_block = block_nonce;
         self.b_mock.set_block_nonce(self.current_block);
     }
 }

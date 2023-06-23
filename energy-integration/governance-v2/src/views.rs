@@ -1,7 +1,10 @@
 multiversx_sc::imports!();
 
-use crate::proposal::{
-    GovernanceAction, GovernanceProposalStatus, ProposalId, MAX_GOVERNANCE_PROPOSAL_ACTIONS,
+use crate::{
+    proposal::{
+        GovernanceAction, GovernanceProposalStatus, ProposalId, MAX_GOVERNANCE_PROPOSAL_ACTIONS,
+    },
+    FULL_PERCENTAGE,
 };
 
 use weekly_rewards_splitting::{events::Week, global_info::ProxyTrait as _};
@@ -52,13 +55,10 @@ pub trait ViewsModule:
         let third_total_votes = &total_votes / 3u64;
         let half_total_votes = &total_votes / 2u64;
 
-        let proposal = self.proposals().get(proposal_id);
-        let quorum = proposal.minimum_quorum;
-
         if total_down_veto_votes > third_total_votes {
             false
         } else {
-            total_votes >= quorum && total_up_votes > half_total_votes
+            total_up_votes > half_total_votes
         }
     }
 
@@ -87,7 +87,8 @@ pub trait ViewsModule:
         let required_minimum_percentage = proposal.minimum_quorum;
 
         let current_quorum = self.get_current_quorum(proposal_id);
-        let current_quorum_percentage = current_quorum / total_energy;
+        let current_quorum_percentage =
+            current_quorum.clone() * FULL_PERCENTAGE / total_energy.clone();
 
         current_quorum_percentage > required_minimum_percentage
     }

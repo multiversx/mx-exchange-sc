@@ -43,7 +43,7 @@ pub trait GovernanceV2:
         &self,
         min_energy_for_propose: BigUint,
         min_fee_for_propose: BigUint,
-        quorum: BigUint,
+        quorum_percentage: BigUint,
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
         withdraw_percentage_defeated: u64,
@@ -52,7 +52,7 @@ pub trait GovernanceV2:
     ) {
         self.try_change_min_energy_for_propose(min_energy_for_propose);
         self.try_change_min_fee_for_propose(min_fee_for_propose);
-        self.try_change_quorum(quorum);
+        self.try_change_quorum(quorum_percentage);
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
         self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
