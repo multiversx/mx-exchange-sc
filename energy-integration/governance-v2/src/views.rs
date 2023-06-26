@@ -93,7 +93,7 @@ pub trait ViewsModule:
         current_quorum_percentage > required_minimum_percentage
     }
 
-    #[view(getQuorum)]
+    #[view(getCurrentQuorum)]
     fn get_current_quorum(&self, proposal_id: ProposalId) -> BigUint {
         if !self.proposal_exists(proposal_id) {
             sc_panic!("Proposal does not exist");
