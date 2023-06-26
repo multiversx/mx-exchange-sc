@@ -40,6 +40,8 @@ pub trait ViewsModule:
 
         if self.quorum_reached(proposal_id) && self.vote_reached(proposal_id) {
             GovernanceProposalStatus::Succeeded
+        } else if !self.quorum_reached(proposal_id) {
+            GovernanceProposalStatus::DefeatedNoQuorum
         } else if self.vote_down_with_veto(proposal_id) {
             GovernanceProposalStatus::DefeatedWithVeto
         } else {
@@ -87,8 +89,7 @@ pub trait ViewsModule:
         let required_minimum_percentage = proposal.minimum_quorum;
 
         let current_quorum = self.get_current_quorum(proposal_id);
-        let current_quorum_percentage =
-            current_quorum * FULL_PERCENTAGE / total_energy;
+        let current_quorum_percentage = current_quorum * FULL_PERCENTAGE / total_energy;
 
         current_quorum_percentage > required_minimum_percentage
     }
