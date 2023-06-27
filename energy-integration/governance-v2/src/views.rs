@@ -23,8 +23,10 @@ pub trait ViewsModule:
 
         let current_block = self.blockchain().get_block_nonce();
         let proposal_block = self.proposal_start_block(proposal_id).get();
-        let voting_delay = self.voting_delay_in_blocks().get();
-        let voting_period = self.voting_period_in_blocks().get();
+        let proposal = self.proposals().get(proposal_id);
+
+        let voting_delay = proposal.voting_delay_in_blocks;
+        let voting_period = proposal.voting_period_in_blocks;
 
         let voting_start = proposal_block + voting_delay;
         let voting_end = voting_start + voting_period;
