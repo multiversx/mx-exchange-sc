@@ -249,7 +249,7 @@ pub trait GovernanceV2:
     /// When a proposal was defeated, the proposer can withdraw
     /// a part of the FEE.
     #[endpoint]
-    fn withdraw_after_defeated(&self, proposal_id: ProposalId) {
+    fn withdraw_deposit(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
         let caller = self.blockchain().get_caller();
 
