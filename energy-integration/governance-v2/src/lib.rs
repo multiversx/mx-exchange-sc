@@ -12,6 +12,8 @@ pub mod views;
 
 use proposal::*;
 use proposal_storage::VoteType;
+use weekly_rewards_splitting::events::Week;
+use weekly_rewards_splitting::global_info::ProxyTrait as _;
 
 use crate::errors::*;
 use crate::proposal_storage::ProposalVotes;
@@ -124,6 +126,17 @@ pub trait GovernanceV2:
         let voting_period_in_blocks = self.voting_period_in_blocks().get();
         let withdraw_percentage_defeated = self.withdraw_percentage_defeated().get();
 
+        let fees_collector_addr = self.fees_collector_address().get();
+        let last_global_update_week: Week = self
+            .fees_collector_proxy(fees_collector_addr.clone())
+            .last_global_update_week()
+            .execute_on_dest_context();
+
+        let total_energy: BigUint = self
+            .fees_collector_proxy(fees_collector_addr)
+            .total_energy_for_week(last_global_update_week)
+            .execute_on_dest_context();
+
         let proposal = GovernanceProposal {
             proposer: proposer.clone(),
             description,
@@ -133,6 +146,7 @@ pub trait GovernanceV2:
             voting_delay_in_blocks,
             voting_period_in_blocks,
             withdraw_percentage_defeated,
+            total_energy,
         };
         let proposal_id = self.proposals().push(&proposal);
 

@@ -7,8 +7,6 @@ use crate::{
     FULL_PERCENTAGE,
 };
 
-use weekly_rewards_splitting::{events::Week, global_info::ProxyTrait as _};
-
 #[multiversx_sc::module]
 pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
@@ -74,22 +72,13 @@ pub trait ViewsModule:
     }
 
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
-        let fees_collector_addr = self.fees_collector_address().get();
-        let last_global_update_week: Week = self
-            .fees_collector_proxy(fees_collector_addr.clone())
-            .last_global_update_week()
-            .execute_on_dest_context();
-
-        let total_energy: BigUint = self
-            .fees_collector_proxy(fees_collector_addr)
-            .total_energy_for_week(last_global_update_week)
-            .execute_on_dest_context();
-
         let proposal = self.proposals().get(proposal_id);
+        let total_energy_for_proposal = proposal.total_energy;
+
         let required_minimum_percentage = proposal.minimum_quorum;
 
         let current_quorum = self.get_current_quorum(proposal_id);
-        let current_quorum_percentage = current_quorum * FULL_PERCENTAGE / total_energy;
+        let current_quorum_percentage = current_quorum * FULL_PERCENTAGE / total_energy_for_proposal;
 
         current_quorum_percentage > required_minimum_percentage
     }
