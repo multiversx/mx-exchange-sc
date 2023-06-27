@@ -142,7 +142,11 @@ where
 
     b_mock
         .execute_tx(user_addr, &pair_wrapper, &rust_biguint!(0), |sc| {
-            sc.get_lp_tokens_safe_price_by_round_offset(1, managed_biguint!(1_000_000_000));
+            sc.get_lp_tokens_safe_price_by_round_offset(
+                managed_address!(pair_wrapper.address_ref()),
+                1,
+                managed_biguint!(1_000_000_000),
+            );
         })
         .assert_ok();
 

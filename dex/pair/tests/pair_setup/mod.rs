@@ -248,7 +248,10 @@ where
     ) {
         self.b_mock
             .execute_query(&self.pair_wrapper, |sc| {
-                let price_observation = sc.get_price_observation_view(search_round);
+                let price_observation = sc.get_price_observation_view(
+                    managed_address!(self.pair_wrapper.address_ref()),
+                    search_round,
+                );
                 assert_eq!(price_observation.weight_accumulated, weight_accumulated);
                 assert_eq!(
                     price_observation.first_token_reserve_accumulated,
@@ -277,7 +280,12 @@ where
                 0,
                 managed_biguint!(payment_token_amount),
             );
-            let expected_payment = sc.get_safe_price(start_round, end_round, input_payment);
+            let expected_payment = sc.get_safe_price(
+                managed_address!(self.pair_wrapper.address_ref()),
+                start_round,
+                end_round,
+                input_payment,
+            );
             assert_eq!(
                 expected_payment.token_identifier,
                 managed_token_id!(expected_token_id)
