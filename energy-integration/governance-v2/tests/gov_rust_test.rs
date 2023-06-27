@@ -235,7 +235,7 @@ fn gov_no_quorum_test() {
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
             assert!(
-                sc.get_proposal_status(1) == GovernanceProposalStatus::DefeatedNoQuorum,
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
                 "Action should have been Defeated"
             );
         })
@@ -279,14 +279,14 @@ fn gov_modify_quorum_after_end_vote_test() {
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
             assert!(
-                sc.get_proposal_status(1) == GovernanceProposalStatus::DefeatedNoQuorum,
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
                 "Action should have been Defeated"
             );
             sc.try_change_quorum(managed_biguint!(QUORUM_PERCENTAGE / 2));
             assert!(sc.quorum_percentage().get() == managed_biguint!(QUORUM_PERCENTAGE / 2));
 
             assert!(
-                sc.get_proposal_status(1) == GovernanceProposalStatus::DefeatedNoQuorum,
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
                 "Action should have been Defeated"
             );
         })

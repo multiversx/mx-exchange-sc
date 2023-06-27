@@ -40,8 +40,6 @@ pub trait ViewsModule:
 
         if self.quorum_reached(proposal_id) && self.vote_reached(proposal_id) {
             GovernanceProposalStatus::Succeeded
-        } else if !self.quorum_reached(proposal_id) {
-            GovernanceProposalStatus::DefeatedNoQuorum
         } else if self.vote_down_with_veto(proposal_id) {
             GovernanceProposalStatus::DefeatedWithVeto
         } else {

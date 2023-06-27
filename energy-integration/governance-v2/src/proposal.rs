@@ -14,7 +14,6 @@ pub enum GovernanceProposalStatus {
     Pending,
     Active,
     Defeated,
-    DefeatedNoQuorum,
     DefeatedWithVeto,
     Succeeded,
 }
