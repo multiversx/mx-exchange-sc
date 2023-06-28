@@ -608,7 +608,7 @@ fn test_safe_price_linear_interpolation() {
 // The safe price from the first pair is read from the second pair
 // The purpose of this test is to see if values are returned from the correct contract
 #[test]
-fn test_safe_price_from_other_contract() {
+fn test_both_legacy_and_new_safe_price_from_other_contract() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let payment_amount = 1000;
@@ -719,6 +719,15 @@ fn test_safe_price_from_other_contract() {
         &pair_address,
         starting_round + 1,
         block_round,
+        WEGLD_TOKEN_ID,
+        first_token_payment_amount,
+        MEX_TOKEN_ID,
+        expected_token_payment_amount,
+    );
+
+    // Check legacy endpoint
+    // Should be the same as the result from the new get_safe_price view
+    pair_setup.check_safe_price_from_legacy_endpoint(
         WEGLD_TOKEN_ID,
         first_token_payment_amount,
         MEX_TOKEN_ID,
