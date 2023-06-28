@@ -29,6 +29,16 @@ multiversx_sc::imports!();
 /// Please note that although the main contract can modify the module's storage directly, it is not recommended to do so,
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
 ///
+
+const MIN_VOTING_DELAY: u64 = 1;
+const MAX_VOTING_DELAY: u64 = 100_800; // 1 Week
+const MIN_VOTING_PERIOD: u64 = 14_400; // 24 Hours
+const MAX_VOTING_PERIOD: u64 = 201_600; // 2 Weeks
+const MIN_QUORUM: u64 = 1_000; // 10%
+const MAX_QUORUM: u64 = 6_000; // 60%
+const MIN_MIN_FEE_FOR_PROPOSE: u64 = 2_000_000;
+const MAX_MIN_FEE_FOR_PROPOSE: u64 = 1_000_000_000_000;
+
 #[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule:
     energy_query::EnergyQueryModule + permissions_module::PermissionsModule
@@ -78,14 +88,17 @@ pub trait ConfigurablePropertiesModule:
     }
 
     fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
-        require!(new_value != 0, "Min fee for proposal can't be set to 0");
+        require!(
+            new_value > MIN_MIN_FEE_FOR_PROPOSE && new_value < MAX_MIN_FEE_FOR_PROPOSE,
+            "Min fee for proposal can't be set to 0"
+        );
 
         self.min_fee_for_propose().set(&new_value);
     }
 
     fn try_change_quorum(&self, new_value: BigUint) {
         require!(
-            new_value > 0 && new_value < FULL_PERCENTAGE,
+            new_value > MIN_QUORUM && new_value < MAX_QUORUM,
             "Quorum can't be set to 0"
         );
 
@@ -93,14 +106,17 @@ pub trait ConfigurablePropertiesModule:
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
-        require!(new_value != 0, "Voting delay in blocks can't be set to 0");
+        require!(
+            new_value > MIN_VOTING_DELAY && new_value < MAX_VOTING_DELAY,
+            "Voting delay in blocks can't be set to 0"
+        );
 
         self.voting_delay_in_blocks().set(new_value);
     }
 
     fn try_change_voting_period_in_blocks(&self, new_value: u64) {
         require!(
-            new_value != 0,
+            new_value > MIN_VOTING_PERIOD && new_value < MAX_VOTING_PERIOD,
             "Voting period (in blocks) can't be set to 0"
         );
 
