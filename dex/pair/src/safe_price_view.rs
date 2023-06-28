@@ -254,6 +254,16 @@ pub trait SafePriceViewModule:
         let second_token_id = self.second_token_id().get_from_address(&pair_address);
         let price_observations = self.price_observations();
 
+        let oldest_price_observation = self.get_oldest_price_observation(
+            &pair_address,
+            safe_price_current_index,
+            &price_observations,
+        );
+        require!(
+            oldest_price_observation.recording_round <= search_round,
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
+
         self.get_price_observation(
             &pair_address,
             &first_token_id,
