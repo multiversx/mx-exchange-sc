@@ -125,17 +125,7 @@ pub trait GovernanceV2:
         let voting_delay_in_blocks = self.voting_delay_in_blocks().get();
         let voting_period_in_blocks = self.voting_period_in_blocks().get();
         let withdraw_percentage_defeated = self.withdraw_percentage_defeated().get();
-
-        let fees_collector_addr = self.fees_collector_address().get();
-        let last_global_update_week: Week = self
-            .fees_collector_proxy(fees_collector_addr.clone())
-            .last_global_update_week()
-            .execute_on_dest_context();
-
-        let total_energy: BigUint = self
-            .fees_collector_proxy(fees_collector_addr)
-            .total_energy_for_week(last_global_update_week)
-            .execute_on_dest_context();
+        let current_block = self.blockchain().get_block_nonce();
 
         let proposal = GovernanceProposal {
             proposer: proposer.clone(),
@@ -146,23 +136,13 @@ pub trait GovernanceV2:
             voting_delay_in_blocks,
             voting_period_in_blocks,
             withdraw_percentage_defeated,
-            total_energy,
+            total_energy: BigUint::zero(),
+            proposal_start_block: current_block,
         };
         let proposal_id = self.proposals().push(&proposal);
 
-        let proposer_voting_power = user_energy.sqrt();
-        let proposal_votes = ProposalVotes {
-            up_votes: proposer_voting_power.clone(),
-            quorum: user_energy,
-            ..Default::default()
-        };
-
-        self.proposal_votes(proposal_id).set(proposal_votes);
-        self.up_vote_cast_event(&proposer, proposal_id, &proposer_voting_power);
-
-        let current_block = self.blockchain().get_block_nonce();
-        self.proposal_start_block(proposal_id).set(current_block);
-
+        self.proposal_votes(proposal_id)
+            .set(ProposalVotes::default());
         self.proposal_created_event(proposal_id, &proposer, current_block, &proposal);
 
         proposal_id
@@ -181,6 +161,26 @@ pub trait GovernanceV2:
         let voter = self.blockchain().get_caller();
         let new_user = self.user_voted_proposals(&voter).insert(proposal_id);
         require!(new_user, ALREADY_VOTED_ERR_MSG);
+
+        let current_quorum = self.proposal_votes(proposal_id).get().quorum;
+
+        // First voter -> update total_energy
+        if current_quorum == BigUint::zero() {
+            let fees_collector_addr = self.fees_collector_address().get();
+            let last_global_update_week: Week = self
+                .fees_collector_proxy(fees_collector_addr.clone())
+                .last_global_update_week()
+                .execute_on_dest_context();
+
+            let total_energy: BigUint = self
+                .fees_collector_proxy(fees_collector_addr)
+                .total_energy_for_week(last_global_update_week)
+                .execute_on_dest_context();
+
+            let mut proposal = self.proposals().get(proposal_id);
+            proposal.total_energy = total_energy;
+            self.proposals().set(proposal_id, &proposal);
+        }
 
         let user_energy = self.get_energy_amount_non_zero(&voter);
         let voting_power = user_energy.sqrt();
@@ -248,8 +248,8 @@ pub trait GovernanceV2:
 
     /// When a proposal was defeated, the proposer can withdraw
     /// a part of the FEE.
-    #[endpoint]
-    fn withdraw_after_defeated(&self, proposal_id: ProposalId) {
+    #[endpoint(withdrawDeposit)]
+    fn withdraw_deposit(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
         let caller = self.blockchain().get_caller();
 
@@ -270,7 +270,8 @@ pub trait GovernanceV2:
             GovernanceProposalStatus::DefeatedWithVeto => {
                 let proposal = self.proposals().get(proposal_id);
                 let refund_percentage = BigUint::from(proposal.withdraw_percentage_defeated);
-                let refund_amount = refund_percentage * proposal.fee_payment.amount.clone() / FULL_PERCENTAGE;
+                let refund_amount =
+                    refund_percentage * proposal.fee_payment.amount.clone() / FULL_PERCENTAGE;
 
                 require!(
                     caller == proposal.proposer,

@@ -61,15 +61,11 @@ impl<M: ManagedTypeApi> ProposalVotes<M> {
 pub trait ProposalStorageModule {
     fn clear_proposal(&self, proposal_id: ProposalId) {
         self.proposals().clear_entry(proposal_id);
-        self.proposal_start_block(proposal_id).clear();
         self.proposal_votes(proposal_id).clear();
     }
 
     #[storage_mapper("proposals")]
     fn proposals(&self) -> VecMapper<GovernanceProposal<Self::Api>>;
-
-    #[storage_mapper("proposalStartBlock")]
-    fn proposal_start_block(&self, proposal_id: ProposalId) -> SingleValueMapper<u64>;
 
     #[storage_mapper("userVotedProposals")]
     fn user_voted_proposals(&self, user: &ManagedAddress) -> UnorderedSetMapper<ProposalId>;

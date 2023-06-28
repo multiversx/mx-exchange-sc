@@ -248,7 +248,7 @@ where
     pub fn withdraw_after_defeated(&mut self, caller: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.withdraw_after_defeated(proposal_id);
+                sc.withdraw_deposit(proposal_id);
             })
     }
 

@@ -61,4 +61,5 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub voting_period_in_blocks: u64,
     pub withdraw_percentage_defeated: u64,
     pub total_energy: BigUint<M>,
+    pub proposal_start_block: u64,
 }

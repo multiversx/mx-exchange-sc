@@ -84,7 +84,10 @@ pub trait ConfigurablePropertiesModule:
     }
 
     fn try_change_quorum(&self, new_value: BigUint) {
-        require!(new_value > 0 && new_value < FULL_PERCENTAGE, "Quorum can't be set to 0");
+        require!(
+            new_value > 0 && new_value < FULL_PERCENTAGE,
+            "Quorum can't be set to 0"
+        );
 
         self.quorum_percentage().set(&new_value);
     }

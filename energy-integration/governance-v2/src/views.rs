@@ -22,8 +22,8 @@ pub trait ViewsModule:
         }
 
         let current_block = self.blockchain().get_block_nonce();
-        let proposal_block = self.proposal_start_block(proposal_id).get();
         let proposal = self.proposals().get(proposal_id);
+        let proposal_block = proposal.proposal_start_block;
 
         let voting_delay = proposal.voting_delay_in_blocks;
         let voting_period = proposal.voting_period_in_blocks;
@@ -78,7 +78,8 @@ pub trait ViewsModule:
         let required_minimum_percentage = proposal.minimum_quorum;
 
         let current_quorum = self.get_current_quorum(proposal_id);
-        let current_quorum_percentage = current_quorum * FULL_PERCENTAGE / total_energy_for_proposal;
+        let current_quorum_percentage =
+            current_quorum * FULL_PERCENTAGE / total_energy_for_proposal;
 
         current_quorum_percentage > required_minimum_percentage
     }
