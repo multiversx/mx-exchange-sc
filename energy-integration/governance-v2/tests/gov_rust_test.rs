@@ -102,7 +102,7 @@ fn gov_no_veto_vote_test() {
         &first_user_addr,
         WXMEX_TOKEN_ID,
         1,
-        &rust_biguint!(1_000),
+        &rust_biguint!(MIN_FEE_FOR_PROPOSE),
         &Empty,
     );
 

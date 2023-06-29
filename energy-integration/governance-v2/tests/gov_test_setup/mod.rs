@@ -16,10 +16,10 @@ use multiversx_sc_scenario::{
 };
 
 pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500_000;
-pub const MIN_FEE_FOR_PROPOSE: u64 = 1_000;
+pub const MIN_FEE_FOR_PROPOSE: u64 = 3_000_000;
 pub const QUORUM_PERCENTAGE: u64 = 5000;
 pub const VOTING_DELAY_BLOCKS: u64 = 10;
-pub const VOTING_PERIOD_BLOCKS: u64 = 20;
+pub const VOTING_PERIOD_BLOCKS: u64 = 14_500;
 pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
 pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
 pub static WXMEX_TOKEN_ID: &[u8] = b"wXMEX-123456";

@@ -90,7 +90,7 @@ pub trait ConfigurablePropertiesModule:
     fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
         require!(
             new_value > MIN_MIN_FEE_FOR_PROPOSE && new_value < MAX_MIN_FEE_FOR_PROPOSE,
-            "Min fee for proposal can't be set to 0"
+            "Not valid value for min fee!"
         );
 
         self.min_fee_for_propose().set(&new_value);
@@ -99,7 +99,7 @@ pub trait ConfigurablePropertiesModule:
     fn try_change_quorum(&self, new_value: BigUint) {
         require!(
             new_value > MIN_QUORUM && new_value < MAX_QUORUM,
-            "Quorum can't be set to 0"
+            "Not valid value for Quorum!"
         );
 
         self.quorum_percentage().set(&new_value);
@@ -108,7 +108,7 @@ pub trait ConfigurablePropertiesModule:
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
         require!(
             new_value > MIN_VOTING_DELAY && new_value < MAX_VOTING_DELAY,
-            "Voting delay in blocks can't be set to 0"
+            "Not valid value for voting delay!"
         );
 
         self.voting_delay_in_blocks().set(new_value);
@@ -117,7 +117,7 @@ pub trait ConfigurablePropertiesModule:
     fn try_change_voting_period_in_blocks(&self, new_value: u64) {
         require!(
             new_value > MIN_VOTING_PERIOD && new_value < MAX_VOTING_PERIOD,
-            "Voting period (in blocks) can't be set to 0"
+            "Not valid value for voting period!"
         );
 
         self.voting_period_in_blocks().set(new_value);
@@ -126,7 +126,7 @@ pub trait ConfigurablePropertiesModule:
     fn try_change_withdraw_percentage_defeated(&self, new_value: u64) {
         require!(
             new_value > 0 && new_value < FULL_PERCENTAGE,
-            "Withdraw percentage defeated can't be set to 0"
+            "Not valid value for withdraw percentage if defeated!"
         );
 
         self.withdraw_percentage_defeated().set(new_value);
