@@ -322,6 +322,7 @@ where
             .assert_ok();
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn check_safe_price(
         &mut self,
         pair_address: &Address,
@@ -355,6 +356,7 @@ where
         });
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn check_safe_price_from_second_pair(
         &mut self,
         pair_address: &Address,

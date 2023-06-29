@@ -923,7 +923,7 @@ fn test_locked_asset() {
         .b_mock
         .execute_tx(
             &pair_setup.owner_address,
-            &mut pair_setup.pair_wrapper,
+            &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
                 sc.set_locking_sc_address(managed_address!(locking_sc_wrapper.address_ref()));
@@ -937,7 +937,7 @@ fn test_locked_asset() {
         .b_mock
         .execute_esdt_transfer(
             &pair_setup.user_address,
-            &mut pair_setup.pair_wrapper,
+            &pair_setup.pair_wrapper,
             MEX_TOKEN_ID,
             0,
             &rust_biguint!(1_000),
@@ -1358,7 +1358,7 @@ fn fees_collector_pair_test() {
         .b_mock
         .execute_tx(
             &pair_setup.owner_address,
-            &mut pair_setup.pair_wrapper,
+            &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
                 sc.setup_fees_collector(
