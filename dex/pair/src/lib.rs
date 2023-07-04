@@ -85,7 +85,7 @@ pub trait Pair<ContractReader>:
             None
         };
         self.initial_liquidity_adder()
-            .set(&initial_liquidity_adder_opt);
+            .set_if_empty(&initial_liquidity_adder_opt);
 
         if admins.is_empty() {
             // backwards compatibility
