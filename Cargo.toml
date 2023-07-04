@@ -5,6 +5,8 @@ members = [
   "dex/farm/meta",
   "dex/farm-with-locked-rewards",
   "dex/farm-with-locked-rewards/meta",
+  "dex/liquidity-book",
+  "dex/liquidity-book/meta",
   "dex/pair",
   "dex/pair/meta",
   "dex/router",
