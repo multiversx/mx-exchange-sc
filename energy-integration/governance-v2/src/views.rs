@@ -81,7 +81,7 @@ pub trait ViewsModule:
         let current_quorum_percentage =
             current_quorum * FULL_PERCENTAGE / total_energy_for_proposal;
 
-        current_quorum_percentage > required_minimum_percentage
+        current_quorum_percentage >= required_minimum_percentage
     }
 
     #[view(getCurrentQuorum)]

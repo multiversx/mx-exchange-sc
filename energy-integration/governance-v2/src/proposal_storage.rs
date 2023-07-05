@@ -64,9 +64,11 @@ pub trait ProposalStorageModule {
         self.proposal_votes(proposal_id).clear();
     }
 
+    #[view(getProposals)]
     #[storage_mapper("proposals")]
     fn proposals(&self) -> VecMapper<GovernanceProposal<Self::Api>>;
 
+    #[view(getUserVotedProposals)]
     #[storage_mapper("userVotedProposals")]
     fn user_voted_proposals(&self, user: &ManagedAddress) -> UnorderedSetMapper<ProposalId>;
 
