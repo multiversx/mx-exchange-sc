@@ -44,6 +44,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "common-types"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+]
+
+[[package]]
 name = "common_errors"
 version = "0.0.0"
 dependencies = [
@@ -92,6 +99,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "fees-collector"
+version = "0.0.0"
+dependencies = [
+ "common-types",
+ "common_errors",
+ "energy-factory",
+ "energy-query",
+ "locking_module",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "sc_whitelist_module",
+ "simple-lock",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
 name = "fixed-supply-token"
 version = "0.0.0"
 dependencies = [
@@ -103,7 +128,10 @@ name = "governance-v2"
 version = "0.0.0"
 dependencies = [
  "energy-query",
+ "fees-collector",
  "multiversx-sc",
+ "permissions_module",
+ "weekly-rewards-splitting",
 ]
 
 [[package]]
@@ -149,6 +177,15 @@ name = "libc"
 version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
+
+[[package]]
+name = "locking_module"
+version = "0.0.0"
+dependencies = [
+ "energy-factory",
+ "multiversx-sc",
+ "simple-lock",
+]
 
 [[package]]
 name = "math"
@@ -264,6 +301,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
 
 [[package]]
+name = "permissions_module"
+version = "0.0.0"
+dependencies = [
+ "bitflags",
+ "common_errors",
+ "multiversx-sc",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -364,6 +410,26 @@ dependencies = [
  "libc",
  "memory_units",
  "winapi",
+]
+
+[[package]]
+name = "week-timekeeping"
+version = "0.0.0"
+dependencies = [
+ "common-types",
+ "multiversx-sc",
+]
+
+[[package]]
+name = "weekly-rewards-splitting"
+version = "0.0.0"
+dependencies = [
+ "common-types",
+ "energy-query",
+ "math",
+ "multiversx-sc",
+ "unwrappable",
+ "week-timekeeping",
 ]
 
 [[package]]
