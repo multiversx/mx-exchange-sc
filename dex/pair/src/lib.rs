@@ -12,6 +12,7 @@ pub mod fee;
 mod liquidity_pool;
 pub mod locking_wrapper;
 pub mod safe_price;
+pub mod safe_price_view;
 
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
@@ -43,6 +44,7 @@ pub trait Pair<ContractReader>:
     + token_send::TokenSendModule
     + events::EventsModule
     + safe_price::SafePriceModule
+    + safe_price_view::SafePriceViewModule
     + contexts::output_builder::OutputBuilderModule
     + locking_wrapper::LockingWrapperModule
     + permissions_module::PermissionsModule
@@ -77,14 +79,13 @@ pub trait Pair<ContractReader>:
         self.router_address().set(&router_address);
         self.first_token_id().set_if_empty(&first_token_id);
         self.second_token_id().set_if_empty(&second_token_id);
-
         let initial_liquidity_adder_opt = if !initial_liquidity_adder.is_zero() {
             Some(initial_liquidity_adder)
         } else {
             None
         };
         self.initial_liquidity_adder()
-            .set(&initial_liquidity_adder_opt);
+            .set_if_empty(&initial_liquidity_adder_opt);
 
         if admins.is_empty() {
             // backwards compatibility
@@ -130,11 +131,6 @@ pub trait Pair<ContractReader>:
         require!(
             storage_cache.lp_token_supply == 0,
             ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED
-        );
-
-        self.update_safe_state(
-            &storage_cache.first_token_reserve,
-            &storage_cache.second_token_reserve,
         );
 
         let first_token_optimal_amount = &first_payment.amount;
@@ -207,7 +203,7 @@ pub trait Pair<ContractReader>:
             ERROR_INITIAL_LIQUIDITY_NOT_ADDED
         );
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -287,7 +283,7 @@ pub trait Pair<ContractReader>:
             ERROR_BAD_PAYMENT_TOKENS
         );
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -341,7 +337,7 @@ pub trait Pair<ContractReader>:
             ERROR_BAD_PAYMENT_TOKENS
         );
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -392,7 +388,7 @@ pub trait Pair<ContractReader>:
             ERROR_SWAP_NOT_ENABLED
         );
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -455,7 +451,7 @@ pub trait Pair<ContractReader>:
         let reserve_out = storage_cache.get_mut_reserve_out(swap_tokens_order);
         require!(*reserve_out > amount_out_min, ERROR_NOT_ENOUGH_RESERVE);
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -519,7 +515,7 @@ pub trait Pair<ContractReader>:
         let reserve_out = storage_cache.get_mut_reserve_out(swap_tokens_order);
         require!(*reserve_out > amount_out, ERROR_NOT_ENOUGH_RESERVE);
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );

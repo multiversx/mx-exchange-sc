@@ -17,7 +17,7 @@ use multiversx_sc_scenario::{
     whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
-use pair::{config::ConfigModule as OtherConfigModule, safe_price::SafePriceModule, Pair};
+use pair::{config::ConfigModule as OtherConfigModule, Pair};
 use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
 use sc_whitelist_module::SCWhitelistModule;
@@ -253,7 +253,6 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(State::Active);
-            sc.set_max_observations_per_record(10);
         })
         .assert_ok();
 
