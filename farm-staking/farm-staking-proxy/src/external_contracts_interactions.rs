@@ -8,7 +8,7 @@ use farm_staking::{
     claim_stake_farm_rewards::ProxyTrait as _, stake_farm::ProxyTrait as _,
     unstake_farm::ProxyTrait as _,
 };
-use pair::safe_price::ProxyTrait as _;
+use pair::safe_price_view::ProxyTrait as _;
 
 use crate::result_types::*;
 use pair::RemoveLiquidityResultType;

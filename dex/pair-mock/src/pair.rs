@@ -120,8 +120,8 @@ pub trait PairMock {
             .into()
     }
 
-    #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
-    fn update_and_get_tokens_for_given_position_with_safe_price(
+    #[endpoint(getTokensForGivenPositionWithSafePrice)]
+    fn get_tokens_for_given_position_with_safe_price(
         &self,
         liquidity: BigUint,
     ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
