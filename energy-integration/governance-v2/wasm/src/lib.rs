@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           27
+// Endpoints:                           31
 // Async Callback (empty):               1
-// Total number of exported functions:  29
+// Total number of exported functions:  33
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -20,31 +20,35 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         propose
         vote
-        queue
-        execute
         cancel
+        withdrawDeposit
         changeMinEnergyForProposal
         changeMinFeeForProposal
         changeQuorum
         changeVotingDelayInBlocks
         changeVotingPeriodInBlocks
-        changeLockTimeAfterVotingEndsInBlocks
         getMinEnergyForPropose
         getMinFeeForPropose
         getQuorum
         getVotingDelayInBlocks
         getVotingPeriodInBlocks
-        getLockTimeAfterVotingEndsInBlocks
         getFeeTokenId
+        getWithdrawPercentageDefeated
+        getProposals
+        getUserVotedProposals
         getProposalVotes
-        depositTokensForProposal
-        claimDepositedTokens
         getProposalStatus
+        getCurrentQuorum
         getProposer
         getProposalDescription
         getProposalActions
+        getFeesCollectorAddress
         setEnergyFactoryAddress
         getEnergyFactoryAddress
+        addAdmin
+        removeAdmin
+        updateOwnerOrAdmin
+        getPermissions
     )
 }
 
