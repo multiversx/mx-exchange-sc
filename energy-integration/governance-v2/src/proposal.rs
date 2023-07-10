@@ -14,40 +14,8 @@ pub enum GovernanceProposalStatus {
     Pending,
     Active,
     Defeated,
+    DefeatedWithVeto,
     Succeeded,
-    Queued,
-    WaitingForFees,
-}
-#[derive(
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    ManagedVecItem,
-    TypeAbi,
-    PartialEq,
-    Debug,
-    Clone,
-)]
-pub struct ProposalFees<M: ManagedTypeApi> {
-    pub total_amount: BigUint<M>,
-    pub entries: ManagedVec<M, FeeEntry<M>>,
-}
-
-#[derive(
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    ManagedVecItem,
-    TypeAbi,
-    PartialEq,
-    Debug,
-    Clone,
-)]
-pub struct FeeEntry<M: ManagedTypeApi> {
-    pub depositor_addr: ManagedAddress<M>,
-    pub tokens: EsdtTokenPayment<M>,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
@@ -87,5 +55,11 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub proposer: ManagedAddress<M>,
     pub actions: ArrayVec<GovernanceAction<M>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,
     pub description: ManagedBuffer<M>,
-    pub fees: ProposalFees<M>,
+    pub fee_payment: EsdtTokenPayment<M>,
+    pub minimum_quorum: BigUint<M>,
+    pub voting_delay_in_blocks: u64,
+    pub voting_period_in_blocks: u64,
+    pub withdraw_percentage_defeated: u64,
+    pub total_energy: BigUint<M>,
+    pub proposal_start_block: u64,
 }
