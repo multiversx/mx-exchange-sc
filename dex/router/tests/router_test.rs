@@ -81,7 +81,7 @@ fn test_router_upgrade_pair() {
         .assert_ok();
 
     let pair_wrapper =
-        b_mock.prepare_deploy_from_sc(&router_wrapper.address_ref(), pair::contract_obj);
+        b_mock.prepare_deploy_from_sc(router_wrapper.address_ref(), pair::contract_obj);
 
     b_mock
         .execute_tx(&owner, &router_wrapper, &rust_zero, |sc| {
