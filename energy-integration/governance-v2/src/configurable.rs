@@ -1,4 +1,4 @@
-use crate::FULL_PERCENTAGE;
+use crate::{FULL_PERCENTAGE, errors::ERROR_NOT_AN_ESDT};
 
 multiversx_sc::imports!();
 
@@ -130,6 +130,14 @@ pub trait ConfigurablePropertiesModule:
         );
 
         self.withdraw_percentage_defeated().set(new_value);
+    }
+
+    fn try_change_fee_token_id(&self, fee_token_id: TokenIdentifier) {
+        require!(
+            fee_token_id.is_valid_esdt_identifier(),
+            ERROR_NOT_AN_ESDT
+        );
+        self.fee_token_id().set_if_empty(&fee_token_id);
     }
 
     #[view(getMinEnergyForPropose)]

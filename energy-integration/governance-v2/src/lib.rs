@@ -51,6 +51,7 @@ pub trait GovernanceV2:
         withdraw_percentage_defeated: u64,
         energy_factory_address: ManagedAddress,
         fees_collector_address: ManagedAddress,
+        fee_token: TokenIdentifier,
     ) {
         self.try_change_min_energy_for_propose(min_energy_for_propose);
         self.try_change_min_fee_for_propose(min_fee_for_propose);
@@ -60,6 +61,7 @@ pub trait GovernanceV2:
         self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
         self.set_energy_factory_address(energy_factory_address);
         self.fees_collector_address().set(&fees_collector_address);
+        self.try_change_fee_token_id(fee_token);
     }
 
     /// Propose a list of actions.
@@ -75,6 +77,7 @@ pub trait GovernanceV2:
     /// The proposer's energy is NOT automatically used for voting. A separate vote is needed.
     ///
     /// Returns the ID of the newly created proposal.
+    #[payable("*")]
     #[endpoint]
     fn propose(
         &self,
