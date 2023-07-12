@@ -22,7 +22,7 @@ pub const VOTING_DELAY_BLOCKS: u64 = 10;
 pub const VOTING_PERIOD_BLOCKS: u64 = 14_500;
 pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
 pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
-pub static WXMEX_TOKEN_ID: &[u8] = b"wXMEX-123456";
+pub static WXMEX_TOKEN_ID: &[u8] = b"WXMEX-123456";
 pub const LOCKED_TOKEN_ID: &[u8] = b"LOCKED-abcdef";
 
 pub const USER_ENERGY: u64 = 1_000_000;
@@ -157,6 +157,7 @@ where
                     WITHDRAW_PERCENTAGE,
                     managed_address!(energy_factory_wrapper.address_ref()),
                     managed_address!(fees_collector_wrapper.address_ref()),
+                    managed_token_id!(WXMEX_TOKEN_ID),
                 );
             })
             .assert_ok();
