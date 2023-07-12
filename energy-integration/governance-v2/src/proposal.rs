@@ -52,6 +52,7 @@ impl<M: ManagedTypeApi> From<GovernanceActionAsMultiArg<M>> for GovernanceAction
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub struct GovernanceProposal<M: ManagedTypeApi> {
+    pub proposal_id: usize,
     pub proposer: ManagedAddress<M>,
     pub actions: ArrayVec<GovernanceAction<M>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,
     pub description: ManagedBuffer<M>,
