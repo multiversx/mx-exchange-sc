@@ -130,9 +130,8 @@ pub trait GovernanceV2:
         let withdraw_percentage_defeated = self.withdraw_percentage_defeated().get();
         let current_block = self.blockchain().get_block_nonce();
 
-        let proposal_id = self.proposals().len();
         let proposal = GovernanceProposal {
-            proposal_id,
+            proposal_id: self.proposals().len() + 1,
             proposer: proposer.clone(),
             description,
             actions: gov_actions,
