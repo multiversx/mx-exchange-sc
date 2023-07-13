@@ -32,12 +32,12 @@ pub trait TickModule:
             .magnitude();
         pool_state.virtual_liquidity += tick_liquidity;
 
-        // self.ticks(pool_state.current_tick).update(|tick| {
-        //     tick.first_token_accumulated_fee =
-        //         &pool_state.first_token_accumulated_fee - &tick.first_token_accumulated_fee;
-        //     tick.second_token_accumulated_fee =
-        //         &pool_state.second_token_accumulated_fee - &tick.second_token_accumulated_fee;
-        // });
+        self.ticks(pool_state.current_tick).update(|tick| {
+            tick.first_token_accumulated_fee =
+                &pool_state.global_first_token_accumulated_fee - &tick.first_token_accumulated_fee;
+            tick.second_token_accumulated_fee = &pool_state.global_second_token_accumulated_fee
+                - &tick.second_token_accumulated_fee;
+        });
     }
 
     fn cross_tick_downwards(
@@ -51,14 +51,15 @@ pub trait TickModule:
             .get()
             .delta_liquidity_cross_up
             .magnitude();
-        pool_state.virtual_liquidity += tick_liquidity;
+        // TODO - check decrementation
+        pool_state.virtual_liquidity -= tick_liquidity;
 
-        // self.ticks(pool_state.current_tick).update(|tick| {
-        //     tick.first_token_accumulated_fee =
-        //         &pool_state.first_token_accumulated_fee - &tick.first_token_accumulated_fee;
-        //     tick.second_token_accumulated_fee =
-        //         &pool_state.second_token_accumulated_fee - &tick.second_token_accumulated_fee;
-        // });
+        self.ticks(pool_state.current_tick).update(|tick| {
+            tick.first_token_accumulated_fee =
+                &pool_state.global_first_token_accumulated_fee - &tick.first_token_accumulated_fee;
+            tick.second_token_accumulated_fee = &pool_state.global_second_token_accumulated_fee
+                - &tick.second_token_accumulated_fee;
+        });
 
         pool_state.current_tick = next_tick;
         pool_state.current_tick_node_id = next_tick_node_id;
@@ -84,7 +85,9 @@ pub trait TickModule:
         tick_mapper
     }
 
-    fn uninitialize_tick(&self, tick: i32) {
-        self.ticks(tick).clear();
+    fn uninitialize_tick_if_needed(&self, tick_mapper: SingleValueMapper<Tick<Self::Api>>) {
+        if tick_mapper.get().delta_liquidity_cross_up == 0 {
+            tick_mapper.clear();
+        }
     }
 }

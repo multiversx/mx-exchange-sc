@@ -16,8 +16,8 @@ pub struct PoolState<M: ManagedTypeApi> {
     pub price_increase_per_tick: BigUint<M>,
     pub sqrt_price: BigUint<M>,
     pub virtual_liquidity: BigUint<M>,
-    pub first_token_accumulated_fee: BigUint<M>,
-    pub second_token_accumulated_fee: BigUint<M>,
+    pub global_first_token_accumulated_fee: BigUint<M>,
+    pub global_second_token_accumulated_fee: BigUint<M>,
     pub swap_fee_percentage: u64,
 }
 
@@ -30,8 +30,8 @@ impl<M: ManagedTypeApi> Default for PoolState<M> {
             price_increase_per_tick: BigUint::zero(),
             sqrt_price: BigUint::zero(),
             virtual_liquidity: BigUint::zero(),
-            first_token_accumulated_fee: BigUint::zero(),
-            second_token_accumulated_fee: BigUint::zero(),
+            global_first_token_accumulated_fee: BigUint::zero(),
+            global_second_token_accumulated_fee: BigUint::zero(),
             swap_fee_percentage: 0u64,
         }
     }
@@ -52,8 +52,8 @@ impl<M: ManagedTypeApi> PoolState<M> {
             price_increase_per_tick,
             sqrt_price,
             virtual_liquidity: BigUint::zero(),
-            first_token_accumulated_fee: BigUint::zero(),
-            second_token_accumulated_fee: BigUint::zero(),
+            global_first_token_accumulated_fee: BigUint::zero(),
+            global_second_token_accumulated_fee: BigUint::zero(),
             swap_fee_percentage,
         }
     }

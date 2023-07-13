@@ -30,9 +30,9 @@ pub trait FeesModule:
             first_token_total_fee_above_max_tick = tick_max_data.first_token_accumulated_fee;
             second_token_total_fee_above_max_tick = tick_max_data.second_token_accumulated_fee;
         } else {
-            first_token_total_fee_above_max_tick = &pool_state.first_token_accumulated_fee
+            first_token_total_fee_above_max_tick = &pool_state.global_first_token_accumulated_fee
                 - &tick_max_data.first_token_accumulated_fee;
-            second_token_total_fee_above_max_tick = &pool_state.second_token_accumulated_fee
+            second_token_total_fee_above_max_tick = &pool_state.global_second_token_accumulated_fee
                 - &tick_max_data.second_token_accumulated_fee;
         };
 
@@ -40,16 +40,16 @@ pub trait FeesModule:
             first_token_total_fee_below_min_tick = tick_min_data.first_token_accumulated_fee;
             second_token_total_fee_below_min_tick = tick_min_data.second_token_accumulated_fee;
         } else {
-            first_token_total_fee_below_min_tick = &pool_state.first_token_accumulated_fee
+            first_token_total_fee_below_min_tick = &pool_state.global_first_token_accumulated_fee
                 - &tick_min_data.first_token_accumulated_fee;
-            second_token_total_fee_below_min_tick = &pool_state.second_token_accumulated_fee
+            second_token_total_fee_below_min_tick = &pool_state.global_second_token_accumulated_fee
                 - &tick_min_data.second_token_accumulated_fee;
         }
 
-        let first_token_total_fees = &pool_state.first_token_accumulated_fee
+        let first_token_total_fees = &pool_state.global_first_token_accumulated_fee
             - &first_token_total_fee_above_max_tick
             - &first_token_total_fee_below_min_tick;
-        let second_token_total_fees = &pool_state.second_token_accumulated_fee
+        let second_token_total_fees = &pool_state.global_second_token_accumulated_fee
             - &second_token_total_fee_above_max_tick
             - &second_token_total_fee_below_min_tick;
 

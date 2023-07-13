@@ -246,7 +246,7 @@ pub trait LiquidityBook:
         };
 
         let first_token_actual_amount = self.compute_first_token_amount(
-            &payment.amount, // TODO - pool_state.virtual_liquidity?
+            &payment.amount,
             &current_price,
             &max_price,
             &scaling_factor,
@@ -259,21 +259,15 @@ pub trait LiquidityBook:
             &scaling_factor,
         );
 
-        // As the ticks values are updated only on addLiquidity & removeLiquidity,
-        // the storage mappers should always be initialized
         let tick_min_mapper = self.get_tick_mapper(token_attributes.tick_min);
         let tick_max_mapper = self.get_tick_mapper(token_attributes.tick_max);
         tick_min_mapper.update(|tick| {
             tick.delta_liquidity_cross_up -= BigInt::from(payment.amount.clone());
-            if tick.delta_liquidity_cross_up == 0 {
-                // self.uninitialize_tick(token_attributes.tick_min); // TODO - compute_fees
-            }
+            if tick.delta_liquidity_cross_up == 0 {}
         });
         tick_max_mapper.update(|tick| {
             tick.delta_liquidity_cross_up += BigInt::from(payment.amount.clone());
-            if tick.delta_liquidity_cross_up == 0 {
-                // self.uninitialize_tick(token_attributes.tick_min); // TODO - compute_fees
-            }
+            if tick.delta_liquidity_cross_up == 0 {}
         });
         if target_price == &current_price {
             pool_state.virtual_liquidity -= payment.amount.clone();
@@ -284,8 +278,8 @@ pub trait LiquidityBook:
             &current_price,
             &min_price,
             &max_price,
-            tick_min_mapper.get(), // TODO
-            tick_max_mapper.get(), // TODO
+            tick_min_mapper.get(),
+            tick_max_mapper.get(),
             &pool_state,
         );
         let first_token_user_fees = &payment.amount
@@ -293,7 +287,15 @@ pub trait LiquidityBook:
         let second_token_user_fees = &payment.amount
             * &(second_token_total_fees - token_attributes.second_token_accumulated_fee);
 
+        let first_token_actual_user_fees =
+            &first_token_user_fees * &pool_state.virtual_liquidity / &scaling_factor;
+
+        let second_token_actual_user_fees =
+            &second_token_user_fees * &pool_state.virtual_liquidity / &scaling_factor;
+
         self.burn_lp_tokens(payment.token_nonce, &payment.amount);
+        self.uninitialize_tick_if_needed(tick_min_mapper);
+        self.uninitialize_tick_if_needed(tick_max_mapper);
         self.pool_state().set(pool_state);
 
         let first_token_id = self.first_token_id().get();
@@ -304,9 +306,9 @@ pub trait LiquidityBook:
         let second_token_payment =
             EsdtTokenPayment::new(second_token_id.clone(), 0, second_token_actual_amount);
         let first_token_fee_payment =
-            EsdtTokenPayment::new(first_token_id, 0, first_token_user_fees);
+            EsdtTokenPayment::new(first_token_id, 0, first_token_actual_user_fees);
         let second_token_fee_payment =
-            EsdtTokenPayment::new(second_token_id, 0, second_token_user_fees);
+            EsdtTokenPayment::new(second_token_id, 0, second_token_actual_user_fees);
 
         output_payments.push(first_token_payment.clone());
         output_payments.push(second_token_payment.clone());
@@ -340,6 +342,8 @@ pub trait LiquidityBook:
         let scaling_factor = self.get_scaling_factor();
         let pool_state_mapper = self.pool_state();
         let mut pool_state = pool_state_mapper.get();
+
+        require!(pool_state.virtual_liquidity > 0, ERROR_NOT_ENOUGH_LP);
         let mut amount_left_to_swap = payment.amount;
         let mut user_output_amount = BigUint::zero();
 
@@ -362,26 +366,29 @@ pub trait LiquidityBook:
                 .get_value_cloned();
             let next_sqrt_price = self.tick_to_sqrtp(next_tick);
             let current_price = &pool_state.sqrt_price;
-
+            let amount_left_to_swap_without_fees = amount_left_to_swap.clone()
+                * (MAX_PERCENTAGE - pool_state.swap_fee_percentage)
+                / MAX_PERCENTAGE;
             let target_price = if first_for_second {
                 // (virtual_liquidity * q96 * current_sqrt_price) / (virtual_liquidity * q96 + amount_in * current_sqrt_price)
                 let computed_price =
                     (&pool_state.virtual_liquidity * &scaling_factor * current_price)
                         / (&pool_state.virtual_liquidity * &scaling_factor
-                            + &amount_left_to_swap * current_price);
+                            + &amount_left_to_swap_without_fees * current_price);
 
                 if computed_price < next_sqrt_price {
-                    next_sqrt_price
+                    next_sqrt_price.clone()
                 } else {
                     computed_price
                 }
             } else {
                 // current_price + (amount_in * q96) / virtual_liquidity
                 let computed_price = current_price
-                    + &(&amount_left_to_swap * &scaling_factor / &pool_state.virtual_liquidity);
+                    + &(&amount_left_to_swap_without_fees * &scaling_factor
+                        / &pool_state.virtual_liquidity);
 
                 if computed_price > next_sqrt_price {
-                    next_sqrt_price
+                    next_sqrt_price.clone()
                 } else {
                     computed_price
                 }
@@ -408,18 +415,31 @@ pub trait LiquidityBook:
             };
 
             // Compute fee
-            let swap_fee = &output_token * pool_state.swap_fee_percentage / MAX_PERCENTAGE;
-            let tick_mapper = self.get_tick_mapper(pool_state.current_tick);
-            tick_mapper.update(|tick| {
-                // TODO - divide by virtual_liquidity?
-                tick.first_token_accumulated_fee += &swap_fee; // / virtual_liquidity
-            });
+            let fee_amount = if next_sqrt_price == target_price {
+                let mut computed_fee_amount = &input_token * pool_state.swap_fee_percentage
+                    / (MAX_PERCENTAGE - pool_state.swap_fee_percentage);
+
+                // Round up only if it doesn't overflow
+                if &computed_fee_amount + &input_token < amount_left_to_swap {
+                    computed_fee_amount += BigUint::from(1u64);
+                }
+
+                computed_fee_amount
+            } else {
+                &amount_left_to_swap - &input_token
+            };
+
+            let computed_global_fee = &fee_amount * &scaling_factor / &pool_state.virtual_liquidity;
+            if first_for_second {
+                pool_state.global_first_token_accumulated_fee += computed_global_fee;
+            } else {
+                pool_state.global_second_token_accumulated_fee += computed_global_fee;
+            }
 
             // Compute amounts
             user_output_amount += output_token;
-            user_output_amount -= swap_fee;
-            // user_output_amount += amount_to_receive;
             amount_left_to_swap -= input_token;
+            amount_left_to_swap -= fee_amount;
 
             pool_state.sqrt_price = target_price;
             if amount_left_to_swap > 0 {

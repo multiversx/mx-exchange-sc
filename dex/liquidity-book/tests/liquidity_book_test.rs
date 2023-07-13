@@ -61,14 +61,13 @@ fn test_swap_inside_same_tick() {
     );
 
     let swap_input_amount = 42 * PRICE_DECIMALS as u128;
-    let swap_expected_output_amount = 8396714242162445u128;
-    let swap_fee_expected_amount = 25190142726487u128;
+    let swap_expected_output_amount = 8371533923304958u128;
     pair_setup.swap_tokens(
         &user,
         MEX_TOKEN_ID,
         swap_input_amount,
         WEGLD_TOKEN_ID,
-        swap_expected_output_amount - swap_fee_expected_amount,
+        swap_expected_output_amount,
     );
 }
 
@@ -106,14 +105,13 @@ fn test_swap_inside_same_tick_with_deeper_liquidity() {
     );
 
     let swap_input_amount = 42 * PRICE_DECIMALS as u128;
-    let swap_expected_output_amount = 8398356799702754u128;
-    let swap_fee_expected_amount = 25195070399108u128;
+    let swap_expected_output_amount = 8373166643157188u128;
     pair_setup.swap_tokens(
         &user,
         MEX_TOKEN_ID,
         swap_input_amount,
         WEGLD_TOKEN_ID,
-        swap_expected_output_amount - swap_fee_expected_amount, //8373161729303646
+        swap_expected_output_amount,
     );
 }
 
@@ -155,7 +153,7 @@ fn test_swap_consecutive_price_ranges() {
     );
 
     let swap_input_amount = 10_000 * PRICE_DECIMALS as u128;
-    let swap_expected_output_amount = 1844378376909598763;
+    let swap_expected_output_amount = 1844657258351933308u128;
     pair_setup.swap_tokens(
         &user,
         MEX_TOKEN_ID,
@@ -204,7 +202,7 @@ fn test_swap_consecutive_price_ranges_reverse_direction() {
     );
 
     let swap_input_amount = 2 * PRICE_DECIMALS as u128;
-    let swap_expected_output_amount = 9120263498059170314152u128;
+    let swap_expected_output_amount = 9122596036527986328574u128;
     pair_setup.swap_tokens(
         &user,
         WEGLD_TOKEN_ID,
