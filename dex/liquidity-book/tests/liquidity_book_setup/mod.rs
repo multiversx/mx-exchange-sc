@@ -79,6 +79,7 @@ where
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn add_liquidity(
         &mut self,
         user_address: &Address,
@@ -236,70 +237,4 @@ where
         );
         user_addr
     }
-
-    // pub fn swap_fixed_output(
-    //     &mut self,
-    //     payment_token_id: &[u8],
-    //     payment_amount_max: u64,
-    //     desired_token_id: &[u8],
-    //     desired_amount: u64,
-    //     payment_expected_back_amount: u64,
-    // ) {
-    //     let initial_payment_token_balance =
-    //         self.b_mock
-    //             .get_esdt_balance(&self.user_address, payment_token_id, 0);
-    //     let initial_desired_token_balance =
-    //         self.b_mock
-    //             .get_esdt_balance(&self.user_address, desired_token_id, 0);
-
-    //     let mut payment_token_swap_amount = rust_biguint!(0);
-    //     let mut desired_token_swap_amount = rust_biguint!(0);
-
-    //     self.b_mock
-    //         .execute_esdt_transfer(
-    //             &self.user_address,
-    //             &self.liquidity_book_wrapper,
-    //             payment_token_id,
-    //             0,
-    //             &rust_biguint!(payment_amount_max),
-    //             |sc| {
-    //                 let ret = sc.swap_tokens_fixed_output(
-    //                     managed_token_id!(desired_token_id),
-    //                     managed_biguint!(desired_amount),
-    //                 );
-
-    //                 let (desired_token_output, payment_token_residuum) = ret.into_tuple();
-    //                 payment_token_swap_amount = num_bigint::BigUint::from_bytes_be(
-    //                     payment_token_residuum.amount.to_bytes_be().as_slice(),
-    //                 );
-    //                 desired_token_swap_amount = num_bigint::BigUint::from_bytes_be(
-    //                     desired_token_output.amount.to_bytes_be().as_slice(),
-    //                 );
-
-    //                 assert_eq!(
-    //                     payment_token_residuum.amount,
-    //                     managed_biguint!(payment_expected_back_amount)
-    //                 );
-    //             },
-    //         )
-    //         .assert_ok();
-
-    //     let final_payment_token_balance =
-    //         self.b_mock
-    //             .get_esdt_balance(&self.user_address, payment_token_id, 0);
-    //     let final_desired_token_balance =
-    //         self.b_mock
-    //             .get_esdt_balance(&self.user_address, desired_token_id, 0);
-
-    //     assert_eq!(
-    //         final_payment_token_balance,
-    //         initial_payment_token_balance - &rust_biguint!(payment_amount_max)
-    //             + payment_token_swap_amount
-    //     );
-
-    //     assert_eq!(
-    //         final_desired_token_balance,
-    //         initial_desired_token_balance + desired_token_swap_amount
-    //     );
-    // }
 }

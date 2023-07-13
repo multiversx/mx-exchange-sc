@@ -24,11 +24,9 @@ pub type RemoveLiquidityResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 pub const MAX_PERCENTAGE: u64 = 10_000;
-pub const PRICE_DECIMALS_SIGNED: i64 = 1_000_000_000_000_000_000;
 pub const PRICE_DECIMALS: u64 = 1_000_000_000_000_000_000;
 pub const PRICE_INCREASE_PER_TICK: i32 = 10_001;
 pub const PRICE_SCALING_FACTOR: i32 = 10_000;
-pub const TICK_INCREASE_LOG_CONST: i32 = 69_314;
 pub const MIN_TICK: i32 = -887272;
 pub const MAX_TICK: i32 = -MIN_TICK;
 

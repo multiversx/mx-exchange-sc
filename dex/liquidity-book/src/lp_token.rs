@@ -39,12 +39,10 @@ pub trait LpTokenModule:
         amount: BigUint,
         attributes: &T,
     ) -> EsdtTokenPayment<Self::Api> {
-        // self.lp_token_supply().update(|x| *x += &amount);
         self.lp_token().nft_create(amount, attributes)
     }
 
     fn burn_lp_tokens(&self, nonce: u64, amount: &BigUint) {
-        // self.lp_token_supply().update(|x| *x -= amount);
         self.lp_token().nft_burn(nonce, amount)
     }
 
@@ -55,8 +53,4 @@ pub trait LpTokenModule:
     #[view(getLpTokenId)]
     #[storage_mapper("lp_token_id")]
     fn lp_token(&self) -> NonFungibleTokenMapper;
-
-    #[view(getLpTokenSupply)]
-    #[storage_mapper("lp_token_supply")]
-    fn lp_token_supply(&self) -> SingleValueMapper<BigUint>;
 }

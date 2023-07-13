@@ -43,7 +43,7 @@ fn test_swap_inside_same_tick() {
     let deploy_price = 5000 * PRICE_DECIMALS as u128;
     let mut pair_setup = LiquidityBookSetup::new(deploy_price, liquidity_book::contract_obj);
     let user = pair_setup.setup_user(USER_TOTAL_WEGLD_TOKENS, USER_TOTAL_MEX_TOKENS);
-    let first_token_amount = 1 * PRICE_DECIMALS as u128;
+    let first_token_amount = PRICE_DECIMALS as u128;
     let first_token_dust = 1023381652573612u128;
     let second_token_amount = 5_000 * PRICE_DECIMALS as u128;
     let second_token_dust = 2u128;
@@ -76,7 +76,7 @@ fn test_swap_inside_same_tick_with_deeper_liquidity() {
     let deploy_price = 5000 * PRICE_DECIMALS as u128;
     let mut pair_setup = LiquidityBookSetup::new(deploy_price, liquidity_book::contract_obj);
     let user = pair_setup.setup_user(USER_TOTAL_WEGLD_TOKENS, USER_TOTAL_MEX_TOKENS);
-    let first_token_amount = 1 * PRICE_DECIMALS as u128;
+    let first_token_amount = PRICE_DECIMALS as u128;
     let first_token_dust = 1023381652573612u128;
     let second_token_amount = 5_000 * PRICE_DECIMALS as u128;
     let second_token_dust = 2u128;
@@ -96,11 +96,11 @@ fn test_swap_inside_same_tick_with_deeper_liquidity() {
         &user,
         4545 * PRICE_DECIMALS as u128, //tick - 84222, // price - 4545
         5500 * PRICE_DECIMALS as u128, //tick - 86129, // price - 5500
-        first_token_amount.clone(),
-        second_token_amount.clone(),
+        first_token_amount,
+        second_token_amount,
         2,
-        expected_lp_amount.clone(),
-        first_token_dust.clone(),
+        expected_lp_amount,
+        first_token_dust,
         second_token_dust,
     );
 
@@ -120,7 +120,7 @@ fn test_swap_consecutive_price_ranges() {
     let deploy_price = 5000 * PRICE_DECIMALS as u128;
     let mut pair_setup = LiquidityBookSetup::new(deploy_price, liquidity_book::contract_obj);
     let user = pair_setup.setup_user(USER_TOTAL_WEGLD_TOKENS, USER_TOTAL_MEX_TOKENS);
-    let first_token_amount = 1 * PRICE_DECIMALS as u128;
+    let first_token_amount = PRICE_DECIMALS as u128;
     let first_token_dust = 1023381652573612u128;
     let second_token_amount = 5_000 * PRICE_DECIMALS as u128;
     let second_token_dust = 2u128;
@@ -168,7 +168,7 @@ fn test_swap_consecutive_price_ranges_reverse_direction() {
     let mut pair_setup =
         LiquidityBookSetup::new(5000 * PRICE_DECIMALS as u128, liquidity_book::contract_obj);
     let user = pair_setup.setup_user(USER_TOTAL_WEGLD_TOKENS, USER_TOTAL_MEX_TOKENS);
-    let first_token_amount = 1 * PRICE_DECIMALS as u128;
+    let first_token_amount = PRICE_DECIMALS as u128;
     let first_token_dust = 1023381652573612u128;
     let second_token_amount = 5_000 * PRICE_DECIMALS as u128;
     let second_token_dust = 2u128;
