@@ -69,6 +69,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "either"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
+
+[[package]]
 name = "endian-type"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -124,25 +130,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "governance-v2"
-version = "0.0.0"
-dependencies = [
- "energy-query",
- "fees-collector",
- "multiversx-sc",
- "permissions_module",
- "weekly-rewards-splitting",
-]
-
-[[package]]
-name = "governance-v2-wasm"
-version = "0.0.0"
-dependencies = [
- "governance-v2",
- "multiversx-sc-wasm-adapter",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -164,6 +151,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
 
 [[package]]
+name = "itertools"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "legacy_token_decode_module"
 version = "0.0.0"
 dependencies = [
@@ -174,9 +170,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.139"
+version = "0.2.144"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
+checksum = "2b00cc1c228a6782d0f076e7b232802e0c5689d41bb5df366f2a6b6621cfdfe1"
 
 [[package]]
 name = "locking_module"
@@ -296,9 +292,32 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.17.0"
+version = "1.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
+checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
+
+[[package]]
+name = "pair"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "fees-collector",
+ "itertools",
+ "multiversx-sc",
+ "pausable",
+ "permissions_module",
+ "simple-lock",
+ "token_send",
+]
+
+[[package]]
+name = "pausable"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "permissions_module",
+]
 
 [[package]]
 name = "permissions_module"
@@ -311,18 +330,18 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.50"
+version = "1.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ef7d57beacfaf2d8aee5937dab7b7f28de3cb8b1828479bb5de2a7106f2bae2"
+checksum = "2b63bdb0cd06f1f4dedf69b254734f9b45af66e4a031e42a7480257d9898b435"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.23"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8856d8364d252a14d474036ea1358d63c9e6965c8e5c1885c18f73d70bff9c7b"
+checksum = "8f4f29d145265ec1c483c7c654450edde0bfe043d3938d6972630663356d9500"
 dependencies = [
  "proc-macro2",
 ]
@@ -335,6 +354,14 @@ checksum = "c069c179fcdc6a2fe24d8d18305cf085fdbd4f922c041943e203685d6a1c58fd"
 dependencies = [
  "endian-type",
  "nibble_vec",
+]
+
+[[package]]
+name = "safe-price-view-wasm"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-wasm-adapter",
+ "pair",
 ]
 
 [[package]]
@@ -362,9 +389,9 @@ checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 
 [[package]]
 name = "syn"
-version = "1.0.107"
+version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f4064b5b16e03ae50984a5a8ed5d4f8803e6bc1fd170a3cda91a1be4b18e3f5"
+checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -372,10 +399,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "token_send"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "multiversx-sc",
+]
+
+[[package]]
 name = "unicode-ident"
-version = "1.0.6"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84a22b9f218b40614adcb3f4ff08b703773ad44fa9423e4e0d346d5db86e4ebc"
+checksum = "e5464a87b239f13a63a501f2701565754bae92d243d4bb7eb12f6d57d2269bf4"
 
 [[package]]
 name = "unwrappable"

@@ -1,10 +1,13 @@
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
-use governance_v2::gov_fees::GovFeesModule;
+use fees_collector::FeesCollector;
 use governance_v2::{
     configurable::ConfigurablePropertiesModule, proposal_storage::VoteType, GovernanceV2,
 };
-use multiversx_sc::types::{Address, BigInt, ManagedVec, MultiValueEncoded};
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
+    types::{Address, BigInt, ManagedVec, MultiValueEncoded},
+};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
     whitebox::TxResult,
@@ -12,15 +15,17 @@ use multiversx_sc_scenario::{
     DebugApi,
 };
 
-pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500;
-pub const MIN_FEE_FOR_PROPOSE: u64 = 1_000;
-pub const QUORUM: u64 = 1_500;
+pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500_000;
+pub const MIN_FEE_FOR_PROPOSE: u64 = 3_000_000;
+pub const QUORUM_PERCENTAGE: u64 = 5000;
 pub const VOTING_DELAY_BLOCKS: u64 = 10;
-pub const VOTING_PERIOD_BLOCKS: u64 = 20;
+pub const VOTING_PERIOD_BLOCKS: u64 = 14_500;
 pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
-pub static LKMEX_TOKEN_ID: &[u8] = b"LKMEX-123456";
+pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
+pub static WXMEX_TOKEN_ID: &[u8] = b"WXMEX-123456";
+pub const LOCKED_TOKEN_ID: &[u8] = b"LOCKED-abcdef";
 
-pub const USER_ENERGY: u64 = 1_000;
+pub const USER_ENERGY: u64 = 1_000_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
 
 #[derive(Clone)]
@@ -62,6 +67,15 @@ where
             energy_factory_mock::contract_obj,
             "energy factory path",
         );
+
+        // init fees collector
+        let fees_collector_wrapper = b_mock.create_sc_account(
+            &rust_biguint!(0),
+            None,
+            fees_collector::contract_obj,
+            "fees collector path",
+        );
+
         b_mock
             .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 sc.init();
@@ -79,11 +93,53 @@ where
                     ));
                 sc.user_energy(&managed_address!(&third_user))
                     .set(&Energy::new(
-                        BigInt::from(managed_biguint!(USER_ENERGY + 1u64)),
+                        BigInt::from(managed_biguint!(USER_ENERGY + 210_000)),
                         0,
                         managed_biguint!(0),
                     ));
             })
+            .assert_ok();
+
+        b_mock
+            .execute_tx(&owner, &fees_collector_wrapper, &rust_biguint!(0), |sc| {
+                sc.init(
+                    managed_token_id!(LOCKED_TOKEN_ID),
+                    managed_address!(energy_factory_wrapper.address_ref()),
+                );
+            })
+            .assert_ok();
+
+        b_mock
+            .execute_tx(
+                &first_user,
+                &fees_collector_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.claim_rewards(OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
+        b_mock
+            .execute_tx(
+                &second_user,
+                &fees_collector_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.claim_rewards(OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
+        b_mock
+            .execute_tx(
+                &third_user,
+                &fees_collector_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.claim_rewards(OptionalValue::None);
+                },
+            )
             .assert_ok();
 
         // init governance sc
@@ -95,22 +151,22 @@ where
                 sc.init(
                     managed_biguint!(MIN_ENERGY_FOR_PROPOSE),
                     managed_biguint!(MIN_FEE_FOR_PROPOSE),
-                    managed_biguint!(QUORUM),
+                    managed_biguint!(QUORUM_PERCENTAGE),
                     VOTING_DELAY_BLOCKS,
                     VOTING_PERIOD_BLOCKS,
-                    LOCKING_PERIOD_BLOCKS,
+                    WITHDRAW_PERCENTAGE,
                     managed_address!(energy_factory_wrapper.address_ref()),
+                    managed_address!(fees_collector_wrapper.address_ref()),
+                    managed_token_id!(WXMEX_TOKEN_ID),
                 );
             })
             .assert_ok();
 
         b_mock
             .execute_tx(&owner, &gov_wrapper, &rust_zero, |sc| {
-                sc.fee_token_id().set(managed_token_id!(LKMEX_TOKEN_ID));
+                sc.fee_token_id().set(managed_token_id!(WXMEX_TOKEN_ID));
             })
             .assert_ok();
-
-        b_mock.set_block_nonce(10);
 
         Self {
             b_mock,
@@ -119,7 +175,7 @@ where
             second_user,
             third_user,
             gov_wrapper,
-            current_block: 10,
+            current_block: 0,
         }
     }
 
@@ -135,7 +191,7 @@ where
         let result = self.b_mock.execute_esdt_transfer(
             proposer,
             &self.gov_wrapper,
-            LKMEX_TOKEN_ID,
+            WXMEX_TOKEN_ID,
             1u64,
             &rust_biguint!(fee_amount),
             |sc| {
@@ -155,7 +211,7 @@ where
                         .into(),
                 );
 
-                proposal_id = sc.propose(managed_buffer!(b"change quorum"), actions);
+                proposal_id = sc.propose(managed_buffer!(b"changeTODO"), actions);
             },
         );
 
@@ -190,67 +246,15 @@ where
             })
     }
 
-    pub fn queue(&mut self, proposal_id: usize) -> TxResult {
-        self.b_mock.execute_tx(
-            &self.first_user,
-            &self.gov_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                sc.queue(proposal_id);
-            },
-        )
-    }
-
-    pub fn execute(&mut self, proposal_id: usize) -> TxResult {
-        self.b_mock.execute_tx(
-            &self.first_user,
-            &self.gov_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                sc.execute(proposal_id);
-            },
-        )
-    }
-
-    pub fn cancel(&mut self, caller: &Address, proposal_id: usize) -> TxResult {
+    pub fn withdraw_after_defeated(&mut self, caller: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.cancel(proposal_id);
-            })
-    }
-
-    pub fn deposit_tokens(
-        &mut self,
-        caller: &Address,
-        amount: u64,
-        proposal_id: usize,
-    ) -> TxResult {
-        self.b_mock.execute_esdt_transfer(
-            caller,
-            &self.gov_wrapper,
-            LKMEX_TOKEN_ID,
-            1u64,
-            &rust_biguint!(amount),
-            |sc| {
-                sc.deposit_tokens_for_proposal(proposal_id);
-            },
-        )
-    }
-
-    pub fn claim_deposited_tokens(&mut self, caller: &Address, proposal_id: usize) -> TxResult {
-        self.b_mock
-            .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.claim_deposited_tokens(proposal_id);
+                sc.withdraw_deposit(proposal_id);
             })
     }
 
     pub fn increment_block_nonce(&mut self, inc_amount: u64) {
         self.current_block += inc_amount;
-        self.b_mock.set_block_nonce(self.current_block);
-    }
-
-    pub fn set_block_nonce(&mut self, block_nonce: u64) {
-        self.current_block = block_nonce;
         self.b_mock.set_block_nonce(self.current_block);
     }
 }

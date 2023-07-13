@@ -1,3 +1,5 @@
+use crate::{FULL_PERCENTAGE, errors::ERROR_NOT_AN_ESDT};
+
 multiversx_sc::imports!();
 
 /// # MultiversX smart contract module - Governance
@@ -27,53 +29,56 @@ multiversx_sc::imports!();
 /// Please note that although the main contract can modify the module's storage directly, it is not recommended to do so,
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
 ///
+
+const MIN_VOTING_DELAY: u64 = 1;
+const MAX_VOTING_DELAY: u64 = 100_800; // 1 Week
+const MIN_VOTING_PERIOD: u64 = 14_400; // 24 Hours
+const MAX_VOTING_PERIOD: u64 = 201_600; // 2 Weeks
+const MIN_QUORUM: u64 = 1_000; // 10%
+const MAX_QUORUM: u64 = 6_000; // 60%
+const MIN_MIN_FEE_FOR_PROPOSE: u64 = 2_000_000;
+const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
+
 #[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule:
-    crate::caller_check::CallerCheckModule + energy_query::EnergyQueryModule
+    energy_query::EnergyQueryModule + permissions_module::PermissionsModule
 {
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
 
     #[endpoint(changeMinEnergyForProposal)]
     fn change_min_energy_for_propose(&self, new_value: BigUint) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
         self.try_change_min_energy_for_propose(new_value);
     }
 
     #[endpoint(changeMinFeeForProposal)]
     fn change_min_fee_for_propose(&self, new_value: BigUint) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
-        self.try_change_min_energy_for_propose(new_value);
+        self.try_change_min_fee_for_propose(new_value);
     }
 
     #[endpoint(changeQuorum)]
     fn change_quorum(&self, new_value: BigUint) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
         self.try_change_quorum(new_value);
     }
 
     #[endpoint(changeVotingDelayInBlocks)]
     fn change_voting_delay_in_blocks(&self, new_value: u64) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
         self.try_change_voting_delay_in_blocks(new_value);
     }
 
     #[endpoint(changeVotingPeriodInBlocks)]
     fn change_voting_period_in_blocks(&self, new_value: u64) {
-        self.require_caller_self();
+        self.require_caller_has_owner_or_admin_permissions();
 
         self.try_change_voting_period_in_blocks(new_value);
-    }
-
-    #[endpoint(changeLockTimeAfterVotingEndsInBlocks)]
-    fn change_lock_time_after_voting_ends_in_blocks(&self, new_value: u64) {
-        self.require_caller_self();
-
-        self.try_change_lock_time_after_voting_ends_in_blocks(new_value);
     }
 
     fn try_change_min_energy_for_propose(&self, new_value: BigUint) {
@@ -83,39 +88,56 @@ pub trait ConfigurablePropertiesModule:
     }
 
     fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
-        require!(new_value != 0, "Min fee for proposal can't be set to 0");
+        require!(
+            new_value > MIN_MIN_FEE_FOR_PROPOSE && new_value < MAX_MIN_FEE_FOR_PROPOSE,
+            "Not valid value for min fee!"
+        );
 
         self.min_fee_for_propose().set(&new_value);
     }
 
     fn try_change_quorum(&self, new_value: BigUint) {
-        require!(new_value != 0, "Quorum can't be set to 0");
+        require!(
+            new_value > MIN_QUORUM && new_value < MAX_QUORUM,
+            "Not valid value for Quorum!"
+        );
 
-        self.quorum().set(&new_value);
+        self.quorum_percentage().set(&new_value);
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
-        require!(new_value != 0, "Voting delay in blocks can't be set to 0");
+        require!(
+            new_value > MIN_VOTING_DELAY && new_value < MAX_VOTING_DELAY,
+            "Not valid value for voting delay!"
+        );
 
         self.voting_delay_in_blocks().set(new_value);
     }
 
     fn try_change_voting_period_in_blocks(&self, new_value: u64) {
         require!(
-            new_value != 0,
-            "Voting period (in blocks) can't be set to 0"
+            new_value > MIN_VOTING_PERIOD && new_value < MAX_VOTING_PERIOD,
+            "Not valid value for voting period!"
         );
 
         self.voting_period_in_blocks().set(new_value);
     }
 
-    fn try_change_lock_time_after_voting_ends_in_blocks(&self, new_value: u64) {
+    fn try_change_withdraw_percentage_defeated(&self, new_value: u64) {
         require!(
-            new_value != 0,
-            "Lock time after voting ends (in blocks) can't be set to 0"
+            new_value > 0 && new_value < FULL_PERCENTAGE,
+            "Not valid value for withdraw percentage if defeated!"
         );
 
-        self.lock_time_after_voting_ends_in_blocks().set(new_value);
+        self.withdraw_percentage_defeated().set(new_value);
+    }
+
+    fn try_change_fee_token_id(&self, fee_token_id: TokenIdentifier) {
+        require!(
+            fee_token_id.is_valid_esdt_identifier(),
+            ERROR_NOT_AN_ESDT
+        );
+        self.fee_token_id().set_if_empty(&fee_token_id);
     }
 
     #[view(getMinEnergyForPropose)]
@@ -127,8 +149,8 @@ pub trait ConfigurablePropertiesModule:
     fn min_fee_for_propose(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getQuorum)]
-    #[storage_mapper("quorum")]
-    fn quorum(&self) -> SingleValueMapper<BigUint>;
+    #[storage_mapper("quorumPercentage")]
+    fn quorum_percentage(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getVotingDelayInBlocks)]
     #[storage_mapper("votingDelayInBlocks")]
@@ -138,11 +160,11 @@ pub trait ConfigurablePropertiesModule:
     #[storage_mapper("votingPeriodInBlocks")]
     fn voting_period_in_blocks(&self) -> SingleValueMapper<u64>;
 
-    #[view(getLockTimeAfterVotingEndsInBlocks)]
-    #[storage_mapper("lockTimeAfterVotingEndsInBlocks")]
-    fn lock_time_after_voting_ends_in_blocks(&self) -> SingleValueMapper<u64>;
-
     #[view(getFeeTokenId)]
     #[storage_mapper("feeTokenId")]
     fn fee_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[view(getWithdrawPercentageDefeated)]
+    #[storage_mapper("witdrawPercentageDefeated")]
+    fn withdraw_percentage_defeated(&self) -> SingleValueMapper<u64>;
 }

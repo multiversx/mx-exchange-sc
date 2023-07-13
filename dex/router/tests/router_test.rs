@@ -3,7 +3,8 @@ use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{
-        EgldOrEsdtTokenIdentifier, EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded,
+        Address, EgldOrEsdtTokenIdentifier, EsdtLocalRole, ManagedAddress, ManagedVec,
+        MultiValueEncoded,
     },
 };
 use pair::{config::ConfigModule, Pair};
@@ -28,6 +29,103 @@ use simple_lock::{
 #[test]
 fn test_router_setup() {
     let _ = RouterSetup::new(router::contract_obj, pair::contract_obj);
+}
+
+#[test]
+fn test_router_upgrade_pair() {
+    let rust_zero = rust_biguint!(0u64);
+    let mut b_mock = BlockchainStateWrapper::new();
+    let owner = b_mock.create_user_account(&rust_zero);
+    let user = b_mock.create_user_account(&rust_zero);
+
+    b_mock.set_esdt_balance(
+        &user,
+        CUSTOM_TOKEN_ID,
+        &rust_biguint!(USER_CUSTOM_TOKEN_BALANCE),
+    );
+    b_mock.set_esdt_balance(&user, USDC_TOKEN_ID, &rust_biguint!(USER_USDC_BALANCE));
+
+    let router_wrapper = b_mock.create_sc_account(
+        &rust_zero,
+        Some(&owner),
+        router::contract_obj,
+        ROUTER_WASM_PATH,
+    );
+
+    let pair_template_wrapper = b_mock.create_sc_account(
+        &rust_zero,
+        Some(router_wrapper.address_ref()),
+        pair::contract_obj,
+        PAIR_WASM_PATH,
+    );
+
+    // setup pair
+    b_mock
+        .execute_tx(&owner, &pair_template_wrapper, &rust_zero, |sc| {
+            let first_token_id = managed_token_id!(CUSTOM_TOKEN_ID);
+            let second_token_id = managed_token_id!(USDC_TOKEN_ID);
+            let router_address = managed_address!(&Address::zero());
+            let router_owner_address = managed_address!(&owner);
+
+            sc.init(
+                first_token_id,
+                second_token_id,
+                router_address,
+                router_owner_address,
+                0,
+                0,
+                managed_address!(&user),
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
+            );
+        })
+        .assert_ok();
+
+    let pair_wrapper =
+        b_mock.prepare_deploy_from_sc(router_wrapper.address_ref(), pair::contract_obj);
+
+    b_mock
+        .execute_tx(&owner, &router_wrapper, &rust_zero, |sc| {
+            sc.init(OptionalValue::Some(managed_address!(
+                pair_template_wrapper.address_ref()
+            )));
+            sc.set_pair_creation_enabled(true);
+        })
+        .assert_ok();
+
+    b_mock
+        .execute_tx(&user, &router_wrapper, &rust_zero, |sc| {
+            let first_token_id = managed_token_id!(CUSTOM_TOKEN_ID);
+            let second_token_id = managed_token_id!(USDC_TOKEN_ID);
+            let _new_pair_address = sc.create_pair_endpoint(
+                first_token_id,
+                second_token_id,
+                managed_address!(&user),
+                OptionalValue::None,
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
+            );
+        })
+        .assert_ok();
+
+    b_mock
+        .execute_tx(&owner, &router_wrapper, &rust_zero, |sc| {
+            let first_token_id = managed_token_id!(CUSTOM_TOKEN_ID);
+            let second_token_id = managed_token_id!(USDC_TOKEN_ID);
+            sc.upgrade_pair_endpoint(
+                first_token_id,
+                second_token_id,
+                managed_address!(&user),
+                300,
+                50,
+            );
+        })
+        .assert_ok();
+
+    b_mock
+        .execute_query(&pair_wrapper, |sc| {
+            let inital_liquidity_adder = sc.initial_liquidity_adder().get().unwrap();
+            assert_eq!(inital_liquidity_adder, managed_address!(&user))
+        })
+        .assert_ok();
 }
 
 #[test]

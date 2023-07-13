@@ -1,7 +1,10 @@
 multiversx_sc::imports!();
 
-use crate::proposal::{
-    GovernanceAction, GovernanceProposalStatus, ProposalId, MAX_GOVERNANCE_PROPOSAL_ACTIONS,
+use crate::{
+    proposal::{
+        GovernanceAction, GovernanceProposalStatus, ProposalId, MAX_GOVERNANCE_PROPOSAL_ACTIONS,
+    },
+    FULL_PERCENTAGE,
 };
 
 #[multiversx_sc::module]
@@ -9,6 +12,7 @@ pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
     + crate::configurable::ConfigurablePropertiesModule
     + crate::caller_check::CallerCheckModule
+    + permissions_module::PermissionsModule
     + energy_query::EnergyQueryModule
 {
     #[view(getProposalStatus)]
@@ -17,19 +21,12 @@ pub trait ViewsModule:
             return GovernanceProposalStatus::None;
         }
 
-        if !self.proposal_reached_min_fees(proposal_id) {
-            return GovernanceProposalStatus::WaitingForFees;
-        }
-
-        let queue_block = self.proposal_queue_block(proposal_id).get();
-        if queue_block > 0 {
-            return GovernanceProposalStatus::Queued;
-        }
-
         let current_block = self.blockchain().get_block_nonce();
-        let proposal_block = self.proposal_start_block(proposal_id).get();
-        let voting_delay = self.voting_delay_in_blocks().get();
-        let voting_period = self.voting_period_in_blocks().get();
+        let proposal = self.proposals().get(proposal_id);
+        let proposal_block = proposal.proposal_start_block;
+
+        let voting_delay = proposal.voting_delay_in_blocks;
+        let voting_period = proposal.voting_period_in_blocks;
 
         let voting_start = proposal_block + voting_delay;
         let voting_end = voting_start + voting_period;
@@ -41,27 +38,59 @@ pub trait ViewsModule:
             return GovernanceProposalStatus::Active;
         }
 
-        if self.quorum_and_vote_reached(proposal_id) {
+        if self.quorum_reached(proposal_id) && self.vote_reached(proposal_id) {
             GovernanceProposalStatus::Succeeded
+        } else if self.vote_down_with_veto(proposal_id) {
+            GovernanceProposalStatus::DefeatedWithVeto
         } else {
             GovernanceProposalStatus::Defeated
         }
     }
 
-    fn quorum_and_vote_reached(&self, proposal_id: ProposalId) -> bool {
+    fn vote_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
         let total_up_votes = proposal_votes.up_votes;
-        let total_down_votes = proposal_votes.down_votes;
         let total_down_veto_votes = proposal_votes.down_veto_votes;
         let third_total_votes = &total_votes / 3u64;
-        let quorum = self.quorum().get();
+        let half_total_votes = &total_votes / 2u64;
 
         if total_down_veto_votes > third_total_votes {
             false
         } else {
-            total_votes >= quorum && total_up_votes > (total_down_votes + total_down_veto_votes)
+            total_up_votes > half_total_votes
         }
+    }
+
+    fn vote_down_with_veto(&self, proposal_id: ProposalId) -> bool {
+        let proposal_votes = self.proposal_votes(proposal_id).get();
+        let total_votes = proposal_votes.get_total_votes();
+        let total_down_veto_votes = proposal_votes.down_veto_votes;
+        let third_total_votes = &total_votes / 3u64;
+
+        total_down_veto_votes > third_total_votes
+    }
+
+    fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
+        let proposal = self.proposals().get(proposal_id);
+        let total_energy_for_proposal = proposal.total_energy;
+
+        let required_minimum_percentage = proposal.minimum_quorum;
+
+        let current_quorum = self.get_current_quorum(proposal_id);
+        let current_quorum_percentage =
+            current_quorum * FULL_PERCENTAGE / total_energy_for_proposal;
+
+        current_quorum_percentage >= required_minimum_percentage
+    }
+
+    #[view(getCurrentQuorum)]
+    fn get_current_quorum(&self, proposal_id: ProposalId) -> BigUint {
+        if !self.proposal_exists(proposal_id) {
+            sc_panic!("Proposal does not exist");
+        }
+
+        self.proposal_votes(proposal_id).get().quorum
     }
 
     #[view(getProposer)]
@@ -105,13 +134,14 @@ pub trait ViewsModule:
         proposal_id >= 1 && proposal_id <= self.proposals().len()
     }
 
-    fn proposal_reached_min_fees(&self, proposal_id: ProposalId) -> bool {
-        let accumulated_fees = self.proposals().get(proposal_id).fees.total_amount;
-        let min_fees = self.min_fee_for_propose().get();
-        accumulated_fees >= min_fees
-    }
-
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {
         self.is_valid_proposal_id(proposal_id) && !self.proposals().item_is_empty(proposal_id)
     }
+
+    #[proxy]
+    fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
+
+    #[view(getFeesCollectorAddress)]
+    #[storage_mapper("feesCollectorAddress")]
+    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 }
