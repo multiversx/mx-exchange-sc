@@ -131,6 +131,7 @@ pub trait GovernanceV2:
         let current_block = self.blockchain().get_block_nonce();
 
         let proposal = GovernanceProposal {
+            proposal_id: self.proposals().len() + 1,
             proposer: proposer.clone(),
             description,
             actions: gov_actions,
@@ -296,7 +297,6 @@ pub trait GovernanceV2:
                 sc_panic!("You may not withdraw funds from this proposal!");
             }
         }
-        self.clear_proposal(proposal_id);
         self.proposal_withdraw_after_defeated_event(proposal_id);
     }
 
