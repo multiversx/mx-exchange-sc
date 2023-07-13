@@ -261,11 +261,9 @@ pub trait LiquidityBook:
         let tick_max_mapper = self.get_tick_mapper(token_attributes.tick_max);
         tick_min_mapper.update(|tick| {
             tick.delta_liquidity_cross_up -= BigInt::from(payment.amount.clone());
-            if tick.delta_liquidity_cross_up == 0 {}
         });
         tick_max_mapper.update(|tick| {
             tick.delta_liquidity_cross_up += BigInt::from(payment.amount.clone());
-            if tick.delta_liquidity_cross_up == 0 {}
         });
         if target_price == &current_price {
             pool_state.virtual_liquidity -= payment.amount.clone();

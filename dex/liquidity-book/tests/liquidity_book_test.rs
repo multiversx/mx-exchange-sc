@@ -13,7 +13,7 @@ fn test_add_remove_liquidity() {
     let deploy_price = 5000 * PRICE_DECIMALS as u128;
     let mut pair_setup = LiquidityBookSetup::new(deploy_price, liquidity_book::contract_obj);
     let user = pair_setup.setup_user(USER_TOTAL_WEGLD_TOKENS, USER_TOTAL_MEX_TOKENS);
-    let first_token_amount = 1 * PRICE_DECIMALS as u128;
+    let first_token_amount = PRICE_DECIMALS as u128;
     let first_token_dust = 1023381652573612u128;
     let second_token_amount = 5_000 * PRICE_DECIMALS as u128;
     let second_token_dust = 2u128;
