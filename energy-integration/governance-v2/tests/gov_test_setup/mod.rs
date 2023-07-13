@@ -2,7 +2,7 @@ use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
 use fees_collector::FeesCollector;
 use governance_v2::{
-    configurable::ConfigurablePropertiesModule, proposal_storage::VoteType, GovernanceV2,
+    configurable::ConfigurablePropertiesModule, proposal_storage::{VoteType, ProposalStorageModule}, GovernanceV2,
 };
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
@@ -258,6 +258,15 @@ where
             .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
                 sc.cancel(proposal_id);
             })
+    }
+
+    pub fn check_proposal_id_consistency(&mut self, caller: &Address, proposal_id: usize) -> TxResult {
+        self.b_mock
+            .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
+                let proposal = sc.proposals().get(proposal_id);
+                assert!(proposal.proposal_id == proposal_id, "Proposal ID is inconsistent!")
+            })
+
     }
     pub fn increment_block_nonce(&mut self, inc_amount: u64) {
         self.current_block += inc_amount;
