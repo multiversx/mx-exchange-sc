@@ -1,9 +1,7 @@
 multiversx_sc::imports!();
 
 use crate::{
-    proposal::{
-        GovernanceAction, GovernanceProposalStatus, ProposalId, MAX_GOVERNANCE_PROPOSAL_ACTIONS,
-    },
+    proposal::{GovernanceProposalStatus, ProposalId},
     FULL_PERCENTAGE,
 };
 
@@ -77,50 +75,11 @@ pub trait ViewsModule:
 
         let required_minimum_percentage = proposal.minimum_quorum;
 
-        let current_quorum = self.get_current_quorum(proposal_id);
+        let current_quorum = self.proposal_votes(proposal_id).get().quorum;
         let current_quorum_percentage =
             current_quorum * FULL_PERCENTAGE / total_energy_for_proposal;
 
         current_quorum_percentage >= required_minimum_percentage
-    }
-
-    #[view(getCurrentQuorum)]
-    fn get_current_quorum(&self, proposal_id: ProposalId) -> BigUint {
-        if !self.proposal_exists(proposal_id) {
-            sc_panic!("Proposal does not exist");
-        }
-
-        self.proposal_votes(proposal_id).get().quorum
-    }
-
-    #[view(getProposer)]
-    fn get_proposer(&self, proposal_id: ProposalId) -> OptionalValue<ManagedAddress> {
-        if !self.proposal_exists(proposal_id) {
-            return OptionalValue::None;
-        }
-
-        OptionalValue::Some(self.proposals().get(proposal_id).proposer)
-    }
-
-    #[view(getProposalDescription)]
-    fn get_proposal_description(&self, proposal_id: ProposalId) -> OptionalValue<ManagedBuffer> {
-        if !self.proposal_exists(proposal_id) {
-            return OptionalValue::None;
-        }
-
-        OptionalValue::Some(self.proposals().get(proposal_id).description)
-    }
-
-    #[view(getProposalActions)]
-    fn get_proposal_actions(
-        &self,
-        proposal_id: ProposalId,
-    ) -> ArrayVec<GovernanceAction<Self::Api>, MAX_GOVERNANCE_PROPOSAL_ACTIONS> {
-        if !self.proposal_exists(proposal_id) {
-            return ArrayVec::new();
-        }
-
-        self.proposals().get(proposal_id).actions
     }
 
     fn require_valid_proposal_id(&self, proposal_id: ProposalId) {
