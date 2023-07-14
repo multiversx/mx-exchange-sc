@@ -365,3 +365,62 @@ fn test_specific_tokens_merge() {
         }),
     );
 }
+
+#[test]
+fn merge_same_schedule_test() {
+    let _ = DebugApi::dummy();
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
+    let user = setup.first_user.clone();
+    let unlock_epoch = to_start_of_month(LOCK_OPTIONS[0]);
+
+    let first_token_amount = 400_000;
+    setup
+        .lock(
+            &user,
+            BASE_ASSET_TOKEN_ID,
+            first_token_amount,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    let second_token_amount = 100_000;
+    setup
+        .lock(
+            &user,
+            BASE_ASSET_TOKEN_ID,
+            second_token_amount,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    let payments = [
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(400_000),
+        },
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(100_000),
+        },
+    ];
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&user, &setup.sc_wrapper, &payments[..], |sc| {
+            let _ = sc.merge_tokens_endpoint(OptionalValue::None);
+        })
+        .assert_ok();
+
+    setup.b_mock.check_nft_balance(
+        &user,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(first_token_amount + second_token_amount),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: unlock_epoch,
+        }),
+    );
+}
