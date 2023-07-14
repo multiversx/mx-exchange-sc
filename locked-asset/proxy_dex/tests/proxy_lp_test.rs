@@ -727,12 +727,12 @@ fn wrapped_different_nonce_lp_token_merge_test() {
         TxTokenTransfer {
             token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
             nonce: 1,
-            value: first_amount.clone(),
+            value: first_amount,
         },
         TxTokenTransfer {
             token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
             nonce: 2,
-            value: second_amount.clone(),
+            value: second_amount,
         },
     ];
 

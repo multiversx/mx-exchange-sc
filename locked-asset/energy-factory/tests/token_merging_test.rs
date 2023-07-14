@@ -420,7 +420,7 @@ fn merge_same_schedule_test() {
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
             original_token_nonce: 0,
-            unlock_epoch: unlock_epoch,
+            unlock_epoch,
         }),
     );
 }
