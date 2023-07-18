@@ -48,6 +48,11 @@ pub trait ViewsModule:
     fn vote_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
+
+        if total_votes == 0u64 {
+            return false;
+        }
+
         let total_up_votes = proposal_votes.up_votes;
         let total_down_veto_votes = proposal_votes.down_veto_votes;
         let third_total_votes = &total_votes / 3u64;
@@ -63,6 +68,11 @@ pub trait ViewsModule:
     fn vote_down_with_veto(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
+
+        if total_votes == 0u64 {
+            return false;
+        }
+
         let total_down_veto_votes = proposal_votes.down_veto_votes;
         let third_total_votes = &total_votes / 3u64;
 

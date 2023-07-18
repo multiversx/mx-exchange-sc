@@ -540,7 +540,9 @@ fn gov_propose_cancel_proposal_id_test() {
     );
     result.assert_ok();
     assert_eq!(proposal_id, 1);
-    gov_setup.check_proposal_id_consistency(&first_user_addr, proposal_id).assert_ok();
+    gov_setup
+        .check_proposal_id_consistency(&first_user_addr, proposal_id)
+        .assert_ok();
 
     // Proposal ID = 2
     let (result, proposal_id) = gov_setup.propose(
@@ -552,7 +554,9 @@ fn gov_propose_cancel_proposal_id_test() {
     );
     result.assert_ok();
     assert_eq!(proposal_id, 2);
-    gov_setup.check_proposal_id_consistency(&first_user_addr, proposal_id).assert_ok();
+    gov_setup
+        .check_proposal_id_consistency(&first_user_addr, proposal_id)
+        .assert_ok();
 
     // Proposal ID = 3
     let (result, proposal_id) = gov_setup.propose(
@@ -564,7 +568,9 @@ fn gov_propose_cancel_proposal_id_test() {
     );
     result.assert_ok();
     assert_eq!(proposal_id, 3);
-    gov_setup.check_proposal_id_consistency(&first_user_addr, proposal_id).assert_ok();
+    gov_setup
+        .check_proposal_id_consistency(&first_user_addr, proposal_id)
+        .assert_ok();
 
     // Check proposer balance (fee = 0)
     gov_setup.b_mock.check_nft_balance::<Empty>(
@@ -596,7 +602,9 @@ fn gov_propose_cancel_proposal_id_test() {
     );
     result.assert_ok();
     assert_eq!(proposal_id, 4);
-    gov_setup.check_proposal_id_consistency(&first_user_addr, proposal_id).assert_ok();
+    gov_setup
+        .check_proposal_id_consistency(&first_user_addr, proposal_id)
+        .assert_ok();
 
     gov_setup.cancel_proposal(&first_user_addr, 4).assert_ok();
 
@@ -610,5 +618,7 @@ fn gov_propose_cancel_proposal_id_test() {
     );
     result.assert_ok();
     assert_eq!(proposal_id, 5);
-    gov_setup.check_proposal_id_consistency(&first_user_addr, proposal_id).assert_ok();
+    gov_setup
+        .check_proposal_id_consistency(&first_user_addr, proposal_id)
+        .assert_ok();
 }
