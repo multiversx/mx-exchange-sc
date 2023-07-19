@@ -38,6 +38,7 @@ const MIN_QUORUM: u64 = 1_000; // 10%
 const MAX_QUORUM: u64 = 6_000; // 60%
 const MIN_MIN_FEE_FOR_PROPOSE: u64 = 2_000_000;
 const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
+const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
 
 #[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule:
@@ -83,8 +84,10 @@ pub trait ConfigurablePropertiesModule:
     }
 
     fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
+        let minimum_min_fee = BigUint::from(MIN_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
+        let maximum_min_fee = BigUint::from(MAX_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
         require!(
-            new_value > MIN_MIN_FEE_FOR_PROPOSE && new_value < MAX_MIN_FEE_FOR_PROPOSE,
+            new_value > minimum_min_fee && new_value < maximum_min_fee,
             "Not valid value for min fee!"
         );
 
