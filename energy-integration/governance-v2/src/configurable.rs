@@ -84,8 +84,10 @@ pub trait ConfigurablePropertiesModule:
     }
 
     fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
-        let minimum_min_fee = BigUint::from(MIN_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
-        let maximum_min_fee = BigUint::from(MAX_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
+        let minimum_min_fee =
+            BigUint::from(MIN_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
+        let maximum_min_fee =
+            BigUint::from(MAX_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
         require!(
             new_value > minimum_min_fee && new_value < maximum_min_fee,
             "Not valid value for min fee!"

@@ -29,7 +29,6 @@ pub static WXMEX_TOKEN_ID: &[u8] = b"WXMEX-123456";
 pub const LOCKED_TOKEN_ID: &[u8] = b"LOCKED-abcdef";
 pub const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
 
-
 pub const USER_ENERGY: u64 = 1_000_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
 

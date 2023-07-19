@@ -22,13 +22,9 @@ fn gov_propose_test() {
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
-    gov_setup.b_mock.set_nft_balance(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        &Empty,
-    );
+    gov_setup
+        .b_mock
+        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -96,13 +92,9 @@ fn gov_no_veto_vote_test() {
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
-    gov_setup.b_mock.set_nft_balance(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        &Empty,
-    );
+    gov_setup
+        .b_mock
+        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -158,13 +150,9 @@ fn gov_abstain_vote_test() {
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
-    gov_setup.b_mock.set_nft_balance(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        &Empty,
-    );
+    gov_setup
+        .b_mock
+        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -204,13 +192,9 @@ fn gov_no_quorum_test() {
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
-    gov_setup.b_mock.set_nft_balance(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        &Empty,
-    );
+    gov_setup
+        .b_mock
+        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -247,13 +231,9 @@ fn gov_modify_quorum_after_end_vote_test() {
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
-    gov_setup.b_mock.set_nft_balance(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        &Empty,
-    );
+    gov_setup
+        .b_mock
+        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -298,13 +278,9 @@ fn gov_withdraw_defeated_proposal_test() {
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
-    gov_setup.b_mock.set_nft_balance(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        &Empty,
-    );
+    gov_setup
+        .b_mock
+        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -373,13 +349,9 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
-    gov_setup.b_mock.set_nft_balance(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        &Empty,
-    );
+    gov_setup
+        .b_mock
+        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -452,13 +424,9 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
-    gov_setup.b_mock.set_nft_balance(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        &Empty,
-    );
+    gov_setup
+        .b_mock
+        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
