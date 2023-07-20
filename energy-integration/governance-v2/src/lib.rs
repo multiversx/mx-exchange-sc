@@ -195,28 +195,28 @@ pub trait GovernanceV2:
                     proposal_votes.up_votes += &voting_power.clone();
                     proposal_votes.quorum += &user_energy.clone();
                 });
-                self.up_vote_cast_event(&voter, proposal_id, &voting_power);
+                self.up_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
             }
             VoteType::DownVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_votes += &voting_power.clone();
                     proposal_votes.quorum += &user_energy.clone();
                 });
-                self.down_vote_cast_event(&voter, proposal_id, &voting_power);
+                self.down_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
             }
             VoteType::DownVetoVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_veto_votes += &voting_power.clone();
                     proposal_votes.quorum += &user_energy.clone();
                 });
-                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power);
+                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
             }
             VoteType::AbstainVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.abstain_votes += &voting_power.clone();
                     proposal_votes.quorum += &user_energy.clone();
                 });
-                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power);
+                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
             }
         }
     }
