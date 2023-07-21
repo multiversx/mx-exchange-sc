@@ -27,6 +27,17 @@ elrond_wasm::imports!();
 /// Please note that although the main contract can modify the module's storage directly, it is not recommended to do so,
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
 ///
+
+const MIN_VOTING_DELAY: u64 = 1;
+const MAX_VOTING_DELAY: u64 = 100_800; // 1 Week
+const MIN_VOTING_PERIOD: u64 = 14_400; // 24 Hours
+const MAX_VOTING_PERIOD: u64 = 201_600; // 2 Weeks
+const MIN_QUORUM: u64 = 1_000; // 10%
+const MAX_QUORUM: u64 = 6_000; // 60%
+const MIN_MIN_FEE_FOR_PROPOSE: u64 = 2_000_000;
+const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
+const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
+
 #[elrond_wasm::module]
 pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     #[init]
@@ -35,24 +46,27 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
 
+    #[only_owner]
     #[endpoint(changeMinEnergyForProposal)]
     fn change_min_energy_for_propose(&self, new_value: BigUint) {
-        self.require_caller_self();
-
         self.try_change_min_energy_for_propose(new_value);
     }
 
+    #[only_owner]
+    #[endpoint(changeMinFeeForProposal)]
+    fn change_min_fee_for_propose(&self, new_value: BigUint) {
+        self.try_change_min_fee_for_propose(new_value);
+    }
+
+    #[only_owner]
     #[endpoint(changeQuorum)]
     fn change_quorum(&self, new_value: BigUint) {
-        self.require_caller_self();
-
         self.try_change_quorum(new_value);
     }
 
+    #[only_owner]
     #[endpoint(changeVotingDelayInBlocks)]
     fn change_voting_delay_in_blocks(&self, new_value: u64) {
-        self.require_caller_self();
-
         self.try_change_voting_delay_in_blocks(new_value);
     }
 
@@ -62,21 +76,10 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
         self.try_change_voting_period_in_blocks(new_value);
     }
 
+    #[only_owner]
     #[endpoint(changeLockTimeAfterVotingEndsInBlocks)]
     fn change_lock_time_after_voting_ends_in_blocks(&self, new_value: u64) {
-        self.require_caller_self();
-
         self.try_change_lock_time_after_voting_ends_in_blocks(new_value);
-    }
-
-    fn require_caller_self(&self) {
-        let caller = self.blockchain().get_caller();
-        let sc_address = self.blockchain().get_sc_address();
-
-        require!(
-            caller == sc_address,
-            "Only the SC itself may call this function"
-        );
     }
 
     fn try_change_min_energy_for_propose(&self, new_value: BigUint) {
@@ -85,22 +88,41 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
         self.min_energy_for_propose().set(&new_value);
     }
 
-    fn try_change_quorum(&self, new_value: BigUint) {
-        require!(new_value != 0, "Quorum can't be set to 0");
+    fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
+        let minimum_min_fee =
+            BigUint::from(MIN_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
+        let maximum_min_fee =
+            BigUint::from(MAX_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
+        require!(
+            new_value > minimum_min_fee && new_value < maximum_min_fee,
+            "Not valid value for min fee!"
+        );
 
-        self.quorum().set(&new_value);
+        self.min_fee_for_propose().set(&new_value);
+    }
+
+    fn try_change_quorum(&self, new_value: BigUint) {
+        require!(
+            new_value > MIN_QUORUM && new_value < MAX_QUORUM,
+            "Not valid value for Quorum!"
+        );
+
+        self.quorum_percentage().set(&new_value);
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
-        require!(new_value != 0, "Voting delay in blocks can't be set to 0");
+        require!(
+            new_value > MIN_VOTING_DELAY && new_value < MAX_VOTING_DELAY,
+            "Not valid value for voting delay!"
+        );
 
         self.voting_delay_in_blocks().set(new_value);
     }
 
     fn try_change_voting_period_in_blocks(&self, new_value: u64) {
         require!(
-            new_value != 0,
-            "Voting period (in blocks) can't be set to 0"
+            new_value > MIN_VOTING_PERIOD && new_value < MAX_VOTING_PERIOD,
+            "Not valid value for voting period!"
         );
 
         self.voting_period_in_blocks().set(new_value);
@@ -119,9 +141,13 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     #[storage_mapper("minEnergyForPropose")]
     fn min_energy_for_propose(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getMinFeeForPropose)]
+    #[storage_mapper("minFeeForPropose")]
+    fn min_fee_for_propose(&self) -> SingleValueMapper<BigUint>;
+
     #[view(getQuorum)]
-    #[storage_mapper("quorum")]
-    fn quorum(&self) -> SingleValueMapper<BigUint>;
+    #[storage_mapper("quorumPercentage")]
+    fn quorum_percentage(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getVotingDelayInBlocks)]
     #[storage_mapper("votingDelayInBlocks")]
@@ -134,4 +160,12 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     #[view(getLockTimeAfterVotingEndsInBlocks)]
     #[storage_mapper("lockTimeAfterVotingEndsInBlocks")]
     fn lock_time_after_voting_ends_in_blocks(&self) -> SingleValueMapper<u64>;
+
+    #[view(getFeeTokenId)]
+    #[storage_mapper("feeTokenId")]
+    fn fee_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[view(getWithdrawPercentageDefeated)]
+    #[storage_mapper("witdrawPercentageDefeated")]
+    fn withdraw_percentage_defeated(&self) -> SingleValueMapper<u64>;
 }

@@ -25,36 +25,6 @@ pub trait GovernanceV2:
     + views::ViewsModule
     + energy_query::EnergyQueryModule
 {
-    /// Used to deposit tokens for "payable" actions.
-    /// Funds will be returned if the proposal is defeated.
-    /// To keep the logic simple, all tokens have to be deposited at once
-    #[payable("*")]
-    #[endpoint(depositTokensForProposal)]
-    fn deposit_tokens_for_proposal(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-        self.require_valid_proposal_id(proposal_id);
-
-        let depositor_mapper = self.payments_depositor(proposal_id);
-        require!(depositor_mapper.is_empty(), "Payments already deposited");
-
-        let required_payments = self.required_payments_for_proposal(proposal_id).get();
-        require!(
-            !required_payments.is_empty(),
-            "This proposal requires no payments"
-        );
-
-        let actual_payments = self.call_value().all_esdt_transfers();
-        require!(
-            actual_payments == required_payments,
-            "Invalid payments, must match the required payments"
-        );
-
-        let caller = self.blockchain().get_caller();
-        depositor_mapper.set(&caller);
-
-        self.user_deposit_event(&caller, proposal_id, &actual_payments);
-    }
-
     /// Propose a list of actions.
     /// A maximum of MAX_GOVERNANCE_PROPOSAL_ACTIONS can be proposed at a time.
     ///
@@ -192,84 +162,6 @@ pub trait GovernanceV2:
         }
         
         let _ = self.user_voted_proposals(&voter).insert(proposal_id);
-    }
-
-    /// Queue a proposal for execution.
-    /// This can be done only if the proposal has reached the quorum.
-    /// A proposal is considered successful and ready for queing if
-    /// total_votes + total_downvotes >= quorum && total_votes > total_downvotes
-    /// i.e. at least 50% + 1 of the people voted "yes".
-    ///
-    /// Additionally, all the required payments must be deposited before calling this endpoint.
-    #[endpoint]
-    fn queue(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-        require!(
-            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Succeeded,
-            "Can only queue succeeded proposals"
-        );
-        require!(
-            self.required_payments_for_proposal(proposal_id).is_empty()
-                || !self.payments_depositor(proposal_id).is_empty(),
-            "Payments for proposal not deposited"
-        );
-
-        let current_block = self.blockchain().get_block_nonce();
-        self.proposal_queue_block(proposal_id).set(current_block);
-
-        self.proposal_queued_event(proposal_id, current_block);
-    }
-
-    /// Execute a previously queued proposal.
-    /// This will also clear the proposal from storage.
-    #[endpoint]
-    fn execute(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-        require!(
-            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Queued,
-            "Can only execute queued proposals"
-        );
-
-        let current_block = self.blockchain().get_block_nonce();
-        let lock_blocks = self.lock_time_after_voting_ends_in_blocks().get();
-
-        let lock_start = self.proposal_queue_block(proposal_id).get();
-        let lock_end = lock_start + lock_blocks;
-
-        require!(
-            current_block >= lock_end,
-            "Proposal is in timelock status. Try again later"
-        );
-
-        let proposal = self.proposals().get(proposal_id);
-        let total_gas_needed = self.total_gas_needed(&proposal.actions);
-        let gas_left = self.blockchain().get_gas_left();
-
-        require!(
-            gas_left > total_gas_needed,
-            "Not enough gas to execute all proposals"
-        );
-
-        self.clear_proposal(proposal_id);
-
-        for action in proposal.actions {
-            let mut contract_call = self
-                .send()
-                .contract_call::<()>(action.dest_address, action.function_name)
-                .with_gas_limit(action.gas_limit);
-
-            if !action.payments.is_empty() {
-                contract_call = contract_call.with_multi_token_transfer(action.payments);
-            }
-
-            for arg in &action.arguments {
-                contract_call.push_arg_managed_buffer(arg);
-            }
-
-            contract_call.transfer_execute();
-        }
-
-        self.proposal_executed_event(proposal_id);
     }
 
     /// Cancel a proposed action. This can be done:
