@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub const HASH_LENGTH: usize = 32;
+pub const PROOF_LENGTH: usize = 18;
 pub const MAX_GOVERNANCE_PROPOSAL_ACTIONS: usize = 4;
 
 pub type ProposalId = usize;
@@ -56,11 +58,12 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub proposer: ManagedAddress<M>,
     pub actions: ArrayVec<GovernanceAction<M>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,
     pub description: ManagedBuffer<M>,
+    pub root_hash: ManagedByteArray<M, HASH_LENGTH>,
     pub fee_payment: EsdtTokenPayment<M>,
     pub minimum_quorum: BigUint<M>,
     pub voting_delay_in_blocks: u64,
     pub voting_period_in_blocks: u64,
     pub withdraw_percentage_defeated: u64,
-    pub total_energy: BigUint<M>,
+    pub total_voting_power: BigUint<M>,
     pub proposal_start_block: u64,
 }

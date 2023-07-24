@@ -17,7 +17,9 @@ fn init_gov_test() {
 fn gov_propose_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
+    let first_user_power = gov_setup.get_first_user_voting_power();
+    let first_user_proof = gov_setup.first_merkle_proof();
     let second_user_addr = gov_setup.second_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
@@ -38,19 +40,19 @@ fn gov_propose_test() {
 
     // vote too early
     gov_setup
-        .up_vote(&second_user_addr, proposal_id)
+        .up_vote(&second_user_addr)
         .assert_user_error("Proposal is not active");
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
+    gov_setup.up_vote(&first_user_addr).assert_ok();
     gov_setup
-        .up_vote(&second_user_addr, proposal_id)
+        .up_vote(&second_user_addr)
         .assert_ok();
 
     // user 2 try vote again
     gov_setup
-        .up_vote(&second_user_addr, proposal_id)
+        .up_vote(&second_user_addr)
         .assert_user_error("Already voted for this proposal");
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
@@ -118,9 +120,9 @@ fn gov_no_veto_vote_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
+    gov_setup.up_vote(&first_user_addr).assert_ok();
     gov_setup
-        .up_vote(&second_user_addr, proposal_id)
+        .up_vote(&second_user_addr)
         .assert_ok();
 
     // Third User DownWithVetoVote = 1_100
@@ -166,7 +168,7 @@ fn gov_abstain_vote_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
+    gov_setup.up_vote(&first_user_addr).assert_ok();
     gov_setup
         .abstain_vote(&third_user_addr, proposal_id)
         .assert_ok();
@@ -208,7 +210,7 @@ fn gov_no_quorum_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
+    gov_setup.up_vote(&first_user_addr).assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
 
@@ -247,7 +249,7 @@ fn gov_modify_quorum_after_end_vote_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
+    gov_setup.up_vote(&first_user_addr).assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
 
@@ -258,7 +260,7 @@ fn gov_modify_quorum_after_end_vote_test() {
                 sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
                 "Action should have been Defeated"
             );
-            sc.try_change_quorum(managed_biguint!(QUORUM_PERCENTAGE / 2));
+            sc.try_change_quorum_percentage(managed_biguint!(QUORUM_PERCENTAGE / 2));
             assert!(sc.quorum_percentage().get() == managed_biguint!(QUORUM_PERCENTAGE / 2));
 
             assert!(
@@ -303,7 +305,7 @@ fn gov_withdraw_defeated_proposal_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
+    gov_setup.up_vote(&first_user_addr).assert_ok();
     gov_setup
         .down_vote(&third_user_addr, proposal_id)
         .assert_ok();
@@ -374,7 +376,7 @@ fn gov_modify_withdraw_defeated_proposal_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
+    gov_setup.up_vote(&first_user_addr).assert_ok();
     gov_setup
         .down_vote(&third_user_addr, proposal_id)
         .assert_ok();
@@ -449,7 +451,7 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
+    gov_setup.up_vote(&first_user_addr).assert_ok();
     gov_setup
         .down_veto_vote(&third_user_addr, proposal_id)
         .assert_ok();

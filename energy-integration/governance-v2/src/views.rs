@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
 use crate::{
-    proposal::{GovernanceProposalStatus, ProposalId},
+    proposal::{GovernanceProposalStatus, ProposalId, HASH_LENGTH},
     FULL_PERCENTAGE,
 };
 
@@ -45,6 +45,15 @@ pub trait ViewsModule:
         }
     }
 
+    #[view(getProposalRootHash)]
+    fn get_root_hash(&self, proposal_id: ProposalId) -> OptionalValue<ManagedByteArray<HASH_LENGTH>> {
+        if !self.proposal_exists(proposal_id) {
+            return OptionalValue::None;
+        }
+
+        OptionalValue::Some(self.proposals().get(proposal_id).root_hash)
+    }
+
     fn vote_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
@@ -81,13 +90,13 @@ pub trait ViewsModule:
 
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal = self.proposals().get(proposal_id);
-        let total_energy_for_proposal = proposal.total_energy;
+        let total_voting_power_for_proposal = proposal.total_voting_power;
 
         let required_minimum_percentage = proposal.minimum_quorum;
 
         let current_quorum = self.proposal_votes(proposal_id).get().quorum;
         let current_quorum_percentage =
-            current_quorum * FULL_PERCENTAGE / total_energy_for_proposal;
+            current_quorum * FULL_PERCENTAGE / total_voting_power_for_proposal;
 
         current_quorum_percentage >= required_minimum_percentage
     }
