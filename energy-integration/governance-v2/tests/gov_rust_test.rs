@@ -83,6 +83,44 @@ fn gov_propose_test() {
 }
 
 #[test]
+fn gov_propose_total_energy_0_test() {
+    let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
+
+    let first_user_addr = gov_setup.first_user.clone();
+    let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
+    let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
+    // Give proposer the minimum fee
+    gov_setup
+        .b_mock
+        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+
+    let (result, proposal_id) = gov_setup.propose(
+        &first_user_addr,
+        &min_fee,
+        &sc_addr,
+        b"changeTODO",
+        vec![1_000u64.to_be_bytes().to_vec()],
+    );
+    result.assert_ok();
+    assert_eq!(proposal_id, 1);
+    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS + VOTING_DELAY_BLOCKS);
+
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let mut proposal = sc.proposals().get(1);
+            proposal.total_energy = managed_biguint!(0);
+            sc.proposals().set(1, &proposal);
+            assert!(
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
+                "Action should have been Defeated"
+            );
+        })
+        .assert_ok();
+}
+
+
+#[test]
 fn gov_no_veto_vote_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
