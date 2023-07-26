@@ -20,15 +20,19 @@ fn gov_propose_test() {
     let first_user_addr = gov_setup.first_merkle_user.clone();
     let first_user_power = gov_setup.get_first_user_voting_power();
     let first_user_proof = gov_setup.first_merkle_proof();
-    let second_user_addr = gov_setup.second_user.clone();
+    let second_user_addr = gov_setup.second_merkle_user.clone();
+    let second_user_power = gov_setup.get_second_user_voting_power();
+    let second_user_proof = gov_setup.second_merkle_proof();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
+
     // Give proposer the minimum fee
     gov_setup
         .b_mock
         .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -40,19 +44,41 @@ fn gov_propose_test() {
 
     // vote too early
     gov_setup
-        .up_vote(&second_user_addr)
+        .up_vote(
+            &second_user_addr,
+            &second_user_power,
+            &second_user_proof,
+            proposal_id,
+        )
         .assert_user_error("Proposal is not active");
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr).assert_ok();
     gov_setup
-        .up_vote(&second_user_addr)
+        .up_vote(
+            &first_user_addr,
+            &first_user_power,
+            &first_user_proof,
+            proposal_id,
+        )
+        .assert_ok();
+    gov_setup
+        .up_vote(
+            &second_user_addr,
+            &second_user_power,
+            &second_user_proof,
+            proposal_id,
+        )
         .assert_ok();
 
     // user 2 try vote again
     gov_setup
-        .up_vote(&second_user_addr)
+        .up_vote(
+            &second_user_addr,
+            &second_user_power,
+            &second_user_proof,
+            proposal_id,
+        )
         .assert_user_error("Already voted for this proposal");
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
@@ -88,9 +114,16 @@ fn gov_propose_test() {
 fn gov_no_veto_vote_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
-    let second_user_addr = gov_setup.second_user.clone();
-    let third_user_addr = gov_setup.third_user.clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
+    let first_user_power = gov_setup.get_first_user_voting_power();
+    let first_user_proof = gov_setup.first_merkle_proof();
+    let second_user_addr = gov_setup.second_merkle_user.clone();
+    let second_user_power = gov_setup.get_second_user_voting_power();
+    let second_user_proof = gov_setup.second_merkle_proof();
+    let third_user_addr = gov_setup.third_merkle_user.clone();
+    let third_user_power = gov_setup.get_third_user_voting_power();
+    let third_user_proof = gov_setup.third_merkle_proof();
+
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
@@ -99,6 +132,7 @@ fn gov_no_veto_vote_test() {
         .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -120,14 +154,26 @@ fn gov_no_veto_vote_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr).assert_ok();
     gov_setup
-        .up_vote(&second_user_addr)
+        .down_veto_vote(
+            &first_user_addr,
+            &first_user_power,
+            &first_user_proof,
+            proposal_id,
+        )
+        .assert_ok();
+    gov_setup
+        .up_vote(
+            &second_user_addr,
+            &second_user_power,
+            &second_user_proof,
+            proposal_id,
+        )
         .assert_ok();
 
     // Third User DownWithVetoVote = 1_100
     gov_setup
-        .down_veto_vote(&third_user_addr, proposal_id)
+        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
         .assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
@@ -147,8 +193,12 @@ fn gov_no_veto_vote_test() {
 fn gov_abstain_vote_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
-    let third_user_addr = gov_setup.third_user.clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
+    let first_user_power = gov_setup.get_first_user_voting_power();
+    let first_user_proof = gov_setup.first_merkle_proof();
+    let third_user_addr = gov_setup.third_merkle_user.clone();
+    let third_user_power = gov_setup.get_third_user_voting_power();
+    let third_user_proof = gov_setup.third_merkle_proof();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
@@ -157,6 +207,7 @@ fn gov_abstain_vote_test() {
         .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -168,9 +219,9 @@ fn gov_abstain_vote_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr).assert_ok();
+    gov_setup.abstain_vote(&first_user_addr, &first_user_power, &first_user_proof, proposal_id).assert_ok();
     gov_setup
-        .abstain_vote(&third_user_addr, proposal_id)
+        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
         .assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
@@ -190,7 +241,10 @@ fn gov_abstain_vote_test() {
 fn gov_no_quorum_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
+    let third_user_addr = gov_setup.third_merkle_user.clone();
+    let third_user_power = gov_setup.get_third_user_voting_power();
+    let third_user_proof = gov_setup.third_merkle_proof();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
@@ -199,6 +253,7 @@ fn gov_no_quorum_test() {
         .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -210,7 +265,7 @@ fn gov_no_quorum_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr).assert_ok();
+    gov_setup.up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id).assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
 
@@ -229,7 +284,10 @@ fn gov_no_quorum_test() {
 fn gov_modify_quorum_after_end_vote_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
+    let third_user_addr = gov_setup.third_merkle_user.clone();
+    let third_user_power = gov_setup.get_third_user_voting_power();
+    let third_user_proof = gov_setup.third_merkle_proof();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
@@ -238,6 +296,7 @@ fn gov_modify_quorum_after_end_vote_test() {
         .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -247,11 +306,11 @@ fn gov_modify_quorum_after_end_vote_test() {
     result.assert_ok();
     assert_eq!(proposal_id, 1);
 
+    gov_setup.increment_block_nonce(VOTING_DELAY_BLOCKS);
+
+    gov_setup.up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id).assert_ok();
+
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
-
-    gov_setup.up_vote(&first_user_addr).assert_ok();
-
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
 
     gov_setup
         .b_mock
@@ -275,8 +334,12 @@ fn gov_modify_quorum_after_end_vote_test() {
 fn gov_withdraw_defeated_proposal_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
-    let third_user_addr = gov_setup.third_user.clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
+    let first_user_power = gov_setup.get_first_user_voting_power();
+    let first_user_proof = gov_setup.first_merkle_proof();
+    let third_user_addr = gov_setup.third_merkle_user.clone();
+    let third_user_power = gov_setup.get_third_user_voting_power();
+    let third_user_proof = gov_setup.third_merkle_proof();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
@@ -285,6 +348,7 @@ fn gov_withdraw_defeated_proposal_test() {
         .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -303,14 +367,14 @@ fn gov_withdraw_defeated_proposal_test() {
         None,
     );
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_block_nonce(VOTING_DELAY_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr).assert_ok();
+    gov_setup.down_vote(&first_user_addr, &first_user_power, &first_user_proof, proposal_id).assert_ok();
     gov_setup
-        .down_vote(&third_user_addr, proposal_id)
+        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
         .assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
     gov_setup
         .b_mock
@@ -346,8 +410,12 @@ fn gov_withdraw_defeated_proposal_test() {
 fn gov_modify_withdraw_defeated_proposal_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
-    let third_user_addr = gov_setup.third_user.clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
+    let first_user_power = gov_setup.get_first_user_voting_power();
+    let first_user_proof = gov_setup.first_merkle_proof();
+    let third_user_addr = gov_setup.third_merkle_user.clone();
+    let third_user_power = gov_setup.get_third_user_voting_power();
+    let third_user_proof = gov_setup.third_merkle_proof();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
@@ -356,6 +424,7 @@ fn gov_modify_withdraw_defeated_proposal_test() {
         .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -376,9 +445,9 @@ fn gov_modify_withdraw_defeated_proposal_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr).assert_ok();
+    gov_setup.down_vote(&first_user_addr, &first_user_power, &first_user_proof, proposal_id).assert_ok();
     gov_setup
-        .down_vote(&third_user_addr, proposal_id)
+        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
         .assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
@@ -421,8 +490,12 @@ fn gov_modify_withdraw_defeated_proposal_test() {
 fn gov_withdraw_no_with_veto_defeated_proposal_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
-    let third_user_addr = gov_setup.third_user.clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
+    let first_user_power = gov_setup.get_first_user_voting_power();
+    let first_user_proof = gov_setup.first_merkle_proof();
+    let third_user_addr = gov_setup.third_merkle_user.clone();
+    let third_user_power = gov_setup.get_third_user_voting_power();
+    let third_user_proof = gov_setup.third_merkle_proof();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
@@ -431,6 +504,7 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
         .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -451,9 +525,9 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&first_user_addr).assert_ok();
+    gov_setup.down_veto_vote(&first_user_addr, &first_user_power, &first_user_proof, proposal_id).assert_ok();
     gov_setup
-        .down_veto_vote(&third_user_addr, proposal_id)
+        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
         .assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
@@ -492,7 +566,7 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
 fn gov_propose_cancel_proposal_id_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
@@ -505,6 +579,7 @@ fn gov_propose_cancel_proposal_id_test() {
     );
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -519,6 +594,7 @@ fn gov_propose_cancel_proposal_id_test() {
 
     // Proposal ID = 2
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -533,6 +609,7 @@ fn gov_propose_cancel_proposal_id_test() {
 
     // Proposal ID = 3
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -567,6 +644,7 @@ fn gov_propose_cancel_proposal_id_test() {
 
     // Proposal ID = 4
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -583,6 +661,7 @@ fn gov_propose_cancel_proposal_id_test() {
 
     // Proposal ID = 5
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,

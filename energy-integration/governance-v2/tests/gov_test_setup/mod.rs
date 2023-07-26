@@ -6,7 +6,7 @@ use governance_v2::{
 };
 use multiversx_sc::{
     hex_literal::hex,
-    types::{Address, BigInt, ManagedByteArray, ManagedVec, MultiValueEncoded, BigUint}, arrayvec::ArrayVec,
+    types::{Address, BigInt, ManagedByteArray, ManagedVec, MultiValueEncoded}, arrayvec::ArrayVec,
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
@@ -14,6 +14,7 @@ use multiversx_sc_scenario::{
     whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
+use num_bigint::BigUint;
 
 pub const MIN_FEE_FOR_PROPOSE: u64 = 3_000_000;
 pub const QUORUM_PERCENTAGE: u64 = 5000;
@@ -22,11 +23,10 @@ pub const VOTING_PERIOD_BLOCKS: u64 = 14_500;
 pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
 pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
 pub const WXMEX_TOKEN_ID: &[u8] = b"WXMEX-123456";
-pub const LOCKED_TOKEN_ID: &[u8] = b"LOCKED-abcdef";
 pub const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
 pub const QUORUM: u64 = 217_433_990_694;
 
-pub const USER_ENERGY: u64 = 1_000_000;
+pub const VOTING_POWER: u64 = 1_000_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
 
 #[derive(Clone)]
@@ -57,6 +57,7 @@ where
     GovBuilder: 'static + Copy + Fn() -> governance_v2::ContractObj<DebugApi>,
 {
     pub fn new(gov_builder: GovBuilder) -> Self {
+        let _ = DebugApi::dummy();
         let rust_zero = rust_biguint!(0);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner = b_mock.create_user_account(&rust_zero);
@@ -87,19 +88,19 @@ where
                 sc.init();
                 sc.user_energy(&managed_address!(&first_user))
                     .set(&Energy::new(
-                        BigInt::from(managed_biguint!(USER_ENERGY)),
+                        BigInt::from(managed_biguint!(VOTING_POWER)),
                         0,
                         managed_biguint!(0),
                     ));
                 sc.user_energy(&managed_address!(&second_user))
                     .set(&Energy::new(
-                        BigInt::from(managed_biguint!(USER_ENERGY)),
+                        BigInt::from(managed_biguint!(VOTING_POWER)),
                         0,
                         managed_biguint!(0),
                     ));
                 sc.user_energy(&managed_address!(&third_user))
                     .set(&Energy::new(
-                        BigInt::from(managed_biguint!(USER_ENERGY + 210_000)),
+                        BigInt::from(managed_biguint!(VOTING_POWER + 210_000)),
                         0,
                         managed_biguint!(0),
                     ));
@@ -143,7 +144,7 @@ where
         &mut self,
         root_hash: ManagedByteArray<DebugApi, 32>,
         proposer: &Address,
-        fee_amount: &BigUint<DebugApi>,
+        fee_amount: &BigUint,
         dest_address: &Address,
         endpoint_name: &[u8],
         args: Vec<Vec<u8>>,
@@ -184,31 +185,31 @@ where
         (result, proposal_id)
     }
 
-    pub fn up_vote(&mut self, voter: &Address, power: &BigUint<DebugApi>, proof: &ArrayVec<ManagedByteArray<DebugApi, 32>, 18>, proposal_id: usize) -> TxResult {
+    pub fn up_vote(&mut self, voter: &Address, power: &BigUint, proof: &ArrayVec<ManagedByteArray<DebugApi, 32>, 18>, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id, VoteType::UpVote, power.clone(), proof.clone());
+                sc.vote(proposal_id, VoteType::UpVote, power.into(), proof.clone());
             })
     }
 
-    pub fn down_vote(&mut self, voter: &Address, power: &BigUint<DebugApi>, proof: &ArrayVec<ManagedByteArray<DebugApi, 32>, 18>, proposal_id: usize) -> TxResult {
+    pub fn down_vote(&mut self, voter: &Address, power: &BigUint, proof: &ArrayVec<ManagedByteArray<DebugApi, 32>, 18>, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id, VoteType::DownVote, power.clone(), proof.clone());
+                sc.vote(proposal_id, VoteType::DownVote, power.into(), proof.clone());
             })
     }
 
-    pub fn down_veto_vote(&mut self, voter: &Address, power: &BigUint<DebugApi>, proof: &ArrayVec<ManagedByteArray<DebugApi, 32>, 18>, proposal_id: usize) -> TxResult {
+    pub fn down_veto_vote(&mut self, voter: &Address, power: &BigUint, proof: &ArrayVec<ManagedByteArray<DebugApi, 32>, 18>, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id, VoteType::DownVetoVote, power.clone(), proof.clone());
+                sc.vote(proposal_id, VoteType::DownVetoVote, power.into(), proof.clone());
             })
     }
 
-    pub fn abstain_vote(&mut self, voter: &Address, power: &BigUint<DebugApi>, proof: &ArrayVec<ManagedByteArray<DebugApi, 32>, 18>, proposal_id: usize) -> TxResult {
+    pub fn abstain_vote(&mut self, voter: &Address, power: &BigUint, proof: &ArrayVec<ManagedByteArray<DebugApi, 32>, 18>, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id, VoteType::AbstainVote, power.clone(), proof.clone());
+                sc.vote(proposal_id, VoteType::AbstainVote, power.into(), proof.clone());
             })
     }
 
@@ -315,16 +316,16 @@ where
     }
 
 
-    pub fn get_first_user_voting_power(&self) -> BigUint<DebugApi> {
-        managed_biguint!(217433990694)
+    pub fn get_first_user_voting_power(&self) -> BigUint {
+        BigUint::from(217_433_990_694u64)
     }
 
-    pub fn get_second_user_voting_power(&self) -> BigUint<DebugApi> {
-        managed_biguint!(59024824840)
+    pub fn get_second_user_voting_power(&self) -> BigUint {
+        BigUint::from(59_024_824_840u64)
     }
 
-    pub fn get_third_user_voting_power(&self) -> BigUint<DebugApi> {
-        managed_biguint!(40000000000)
+    pub fn get_third_user_voting_power(&self) -> BigUint {
+        BigUint::from(40_000_000_000u64)
     }
 
     pub fn get_merkle_root_hash(&self) -> ManagedByteArray<DebugApi, 32> {
