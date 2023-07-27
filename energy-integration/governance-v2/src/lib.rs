@@ -28,7 +28,6 @@ pub trait GovernanceV2:
     + caller_check::CallerCheckModule
     + views::ViewsModule
 {
-    /// - `min_energy_for_propose` - the minimum energy required for submitting a proposal;
     /// - `min_fee_for_propose` - the minimum fee required for submitting a proposal;
     /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period;
     /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal;
@@ -38,7 +37,6 @@ pub trait GovernanceV2:
     #[init]
     fn init(
         &self,
-        // min_energy_for_propose: BigUint,
         min_fee_for_propose: BigUint,
         quorum_percentage: BigUint,
         voting_delay_in_blocks: u64,
@@ -46,7 +44,6 @@ pub trait GovernanceV2:
         withdraw_percentage_defeated: u64,
         fee_token: TokenIdentifier,
     ) {
-        // self.try_change_min_energy_for_propose(min_energy_for_propose);
         self.try_change_min_fee_for_propose(min_fee_for_propose);
         self.try_change_quorum_percentage(quorum_percentage);
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
@@ -65,7 +62,7 @@ pub trait GovernanceV2:
     ///     - endpoint to be called on the destination
     ///     - a vector of arguments for the endpoint, in the form of ManagedVec<ManagedBuffer>
     ///
-    /// The proposer's energy is NOT automatically used for voting. A separate vote is needed.
+    /// The proposer's quorum is NOT automatically used for voting. A separate vote is needed.
     ///
     /// Returns the ID of the newly created proposal.
     #[payable("*")]
@@ -86,10 +83,6 @@ pub trait GovernanceV2:
         );
 
         let proposer = self.blockchain().get_caller();
-        // let user_energy = self.get_energy_amount_non_zero(&proposer);
-        // let min_energy_for_propose = self.min_energy_for_propose().get();
-        // require!(user_energy >= min_energy_for_propose, NOT_ENOUGH_ENERGY);
-
         let user_fee = self.call_value().single_esdt();
         require!(
             self.fee_token_id().get() == user_fee.token_identifier,

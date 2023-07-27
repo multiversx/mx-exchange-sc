@@ -9,10 +9,9 @@ multiversx_sc::imports!();
 /// - voting/downvoting a certain proposal
 /// - after a voting period, either putting the action in a queue (if it reached quorum), or canceling
 ///
-/// Voting is done through energy.
+/// Voting is done through tokens ownership.
 ///
 /// The module provides the following configurable parameters:  
-/// - `minEnergyForPropose` - the minimum energy required for submitting a proposal
 /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
 /// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have  
 /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
@@ -46,12 +45,6 @@ pub trait ConfigurablePropertiesModule {
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
 
     #[only_owner]
-    #[endpoint(changeMinEnergyForProposal)]
-    fn change_min_energy_for_propose(&self, new_value: BigUint) {
-        self.try_change_min_energy_for_propose(new_value);
-    }
-
-    #[only_owner]
     #[endpoint(changeMinFeeForProposal)]
     fn change_min_fee_for_propose(&self, new_value: BigUint) {
         self.try_change_min_fee_for_propose(new_value);
@@ -73,12 +66,6 @@ pub trait ConfigurablePropertiesModule {
     #[endpoint(changeVotingPeriodInBlocks)]
     fn change_voting_period_in_blocks(&self, new_value: u64) {
         self.try_change_voting_period_in_blocks(new_value);
-    }
-
-    fn try_change_min_energy_for_propose(&self, new_value: BigUint) {
-        require!(new_value != 0, "Min energy for proposal can't be set to 0");
-
-        self.min_energy_for_propose().set(&new_value);
     }
 
     fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
@@ -134,10 +121,6 @@ pub trait ConfigurablePropertiesModule {
         require!(fee_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
         self.fee_token_id().set_if_empty(&fee_token_id);
     }
-
-    #[view(getMinEnergyForPropose)]
-    #[storage_mapper("minEnergyForPropose")]
-    fn min_energy_for_propose(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getMinFeeForPropose)]
     #[storage_mapper("minFeeForPropose")]

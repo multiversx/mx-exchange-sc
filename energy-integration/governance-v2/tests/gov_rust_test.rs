@@ -111,7 +111,7 @@ fn gov_propose_test() {
 }
 
 #[test]
-fn gov_propose_total_energy_0_test() {
+fn gov_propose_total_quorum_0_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
     let first_user_addr = gov_setup.first_user.clone();
