@@ -140,7 +140,7 @@ pub trait GovernanceV2:
             voting_delay_in_blocks,
             voting_period_in_blocks,
             withdraw_percentage_defeated,
-            total_energy: BigUint::zero(),
+            total_quorum: BigUint::zero(),
             proposal_start_block: current_block,
         };
         let proposal_id = self.proposals().push(&proposal);
@@ -176,47 +176,47 @@ pub trait GovernanceV2:
                 .last_global_update_week()
                 .execute_on_dest_context();
 
-            let total_energy: BigUint = self
+            let total_quorum: BigUint = self
                 .fees_collector_proxy(fees_collector_addr)
                 .total_energy_for_week(last_global_update_week)
                 .execute_on_dest_context();
 
             let mut proposal = self.proposals().get(proposal_id);
-            proposal.total_energy = total_energy;
+            proposal.total_quorum = total_quorum;
             self.proposals().set(proposal_id, &proposal);
         }
 
-        let user_energy = self.get_energy_amount_non_zero(&voter);
-        let voting_power = user_energy.sqrt();
+        let user_quorum = self.get_energy_amount_non_zero(&voter);
+        let voting_power = user_quorum.sqrt();
 
         match vote {
             VoteType::UpVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.up_votes += &voting_power.clone();
-                    proposal_votes.quorum += &user_energy.clone();
+                    proposal_votes.quorum += &user_quorum.clone();
                 });
-                self.up_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
+                self.up_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
             VoteType::DownVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_votes += &voting_power.clone();
-                    proposal_votes.quorum += &user_energy.clone();
+                    proposal_votes.quorum += &user_quorum.clone();
                 });
-                self.down_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
+                self.down_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
             VoteType::DownVetoVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_veto_votes += &voting_power.clone();
-                    proposal_votes.quorum += &user_energy.clone();
+                    proposal_votes.quorum += &user_quorum.clone();
                 });
-                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
+                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
             VoteType::AbstainVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.abstain_votes += &voting_power.clone();
-                    proposal_votes.quorum += &user_energy.clone();
+                    proposal_votes.quorum += &user_quorum.clone();
                 });
-                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
+                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
         }
     }
