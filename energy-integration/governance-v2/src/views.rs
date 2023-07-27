@@ -10,8 +10,6 @@ pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
     + crate::configurable::ConfigurablePropertiesModule
     + crate::caller_check::CallerCheckModule
-    + permissions_module::PermissionsModule
-    + energy_query::EnergyQueryModule
 {
     #[view(getProposalStatus)]
     fn get_proposal_status(&self, proposal_id: ProposalId) -> GovernanceProposalStatus {
@@ -121,11 +119,4 @@ pub trait ViewsModule:
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {
         self.is_valid_proposal_id(proposal_id) && !self.proposals().item_is_empty(proposal_id)
     }
-
-    #[proxy]
-    fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
-
-    #[view(getFeesCollectorAddress)]
-    #[storage_mapper("feesCollectorAddress")]
-    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

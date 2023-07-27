@@ -41,9 +41,7 @@ const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
 const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
 
 #[multiversx_sc::module]
-pub trait ConfigurablePropertiesModule:
-    energy_query::EnergyQueryModule + permissions_module::PermissionsModule
-{
+pub trait ConfigurablePropertiesModule {
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
 

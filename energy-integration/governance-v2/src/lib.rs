@@ -27,8 +27,6 @@ pub trait GovernanceV2:
     + proposal_storage::ProposalStorageModule
     + caller_check::CallerCheckModule
     + views::ViewsModule
-    + energy_query::EnergyQueryModule
-    + permissions_module::PermissionsModule
 {
     /// - `min_energy_for_propose` - the minimum energy required for submitting a proposal;
     /// - `min_fee_for_propose` - the minimum fee required for submitting a proposal;
