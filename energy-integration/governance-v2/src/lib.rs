@@ -73,7 +73,7 @@ pub trait GovernanceV2:
     fn propose(
         &self,
         root_hash: ManagedByteArray<HASH_LENGTH>,
-        total_balance: BigUint<Self::Api>,
+        total_quorum: BigUint<Self::Api>,
         description: ManagedBuffer,
         actions: MultiValueEncoded<GovernanceActionAsMultiArg<Self::Api>>,
     ) -> ProposalId {
@@ -135,7 +135,7 @@ pub trait GovernanceV2:
             voting_delay_in_blocks,
             voting_period_in_blocks,
             withdraw_percentage_defeated,
-            total_balance,
+            total_quorum,
             proposal_start_block: current_block,
         };
         let proposal_id = self.proposals().push(&proposal);
@@ -147,13 +147,13 @@ pub trait GovernanceV2:
         proposal_id
     }
 
-    /// Vote on a proposal. The voting balance depends on the user's energy.
+    /// Vote on a proposal. The voting power depends on the user's quorum (number of tokens).
     #[endpoint]
     fn vote(
         &self,
         proposal_id: ProposalId,
         vote: VoteType,
-        user_balance: BigUint<Self::Api>,
+        user_quorum: BigUint<Self::Api>,
         proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, PROOF_LENGTH>,
     ) {
         self.require_caller_not_self();
@@ -167,7 +167,7 @@ pub trait GovernanceV2:
         let new_user = self.user_voted_proposals(&voter).insert(proposal_id);
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
-        let voting_power = user_balance.sqrt();
+        let voting_power = user_quorum.sqrt();
 
         match self.get_root_hash(proposal_id) {
             OptionalValue::None => {
@@ -187,28 +187,28 @@ pub trait GovernanceV2:
                     proposal_votes.up_votes += &voting_power.clone();
                     proposal_votes.quorum += &voting_power.clone();
                 });
-                self.up_vote_cast_event(&voter, proposal_id, &voting_power, &user_balance);
+                self.up_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
             VoteType::DownVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_votes += &voting_power.clone();
                     proposal_votes.quorum += &voting_power.clone();
                 });
-                self.down_vote_cast_event(&voter, proposal_id, &voting_power, &user_balance);
+                self.down_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
             VoteType::DownVetoVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_veto_votes += &voting_power.clone();
                     proposal_votes.quorum += &voting_power.clone();
                 });
-                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power, &user_balance);
+                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
             VoteType::AbstainVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.abstain_votes += &voting_power.clone();
                     proposal_votes.quorum += &voting_power.clone();
                 });
-                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power, &user_balance);
+                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
         }
         self.user_voted_proposals(&voter).insert(proposal_id);

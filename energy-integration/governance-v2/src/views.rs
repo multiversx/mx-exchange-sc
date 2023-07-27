@@ -91,7 +91,7 @@ pub trait ViewsModule:
 
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal = self.proposals().get(proposal_id);
-        let total_balance = proposal.total_balance;
+        let total_balance = proposal.total_quorum;
 
         if total_balance == 0u64 {
             return false;

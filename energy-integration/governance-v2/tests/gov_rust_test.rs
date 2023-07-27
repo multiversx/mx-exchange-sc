@@ -138,7 +138,7 @@ fn gov_propose_total_energy_0_test() {
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
             let mut proposal = sc.proposals().get(1);
-            proposal.total_balance = managed_biguint!(0);
+            proposal.total_quorum = managed_biguint!(0);
             sc.proposals().set(1, &proposal);
             assert!(
                 sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
