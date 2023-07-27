@@ -92,6 +92,10 @@ pub trait ViewsModule:
         let proposal = self.proposals().get(proposal_id);
         let total_voting_power_for_proposal = proposal.total_voting_power;
 
+        if total_energy_for_proposal == 0u64 {
+            return false
+        }
+
         let required_minimum_percentage = proposal.minimum_quorum;
 
         let current_quorum = self.proposal_votes(proposal_id).get().quorum;

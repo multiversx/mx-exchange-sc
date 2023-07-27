@@ -20,6 +20,7 @@ pub trait EventsModule {
         #[indexed] up_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
         #[indexed] nr_votes: &BigUint,
+        #[indexed] energy: &BigUint,
     );
 
     #[event("downVoteCast")]
@@ -28,6 +29,7 @@ pub trait EventsModule {
         #[indexed] down_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
         #[indexed] nr_votes: &BigUint,
+        #[indexed] energy: &BigUint,
     );
 
     #[event("downVetoVoteCast")]
@@ -36,6 +38,7 @@ pub trait EventsModule {
         #[indexed] down_veto_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
         #[indexed] nr_votes: &BigUint,
+        #[indexed] energy: &BigUint,
     );
 
     #[event("abstainVoteCast")]
@@ -44,6 +47,7 @@ pub trait EventsModule {
         #[indexed] abstain_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
         #[indexed] nr_votes: &BigUint,
+        #[indexed] energy: &BigUint,
     );
 
     #[event("proposalCanceled")]
