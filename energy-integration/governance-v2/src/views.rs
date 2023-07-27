@@ -46,7 +46,10 @@ pub trait ViewsModule:
     }
 
     #[view(getProposalRootHash)]
-    fn get_root_hash(&self, proposal_id: ProposalId) -> OptionalValue<ManagedByteArray<HASH_LENGTH>> {
+    fn get_root_hash(
+        &self,
+        proposal_id: ProposalId,
+    ) -> OptionalValue<ManagedByteArray<HASH_LENGTH>> {
         if !self.proposal_exists(proposal_id) {
             return OptionalValue::None;
         }
@@ -90,17 +93,16 @@ pub trait ViewsModule:
 
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal = self.proposals().get(proposal_id);
-        let total_voting_power_for_proposal = proposal.total_voting_power;
+        let total_balance = proposal.total_balance;
 
-        if total_energy_for_proposal == 0u64 {
-            return false
+        if total_balance == 0u64 {
+            return false;
         }
 
         let required_minimum_percentage = proposal.minimum_quorum;
 
         let current_quorum = self.proposal_votes(proposal_id).get().quorum;
-        let current_quorum_percentage =
-            current_quorum * FULL_PERCENTAGE / total_voting_power_for_proposal;
+        let current_quorum_percentage = current_quorum * FULL_PERCENTAGE / total_balance;
 
         current_quorum_percentage >= required_minimum_percentage
     }

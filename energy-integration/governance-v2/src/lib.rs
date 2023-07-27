@@ -36,8 +36,6 @@ pub trait GovernanceV2:
     /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal;
     /// - `votingPeriodInBlocks` - Number of blocks the voting period lasts (voting delay does not count towards this);
     /// - `withdraw_percentage_defeated` - The percentage used to return in case of DownVetoVote;
-    /// - `energy_factory_address`;
-    /// - `fees_collector_address`;
     /// - `fee_token` - The token used to pay the fee for governance proposal;
     #[init]
     fn init(
@@ -48,7 +46,6 @@ pub trait GovernanceV2:
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
         withdraw_percentage_defeated: u64,
-        energy_factory_address: ManagedAddress,
         fee_token: TokenIdentifier,
     ) {
         // self.try_change_min_energy_for_propose(min_energy_for_propose);
@@ -57,7 +54,6 @@ pub trait GovernanceV2:
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
         self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
-        self.set_energy_factory_address(energy_factory_address);
         self.try_change_fee_token_id(fee_token);
     }
 
@@ -79,7 +75,7 @@ pub trait GovernanceV2:
     fn propose(
         &self,
         root_hash: ManagedByteArray<HASH_LENGTH>,
-        total_voting_power: BigUint<Self::Api>,
+        total_balance: BigUint<Self::Api>,
         description: ManagedBuffer,
         actions: MultiValueEncoded<GovernanceActionAsMultiArg<Self::Api>>,
     ) -> ProposalId {
@@ -141,7 +137,7 @@ pub trait GovernanceV2:
             voting_delay_in_blocks,
             voting_period_in_blocks,
             withdraw_percentage_defeated,
-            total_voting_power,
+            total_balance,
             proposal_start_block: current_block,
         };
         let proposal_id = self.proposals().push(&proposal);
@@ -153,9 +149,15 @@ pub trait GovernanceV2:
         proposal_id
     }
 
-    /// Vote on a proposal. The voting power depends on the user's energy.
+    /// Vote on a proposal. The voting balance depends on the user's energy.
     #[endpoint]
-    fn vote(&self, proposal_id: ProposalId, vote: VoteType, voting_power: BigUint<Self::Api>, proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, PROOF_LENGTH>) {
+    fn vote(
+        &self,
+        proposal_id: ProposalId,
+        vote: VoteType,
+        user_balance: BigUint<Self::Api>,
+        proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, PROOF_LENGTH>,
+    ) {
         self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
         require!(
@@ -167,12 +169,17 @@ pub trait GovernanceV2:
         let new_user = self.user_voted_proposals(&voter).insert(proposal_id);
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
+        let voting_power = user_balance.sqrt();
+
         match self.get_root_hash(proposal_id) {
             OptionalValue::None => {
                 sc_panic!(NO_PROPOSAL);
             }
             OptionalValue::Some(root_hash) => {
-                require!(self.verify_merkle_proof(voting_power.clone(), proof, root_hash), INVALID_MERKLE_PROOF);
+                require!(
+                    self.verify_merkle_proof(voting_power.clone(), proof, root_hash),
+                    INVALID_MERKLE_PROOF
+                );
             }
         }
 
@@ -182,28 +189,28 @@ pub trait GovernanceV2:
                     proposal_votes.up_votes += &voting_power.clone();
                     proposal_votes.quorum += &voting_power.clone();
                 });
-                self.up_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
+                self.up_vote_cast_event(&voter, proposal_id, &voting_power, &user_balance);
             }
             VoteType::DownVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_votes += &voting_power.clone();
                     proposal_votes.quorum += &voting_power.clone();
                 });
-                self.down_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
+                self.down_vote_cast_event(&voter, proposal_id, &voting_power, &user_balance);
             }
             VoteType::DownVetoVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_veto_votes += &voting_power.clone();
                     proposal_votes.quorum += &voting_power.clone();
                 });
-                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
+                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power, &user_balance);
             }
             VoteType::AbstainVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.abstain_votes += &voting_power.clone();
                     proposal_votes.quorum += &voting_power.clone();
                 });
-                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power, &user_energy);
+                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power, &user_balance);
             }
         }
         self.user_voted_proposals(&voter).insert(proposal_id);
@@ -224,10 +231,7 @@ pub trait GovernanceV2:
                 let proposal = self.proposals().get(proposal_id);
                 let caller = self.blockchain().get_caller();
 
-                require!(
-                    caller == proposal.proposer,
-                    ONLY_PROPOSER_CANCEL
-                );
+                require!(caller == proposal.proposer, ONLY_PROPOSER_CANCEL);
                 self.refund_proposal_fee(proposal_id, &proposal.fee_payment.amount);
                 self.clear_proposal(proposal_id);
                 self.proposal_canceled_event(proposal_id);
@@ -252,10 +256,7 @@ pub trait GovernanceV2:
             GovernanceProposalStatus::Succeeded | GovernanceProposalStatus::Defeated => {
                 let proposal = self.proposals().get(proposal_id);
 
-                require!(
-                    caller == proposal.proposer,
-                    ONLY_PROPOSER_WITHDRAW
-                );
+                require!(caller == proposal.proposer, ONLY_PROPOSER_WITHDRAW);
 
                 self.refund_proposal_fee(proposal_id, &proposal.fee_payment.amount);
             }
@@ -265,10 +266,7 @@ pub trait GovernanceV2:
                 let refund_amount =
                     refund_percentage * proposal.fee_payment.amount.clone() / FULL_PERCENTAGE;
 
-                require!(
-                    caller == proposal.proposer,
-                    ONLY_PROPOSER_WITHDRAW
-                );
+                require!(caller == proposal.proposer, ONLY_PROPOSER_WITHDRAW);
 
                 self.refund_proposal_fee(proposal_id, &refund_amount);
                 let remaining_fee = proposal.fee_payment.amount - refund_amount;
@@ -312,7 +310,12 @@ pub trait GovernanceV2:
         );
     }
 
-    fn verify_merkle_proof(&self, power: BigUint<Self::Api>, proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, PROOF_LENGTH>, root_hash: ManagedByteArray<HASH_LENGTH>) -> bool {
+    fn verify_merkle_proof(
+        &self,
+        power: BigUint<Self::Api>,
+        proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, PROOF_LENGTH>,
+        root_hash: ManagedByteArray<HASH_LENGTH>,
+    ) -> bool {
         let caller = self.blockchain().get_caller();
         let mut leaf_bytes = caller.as_managed_buffer().clone();
 
@@ -321,7 +324,9 @@ pub trait GovernanceV2:
 
         let mut hash = self.crypto().sha256(&leaf_bytes);
         for proof_item in proof {
-            if BigUint::from(hash.as_managed_buffer()) < BigUint::from(proof_item.as_managed_buffer()) {
+            if BigUint::from(hash.as_managed_buffer())
+                < BigUint::from(proof_item.as_managed_buffer())
+            {
                 let mut tst = hash.as_managed_buffer().clone();
                 tst.append(proof_item.as_managed_buffer());
 

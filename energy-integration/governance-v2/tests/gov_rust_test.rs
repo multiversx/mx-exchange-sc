@@ -123,6 +123,7 @@ fn gov_propose_total_energy_0_test() {
         .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
         &first_user_addr,
         &min_fee,
         &sc_addr,
@@ -137,7 +138,7 @@ fn gov_propose_total_energy_0_test() {
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
             let mut proposal = sc.proposals().get(1);
-            proposal.total_energy = managed_biguint!(0);
+            proposal.total_balance = managed_biguint!(0);
             sc.proposals().set(1, &proposal);
             assert!(
                 sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
@@ -146,7 +147,6 @@ fn gov_propose_total_energy_0_test() {
         })
         .assert_ok();
 }
-
 
 #[test]
 fn gov_no_veto_vote_test() {
@@ -211,7 +211,12 @@ fn gov_no_veto_vote_test() {
 
     // Third User DownWithVetoVote = 1_100
     gov_setup
-        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
+        .up_vote(
+            &third_user_addr,
+            &third_user_power,
+            &third_user_proof,
+            proposal_id,
+        )
         .assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
@@ -257,9 +262,21 @@ fn gov_abstain_vote_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.abstain_vote(&first_user_addr, &first_user_power, &first_user_proof, proposal_id).assert_ok();
     gov_setup
-        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
+        .abstain_vote(
+            &first_user_addr,
+            &first_user_power,
+            &first_user_proof,
+            proposal_id,
+        )
+        .assert_ok();
+    gov_setup
+        .up_vote(
+            &third_user_addr,
+            &third_user_power,
+            &third_user_proof,
+            proposal_id,
+        )
         .assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
@@ -303,7 +320,14 @@ fn gov_no_quorum_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id).assert_ok();
+    gov_setup
+        .up_vote(
+            &third_user_addr,
+            &third_user_power,
+            &third_user_proof,
+            proposal_id,
+        )
+        .assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
 
@@ -346,7 +370,14 @@ fn gov_modify_quorum_after_end_vote_test() {
 
     gov_setup.increment_block_nonce(VOTING_DELAY_BLOCKS);
 
-    gov_setup.up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id).assert_ok();
+    gov_setup
+        .up_vote(
+            &third_user_addr,
+            &third_user_power,
+            &third_user_proof,
+            proposal_id,
+        )
+        .assert_ok();
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
@@ -407,9 +438,21 @@ fn gov_withdraw_defeated_proposal_test() {
 
     gov_setup.increment_block_nonce(VOTING_DELAY_BLOCKS);
 
-    gov_setup.down_vote(&first_user_addr, &first_user_power, &first_user_proof, proposal_id).assert_ok();
     gov_setup
-        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
+        .down_vote(
+            &first_user_addr,
+            &first_user_power,
+            &first_user_proof,
+            proposal_id,
+        )
+        .assert_ok();
+    gov_setup
+        .up_vote(
+            &third_user_addr,
+            &third_user_power,
+            &third_user_proof,
+            proposal_id,
+        )
         .assert_ok();
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
@@ -483,9 +526,21 @@ fn gov_modify_withdraw_defeated_proposal_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.down_vote(&first_user_addr, &first_user_power, &first_user_proof, proposal_id).assert_ok();
     gov_setup
-        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
+        .down_vote(
+            &first_user_addr,
+            &first_user_power,
+            &first_user_proof,
+            proposal_id,
+        )
+        .assert_ok();
+    gov_setup
+        .up_vote(
+            &third_user_addr,
+            &third_user_power,
+            &third_user_proof,
+            proposal_id,
+        )
         .assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
@@ -563,9 +618,21 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
-    gov_setup.down_veto_vote(&first_user_addr, &first_user_power, &first_user_proof, proposal_id).assert_ok();
     gov_setup
-        .up_vote(&third_user_addr, &third_user_power, &third_user_proof, proposal_id)
+        .down_veto_vote(
+            &first_user_addr,
+            &first_user_power,
+            &first_user_proof,
+            proposal_id,
+        )
+        .assert_ok();
+    gov_setup
+        .up_vote(
+            &third_user_addr,
+            &third_user_power,
+            &third_user_proof,
+            proposal_id,
+        )
         .assert_ok();
 
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
