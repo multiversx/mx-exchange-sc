@@ -84,7 +84,7 @@ pub trait ViewsModule:
         let total_quorum_for_proposal = proposal.total_quorum;
 
         if total_quorum_for_proposal == 0u64 {
-            return false
+            return false;
         }
 
         let required_minimum_percentage = proposal.minimum_quorum;

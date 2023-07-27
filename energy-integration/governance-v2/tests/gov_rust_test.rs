@@ -119,7 +119,6 @@ fn gov_propose_total_energy_0_test() {
         .assert_ok();
 }
 
-
 #[test]
 fn gov_no_veto_vote_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
