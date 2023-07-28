@@ -23,8 +23,10 @@ pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
 pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
 pub const WXMEX_TOKEN_ID: &[u8] = b"WXMEX-123456";
 pub const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
-pub const QUORUM: u64 = 217_433_990_694;
-pub const GAS_LIMIT: u64 = 1_000_000;
+pub const GAS_LIMIT: u64 = 1_000_000u64;
+pub const FIRST_USER_QUORUM: u64 = 217_433_990_694u64;
+pub const SECOND_USER_QUORUM: u64 = 59_024_824_840u64;
+pub const THIRD_USER_QUORUM: u64 = 40_000_000_000u64;
 
 #[derive(Clone)]
 pub struct Payment {
@@ -136,10 +138,12 @@ where
                     )
                         .into(),
                 );
-
+                let total_quorum = managed_biguint!(FIRST_USER_QUORUM).pow(2)
+                    + managed_biguint!(SECOND_USER_QUORUM).pow(2)
+                    + managed_biguint!(THIRD_USER_QUORUM).pow(2);
                 proposal_id = sc.propose(
                     root_hash,
-                    managed_biguint!(QUORUM),
+                    total_quorum,
                     managed_buffer!(b"changeTODO"),
                     actions,
                 );

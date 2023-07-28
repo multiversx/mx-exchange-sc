@@ -65,6 +65,7 @@ pub trait GovernanceV2:
     /// The proposer's quorum is NOT automatically used for voting. A separate vote is needed.
     ///
     /// Returns the ID of the newly created proposal.
+    #[only_owner]
     #[payable("*")]
     #[endpoint]
     fn propose(
@@ -204,7 +205,6 @@ pub trait GovernanceV2:
                 self.abstain_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
         }
-        self.user_voted_proposals(&voter).insert(proposal_id);
     }
 
     /// Cancel a proposed action. This can be done:
