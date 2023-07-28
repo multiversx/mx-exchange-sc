@@ -169,7 +169,7 @@ pub trait GovernanceV2:
             }
             OptionalValue::Some(root_hash) => {
                 require!(
-                    self.verify_merkle_proof(voting_power.clone(), proof, root_hash),
+                    self.verify_merkle_proof(user_quorum.clone(), proof, root_hash),
                     INVALID_MERKLE_PROOF
                 );
             }

@@ -138,9 +138,9 @@ where
                     )
                         .into(),
                 );
-                let total_quorum = managed_biguint!(FIRST_USER_QUORUM).pow(2)
-                    + managed_biguint!(SECOND_USER_QUORUM).pow(2)
-                    + managed_biguint!(THIRD_USER_QUORUM).pow(2);
+                let total_quorum = managed_biguint!(FIRST_USER_QUORUM)
+                    + managed_biguint!(SECOND_USER_QUORUM)
+                    + managed_biguint!(THIRD_USER_QUORUM);
                 proposal_id = sc.propose(
                     root_hash,
                     total_quorum,
@@ -425,15 +425,15 @@ where
     }
 
     pub fn get_first_user_voting_power(&self) -> BigUint {
-        BigUint::from(217_433_990_694u64).pow(2)
+        BigUint::from(217_433_990_694u64)
     }
 
     pub fn get_second_user_voting_power(&self) -> BigUint {
-        BigUint::from(59_024_824_840u64).pow(2)
+        BigUint::from(59_024_824_840u64)
     }
 
     pub fn get_third_user_voting_power(&self) -> BigUint {
-        BigUint::from(40_000_000_000u64).pow(2)
+        BigUint::from(40_000_000_000u64)
     }
 
     pub fn get_merkle_root_hash(&self) -> ManagedByteArray<DebugApi, 32> {
