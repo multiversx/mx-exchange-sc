@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
 use crate::{
-    proposal::{GovernanceProposalStatus, ProposalId},
+    proposal::{GovernanceProposalStatus, ProposalId, HASH_LENGTH},
     FULL_PERCENTAGE,
 };
 
@@ -10,8 +10,6 @@ pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
     + crate::configurable::ConfigurablePropertiesModule
     + crate::caller_check::CallerCheckModule
-    + permissions_module::PermissionsModule
-    + energy_query::EnergyQueryModule
 {
     #[view(getProposalStatus)]
     fn get_proposal_status(&self, proposal_id: ProposalId) -> GovernanceProposalStatus {
@@ -43,6 +41,18 @@ pub trait ViewsModule:
         } else {
             GovernanceProposalStatus::Defeated
         }
+    }
+
+    #[view(getProposalRootHash)]
+    fn get_root_hash(
+        &self,
+        proposal_id: ProposalId,
+    ) -> OptionalValue<ManagedByteArray<HASH_LENGTH>> {
+        if !self.proposal_exists(proposal_id) {
+            return OptionalValue::None;
+        }
+
+        OptionalValue::Some(self.proposals().get(proposal_id).root_hash)
     }
 
     fn vote_reached(&self, proposal_id: ProposalId) -> bool {
@@ -81,17 +91,16 @@ pub trait ViewsModule:
 
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal = self.proposals().get(proposal_id);
-        let total_quorum_for_proposal = proposal.total_quorum;
+        let total_quorum = proposal.total_quorum;
 
-        if total_quorum_for_proposal == 0u64 {
+        if total_quorum == 0u64 {
             return false;
         }
 
         let required_minimum_percentage = proposal.minimum_quorum;
 
         let current_quorum = self.proposal_votes(proposal_id).get().quorum;
-        let current_quorum_percentage =
-            current_quorum * FULL_PERCENTAGE / total_quorum_for_proposal;
+        let current_quorum_percentage = current_quorum * FULL_PERCENTAGE / total_quorum;
 
         current_quorum_percentage >= required_minimum_percentage
     }
@@ -110,11 +119,4 @@ pub trait ViewsModule:
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {
         self.is_valid_proposal_id(proposal_id) && !self.proposals().item_is_empty(proposal_id)
     }
-
-    #[proxy]
-    fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
-
-    #[view(getFeesCollectorAddress)]
-    #[storage_mapper("feesCollectorAddress")]
-    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

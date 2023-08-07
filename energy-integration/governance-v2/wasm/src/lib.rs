@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           27
+// Endpoints:                           19
 // Async Callback (empty):               1
-// Total number of exported functions:  29
+// Total number of exported functions:  21
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -22,12 +22,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         vote
         cancel
         withdrawDeposit
-        changeMinEnergyForProposal
         changeMinFeeForProposal
-        changeQuorum
+        changeQuorumPercentage
         changeVotingDelayInBlocks
         changeVotingPeriodInBlocks
-        getMinEnergyForPropose
         getMinFeeForPropose
         getQuorum
         getVotingDelayInBlocks
@@ -38,13 +36,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUserVotedProposals
         getProposalVotes
         getProposalStatus
-        getFeesCollectorAddress
-        setEnergyFactoryAddress
-        getEnergyFactoryAddress
-        addAdmin
-        removeAdmin
-        updateOwnerOrAdmin
-        getPermissions
+        getProposalRootHash
     )
 }
 

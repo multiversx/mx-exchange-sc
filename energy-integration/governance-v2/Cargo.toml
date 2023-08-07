@@ -7,8 +7,6 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
-[dependencies.energy-query]
-path = "../common-modules/energy-query"
 
 [dependencies.multiversx-sc]
 version = "=0.39.4"
@@ -19,15 +17,3 @@ num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.39.4"
-
-[dev-dependencies.energy-factory-mock]
-path = "../energy-factory-mock"
-
-[dependencies.permissions_module]
-path = "../../common/modules/permissions_module"
-
-[dependencies.fees-collector]
-path = "../fees-collector"
-
-[dependencies.weekly-rewards-splitting]
-path = "../common-modules/weekly-rewards-splitting"

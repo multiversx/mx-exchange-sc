@@ -9,10 +9,9 @@ multiversx_sc::imports!();
 /// - voting/downvoting a certain proposal
 /// - after a voting period, either putting the action in a queue (if it reached quorum), or canceling
 ///
-/// Voting is done through energy.
+/// Voting is done through tokens ownership.
 ///
 /// The module provides the following configurable parameters:  
-/// - `minEnergyForPropose` - the minimum energy required for submitting a proposal
 /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
 /// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have  
 /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
@@ -36,22 +35,14 @@ const MIN_VOTING_PERIOD: u64 = 14_400; // 24 Hours
 const MAX_VOTING_PERIOD: u64 = 201_600; // 2 Weeks
 const MIN_QUORUM: u64 = 1_000; // 10%
 const MAX_QUORUM: u64 = 6_000; // 60%
-const MIN_MIN_FEE_FOR_PROPOSE: u64 = 2_000_000;
+const MIN_MIN_FEE_FOR_PROPOSE: u64 = 1;
 const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
 const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
 
 #[multiversx_sc::module]
-pub trait ConfigurablePropertiesModule:
-    energy_query::EnergyQueryModule + permissions_module::PermissionsModule
-{
+pub trait ConfigurablePropertiesModule {
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
-
-    #[only_owner]
-    #[endpoint(changeMinEnergyForProposal)]
-    fn change_min_energy_for_propose(&self, new_value: BigUint) {
-        self.try_change_min_energy_for_propose(new_value);
-    }
 
     #[only_owner]
     #[endpoint(changeMinFeeForProposal)]
@@ -60,9 +51,9 @@ pub trait ConfigurablePropertiesModule:
     }
 
     #[only_owner]
-    #[endpoint(changeQuorum)]
-    fn change_quorum(&self, new_value: BigUint) {
-        self.try_change_quorum(new_value);
+    #[endpoint(changeQuorumPercentage)]
+    fn change_quorum_percentage(&self, new_value: BigUint) {
+        self.try_change_quorum_percentage(new_value);
     }
 
     #[only_owner]
@@ -75,12 +66,6 @@ pub trait ConfigurablePropertiesModule:
     #[endpoint(changeVotingPeriodInBlocks)]
     fn change_voting_period_in_blocks(&self, new_value: u64) {
         self.try_change_voting_period_in_blocks(new_value);
-    }
-
-    fn try_change_min_energy_for_propose(&self, new_value: BigUint) {
-        require!(new_value != 0, "Min energy for proposal can't be set to 0");
-
-        self.min_energy_for_propose().set(&new_value);
     }
 
     fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
@@ -96,7 +81,7 @@ pub trait ConfigurablePropertiesModule:
         self.min_fee_for_propose().set(&new_value);
     }
 
-    fn try_change_quorum(&self, new_value: BigUint) {
+    fn try_change_quorum_percentage(&self, new_value: BigUint) {
         require!(
             new_value > MIN_QUORUM && new_value < MAX_QUORUM,
             "Not valid value for Quorum!"
@@ -136,10 +121,6 @@ pub trait ConfigurablePropertiesModule:
         require!(fee_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
         self.fee_token_id().set_if_empty(&fee_token_id);
     }
-
-    #[view(getMinEnergyForPropose)]
-    #[storage_mapper("minEnergyForPropose")]
-    fn min_energy_for_propose(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getMinFeeForPropose)]
     #[storage_mapper("minFeeForPropose")]
