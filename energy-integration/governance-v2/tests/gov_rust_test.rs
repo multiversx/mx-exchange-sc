@@ -470,7 +470,7 @@ fn gov_withdraw_defeated_proposal_test() {
     // Other user (not proposer) try to withdraw the fee -> Fail
     gov_setup
         .withdraw_after_defeated(&third_user_addr, proposal_id)
-        .assert_error(4, "Only original proposer may cancel a pending proposal");
+        .assert_error(4, "Only original proposer may withdraw a pending proposal");
 
     // Proposer withdraw
     gov_setup
@@ -562,7 +562,7 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     // Other user (not proposer) try to withdraw the fee -> Fail
     gov_setup
         .withdraw_after_defeated(&third_user_addr, proposal_id)
-        .assert_error(4, "Only original proposer may cancel a pending proposal");
+        .assert_error(4, "Only original proposer may withdraw a pending proposal");
 
     // Proposer withdraw
     gov_setup
@@ -650,7 +650,7 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
     // Other user (not proposer) try to withdraw the fee -> Fail
     gov_setup
         .withdraw_after_defeated(&third_user_addr, proposal_id)
-        .assert_error(4, "Only original proposer may cancel a pending proposal");
+        .assert_error(4, "Only original proposer may withdraw a pending proposal");
 
     // Proposer withdraw
     gov_setup
