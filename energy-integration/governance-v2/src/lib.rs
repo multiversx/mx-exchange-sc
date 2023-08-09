@@ -37,19 +37,12 @@ pub trait GovernanceV2:
     #[init]
     fn init(
         &self,
-        min_fee_for_propose: BigUint,
+        proposal_id: ProposalId,
         quorum_percentage: BigUint,
-        voting_delay_in_blocks: u64,
-        voting_period_in_blocks: u64,
-        withdraw_percentage_defeated: u64,
-        fee_token: TokenIdentifier,
     ) {
-        self.try_change_min_fee_for_propose(min_fee_for_propose);
-        self.try_change_quorum_percentage(quorum_percentage);
-        self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
-        self.try_change_voting_period_in_blocks(voting_period_in_blocks);
-        self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
-        self.try_change_fee_token_id(fee_token);
+        let mut proposal = self.proposals().get(proposal_id);
+        proposal.minimum_quorum = quorum_percentage;
+        self.proposals().set(proposal_id, &proposal);
     }
 
     /// Propose a list of actions.
