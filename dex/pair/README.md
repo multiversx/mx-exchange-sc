@@ -225,14 +225,14 @@ __Important. The Safe Price module retrieves data independently of the liquidity
 
 ## Features
 
-- __Accumulated Reserves:__ The mechanism consistently stores the accumulated reserves over time. Each round creates a snapshot of the token reserves for that time, with the weight of a __PriceObservation__ for a round being the difference between the last saved round and the current one.
+- __Accumulated Reserves:__ The mechanism consistently stores the accumulated reserves over time. Each round in which the liquidity pool contract is used creates a snapshot of the token reserves for that time, with the weight of a __PriceObservation__ for a round being the difference between the last saved round and the current one.
 - __Price Observations:__ Each round's reserves, once calculated and stored, are then saved in a __PriceObservation__ struct for the subsequent round (n+1). This allows for a clear record of price changes and liquidity over time.
 - __Circular List Storage and Binary Search:__ Price observations are stored in a circular list, which is an efficient data structure for storing the rolling price data. A binary search algorithm is used to find specific __PriceObservations__ in this list.
-- __Linear Interpolation:__ If a price observation was not saved for a requested round, the algorithm will perform a linear interpolation between the nearest price observations to estimate the price for that round.
-- __Error Handling:__ To maintain data integrity, a request for a price observation older than the oldest stored observation will result in a SC error. This mechanism helps to prevent the use of outdated or non-existent data.
-- __Versatile Safe Price Request Inputs:__ The mechanism offers several view functions, each providing a different way to request the safe price. These views give users flexibility in querying the safe price by either providing all necessary parameters or using default ones. 
+- __Linear Interpolation:__ If a price observation is not available for a queried round, the algorithm will perform a linear interpolation between the nearest price observations to estimate the price for that round.
+- __Error Handling:__ To maintain data integrity, a query for a price observation older than the oldest stored observation will result in a SC error. This mechanism helps to prevent the use of outdated or non-existent data.
+- __Versatile Safe Price Request Inputs:__ The mechanism offers several view functions, each providing a different way to query the safe price. These views give users flexibility in querying the safe price by either providing all necessary parameters or using default ones. 
 
-## Endpoints
+## Endpoints available on the View factory contract
 
 ### getSafePrice
 
@@ -293,6 +293,8 @@ It returns the corresponding output payment computed at the safe price.
 
 A more specific view function, it allows you to retrieve the safe price by specifying the pair address, a timestamp offset, and input payment. It basically converts the timestamp_offset value to a generic round_offset, by dividing it with the constant value __SECONDS_PER_ROUND__.
 It returns the corresponding output payment computed at the safe price.
+__Important. The output of this endpoint (and any timestamp related endpoint) will return reliable data as long as the timestamp constant will remain unchanged at the protocol level.__
+
 
 ### getLpTokensSafePrice
 
@@ -357,6 +359,7 @@ The function returns two output payments, one for each token in the pair, with t
 ## Legacy endpoints
 
 In order to avoid backwards compatibility issues, the two legacy endpoints from Safe Price V1 were kept, but they now use the new Safe Price V2 logic. One important aspect here is that they are not part of the Safe Price V2 view factory contract, but instead they are actual endpoints in the __Pair SC__.
+__Important. These endpoints are planned to be phased out at any point in future, thus we consider them as deprecated and we recommend the usage of the ones available in the View factory contract.__
 
 ### updateAndGetTokensForGivenPositionWithSafePrice
 
