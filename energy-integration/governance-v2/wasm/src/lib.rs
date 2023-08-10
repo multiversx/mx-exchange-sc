@@ -20,31 +20,31 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         propose
         vote
-        queue
-        execute
         cancel
+        withdrawDeposit
         changeMinEnergyForProposal
         changeMinFeeForProposal
         changeQuorum
         changeVotingDelayInBlocks
         changeVotingPeriodInBlocks
-        changeLockTimeAfterVotingEndsInBlocks
         getMinEnergyForPropose
         getMinFeeForPropose
         getQuorum
         getVotingDelayInBlocks
         getVotingPeriodInBlocks
-        getLockTimeAfterVotingEndsInBlocks
         getFeeTokenId
+        getWithdrawPercentageDefeated
+        getProposals
+        getUserVotedProposals
         getProposalVotes
-        depositTokensForProposal
-        claimDepositedTokens
         getProposalStatus
-        getProposer
-        getProposalDescription
-        getProposalActions
+        getFeesCollectorAddress
         setEnergyFactoryAddress
         getEnergyFactoryAddress
+        addAdmin
+        removeAdmin
+        updateOwnerOrAdmin
+        getPermissions
     )
 }
 

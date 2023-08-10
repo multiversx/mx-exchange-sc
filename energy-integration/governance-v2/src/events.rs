@@ -11,7 +11,7 @@ pub trait EventsModule {
         #[indexed] proposal_id: usize,
         #[indexed] proposer: &ManagedAddress,
         #[indexed] start_block: u64,
-        proposal: &GovernanceProposal<Self::Api>,
+        #[indexed] proposal: &GovernanceProposal<Self::Api>,
     );
 
     #[event("upVoteCast")]
@@ -19,7 +19,8 @@ pub trait EventsModule {
         &self,
         #[indexed] up_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
-        nr_votes: &BigUint,
+        #[indexed] voting_power: &BigUint,
+        #[indexed] user_quorum: &BigUint,
     );
 
     #[event("downVoteCast")]
@@ -27,7 +28,8 @@ pub trait EventsModule {
         &self,
         #[indexed] down_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
-        nr_downvotes: &BigUint,
+        #[indexed] voting_power: &BigUint,
+        #[indexed] user_quorum: &BigUint,
     );
 
     #[event("downVetoVoteCast")]
@@ -35,7 +37,8 @@ pub trait EventsModule {
         &self,
         #[indexed] down_veto_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
-        nr_downvotes: &BigUint,
+        #[indexed] voting_power: &BigUint,
+        #[indexed] user_quorum: &BigUint,
     );
 
     #[event("abstainVoteCast")]
@@ -43,7 +46,8 @@ pub trait EventsModule {
         &self,
         #[indexed] abstain_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
-        nr_downvotes: &BigUint,
+        #[indexed] voting_power: &BigUint,
+        #[indexed] user_quorum: &BigUint,
     );
 
     #[event("proposalCanceled")]

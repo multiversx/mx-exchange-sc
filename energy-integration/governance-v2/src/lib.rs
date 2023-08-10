@@ -51,6 +51,7 @@ pub trait GovernanceV2:
         withdraw_percentage_defeated: u64,
         energy_factory_address: ManagedAddress,
         fees_collector_address: ManagedAddress,
+        fee_token: TokenIdentifier,
     ) {
         self.try_change_min_energy_for_propose(min_energy_for_propose);
         self.try_change_min_fee_for_propose(min_fee_for_propose);
@@ -60,6 +61,7 @@ pub trait GovernanceV2:
         self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
         self.set_energy_factory_address(energy_factory_address);
         self.fees_collector_address().set(&fees_collector_address);
+        self.try_change_fee_token_id(fee_token);
     }
 
     /// Propose a list of actions.
@@ -75,6 +77,7 @@ pub trait GovernanceV2:
     /// The proposer's energy is NOT automatically used for voting. A separate vote is needed.
     ///
     /// Returns the ID of the newly created proposal.
+    #[payable("*")]
     #[endpoint]
     fn propose(
         &self,
@@ -128,6 +131,7 @@ pub trait GovernanceV2:
         let current_block = self.blockchain().get_block_nonce();
 
         let proposal = GovernanceProposal {
+            proposal_id: self.proposals().len() + 1,
             proposer: proposer.clone(),
             description,
             actions: gov_actions,
@@ -136,7 +140,7 @@ pub trait GovernanceV2:
             voting_delay_in_blocks,
             voting_period_in_blocks,
             withdraw_percentage_defeated,
-            total_energy: BigUint::zero(),
+            total_quorum: BigUint::zero(),
             proposal_start_block: current_block,
         };
         let proposal_id = self.proposals().push(&proposal);
@@ -172,47 +176,47 @@ pub trait GovernanceV2:
                 .last_global_update_week()
                 .execute_on_dest_context();
 
-            let total_energy: BigUint = self
+            let total_quorum: BigUint = self
                 .fees_collector_proxy(fees_collector_addr)
                 .total_energy_for_week(last_global_update_week)
                 .execute_on_dest_context();
 
             let mut proposal = self.proposals().get(proposal_id);
-            proposal.total_energy = total_energy;
+            proposal.total_quorum = total_quorum;
             self.proposals().set(proposal_id, &proposal);
         }
 
-        let user_energy = self.get_energy_amount_non_zero(&voter);
-        let voting_power = user_energy.sqrt();
+        let user_quorum = self.get_energy_amount_non_zero(&voter);
+        let voting_power = user_quorum.sqrt();
 
         match vote {
             VoteType::UpVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.up_votes += &voting_power.clone();
-                    proposal_votes.quorum += &user_energy.clone();
+                    proposal_votes.quorum += &user_quorum.clone();
                 });
-                self.up_vote_cast_event(&voter, proposal_id, &voting_power);
+                self.up_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
             VoteType::DownVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_votes += &voting_power.clone();
-                    proposal_votes.quorum += &user_energy.clone();
+                    proposal_votes.quorum += &user_quorum.clone();
                 });
-                self.down_vote_cast_event(&voter, proposal_id, &voting_power);
+                self.down_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
             VoteType::DownVetoVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.down_veto_votes += &voting_power.clone();
-                    proposal_votes.quorum += &user_energy.clone();
+                    proposal_votes.quorum += &user_quorum.clone();
                 });
-                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power);
+                self.down_veto_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
             VoteType::AbstainVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.abstain_votes += &voting_power.clone();
-                    proposal_votes.quorum += &user_energy.clone();
+                    proposal_votes.quorum += &user_quorum.clone();
                 });
-                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power);
+                self.abstain_vote_cast_event(&voter, proposal_id, &voting_power, &user_quorum);
             }
         }
     }
@@ -293,7 +297,6 @@ pub trait GovernanceV2:
                 sc_panic!("You may not withdraw funds from this proposal!");
             }
         }
-        self.clear_proposal(proposal_id);
         self.proposal_withdraw_after_defeated_event(proposal_id);
     }
 

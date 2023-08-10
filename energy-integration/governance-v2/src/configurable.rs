@@ -1,4 +1,4 @@
-use crate::FULL_PERCENTAGE;
+use crate::{errors::ERROR_NOT_AN_ESDT, FULL_PERCENTAGE};
 
 multiversx_sc::imports!();
 
@@ -38,6 +38,7 @@ const MIN_QUORUM: u64 = 1_000; // 10%
 const MAX_QUORUM: u64 = 6_000; // 60%
 const MIN_MIN_FEE_FOR_PROPOSE: u64 = 2_000_000;
 const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
+const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
 
 #[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule:
@@ -46,38 +47,33 @@ pub trait ConfigurablePropertiesModule:
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
 
+    #[only_owner]
     #[endpoint(changeMinEnergyForProposal)]
     fn change_min_energy_for_propose(&self, new_value: BigUint) {
-        self.require_caller_has_owner_or_admin_permissions();
-
         self.try_change_min_energy_for_propose(new_value);
     }
 
+    #[only_owner]
     #[endpoint(changeMinFeeForProposal)]
     fn change_min_fee_for_propose(&self, new_value: BigUint) {
-        self.require_caller_has_owner_or_admin_permissions();
-
         self.try_change_min_fee_for_propose(new_value);
     }
 
+    #[only_owner]
     #[endpoint(changeQuorum)]
     fn change_quorum(&self, new_value: BigUint) {
-        self.require_caller_has_owner_or_admin_permissions();
-
         self.try_change_quorum(new_value);
     }
 
+    #[only_owner]
     #[endpoint(changeVotingDelayInBlocks)]
     fn change_voting_delay_in_blocks(&self, new_value: u64) {
-        self.require_caller_has_owner_or_admin_permissions();
-
         self.try_change_voting_delay_in_blocks(new_value);
     }
 
+    #[only_owner]
     #[endpoint(changeVotingPeriodInBlocks)]
     fn change_voting_period_in_blocks(&self, new_value: u64) {
-        self.require_caller_has_owner_or_admin_permissions();
-
         self.try_change_voting_period_in_blocks(new_value);
     }
 
@@ -88,8 +84,12 @@ pub trait ConfigurablePropertiesModule:
     }
 
     fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
+        let minimum_min_fee =
+            BigUint::from(MIN_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
+        let maximum_min_fee =
+            BigUint::from(MAX_MIN_FEE_FOR_PROPOSE) * BigUint::from(DECIMALS_CONST);
         require!(
-            new_value > MIN_MIN_FEE_FOR_PROPOSE && new_value < MAX_MIN_FEE_FOR_PROPOSE,
+            new_value > minimum_min_fee && new_value < maximum_min_fee,
             "Not valid value for min fee!"
         );
 
@@ -130,6 +130,11 @@ pub trait ConfigurablePropertiesModule:
         );
 
         self.withdraw_percentage_defeated().set(new_value);
+    }
+
+    fn try_change_fee_token_id(&self, fee_token_id: TokenIdentifier) {
+        require!(fee_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
+        self.fee_token_id().set_if_empty(&fee_token_id);
     }
 
     #[view(getMinEnergyForPropose)]
