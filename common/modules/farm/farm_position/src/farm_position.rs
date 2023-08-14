@@ -28,7 +28,7 @@ pub trait FarmPositionModule:
             let token_attributes: FarmTokenAttributes<Self::Api> =
                 farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
-            if &token_attributes.original_owner != &caller {
+            if token_attributes.original_owner != caller {
                 self.user_total_farm_position(&token_attributes.original_owner)
                     .update(|user_farm_position| {
                         if *user_farm_position > farm_position.amount {
