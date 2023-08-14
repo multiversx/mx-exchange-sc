@@ -16,6 +16,9 @@ path = "../../common/modules/farm/config"
 [dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 
+[dependencies.farm_position]
+path = "../../common/modules/farm/farm_position"
+
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
 

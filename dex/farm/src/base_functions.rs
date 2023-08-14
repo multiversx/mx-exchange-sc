@@ -47,6 +47,7 @@ pub trait BaseFunctionsModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
+    + farm_position::FarmPositionModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + events::EventsModule
@@ -186,6 +187,11 @@ pub trait BaseFunctionsModule:
         let token_mapper = self.farm_token();
         token_mapper.require_all_same_token(&payments);
 
+        let caller = self.blockchain().get_caller();
+        for payment in &payments {
+            self.check_and_update_user_farm_position(&caller, &payment);
+        }
+
         let output_attributes: FC::AttributesType =
             self.merge_from_payments_and_burn(payments, &token_mapper);
         let new_token_amount = output_attributes.get_total_supply();
@@ -236,15 +242,18 @@ where
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         token_attributes: &<Self as FarmContract>::AttributesType,
-        farm_token_amount: BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
+        _farm_token_amount: BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
         if &token_attributes.original_owner != caller {
             sc.update_energy_and_progress(caller);
+        }
 
+        let user_total_farm_position_mapper = sc.user_total_farm_position(caller);
+        if user_total_farm_position_mapper.is_empty() {
             return BigUint::zero();
         }
 
-        sc.claim_boosted_yields_rewards(caller, farm_token_amount)
+        sc.claim_boosted_yields_rewards(caller, user_total_farm_position_mapper.get())
     }
 }
 

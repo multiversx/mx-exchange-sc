@@ -24,6 +24,7 @@ pub trait BaseExitFarmModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
+    + farm_position::FarmPositionModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -39,10 +40,12 @@ pub trait BaseExitFarmModule:
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
         let exit_farm_context = ExitFarmContext::<Self::Api, FC::AttributesType>::new(
-            payment,
+            payment.clone(),
             &storage_cache.farm_token_id,
             self.blockchain(),
         );
+
+        self.decrease_user_farm_position(&payment);
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 

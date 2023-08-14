@@ -21,6 +21,7 @@ pub trait FarmBaseImpl:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
+    + farm_position::FarmPositionModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + events::EventsModule

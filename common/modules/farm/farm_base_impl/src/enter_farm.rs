@@ -24,6 +24,7 @@ pub trait BaseEnterFarmModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
+    + farm_position::FarmPositionModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -43,6 +44,11 @@ pub trait BaseEnterFarmModule:
             &storage_cache.farming_token_id,
             &storage_cache.farm_token_id,
         );
+
+        for additional_payment in &enter_farm_context.additional_farm_tokens {
+            self.check_and_update_user_farm_position(&caller, &additional_payment);
+        }
+        self.increase_user_farm_position(&caller, &enter_farm_context.farming_token_payment.amount);
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 

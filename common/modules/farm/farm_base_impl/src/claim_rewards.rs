@@ -26,6 +26,7 @@ pub trait BaseClaimRewardsModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
+    + farm_position::FarmPositionModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -58,10 +59,14 @@ pub trait BaseClaimRewardsModule:
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
         let claim_rewards_context = ClaimRewardsContext::<Self::Api, FC::AttributesType>::new(
-            payments,
+            payments.clone(),
             &storage_cache.farm_token_id,
             self.blockchain(),
         );
+
+        for payment in &payments {
+            self.check_and_update_user_farm_position(&caller, &payment);
+        }
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
