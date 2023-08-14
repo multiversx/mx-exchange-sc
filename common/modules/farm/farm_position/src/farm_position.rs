@@ -47,6 +47,8 @@ pub trait FarmPositionModule:
             self.user_total_farm_position(&caller)
                 .set(new_total_farm_position)
         }
+
+        self.send().direct_multi(&caller, &payments);
     }
 
     fn check_and_update_user_farm_position(
