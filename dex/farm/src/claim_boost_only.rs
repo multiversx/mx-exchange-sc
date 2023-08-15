@@ -34,31 +34,34 @@ pub trait ClaimBoostOnlyModule:
 {
     #[payable("*")]
     #[endpoint(claimBoostedRewards)]
-    fn claim_boosted_rewards(
-        &self,
-        opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment {
-        let orig_caller = match opt_orig_caller {
-            OptionalValue::Some(orig_caller) => orig_caller,
+    fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
+        let user = match opt_user {
+            OptionalValue::Some(user) => {
+                require!(
+                    self.allow_external_claim_boosted_rewards(&user).get(),
+                    "Cannot claim rewards for this address"
+                );
+                user
+            }
             OptionalValue::None => self.blockchain().get_caller(),
         };
 
         let reward_token_id = self.reward_token_id().get();
-        let user_total_farm_position_mapper = self.user_total_farm_position(&orig_caller);
+        let user_total_farm_position_mapper = self.user_total_farm_position(&user);
         if user_total_farm_position_mapper.is_empty() {
             return EsdtTokenPayment::new(reward_token_id, 0, BigUint::zero());
         }
 
         let reward =
-            self.claim_boosted_yields_rewards(&orig_caller, user_total_farm_position_mapper.get());
+            self.claim_boosted_yields_rewards(&user, user_total_farm_position_mapper.get());
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }
 
         let boosted_rewards = EsdtTokenPayment::new(reward_token_id, 0, reward);
-        self.send_payment_non_zero(&orig_caller, &boosted_rewards);
+        self.send_payment_non_zero(&user, &boosted_rewards);
 
-        self.update_energy_and_progress(&orig_caller);
+        self.update_energy_and_progress(&user);
 
         boosted_rewards
     }
@@ -73,12 +76,7 @@ pub trait ClaimBoostOnlyModule:
 
         let token_attributes =
             self.get_attributes_as_part_of_fixed_supply(payment, &farm_token_mapper);
-        let reward = Wrapper::<Self>::calculate_boosted_rewards(
-            self,
-            caller,
-            &token_attributes,
-            payment.amount.clone(),
-        );
+        let reward = Wrapper::<Self>::calculate_boosted_rewards(self, caller, &token_attributes);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }

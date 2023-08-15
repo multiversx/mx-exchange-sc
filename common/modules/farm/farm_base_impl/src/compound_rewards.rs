@@ -52,9 +52,7 @@ pub trait BaseCompoundRewardsModule:
             self.blockchain(),
         );
 
-        for payment in &payments {
-            self.check_and_update_user_farm_position(&caller, &payment);
-        }
+        self.check_and_update_user_farm_position(&caller, &payments);
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 

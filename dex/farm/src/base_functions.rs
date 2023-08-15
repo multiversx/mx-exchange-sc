@@ -188,9 +188,7 @@ pub trait BaseFunctionsModule:
         token_mapper.require_all_same_token(&payments);
 
         let caller = self.blockchain().get_caller();
-        for payment in &payments {
-            self.check_and_update_user_farm_position(&caller, &payment);
-        }
+        self.check_and_update_user_farm_position(&caller, &payments);
 
         let output_attributes: FC::AttributesType =
             self.merge_from_payments_and_burn(payments, &token_mapper);
@@ -242,7 +240,6 @@ where
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         token_attributes: &<Self as FarmContract>::AttributesType,
-        _farm_token_amount: BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
         if &token_attributes.original_owner != caller {
             sc.update_energy_and_progress(caller);
@@ -297,12 +294,7 @@ where
             token_attributes,
             storage_cache,
         );
-        let boosted_yield_rewards = Self::calculate_boosted_rewards(
-            sc,
-            caller,
-            token_attributes,
-            farm_token_amount.clone(),
-        );
+        let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller, token_attributes);
 
         base_farm_reward + boosted_yield_rewards
     }
