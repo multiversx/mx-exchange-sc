@@ -229,10 +229,7 @@ pub trait GovernanceV2:
                 let proposal = self.proposals().get(proposal_id);
                 let caller = self.blockchain().get_caller();
 
-                require!(
-                    caller == proposal.proposer,
-                    ONLY_PROPOSER_CANCEL
-                );
+                require!(caller == proposal.proposer, ONLY_PROPOSER_CANCEL);
                 self.refund_proposal_fee(proposal_id, &proposal.fee_payment.amount);
                 self.clear_proposal(proposal_id);
                 self.proposal_canceled_event(proposal_id);
@@ -257,10 +254,7 @@ pub trait GovernanceV2:
             GovernanceProposalStatus::Succeeded | GovernanceProposalStatus::Defeated => {
                 let proposal = self.proposals().get(proposal_id);
 
-                require!(
-                    caller == proposal.proposer,
-                    ONLY_PROPOSER_WITHDRAW
-                );
+                require!(caller == proposal.proposer, ONLY_PROPOSER_WITHDRAW);
 
                 self.refund_proposal_fee(proposal_id, &proposal.fee_payment.amount);
             }
@@ -270,10 +264,7 @@ pub trait GovernanceV2:
                 let refund_amount =
                     refund_percentage * proposal.fee_payment.amount.clone() / FULL_PERCENTAGE;
 
-                require!(
-                    caller == proposal.proposer,
-                    ONLY_PROPOSER_WITHDRAW
-                );
+                require!(caller == proposal.proposer, ONLY_PROPOSER_WITHDRAW);
 
                 self.refund_proposal_fee(proposal_id, &refund_amount);
                 let remaining_fee = proposal.fee_payment.amount - refund_amount;
