@@ -45,6 +45,21 @@ pub trait ViewsModule:
         }
     }
 
+    #[view(getUserVotingPower)]
+    fn get_user_voting_power(&self, user_address: ManagedAddress) -> BigUint {
+        let user_quorum = self.get_energy_amount_non_zero(&user_address);
+        let voting_power = user_quorum.sqrt();
+
+        voting_power
+    }
+
+    #[view(getVotingPowerEquivalent)]
+    fn get_voting_power_equivalent(&self, quorum: BigUint) -> BigUint {
+        quorum.sqrt()
+    }
+
+    // private
+
     fn vote_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
