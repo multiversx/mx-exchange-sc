@@ -24,7 +24,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         withdrawDeposit
         changeMinEnergyForProposal
         changeMinFeeForProposal
-        changeQuorum
+        changeQuorumPercentage
         changeVotingDelayInBlocks
         changeVotingPeriodInBlocks
         getMinEnergyForPropose

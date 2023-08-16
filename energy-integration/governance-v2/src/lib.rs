@@ -20,7 +20,6 @@ use crate::proposal_storage::ProposalVotes;
 
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
 const FULL_PERCENTAGE: u64 = 10_000;
-static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
 
 /// An empty contract. To be used as a template when starting a new contract from scratch.
 #[multiversx_sc::contract]
@@ -55,7 +54,7 @@ pub trait GovernanceV2:
     ) {
         self.try_change_min_energy_for_propose(min_energy_for_propose);
         self.try_change_min_fee_for_propose(min_fee_for_propose);
-        self.try_change_quorum(quorum_percentage);
+        self.try_change_quorum_percentage(quorum_percentage);
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
         self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
@@ -67,16 +66,10 @@ pub trait GovernanceV2:
     /// Propose a list of actions.
     /// A maximum of MAX_GOVERNANCE_PROPOSAL_ACTIONS can be proposed at a time.
     ///
-    /// An action has the following format:
-    ///     - gas limit for action execution
-    ///     - destination address
-    ///     - a fee payment for proposal (if smaller than min_fee_for_propose, state: WaitForFee)
-    ///     - endpoint to be called on the destination
-    ///     - a vector of arguments for the endpoint, in the form of ManagedVec<ManagedBuffer>
-    ///
     /// The proposer's energy is NOT automatically used for voting. A separate vote is needed.
     ///
     /// Returns the ID of the newly created proposal.
+    #[only_owner]
     #[payable("*")]
     #[endpoint]
     fn propose(
@@ -85,10 +78,10 @@ pub trait GovernanceV2:
         actions: MultiValueEncoded<GovernanceActionAsMultiArg<Self::Api>>,
     ) -> ProposalId {
         self.require_caller_not_self();
-        require!(!actions.is_empty(), "Proposal has no actions");
+        require!(!actions.is_empty(), PROPOSAL_NO_ACTION);
         require!(
             actions.len() <= MAX_GOVERNANCE_PROPOSAL_ACTIONS,
-            "Exceeded max actions per proposal"
+            EXEEDED_MAX_ACTIONS
         );
 
         let proposer = self.blockchain().get_caller();
@@ -230,7 +223,7 @@ pub trait GovernanceV2:
 
         match self.get_proposal_status(proposal_id) {
             GovernanceProposalStatus::None => {
-                sc_panic!("Proposal does not exist");
+                sc_panic!(NO_PROPOSAL);
             }
             GovernanceProposalStatus::Pending => {
                 let proposal = self.proposals().get(proposal_id);
@@ -238,7 +231,7 @@ pub trait GovernanceV2:
 
                 require!(
                     caller == proposal.proposer,
-                    "Only original proposer may cancel a pending proposal"
+                    ONLY_PROPOSER_CANCEL
                 );
                 self.refund_proposal_fee(proposal_id, &proposal.fee_payment.amount);
                 self.clear_proposal(proposal_id);
@@ -259,14 +252,14 @@ pub trait GovernanceV2:
 
         match self.get_proposal_status(proposal_id) {
             GovernanceProposalStatus::None => {
-                sc_panic!("Proposal does not exist");
+                sc_panic!(NO_PROPOSAL);
             }
             GovernanceProposalStatus::Succeeded | GovernanceProposalStatus::Defeated => {
                 let proposal = self.proposals().get(proposal_id);
 
                 require!(
                     caller == proposal.proposer,
-                    "Only original proposer may cancel a pending proposal"
+                    ONLY_PROPOSER_WITHDRAW
                 );
 
                 self.refund_proposal_fee(proposal_id, &proposal.fee_payment.amount);
@@ -279,7 +272,7 @@ pub trait GovernanceV2:
 
                 require!(
                     caller == proposal.proposer,
-                    "Only original proposer may cancel a pending proposal"
+                    ONLY_PROPOSER_WITHDRAW
                 );
 
                 self.refund_proposal_fee(proposal_id, &refund_amount);
@@ -294,7 +287,7 @@ pub trait GovernanceV2:
                 });
             }
             _ => {
-                sc_panic!("You may not withdraw funds from this proposal!");
+                sc_panic!(WITHDRAW_NOT_ALLOWED);
             }
         }
         self.proposal_withdraw_after_defeated_event(proposal_id);
