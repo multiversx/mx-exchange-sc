@@ -180,7 +180,7 @@ pub trait GovernanceV2:
         }
 
         let user_quorum = self.get_energy_amount_non_zero(&voter);
-        let voting_power = user_quorum.sqrt();
+        let voting_power = self.smoothing_function(&user_quorum);
 
         match vote {
             VoteType::UpVote => {
