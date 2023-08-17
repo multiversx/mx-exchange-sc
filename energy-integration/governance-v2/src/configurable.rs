@@ -137,7 +137,6 @@ pub trait ConfigurablePropertiesModule:
         self.fee_token_id().set_if_empty(&fee_token_id);
     }
 
-
     fn smoothing_function(&self, input: &BigUint) -> BigUint {
         input.sqrt()
     }
