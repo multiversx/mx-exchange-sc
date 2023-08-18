@@ -14,7 +14,7 @@ pub trait WeeklyRewardsSplittingEventsModule {
         energy: &Energy<Self::Api>,
         all_payments: &ManagedVec<Self::Api, EsdtTokenPayment<Self::Api>>,
     ) {
-        if all_payments.len() == 0 {
+        if all_payments.is_empty() {
             return;
         }
         self.claim_multi_event(user, current_week, energy, all_payments);
