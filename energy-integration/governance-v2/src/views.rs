@@ -47,7 +47,7 @@ pub trait ViewsModule:
 
     #[view(getUserVotingPower)]
     fn get_user_voting_power(&self, user_address: ManagedAddress) -> BigUint {
-        let user_quorum = self.get_energy_amount_non_zero(&user_address);
+        let user_quorum = self.get_energy_amount(&user_address);
         self.smoothing_function(&user_quorum)
     }
 
