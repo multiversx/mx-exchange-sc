@@ -34,11 +34,13 @@ pub trait GovernanceV2:
 {
     /// - `min_energy_for_propose` - the minimum energy required for submitting a proposal
     /// - `min_fee_for_propose` - the minimum fee required for submitting a proposal
-    /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
-    /// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have  
+    /// - `quorum_percentage` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
     /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
     /// - `votingPeriodInBlocks` - Number of blocks the voting period lasts (voting delay does not count towards this)  
-    /// - `lockTimeAfterVotingEndsInBlocks` - Number of blocks to wait before a successful proposal can be executed  
+    /// - `withdraw_percentage_defeated` - Percetange of the fee to be returned if proposal defetead 
+    /// - `energy_factory_address`
+    /// - `fees_collector_address`
+    /// - `fee_token` - The token used to pay the fee
     #[init]
     fn init(
         &self,
@@ -78,7 +80,7 @@ pub trait GovernanceV2:
         actions: MultiValueEncoded<GovernanceActionAsMultiArg<Self::Api>>,
     ) -> ProposalId {
         self.require_caller_not_self();
-        require!(!actions.is_empty(), PROPOSAL_NO_ACTION);
+
         require!(
             actions.len() <= MAX_GOVERNANCE_PROPOSAL_ACTIONS,
             EXEEDED_MAX_ACTIONS
