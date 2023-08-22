@@ -295,7 +295,7 @@ fn gov_modify_quorum_after_end_vote_test() {
                 sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
                 "Action should have been Defeated"
             );
-            sc.try_change_quorum(managed_biguint!(QUORUM_PERCENTAGE / 2));
+            sc.try_change_quorum_percentage(managed_biguint!(QUORUM_PERCENTAGE / 2));
             assert!(sc.quorum_percentage().get() == managed_biguint!(QUORUM_PERCENTAGE / 2));
 
             assert!(
@@ -360,7 +360,7 @@ fn gov_withdraw_defeated_proposal_test() {
     // Other user (not proposer) try to withdraw the fee -> Fail
     gov_setup
         .withdraw_after_defeated(&third_user_addr, proposal_id)
-        .assert_error(4, "Only original proposer may cancel a pending proposal");
+        .assert_error(4, "Only original proposer may withdraw a pending proposal");
 
     // Proposer withdraw
     gov_setup
@@ -435,7 +435,7 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     // Other user (not proposer) try to withdraw the fee -> Fail
     gov_setup
         .withdraw_after_defeated(&third_user_addr, proposal_id)
-        .assert_error(4, "Only original proposer may cancel a pending proposal");
+        .assert_error(4, "Only original proposer may withdraw a pending proposal");
 
     // Proposer withdraw
     gov_setup
@@ -506,7 +506,7 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
     // Other user (not proposer) try to withdraw the fee -> Fail
     gov_setup
         .withdraw_after_defeated(&third_user_addr, proposal_id)
-        .assert_error(4, "Only original proposer may cancel a pending proposal");
+        .assert_error(4, "Only original proposer may withdraw a pending proposal");
 
     // Proposer withdraw
     gov_setup
