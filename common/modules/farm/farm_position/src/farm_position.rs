@@ -29,14 +29,7 @@ pub trait FarmPositionModule:
                 farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
             if token_attributes.original_owner != caller {
-                self.user_total_farm_position(&token_attributes.original_owner)
-                    .update(|user_farm_position| {
-                        if *user_farm_position > farm_position.amount {
-                            *user_farm_position -= &farm_position.amount;
-                        } else {
-                            *user_farm_position = BigUint::zero();
-                        }
-                    });
+                self.decrease_user_farm_position(&farm_position);
             }
 
             new_total_farm_position += farm_position.amount;
@@ -64,9 +57,15 @@ pub trait FarmPositionModule:
         farm_positions: &PaymentsVec<Self::Api>,
     ) {
         let farm_token_mapper = self.farm_token();
+        let farm_token_id = farm_token_mapper.get_token_id();
         let mut total_farm_position = BigUint::zero();
         let mut farm_position_increase = BigUint::zero();
         for farm_position in farm_positions {
+            require!(
+                farm_position.token_identifier == farm_token_id,
+                "Bad payment token"
+            );
+
             total_farm_position += &farm_position.amount;
             let token_attributes: FarmTokenAttributes<Self::Api> =
                 farm_token_mapper.get_token_attributes(farm_position.token_nonce);
