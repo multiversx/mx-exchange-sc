@@ -6,6 +6,7 @@ use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
+use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 use rewards::RewardsModule;
 
 pub trait AllBaseFarmImplTraits =
@@ -186,6 +187,61 @@ pub trait FarmContract {
         _token_attributes: &Self::AttributesType,
         _storage_cache: &StorageCache<Self::FarmSc>,
     ) {
+    }
+
+    fn check_and_update_user_farm_position(
+        sc: &Self::FarmSc,
+        user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        farm_positions: &PaymentsVec<<Self::FarmSc as ContractBase>::Api>,
+    ) {
+        let farm_token_mapper = sc.farm_token();
+        let mut total_farm_position = BigUint::zero();
+        let mut farm_position_increase = BigUint::zero();
+        for farm_position in farm_positions {
+            farm_token_mapper.require_same_token(&farm_position.token_identifier);
+
+            total_farm_position += &farm_position.amount;
+            let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
+                farm_token_mapper.get_token_attributes(farm_position.token_nonce);
+
+            if &token_attributes.original_owner != user {
+                Self::decrease_user_farm_position(sc, &farm_position);
+                farm_position_increase += &farm_position.amount;
+            }
+        }
+
+        if sc.user_total_farm_position(user).get() == 0 {
+            Self::increase_user_farm_position(sc, user, &total_farm_position);
+        } else if farm_position_increase > 0 {
+            Self::increase_user_farm_position(sc, user, &farm_position_increase);
+        }
+    }
+
+    fn increase_user_farm_position(
+        sc: &Self::FarmSc,
+        user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        new_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+    ) {
+        sc.user_total_farm_position(user)
+            .update(|user_farm_position| *user_farm_position += new_farm_position_amount);
+    }
+
+    fn decrease_user_farm_position(
+        sc: &Self::FarmSc,
+        farm_position: &EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
+    ) {
+        let farm_token_mapper = sc.farm_token();
+        let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
+            farm_token_mapper.get_token_attributes(farm_position.token_nonce);
+
+        sc.user_total_farm_position(&token_attributes.original_owner)
+            .update(|user_farm_position| {
+                if *user_farm_position > farm_position.amount {
+                    *user_farm_position -= &farm_position.amount;
+                } else {
+                    *user_farm_position = BigUint::zero();
+                }
+            });
     }
 }
 

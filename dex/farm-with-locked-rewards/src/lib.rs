@@ -26,7 +26,6 @@ pub trait Farm:
     + token_send::TokenSendModule
     + locking_module::lock_with_energy_module::LockWithEnergyModule
     + farm_token::FarmTokenModule
-    + farm_position::FarmPositionModule
     + utils::UtilsModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule

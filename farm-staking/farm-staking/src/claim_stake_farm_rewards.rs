@@ -16,7 +16,6 @@ pub trait ClaimStakeFarmRewardsModule:
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + farm_position::FarmPositionModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule

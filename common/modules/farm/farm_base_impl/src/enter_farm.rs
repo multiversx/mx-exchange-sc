@@ -24,7 +24,6 @@ pub trait BaseEnterFarmModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + farm_position::FarmPositionModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -46,11 +45,11 @@ pub trait BaseEnterFarmModule:
         );
 
         // The order is important - first check and update, then increase position
-        self.check_and_update_user_farm_position(
+        FC::check_and_update_user_farm_position(self, 
             &caller,
             &enter_farm_context.additional_farm_tokens,
         );
-        self.increase_user_farm_position(&caller, &enter_farm_context.farming_token_payment.amount);
+        FC::increase_user_farm_position(self, &caller, &enter_farm_context.farming_token_payment.amount);
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 

@@ -38,4 +38,16 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getUserTotalFarmPosition)]
+    #[storage_mapper("userTotalFarmPosition")]
+    fn user_total_farm_position(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
+
+    #[view(getAllowExternalClaimBoostedRewards)]
+    #[storage_mapper("allowExternalClaimBoostedRewards")]
+    fn allow_external_claim_boosted_rewards(
+        &self,
+        user: &ManagedAddress,
+    ) -> SingleValueMapper<bool>;
+
 }

@@ -27,7 +27,6 @@ pub trait BaseCompoundRewardsModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + farm_position::FarmPositionModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -52,7 +51,7 @@ pub trait BaseCompoundRewardsModule:
             self.blockchain(),
         );
 
-        self.check_and_update_user_farm_position(&caller, &payments);
+        FC::check_and_update_user_farm_position(self, &caller, &payments);
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 

@@ -24,7 +24,6 @@ pub trait BaseExitFarmModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + farm_position::FarmPositionModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -45,7 +44,7 @@ pub trait BaseExitFarmModule:
             self.blockchain(),
         );
 
-        self.decrease_user_farm_position(&payment);
+        FC::decrease_user_farm_position(self, &payment);
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 

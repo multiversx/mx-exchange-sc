@@ -7,7 +7,6 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
     config::ConfigModule
     + rewards::RewardsModule
     + farm_token::FarmTokenModule
-    + farm_position::FarmPositionModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + week_timekeeping::WeekTimekeepingModule
     + pausable::PausableModule

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           64
+// Endpoints:                           62
 // Async Callback:                       1
-// Total number of exported functions:  66
+// Total number of exported functions:  64
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -34,13 +34,11 @@ multiversx_sc_wasm_adapter::endpoints! {
         getPerBlockRewardAmount
         getLastRewardBlockNonce
         getDivisionSafetyConstant
+        getUserTotalFarmPosition
+        getAllowExternalClaimBoostedRewards
         registerFarmToken
         getFarmTokenId
         getFarmTokenSupply
-        updateTotalFarmPosition
-        setAllowExternalClaimBoostedRewards
-        getUserTotalFarmPosition
-        getAllowExternalClaimBoostedRewards
         addToPauseWhitelist
         removeFromPauseWhitelist
         pause

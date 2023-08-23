@@ -1,5 +1,7 @@
 multiversx_sc::imports!();
 
+
+
 use crate::base_functions::Wrapper;
 
 #[multiversx_sc::module]
@@ -7,7 +9,6 @@ pub trait ClaimBoostOnlyModule:
     config::ConfigModule
     + rewards::RewardsModule
     + farm_token::FarmTokenModule
-    + farm_position::FarmPositionModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + week_timekeeping::WeekTimekeepingModule
     + pausable::PausableModule
@@ -34,7 +35,10 @@ pub trait ClaimBoostOnlyModule:
 {
     #[payable("*")]
     #[endpoint(claimBoostedRewards)]
-    fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
+    fn claim_boosted_rewards(
+        &self,
+        opt_user: OptionalValue<ManagedAddress>
+    ) -> EsdtTokenPayment<Self::Api> {
         let user = match opt_user {
             OptionalValue::Some(user) => {
                 require!(
@@ -47,6 +51,7 @@ pub trait ClaimBoostOnlyModule:
         };
 
         let reward_token_id = self.reward_token_id().get();
+        
         let user_total_farm_position_mapper = self.user_total_farm_position(&user);
         if user_total_farm_position_mapper.is_empty() {
             return EsdtTokenPayment::new(reward_token_id, 0, BigUint::zero());

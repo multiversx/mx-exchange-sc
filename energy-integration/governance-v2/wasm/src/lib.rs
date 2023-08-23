@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           29
+// Endpoints:                           27
 // Async Callback (empty):               1
-// Total number of exported functions:  31
+// Total number of exported functions:  29
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -38,8 +38,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUserVotedProposals
         getProposalVotes
         getProposalStatus
-        getUserVotingPower
-        getVotingPowerEquivalent
         getFeesCollectorAddress
         setEnergyFactoryAddress
         getEnergyFactoryAddress

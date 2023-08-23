@@ -17,7 +17,6 @@ pub trait CustomRewardsModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + farm_position::FarmPositionModule
     + utils::UtilsModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule

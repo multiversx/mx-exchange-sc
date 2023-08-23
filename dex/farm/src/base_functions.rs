@@ -13,6 +13,7 @@ use contexts::storage_cache::StorageCache;
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 use fixed_supply_token::FixedSupplyToken;
 
+
 use crate::exit_penalty;
 
 pub type DoubleMultiPayment<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
@@ -47,7 +48,6 @@ pub trait BaseFunctionsModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + farm_position::FarmPositionModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + events::EventsModule
@@ -188,7 +188,7 @@ pub trait BaseFunctionsModule:
         token_mapper.require_all_same_token(&payments);
 
         let caller = self.blockchain().get_caller();
-        self.check_and_update_user_farm_position(&caller, &payments);
+        FC::check_and_update_user_farm_position(self, &caller, &payments);
 
         let output_attributes: FC::AttributesType =
             self.merge_from_payments_and_burn(payments, &token_mapper);
