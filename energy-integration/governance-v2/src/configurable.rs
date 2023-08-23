@@ -60,9 +60,9 @@ pub trait ConfigurablePropertiesModule:
     }
 
     #[only_owner]
-    #[endpoint(changeQuorum)]
-    fn change_quorum(&self, new_value: BigUint) {
-        self.try_change_quorum(new_value);
+    #[endpoint(changeQuorumPercentage)]
+    fn change_quorum_percentage(&self, new_value: BigUint) {
+        self.try_change_quorum_percentage(new_value);
     }
 
     #[only_owner]
@@ -96,7 +96,7 @@ pub trait ConfigurablePropertiesModule:
         self.min_fee_for_propose().set(&new_value);
     }
 
-    fn try_change_quorum(&self, new_value: BigUint) {
+    fn try_change_quorum_percentage(&self, new_value: BigUint) {
         require!(
             new_value > MIN_QUORUM && new_value < MAX_QUORUM,
             "Not valid value for Quorum!"
@@ -135,6 +135,10 @@ pub trait ConfigurablePropertiesModule:
     fn try_change_fee_token_id(&self, fee_token_id: TokenIdentifier) {
         require!(fee_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
         self.fee_token_id().set_if_empty(&fee_token_id);
+    }
+
+    fn smoothing_function(&self, input: &BigUint) -> BigUint {
+        input.sqrt()
     }
 
     #[view(getMinEnergyForPropose)]

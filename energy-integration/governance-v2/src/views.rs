@@ -45,6 +45,8 @@ pub trait ViewsModule:
         }
     }
 
+    // private
+
     fn vote_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
