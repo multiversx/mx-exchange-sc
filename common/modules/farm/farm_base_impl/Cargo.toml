@@ -12,9 +12,6 @@ path = "../config"
 [dependencies.farm_token]
 path = "../farm_token"
 
-[dependencies.farm_position]
-path = "../farm_position"
-
 [dependencies.rewards]
 path = "../rewards"
 

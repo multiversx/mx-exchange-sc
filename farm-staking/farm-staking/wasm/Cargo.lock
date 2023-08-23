@@ -154,7 +154,6 @@ dependencies = [
  "events",
  "farm-boosted-yields",
  "farm_base_impl",
- "farm_position",
  "farm_token",
  "fixed-supply-token",
  "mergeable",
@@ -199,7 +198,6 @@ dependencies = [
  "farm",
  "farm-boosted-yields",
  "farm_base_impl",
- "farm_position",
  "farm_token",
  "fixed-supply-token",
  "math",
@@ -234,7 +232,6 @@ dependencies = [
  "config",
  "contexts",
  "events",
- "farm_position",
  "farm_token",
  "fixed-supply-token",
  "mergeable",
@@ -245,18 +242,6 @@ dependencies = [
  "rewards",
  "token_merge_helper",
  "token_send",
- "utils",
-]
-
-[[package]]
-name = "farm_position"
-version = "0.0.0"
-dependencies = [
- "common_structs",
- "farm_token",
- "multiversx-sc",
- "multiversx-sc-modules",
- "permissions_module",
  "utils",
 ]
 
