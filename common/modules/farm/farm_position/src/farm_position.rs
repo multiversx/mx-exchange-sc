@@ -18,13 +18,10 @@ pub trait FarmPositionModule:
         let caller = self.blockchain().get_caller();
         let payments = self.get_non_empty_payments();
         let farm_token_mapper = self.farm_token();
-        let farm_token_id = farm_token_mapper.get_token_id();
         let mut new_total_farm_position = BigUint::zero();
         for farm_position in &payments {
-            require!(
-                farm_position.token_identifier == farm_token_id,
-                "Bad payment token"
-            );
+            farm_token_mapper.require_same_token(&farm_position.token_identifier);
+
             let token_attributes: FarmTokenAttributes<Self::Api> =
                 farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
@@ -57,14 +54,10 @@ pub trait FarmPositionModule:
         farm_positions: &PaymentsVec<Self::Api>,
     ) {
         let farm_token_mapper = self.farm_token();
-        let farm_token_id = farm_token_mapper.get_token_id();
         let mut total_farm_position = BigUint::zero();
         let mut farm_position_increase = BigUint::zero();
         for farm_position in farm_positions {
-            require!(
-                farm_position.token_identifier == farm_token_id,
-                "Bad payment token"
-            );
+            farm_token_mapper.require_same_token(&farm_position.token_identifier);
 
             total_farm_position += &farm_position.amount;
             let token_attributes: FarmTokenAttributes<Self::Api> =

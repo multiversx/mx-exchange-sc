@@ -13,6 +13,7 @@ pub trait FarmStakingTraits =
         + rewards::RewardsModule
         + config::ConfigModule
         + farm_token::FarmTokenModule
+        + farm_position::FarmPositionModule
         + pausable::PausableModule
         + permissions_module::PermissionsModule
         + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -47,15 +48,16 @@ where
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         token_attributes: &<Self as FarmContract>::AttributesType,
-        farm_token_amount: BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
         if &token_attributes.original_owner != caller {
             sc.update_energy_and_progress(caller);
-
+        }
+        let user_total_farm_position_mapper = sc.user_total_farm_position(caller);
+        if user_total_farm_position_mapper.is_empty() {
             return BigUint::zero();
         }
 
-        sc.claim_boosted_yields_rewards(caller, farm_token_amount)
+        sc.claim_boosted_yields_rewards(caller, user_total_farm_position_mapper.get())
     }
 }
 
@@ -138,7 +140,6 @@ where
             sc,
             caller,
             token_attributes,
-            farm_token_amount.clone(),
         );
 
         base_farm_reward + boosted_yield_rewards
