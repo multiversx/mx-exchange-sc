@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           64
+// Endpoints:                           69
 // Async Callback:                       1
-// Total number of exported functions:  66
+// Total number of exported functions:  71
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -52,6 +52,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeAdmin
         updateOwnerOrAdmin
         getPermissions
+        updateTotalFarmPosition
+        setAllowExternalClaimBoostedRewards
+        getUserTotalFarmPosition
+        getAllowExternalClaimBoostedRewards
         setBurnRoleForAddress
         stakeFarmThroughProxy
         stakeFarm
@@ -61,6 +65,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         unstakeFarm
         unstakeFarmThroughProxy
         unbondFarm
+        claimBoostedRewards
         setBoostedYieldsRewardsPercentage
         collectUndistributedBoostedRewards
         getBoostedYieldsRewardsPercentage

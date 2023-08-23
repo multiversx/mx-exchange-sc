@@ -19,7 +19,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     pair_mock
     (
         addInitialLiquidity
-        updateAndGetTokensForGivenPositionWithSafePrice
+        getTokensForGivenPositionWithSafePrice
     )
 }
 
