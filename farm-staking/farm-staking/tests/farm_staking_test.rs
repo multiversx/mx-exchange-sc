@@ -1,4 +1,6 @@
-use multiversx_sc_scenario::{rust_biguint, whitebox::TxTokenTransfer, DebugApi};
+#![allow(deprecated)]
+
+use multiversx_sc_scenario::{rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi};
 
 pub mod farm_staking_setup;
 use farm_staking::{

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -5,7 +7,7 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    whitebox::TxResult, whitebox::*, DebugApi,
+    whitebox_legacy::TxResult, whitebox_legacy::*, DebugApi,
 };
 
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};

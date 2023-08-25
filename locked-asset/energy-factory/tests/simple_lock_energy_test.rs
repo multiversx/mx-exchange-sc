@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod energy_factory_setup;
 
 use energy_factory::energy::EnergyModule;

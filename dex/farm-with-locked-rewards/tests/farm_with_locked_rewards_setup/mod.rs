@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use multiversx_sc::{
@@ -7,7 +9,7 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
 use locked_token_wrapper::{
@@ -7,7 +9,7 @@ use locked_token_wrapper::{
 use multiversx_sc::{storage::mappers::StorageTokenWrapper, types::EsdtLocalRole};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    whitebox::BlockchainStateWrapper, DebugApi,
+    whitebox_legacy::BlockchainStateWrapper, DebugApi,
 };
 use simple_lock::locked_token::LockedTokenAttributes;
 

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
 use fees_collector::FeesCollector;
@@ -12,8 +14,8 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
-    whitebox::TxResult,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::TxResult,
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 use num_bigint::BigUint;

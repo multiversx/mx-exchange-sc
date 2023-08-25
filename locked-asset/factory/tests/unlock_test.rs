@@ -1,8 +1,10 @@
+#![allow(deprecated)]
+
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
 use multiversx_sc::types::{BigInt, MultiValueEncoded};
 use multiversx_sc::types::{EsdtTokenPayment, ManagedVec, TokenIdentifier};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, rust_biguint, whitebox::*, DebugApi,
+    managed_address, managed_biguint, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 
 const SC_WASM_PATH: &str = "output/factory.wasm";
