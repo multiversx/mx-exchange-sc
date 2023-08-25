@@ -22,7 +22,7 @@ jobs:
     name: Contracts
     uses: multiversx/mx-sc-actions/.github/workflows/contracts.yml@ae7d4916c67dbb37febc6a3bf074601c466fd0b3
     with:
-      rust-toolchain: nightly-2022-12-08
+      rust-toolchain: nightly-2023-05-26
       vmtools-version: v1.4.60
       sc-meta-version: 0.39.4
     secrets:
