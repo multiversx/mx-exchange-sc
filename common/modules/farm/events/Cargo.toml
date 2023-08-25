@@ -13,5 +13,5 @@ path = "../../../common_structs"
 path = "../contexts"
 
 [dependencies.multiversx-sc]
-version = "=0.40.0"
+version = "=0.41.0"
 features = ["esdt-token-payment-legacy-decode"]

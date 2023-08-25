@@ -77,14 +77,14 @@ path = "../../common/common_structs"
 path = "../../common/common_errors"
 
 [dependencies.multiversx-sc]
-version = "=0.40.0"
+version = "=0.41.0"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.40.0"
+version = "=0.41.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.40.0"
+version = "=0.41.0"

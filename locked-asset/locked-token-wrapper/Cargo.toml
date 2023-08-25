@@ -8,10 +8,10 @@ publish = false
 [lib]
 path = "src/lib.rs"
 [dependencies.multiversx-sc]
-version = "=0.40.0"
+version = "=0.41.0"
 
 [dependencies.multiversx-sc-modules]
-version = "=0.40.0"
+version = "=0.41.0"
 
 [dependencies.utils]
 path = "../../common/modules/utils"
@@ -43,4 +43,4 @@ num-traits = "0.2"
 hex = "0.4"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.40.0"
+version = "=0.41.0"
