@@ -334,7 +334,7 @@ pub trait LockedAssetFactory:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().egld_value();
+        let payment_amount = self.call_value().egld_value().clone_value();
         self.locked_asset_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
             payment_amount,

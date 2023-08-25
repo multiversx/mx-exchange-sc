@@ -44,7 +44,7 @@ pub trait ProxyFarmModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().egld_value();
+        let payment_amount = self.call_value().egld_value().clone_value();
 
         self.farm_proxy_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
@@ -117,7 +117,7 @@ pub trait ProxyFarmModule:
         farm_type: FarmType,
     ) -> EnterFarmThroughProxyResultType<Self::Api> {
         let payments: ManagedVec<EsdtTokenPayment<Self::Api>> =
-            self.call_value().all_esdt_transfers();
+            self.call_value().all_esdt_transfers().clone_value();
         require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
 
         let proxy_lp_payment: EsdtTokenPayment<Self::Api> = payments.get(0);

@@ -22,7 +22,7 @@ pub trait ProxyMergePosModule:
     #[payable("*")]
     #[endpoint(mergeMetastakingWithStakingToken)]
     fn merge_metastaking_with_staking_token(&self) -> MergeResult<Self::Api> {
-        let mut payments = self.call_value().all_esdt_transfers();
+        let mut payments = self.call_value().all_esdt_transfers().clone_value();
         require!(
             payments.len() >= 2,
             "Must send metastaking token and at least a staking token"

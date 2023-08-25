@@ -11,17 +11,8 @@ path = "src/lib.rs"
 path = "../common-modules/energy-query"
 
 [dependencies.multiversx-sc]
-version = "=0.39.4"
+version = "=0.40.0"
 features = ["esdt-token-payment-legacy-decode"]
-
-[dev-dependencies]
-num-bigint = "0.4.2"
-
-[dev-dependencies.multiversx-sc-scenario]
-version = "=0.39.4"
-
-[dev-dependencies.energy-factory-mock]
-path = "../energy-factory-mock"
 
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
@@ -31,3 +22,12 @@ path = "../fees-collector"
 
 [dependencies.weekly-rewards-splitting]
 path = "../common-modules/weekly-rewards-splitting"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.40.0"
+
+[dev-dependencies.energy-factory-mock]
+path = "../energy-factory-mock"

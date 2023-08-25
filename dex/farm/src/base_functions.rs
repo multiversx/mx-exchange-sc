@@ -73,7 +73,7 @@ pub trait BaseFunctionsModule:
         &self,
         caller: ManagedAddress,
     ) -> EsdtTokenPayment {
-        let payments = self.call_value().all_esdt_transfers();
+        let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_enter_farm_result = self.enter_farm_base::<FC>(caller.clone(), payments);
 
         self.set_farm_supply_for_current_week(
@@ -95,7 +95,7 @@ pub trait BaseFunctionsModule:
         &self,
         caller: ManagedAddress,
     ) -> ClaimRewardsResultWrapper<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
+        let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_claim_rewards_result = self.claim_rewards_base::<FC>(caller.clone(), payments);
 
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
@@ -124,7 +124,7 @@ pub trait BaseFunctionsModule:
         &self,
         caller: ManagedAddress,
     ) -> EsdtTokenPayment<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
+        let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_compound_rewards_result =
             self.compound_rewards_base::<FC>(caller.clone(), payments);
 

@@ -22,5 +22,5 @@ path = "../../pausable"
 path = "../../permissions_module"
 
 [dependencies.multiversx-sc]
-version = "=0.39.4"
+version = "=0.40.0"
 features = ["esdt-token-payment-legacy-decode"]
