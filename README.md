@@ -1,10 +1,10 @@
-# Maiar Exchange Smart Contracts
+# xExchange Smart Contracts
 
-This repository contains the principal Smart Contract components of Maiar Exchange.
+This repository contains the principal Smart Contract components of xExchange.
 
 This document is a brief description of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate README in its own root directory.
 
-- [Maiar Exchange Smart Contracts](#maiar-exchange-smart-contracts)
+- [xExchange Smart Contracts](#xexchange-smart-contracts)
   - [DEX Contracts](#dex-contracts)
     - [Pair Contract](#pair-contract)
     - [Router Contract](#router-contract)
@@ -20,13 +20,13 @@ This document is a brief description of the Smart Contracts. It covers the basic
     - [DEX Proxy Contract](#dex-proxy-contract)
     - [Locked MEX Factory Contract](#locked-mex-factory-contract)
 
-Other Smart Contracts that are part of Maiar exchange, but are not part of this repository:
+Other Smart Contracts that are part of xExchange, but are not part of this repository:
 
 - [Egld wrapping](https://github.com/multiversx/mx-sdk-rs/tree/master/contracts/core/wegld-swap) used for swapping EGLD to an ESDT and reversed with an exchange rate of 1:1.
 
 ## DEX Contracts
 
-Core SCs of Maiar Exchange. They usually handle a few tokens and are used as primitives by the other contracts as they are built on top of them.
+Core SCs of xExchange. They usually handle a few tokens and are used as primitives by the other contracts as they are built on top of them.
 
 ### Pair Contract
 
