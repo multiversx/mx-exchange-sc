@@ -16,7 +16,7 @@ This contract allows:
 
 - Keeping track
 
-of Pair smart contracts deployed as part of Maiar Exchange.
+of Pair smart contracts deployed as part of xExchange.
 
 ## Endpoints
 
@@ -95,8 +95,8 @@ There are four test suites around this contract:
 
 ## Interaction
 
-The interaction scripts are located in the _dex/interaction_ directory. They are written in python and erdpy is required in order to be used. Interaction scripts are scripts that ease the interaction with the deployed contract by wrapping erdpy sdk functionality in bash scripts. Make sure to update the PEM path and the PROXY and CHAINID values in order to correctly use them.
+The interaction scripts are located in the _dex/interaction_ directory. They are written in python and mxpy is required in order to be used. Interaction scripts are scripts that ease the interaction with the deployed contract by wrapping mxpy sdk functionality in bash scripts. Make sure to update the PEM path and the PROXY and CHAINID values in order to correctly use them.
 
 ## Deployment
 
-The deployment of this contract is done using erdpy, interaction scripts, or any other tool, in a standalone manner or by previously deploying the template pair smart contract.
+The deployment of this contract is done using mxpy, interaction scripts, or any other tool, in a standalone manner or by previously deploying the template pair smart contract.
