@@ -9,7 +9,7 @@ The Distribution contract can be deployed using `erdpy` and using the interactio
 
 The init parameters are:
 
-- __asset_token_id__. The TokenId of the asset that a locked asset represents. In case of Maiar Exchange it will be MEX.
+- __asset_token_id__. The TokenId of the asset that a locked asset represents. In case of xExchange it will be MEX.
 
 - __locked_asset_factory_address__. ManagedAddress of the locked asset factory which is used to request creation of Locked MEX tokens.
 

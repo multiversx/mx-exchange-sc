@@ -16,7 +16,7 @@ This contract allows:
 
 - Keeping track
 
-of Pair smart contracts deployed as part of Maiar Exchange.
+of Pair smart contracts deployed as part of xExchange.
 
 ## Endpoints
 
