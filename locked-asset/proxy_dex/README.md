@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Locked MEX tokens can be used as MEX token in Maiar Exchange, with the help of this proxy contract.
+Locked MEX tokens can be used as MEX token in xExchange, with the help of this proxy contract.
 
 ## Introduction
 

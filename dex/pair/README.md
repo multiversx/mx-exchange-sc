@@ -208,11 +208,11 @@ There are four test suites around this contract:
 
 ## Interaction
 
-The interaction scripts are located in the _dex/interaction_ directory. The scripts are written in python and erdpy is required in order to be used. Interaction scripts are scripts that ease the interaction with the deployed contract by wrapping erdpy sdk functionality in bash scripts. Make sure to update the PEM path and the PROXY and CHAINID values in order to correctly use the scripts.
+The interaction scripts are located in the _dex/interaction_ directory. The scripts are written in python and mxpy is required in order to be used. Interaction scripts are scripts that ease the interaction with the deployed contract by wrapping mxpy sdk functionality in bash scripts. Make sure to update the PEM path and the PROXY and CHAINID values in order to correctly use the scripts.
 
 ## Deployment
 
-The deployment of this contract is done by the Router smart contract but it can be done also in a standalone manner using the erdpy interaction scripts for deploy/upgrade.
+The deployment of this contract is done by the Router smart contract but it can be done also in a standalone manner using the mxpy interaction scripts for deploy/upgrade.
 
 
 # Safe Price V2
