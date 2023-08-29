@@ -78,4 +78,12 @@ pub trait ConfigModule {
 
     #[storage_mapper("allTokens")]
     fn all_tokens(&self) -> SingleValueMapper<ManagedVec<TokenIdentifier>>;
+
+    #[view(getAllowExternalClaimRewards)]
+    #[storage_mapper("allowExternalClaimRewards")]
+    fn allow_external_claim_rewards(
+        &self,
+        user: &ManagedAddress,
+    ) -> SingleValueMapper<bool>;
+
 }
