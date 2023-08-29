@@ -118,9 +118,12 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
+        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller.clone());
+
         self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
         self.send_payment_non_zero(&caller, &claim_rewards_result.rewards);
+
+        self.update_energy_and_progress(&orig_caller);
 
         claim_rewards_result.into()
     }
@@ -134,8 +137,11 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let output_farm_token_payment = self.compound_rewards::<Wrapper<Self>>(orig_caller);
+        let output_farm_token_payment = self.compound_rewards::<Wrapper<Self>>(orig_caller.clone());
+
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
+
+        self.update_energy_and_progress(&orig_caller);
 
         output_farm_token_payment
     }
