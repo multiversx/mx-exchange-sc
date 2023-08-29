@@ -60,6 +60,8 @@ fn extend_lock_period_old_token_test() {
         managed_biguint!(60_000) * USER_BALANCE * (second_unlock_epoch - current_epoch)
             / 100_000u32;
 
+    let user_energy_amount_vec = user_energy_amount.to_bytes_be().as_slice().to_vec();
+
     setup
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
@@ -68,14 +70,14 @@ fn extend_lock_period_old_token_test() {
             let user_energy = (
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
-                BigInt::from(user_energy_amount.clone()),
+                BigInt::from_signed_bytes_be(&user_energy_amount_vec),
             )
                 .into();
             users_energy.push(user_energy);
             sc.set_energy_for_old_tokens(users_energy);
 
             let expected_energy = Energy::new(
-                BigInt::from(user_energy_amount.clone()),
+                BigInt::from_signed_bytes_be(&user_energy_amount_vec),
                 1,
                 managed_biguint!(USER_BALANCE),
             );
@@ -177,6 +179,8 @@ fn min_period_migrated_token_test() {
         managed_biguint!(60_000) * USER_BALANCE * (second_unlock_epoch - current_epoch)
             / 100_000u32;
 
+    let user_energy_amount_vec = user_energy_amount.to_bytes_be().as_slice().to_vec();
+
     setup
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
@@ -185,14 +189,14 @@ fn min_period_migrated_token_test() {
             let user_energy = (
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
-                BigInt::from(user_energy_amount.clone()),
+                BigInt::from_signed_bytes_be(&user_energy_amount_vec),
             )
                 .into();
             users_energy.push(user_energy);
             sc.set_energy_for_old_tokens(users_energy);
 
             let expected_energy = Energy::new(
-                BigInt::from(user_energy_amount.clone()),
+                BigInt::from_signed_bytes_be(&user_energy_amount_vec),
                 1,
                 managed_biguint!(USER_BALANCE),
             );
@@ -285,6 +289,8 @@ fn min_period_migrated_token_test2() {
         managed_biguint!(60_000) * USER_BALANCE * (second_unlock_epoch - current_epoch)
             / 100_000u32;
 
+    let user_energy_amount_vec = user_energy_amount.to_bytes_be().as_slice().to_vec();
+
     setup
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
@@ -294,14 +300,14 @@ fn min_period_migrated_token_test2() {
             let user_energy = (
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
-                BigInt::from(user_energy_amount.clone()),
+                BigInt::from_signed_bytes_be(&user_energy_amount_vec),
             )
                 .into();
             users_energy.push(user_energy);
             sc.set_energy_for_old_tokens(users_energy);
 
             let expected_energy = Energy::new(
-                BigInt::from(user_energy_amount.clone()),
+                BigInt::from_signed_bytes_be(&user_energy_amount_vec),
                 1441,
                 managed_biguint!(USER_BALANCE),
             );
@@ -403,6 +409,8 @@ fn check_initial_old_unlock_schedule_decode_test() {
         managed_biguint!(60_000) * USER_BALANCE * (second_unlock_epoch - current_epoch)
             / 100_000u32;
 
+    let user_energy_amount_vec = user_energy_amount.to_bytes_be().as_slice().to_vec();
+
     setup
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
@@ -411,14 +419,14 @@ fn check_initial_old_unlock_schedule_decode_test() {
             let user_energy = (
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
-                BigInt::from(user_energy_amount.clone()),
+                BigInt::from_signed_bytes_be(&user_energy_amount_vec),
             )
                 .into();
             users_energy.push(user_energy);
             sc.set_energy_for_old_tokens(users_energy);
 
             let expected_energy = Energy::new(
-                BigInt::from(user_energy_amount.clone()),
+                BigInt::from_signed_bytes_be(&user_energy_amount_vec),
                 1,
                 managed_biguint!(USER_BALANCE),
             );
