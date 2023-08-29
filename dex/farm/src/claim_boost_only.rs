@@ -1,7 +1,5 @@
 multiversx_sc::imports!();
 
-
-
 use crate::base_functions::Wrapper;
 
 #[multiversx_sc::module]
@@ -37,12 +35,12 @@ pub trait ClaimBoostOnlyModule:
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(
         &self,
-        opt_user: OptionalValue<ManagedAddress>
+        opt_user: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
         let user = match opt_user {
             OptionalValue::Some(user) => {
                 require!(
-                    self.allow_external_claim_boosted_rewards(&user).get(),
+                    self.get_allow_external_claim_boosted_rewards(&user),
                     "Cannot claim rewards for this address"
                 );
                 user
@@ -51,14 +49,13 @@ pub trait ClaimBoostOnlyModule:
         };
 
         let reward_token_id = self.reward_token_id().get();
-        
-        let user_total_farm_position_mapper = self.user_total_farm_position(&user);
-        if user_total_farm_position_mapper.is_empty() {
+
+        let user_total_farm_position = self.get_user_total_farm_position(&user);
+        if user_total_farm_position == BigUint::zero() {
             return EsdtTokenPayment::new(reward_token_id, 0, BigUint::zero());
         }
 
-        let reward =
-            self.claim_boosted_yields_rewards(&user, user_total_farm_position_mapper.get());
+        let reward = self.claim_boosted_yields_rewards(&user, user_total_farm_position);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }

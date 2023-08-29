@@ -81,9 +81,5 @@ pub trait ConfigModule {
 
     #[view(getAllowExternalClaimRewards)]
     #[storage_mapper("allowExternalClaimRewards")]
-    fn allow_external_claim_rewards(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<bool>;
-
+    fn allow_external_claim_rewards(&self, user: &ManagedAddress) -> SingleValueMapper<bool>;
 }

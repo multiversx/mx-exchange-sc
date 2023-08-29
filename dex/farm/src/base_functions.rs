@@ -13,7 +13,6 @@ use contexts::storage_cache::StorageCache;
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 use fixed_supply_token::FixedSupplyToken;
 
-
 use crate::exit_penalty;
 
 pub type DoubleMultiPayment<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
@@ -241,16 +240,18 @@ where
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         token_attributes: &<Self as FarmContract>::AttributesType,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
-        if &token_attributes.original_owner != caller {
+        let original_owner = &token_attributes.original_owner;
+
+        if original_owner != caller {
             sc.update_energy_and_progress(caller);
         }
 
-        let user_total_farm_position_mapper = sc.user_total_farm_position(caller);
-        if user_total_farm_position_mapper.is_empty() {
+        let user_total_farm_position = sc.get_user_total_farm_position(original_owner);
+        if user_total_farm_position == BigUint::zero() {
             return BigUint::zero();
         }
 
-        sc.claim_boosted_yields_rewards(caller, user_total_farm_position_mapper.get())
+        sc.claim_boosted_yields_rewards(caller, user_total_farm_position)
     }
 }
 

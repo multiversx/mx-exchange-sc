@@ -8,12 +8,46 @@ use pausable::State;
 
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    TypeAbi,
+    Clone,
+    PartialEq,
+    Debug,
+)]
+pub struct UserTotalFarmPositionStruct<M: ManagedTypeApi> {
+    pub total_farm_position: BigUint<M>,
+    pub allow_external_claim_boosted_rewards: bool,
+}
+
 #[multiversx_sc::module]
 pub trait ConfigModule: pausable::PausableModule + permissions_module::PermissionsModule {
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
         state == State::Active
+    }
+
+    fn get_user_total_farm_position(&self, user: &ManagedAddress) -> BigUint {
+        self.user_total_farm_position(user)
+            .set_if_empty(UserTotalFarmPositionStruct {
+                total_farm_position: BigUint::zero(),
+                allow_external_claim_boosted_rewards: false,
+            });
+
+        self.user_total_farm_position(user)
+            .get()
+            .total_farm_position
+    }
+
+    fn get_allow_external_claim_boosted_rewards(&self, user: &ManagedAddress) -> bool {
+        self.user_total_farm_position(user)
+            .get()
+            .allow_external_claim_boosted_rewards
     }
 
     #[view(getFarmingTokenId)]
@@ -41,13 +75,8 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
 
     #[view(getUserTotalFarmPosition)]
     #[storage_mapper("userTotalFarmPosition")]
-    fn user_total_farm_position(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
-
-    #[view(getAllowExternalClaimBoostedRewards)]
-    #[storage_mapper("allowExternalClaimBoostedRewards")]
-    fn allow_external_claim_boosted_rewards(
+    fn user_total_farm_position(
         &self,
         user: &ManagedAddress,
-    ) -> SingleValueMapper<bool>;
-
+    ) -> SingleValueMapper<UserTotalFarmPositionStruct<Self::Api>>;
 }

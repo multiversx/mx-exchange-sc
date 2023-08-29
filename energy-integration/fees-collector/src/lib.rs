@@ -64,7 +64,6 @@ pub trait FeesCollector:
             OptionalValue::None => self.blockchain().get_caller(),
         };
 
-
         let wrapper = FeesCollectorWrapper::new();
         let mut rewards = self.claim_multi(&wrapper, &original_caller);
         if rewards.is_empty() {

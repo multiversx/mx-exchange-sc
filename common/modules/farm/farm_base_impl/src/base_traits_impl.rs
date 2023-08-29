@@ -210,20 +210,23 @@ pub trait FarmContract {
             }
         }
 
-        if sc.user_total_farm_position(user).get() == 0 {
+        let user_total_farm_position = sc.get_user_total_farm_position(user);
+        if user_total_farm_position == BigUint::zero() {
             Self::increase_user_farm_position(sc, user, &total_farm_position);
         } else if farm_position_increase > 0 {
             Self::increase_user_farm_position(sc, user, &farm_position_increase);
         }
     }
-#[inline]
+    #[inline]
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         new_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) {
         sc.user_total_farm_position(user)
-            .update(|user_farm_position| *user_farm_position += new_farm_position_amount);
+            .update(|user_farm_position_struct| {
+                user_farm_position_struct.total_farm_position += new_farm_position_amount
+            });
     }
 
     fn decrease_user_farm_position(
@@ -235,12 +238,15 @@ pub trait FarmContract {
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
         sc.user_total_farm_position(&token_attributes.original_owner)
-            .update(|user_farm_position| {
-                if *user_farm_position > farm_position.amount {
-                    *user_farm_position -= &farm_position.amount;
+            .update(|user_farm_position_struct| {
+                let mut user_total_farm_position =
+                    user_farm_position_struct.total_farm_position.clone();
+                if user_total_farm_position > farm_position.amount {
+                    user_total_farm_position -= &farm_position.amount;
                 } else {
-                    *user_farm_position = BigUint::zero();
+                    user_total_farm_position = BigUint::zero();
                 }
+                user_farm_position_struct.total_farm_position = user_total_farm_position;
             });
     }
 }

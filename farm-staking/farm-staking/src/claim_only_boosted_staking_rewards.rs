@@ -30,7 +30,7 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
         let user = match opt_user {
             OptionalValue::Some(user) => {
                 require!(
-                    self.allow_external_claim_boosted_rewards(&user).get(),
+                    self.get_allow_external_claim_boosted_rewards(&user),
                     "Cannot claim rewards for this address"
                 );
                 user
@@ -39,13 +39,12 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
         };
 
         let reward_token_id = self.reward_token_id().get();
-        let user_total_farm_position_mapper = self.user_total_farm_position(&user);
-        if user_total_farm_position_mapper.is_empty() {
+        let user_total_farm_position = self.get_user_total_farm_position(&user);
+        if user_total_farm_position == BigUint::zero() {
             return EsdtTokenPayment::new(reward_token_id, 0, BigUint::zero());
         }
 
-        let reward =
-            self.claim_boosted_yields_rewards(&user, user_total_farm_position_mapper.get());
+        let reward = self.claim_boosted_yields_rewards(&user, user_total_farm_position);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }
@@ -69,11 +68,8 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
 
         let token_attributes =
             self.get_attributes_as_part_of_fixed_supply(payment, &farm_token_mapper);
-        let reward = FarmStakingWrapper::<Self>::calculate_boosted_rewards(
-            self,
-            caller,
-            &token_attributes,
-        );
+        let reward =
+            FarmStakingWrapper::<Self>::calculate_boosted_rewards(self, caller, &token_attributes);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }
