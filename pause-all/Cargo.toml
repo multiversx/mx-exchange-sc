@@ -11,13 +11,13 @@ path = "src/lib.rs"
 path = "../common/modules/pausable"
 
 [dependencies.multiversx-sc]
-version = "=0.42.0"
+version = "=0.43.2"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.42.0"
+version = "=0.43.2"
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.42.0"
+version = "=0.43.2"
 
 [dev-dependencies.farm]
 path = "../dex/farm"
