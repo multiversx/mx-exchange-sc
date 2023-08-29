@@ -74,7 +74,7 @@ pub trait MetabondingStaking:
         require!(!entry_mapper.is_empty(), "Must stake first");
 
         let mut user_entry: UserEntry<Self::Api> = entry_mapper.get();
-        let unstake_amount = user_entry.unstake_amount.clone();
+        let unstake_amount = user_entry.unstake_amount;
         require!(unstake_amount > 0, "Must unstake first");
 
         let current_epoch = self.blockchain().get_block_epoch();
