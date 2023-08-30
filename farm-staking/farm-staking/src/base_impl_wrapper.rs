@@ -52,7 +52,8 @@ where
         if &token_attributes.original_owner != caller {
             sc.update_energy_and_progress(caller);
         }
-        let user_total_farm_position = sc.get_user_total_farm_position(caller);
+        let user_total_farm_position_struct = sc.get_user_total_farm_position_struct(caller);
+        let user_total_farm_position = user_total_farm_position_struct.total_farm_position;
         if user_total_farm_position == BigUint::zero() {
             return BigUint::zero();
         }
@@ -206,8 +207,8 @@ where
                 farm_position_increase += &farm_position.amount;
             }
         }
-        let user_total_farm_position = sc.get_user_total_farm_position(user);
-        if user_total_farm_position == BigUint::zero() {
+        let user_total_farm_position_struct = sc.get_user_total_farm_position_struct(user);
+        if user_total_farm_position_struct.total_farm_position == BigUint::zero() {
             Self::increase_user_farm_position(sc, user, &total_farm_position);
         } else if farm_position_increase > 0 {
             Self::increase_user_farm_position(sc, user, &farm_position_increase);

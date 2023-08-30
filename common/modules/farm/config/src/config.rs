@@ -32,22 +32,17 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
         state == State::Active
     }
 
-    fn get_user_total_farm_position(&self, user: &ManagedAddress) -> BigUint {
+    fn get_user_total_farm_position_struct(
+        &self,
+        user: &ManagedAddress,
+    ) -> UserTotalFarmPositionStruct<Self::Api> {
         self.user_total_farm_position(user)
             .set_if_empty(UserTotalFarmPositionStruct {
                 total_farm_position: BigUint::zero(),
                 allow_external_claim_boosted_rewards: false,
             });
 
-        self.user_total_farm_position(user)
-            .get()
-            .total_farm_position
-    }
-
-    fn get_allow_external_claim_boosted_rewards(&self, user: &ManagedAddress) -> bool {
-        self.user_total_farm_position(user)
-            .get()
-            .allow_external_claim_boosted_rewards
+        self.user_total_farm_position(user).get()
     }
 
     #[view(getFarmingTokenId)]

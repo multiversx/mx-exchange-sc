@@ -210,8 +210,8 @@ pub trait FarmContract {
             }
         }
 
-        let user_total_farm_position = sc.get_user_total_farm_position(user);
-        if user_total_farm_position == BigUint::zero() {
+        let user_total_farm_position_struct = sc.get_user_total_farm_position_struct(user);
+        if user_total_farm_position_struct.total_farm_position == BigUint::zero() {
             Self::increase_user_farm_position(sc, user, &total_farm_position);
         } else if farm_position_increase > 0 {
             Self::increase_user_farm_position(sc, user, &farm_position_increase);

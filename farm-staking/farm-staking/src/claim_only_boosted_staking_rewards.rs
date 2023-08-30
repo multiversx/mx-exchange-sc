@@ -28,18 +28,17 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
         let user = match opt_user {
-            OptionalValue::Some(user) => {
-                require!(
-                    self.get_allow_external_claim_boosted_rewards(&user),
-                    "Cannot claim rewards for this address"
-                );
-                user
-            }
+            OptionalValue::Some(user) => user,
             OptionalValue::None => self.blockchain().get_caller(),
         };
+        let user_total_farm_position_struct = self.get_user_total_farm_position_struct(&user);
+        require!(
+            user_total_farm_position_struct.allow_external_claim_boosted_rewards,
+            "Cannot claim rewards for this address"
+        );
 
         let reward_token_id = self.reward_token_id().get();
-        let user_total_farm_position = self.get_user_total_farm_position(&user);
+        let user_total_farm_position = user_total_farm_position_struct.total_farm_position;
         if user_total_farm_position == BigUint::zero() {
             return EsdtTokenPayment::new(reward_token_id, 0, BigUint::zero());
         }

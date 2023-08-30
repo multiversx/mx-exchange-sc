@@ -246,7 +246,9 @@ where
             sc.update_energy_and_progress(caller);
         }
 
-        let user_total_farm_position = sc.get_user_total_farm_position(original_owner);
+        let user_total_farm_position_struct =
+            sc.get_user_total_farm_position_struct(original_owner);
+        let user_total_farm_position = user_total_farm_position_struct.total_farm_position;
         if user_total_farm_position == BigUint::zero() {
             return BigUint::zero();
         }
