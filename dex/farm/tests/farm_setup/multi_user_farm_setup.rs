@@ -2,6 +2,7 @@
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
+use farm::claim_boost_only::ClaimBoostOnlyModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
@@ -401,6 +402,27 @@ where
         result
     }
 
+    pub fn claim_boosted_rewards_for_user(&mut self, owner: &Address, broker: &Address) -> u64 {
+        self.last_farm_token_nonce += 1;
+
+        let mut result = 0;
+        self.b_mock
+            .execute_tx(broker, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                let reward_payment =
+                    sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(owner)));
+                assert_eq!(
+                    reward_payment.token_identifier,
+                    managed_token_id!(REWARD_TOKEN_ID)
+                );
+                assert_eq!(reward_payment.token_nonce, 0);
+
+                result = reward_payment.amount.to_u64().unwrap();
+            })
+            .assert_ok();
+
+        result
+    }
+
     pub fn claim_rewards_known_proxy(
         &mut self,
         user: &Address,
@@ -490,6 +512,18 @@ where
                     );
                 },
             )
+            .assert_ok();
+    }
+
+    pub fn allow_external_claim_rewards(&mut self, user: &Address) {
+        self.b_mock
+            .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                let _ = sc.user_total_farm_position(&managed_address!(user)).update(
+                    |user_total_farm_position_struct| {
+                        user_total_farm_position_struct.allow_external_claim_boosted_rewards = true;
+                    },
+                );
+            })
             .assert_ok();
     }
 

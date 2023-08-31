@@ -495,7 +495,9 @@ fn claim_for_other_user_test() {
         .claim_for_user(&first_user, &second_user)
         .assert_user_error("Cannot claim rewards for this address");
 
-    fc_setup.allow_external_claim_rewards(&first_user).assert_ok();
+    fc_setup
+        .allow_external_claim_rewards(&first_user)
+        .assert_ok();
     // claim week 2 - receives rewards accumulated in week 1, and gets new energy saved
 
     fc_setup
