@@ -40,6 +40,7 @@ pub trait ClaimBoostOnlyModule:
         let caller = self.blockchain().get_caller();
         let user = match opt_user {
             OptionalValue::Some(user) => user,
+            #[allow(clippy::redundant_clone)]
             OptionalValue::None => caller.clone(),
         };
         let user_total_farm_position_struct = self.get_user_total_farm_position_struct(&user);
