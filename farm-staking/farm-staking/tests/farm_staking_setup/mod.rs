@@ -1,3 +1,4 @@
+use farm_staking::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
@@ -274,6 +275,37 @@ where
         );
     }
 
+    pub fn claim_boosted_rewards_for_user(
+        &mut self,
+        owner: &Address,
+        broker: &Address,
+        expected_reward_token_out: u64,
+        expected_user_reward_token_balance: &RustBigUint,
+    ) {
+        self.b_mock
+            .execute_tx(&broker, &self.farm_wrapper, &rust_biguint!(0u64), |sc| {
+                let payment_result =
+                    sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(owner)));
+
+                assert_eq!(
+                    payment_result.token_identifier,
+                    managed_token_id!(REWARD_TOKEN_ID)
+                );
+                assert_eq!(payment_result.token_nonce, 0);
+                assert_eq!(
+                    payment_result.amount,
+                    managed_biguint!(expected_reward_token_out)
+                );
+            })
+            .assert_ok();
+
+        self.b_mock.check_esdt_balance(
+            &self.user_address,
+            REWARD_TOKEN_ID,
+            expected_user_reward_token_balance,
+        );
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn unstake_farm(
         &mut self,
@@ -378,6 +410,18 @@ where
                 assert_eq!(
                     managed_biguint!(expected_farm_token_supply),
                     actual_farm_supply
+                );
+            })
+            .assert_ok();
+    }
+
+    pub fn allow_external_claim_rewards(&mut self, user: &Address) {
+        self.b_mock
+            .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                let _ = sc.user_total_farm_position(&managed_address!(user)).update(
+                    |user_total_farm_position_struct| {
+                        user_total_farm_position_struct.allow_external_claim_boosted_rewards = true;
+                    },
                 );
             })
             .assert_ok();
