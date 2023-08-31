@@ -236,14 +236,7 @@ where
 
         sc.user_total_farm_position(&token_attributes.original_owner)
             .update(|user_farm_position_struct| {
-                let mut user_total_farm_position =
-                    user_farm_position_struct.total_farm_position.clone();
-                if user_total_farm_position > farm_position.amount {
-                    user_total_farm_position -= &farm_position.amount;
-                } else {
-                    user_total_farm_position = BigUint::zero();
-                }
-                user_farm_position_struct.total_farm_position = user_total_farm_position;
+                user_farm_position_struct.total_farm_position -= farm_position.amount.clone()
             });
     }
 }
