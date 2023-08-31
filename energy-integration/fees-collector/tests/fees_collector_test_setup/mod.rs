@@ -237,8 +237,7 @@ where
     pub fn allow_external_claim_rewards(&mut self, user: &Address) -> TxResult {
         self.b_mock
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
-                let _ = sc
-                    .allow_external_claim_rewards(&managed_address!(user))
+                sc.allow_external_claim_rewards(&managed_address!(user))
                     .set(true);
             })
     }

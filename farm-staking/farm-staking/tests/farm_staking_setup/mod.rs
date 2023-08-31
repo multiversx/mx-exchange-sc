@@ -283,7 +283,7 @@ where
         expected_user_reward_token_balance: &RustBigUint,
     ) {
         self.b_mock
-            .execute_tx(&broker, &self.farm_wrapper, &rust_biguint!(0u64), |sc| {
+            .execute_tx(broker, &self.farm_wrapper, &rust_biguint!(0u64), |sc| {
                 let payment_result =
                     sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(owner)));
 
@@ -418,7 +418,7 @@ where
     pub fn allow_external_claim_rewards(&mut self, user: &Address) {
         self.b_mock
             .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                let _ = sc.user_total_farm_position(&managed_address!(user)).update(
+                sc.user_total_farm_position(&managed_address!(user)).update(
                     |user_total_farm_position_struct| {
                         user_total_farm_position_struct.allow_external_claim_boosted_rewards = true;
                     },
