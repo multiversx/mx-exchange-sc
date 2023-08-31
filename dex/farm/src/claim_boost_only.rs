@@ -38,13 +38,12 @@ pub trait ClaimBoostOnlyModule:
         opt_user: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let user = match opt_user {
+        let user = match &opt_user {
             OptionalValue::Some(user) => user,
-            #[allow(clippy::redundant_clone)]
-            OptionalValue::None => caller.clone(),
+            OptionalValue::None => &caller,
         };
-        let user_total_farm_position_struct = self.get_user_total_farm_position_struct(&user);
-        if user != caller {
+        let user_total_farm_position_struct = self.get_user_total_farm_position_struct(user);
+        if user != &caller {
             require!(
                 user_total_farm_position_struct.allow_external_claim_boosted_rewards,
                 "Cannot claim rewards for this address"
@@ -57,15 +56,15 @@ pub trait ClaimBoostOnlyModule:
             return EsdtTokenPayment::new(reward_token_id, 0, BigUint::zero());
         }
 
-        let reward = self.claim_boosted_yields_rewards(&user, user_total_farm_position);
+        let reward = self.claim_boosted_yields_rewards(user, user_total_farm_position);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }
 
         let boosted_rewards = EsdtTokenPayment::new(reward_token_id, 0, reward);
-        self.send_payment_non_zero(&user, &boosted_rewards);
+        self.send_payment_non_zero(user, &boosted_rewards);
 
-        self.update_energy_and_progress(&user);
+        self.update_energy_and_progress(user);
 
         boosted_rewards
     }
