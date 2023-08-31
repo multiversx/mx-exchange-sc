@@ -221,11 +221,11 @@ pub trait FarmContract {
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        new_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+        increase_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) {
         sc.user_total_farm_position(user)
             .update(|user_farm_position_struct| {
-                user_farm_position_struct.total_farm_position += new_farm_position_amount
+                user_farm_position_struct.total_farm_position += increase_farm_position_amount
             });
     }
 
