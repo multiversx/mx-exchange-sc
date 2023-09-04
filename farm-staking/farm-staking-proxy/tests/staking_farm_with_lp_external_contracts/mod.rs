@@ -76,7 +76,7 @@ where
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
     );
 
-    let mut block_round = 1;
+    let mut block_round: u64 = 1;
     b_mock.set_block_round(block_round);
     b_mock.set_block_nonce(BLOCK_NONCE_FIRST_ADD_LIQ);
 
