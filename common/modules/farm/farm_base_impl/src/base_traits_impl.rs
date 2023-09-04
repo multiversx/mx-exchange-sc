@@ -217,6 +217,7 @@ pub trait FarmContract {
             Self::increase_user_farm_position(sc, user, &farm_position_increase);
         }
     }
+
     #[inline]
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
