@@ -1,8 +1,8 @@
 multiversx_sc::imports!();
 
+use crate::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 use common_types::PaymentsVec;
 use week_timekeeping::Week;
-use crate::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 
 use crate::{events, ClaimProgress};
 

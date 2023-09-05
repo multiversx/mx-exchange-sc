@@ -8,7 +8,7 @@ use multiversx_sc_scenario::{
 
 use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
-use pair::safe_price::SafePriceModule;
+use pair::safe_price_view::{SafePriceViewModule, DEFAULT_SAFE_PRICE_ROUNDS_OFFSET};
 use pair::*;
 use pair_config::ConfigModule as _;
 use pausable::{PausableModule, State};
@@ -58,7 +58,6 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(pausable::State::Active);
-            sc.set_max_observations_per_record(10);
         })
         .assert_ok();
 
@@ -77,18 +76,20 @@ where
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
     );
 
+    let mut block_round = 1;
+    b_mock.set_block_round(block_round);
     b_mock.set_block_nonce(BLOCK_NONCE_FIRST_ADD_LIQ);
 
     let temp_user_addr = b_mock.create_user_account(&rust_zero);
     b_mock.set_esdt_balance(
         &temp_user_addr,
         WEGLD_TOKEN_ID,
-        &rust_biguint!(USER_TOTAL_WEGLD_TOKENS),
+        &rust_biguint!(USER_TOTAL_WEGLD_TOKENS * 2),
     );
     b_mock.set_esdt_balance(
         &temp_user_addr,
         RIDE_TOKEN_ID,
-        &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
+        &rust_biguint!(USER_TOTAL_RIDE_TOKENS * 2),
     );
 
     add_liquidity(
@@ -104,6 +105,8 @@ where
         1_001_000_000,
     );
 
+    block_round += 1;
+    b_mock.set_block_round(block_round);
     b_mock.set_block_nonce(BLOCK_NONCE_SECOND_ADD_LIQ);
 
     add_liquidity(
@@ -119,20 +122,33 @@ where
         1_001_000_000,
     );
 
-    let mut i = 10;
-    while i <= BLOCK_NONCE_AFTER_PAIR_SETUP {
-        b_mock.set_block_nonce(i);
+    // Extra operations to record the new reserves
+    block_round += DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+    b_mock.set_block_round(block_round);
+    add_liquidity(
+        &temp_user_addr,
+        b_mock,
+        &pair_wrapper,
+        1_001_000_000,
+        1_000_000_000,
+        1_001_000_000,
+        1_000_000_000,
+        USER_TOTAL_LP_TOKENS,
+        1_001_000_000,
+        1_001_000_000,
+    );
+    // Remove liquidity to have the correct lp token supply
+    remove_liquidity(&temp_user_addr, b_mock, &pair_wrapper, USER_TOTAL_LP_TOKENS);
 
-        b_mock
-            .execute_tx(user_addr, &pair_wrapper, &rust_biguint!(0), |sc| {
-                sc.update_and_get_tokens_for_given_position_with_safe_price(managed_biguint!(
-                    1_000_000_000
-                ));
-            })
-            .assert_ok();
-
-        i += 5;
-    }
+    b_mock
+        .execute_tx(user_addr, &pair_wrapper, &rust_biguint!(0), |sc| {
+            sc.get_lp_tokens_safe_price_by_round_offset(
+                managed_address!(pair_wrapper.address_ref()),
+                1,
+                managed_biguint!(1_000_000_000),
+            );
+        })
+        .assert_ok();
 
     b_mock.set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP);
 
@@ -192,6 +208,31 @@ fn add_liquidity<PairObjBuilder>(
             assert_eq!(payments.2.token_nonce, 0);
             assert_eq!(payments.2.amount, managed_biguint!(expected_second_amount));
         })
+        .assert_ok();
+}
+
+fn remove_liquidity<PairObjBuilder>(
+    user_address: &Address,
+    b_mock: &mut BlockchainStateWrapper,
+    pair_wrapper: &ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    lp_token_amount: u64,
+) where
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+{
+    b_mock
+        .execute_esdt_transfer(
+            user_address,
+            pair_wrapper,
+            LP_TOKEN_ID,
+            0,
+            &rust_biguint!(lp_token_amount),
+            |sc| {
+                sc.remove_liquidity(
+                    managed_biguint!(lp_token_amount),
+                    managed_biguint!(lp_token_amount),
+                );
+            },
+        )
         .assert_ok();
 }
 

@@ -2,16 +2,16 @@ mod proxy_dex_test_setup;
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
-use energy_factory::energy::EnergyModule;
+use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::Energy;
 use farm::exit_penalty::{DEFAULT_PENALTY_PERCENT, MAX_PERCENT};
 use multiversx_sc::{
-    codec::Empty,
+    codec::{multi_types::OptionalValue, Empty},
     types::{BigInt, EsdtLocalRole, EsdtTokenPayment},
 };
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
-    DebugApi,
+    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
+    whitebox::TxTokenTransfer, DebugApi,
 };
 use num_traits::ToPrimitive;
 use proxy_dex::{
@@ -21,6 +21,7 @@ use proxy_dex::{
     wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
 use proxy_dex_test_setup::*;
+use simple_lock::locked_token::LockedTokenAttributes;
 
 #[test]
 fn farm_proxy_setup_test() {
@@ -208,7 +209,7 @@ fn farm_proxy_actions_test() {
         Some(&WrappedFarmTokenAttributes::<DebugApi> {
             proxy_farming_token: EsdtTokenPayment {
                 token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
-                token_nonce: 3,
+                token_nonce: 1,
                 amount: managed_biguint!(USER_BALANCE),
             },
             farm_token: EsdtTokenPayment {
@@ -216,6 +217,46 @@ fn farm_proxy_actions_test() {
                 token_nonce: 3,
                 amount: managed_biguint!(USER_BALANCE),
             },
+        }),
+    );
+
+    // Check balance before exit farm proxy
+    setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(0),
+        None,
+    );
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            3,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                let output = sc
+                    .exit_farm_proxy(managed_address!(&farm_addr), managed_biguint!(USER_BALANCE));
+                let output_lp_token = output.0 .0;
+                assert_eq!(output_lp_token.token_nonce, 1);
+                assert_eq!(output_lp_token.amount, USER_BALANCE);
+            },
+        )
+        .assert_ok();
+
+    // Check balance after exit farm proxy
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(USER_BALANCE),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: LOCK_OPTIONS[0],
         }),
     );
 }
@@ -963,5 +1004,177 @@ fn farm_proxy_partial_exit_with_penalty_test() {
         setup.farm_locked_wrapper.address_ref(),
         MEX_TOKEN_ID,
         &rust_biguint!(USER_BALANCE / 2),
+    );
+}
+
+#[test]
+fn different_farm_locked_token_nonce_merging_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
+    let user_balance = rust_biguint!(USER_BALANCE);
+    setup
+        .b_mock
+        .set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
+
+    // users lock tokens
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.simple_lock_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &user_balance,
+            |sc| {
+                let user_payment = sc.lock_tokens_endpoint(LOCK_OPTIONS[1], OptionalValue::None);
+                assert_eq!(user_payment.token_nonce, 2);
+                assert_eq!(user_payment.amount, managed_biguint!(USER_BALANCE));
+            },
+        )
+        .assert_ok();
+
+    //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr));
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr));
+            },
+        )
+        .assert_ok();
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        1,
+        &rust_biguint!(USER_BALANCE),
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+        }),
+    );
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        2,
+        &rust_biguint!(USER_BALANCE),
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 2,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 2,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+        }),
+    );
+
+    //////////////////////////////////////////// MERGE TOKENS /////////////////////////////////////
+
+    let payments = vec![
+        TxTokenTransfer {
+            token_identifier: WRAPPED_FARM_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(USER_BALANCE),
+        },
+        TxTokenTransfer {
+            token_identifier: WRAPPED_FARM_TOKEN_ID.to_vec(),
+            nonce: 2,
+            value: rust_biguint!(USER_BALANCE),
+        },
+    ];
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.merge_wrapped_farm_tokens_endpoint(managed_address!(&farm_addr));
+        })
+        .assert_ok();
+
+    // check user balance
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        3,
+        &rust_biguint!(USER_BALANCE * 2),
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 3,
+                amount: managed_biguint!(USER_BALANCE * 2),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 3,
+                amount: managed_biguint!(USER_BALANCE * 2),
+            },
+        }),
+    );
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            3,
+            &rust_biguint!(USER_BALANCE * 2),
+            |sc| {
+                sc.exit_farm_proxy(
+                    managed_address!(&farm_addr),
+                    managed_biguint!(USER_BALANCE * 2),
+                );
+            },
+        )
+        .assert_ok();
+
+    let expected_unlock_epoch = (LOCK_OPTIONS[0] + LOCK_OPTIONS[1]) / 2;
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        3,
+        &rust_biguint!(1_980_000_000_000_000_000u64),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: expected_unlock_epoch,
+        }),
     );
 }

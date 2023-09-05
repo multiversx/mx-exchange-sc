@@ -7,8 +7,8 @@ mod price_provider_proxy {
 
     #[multiversx_sc::proxy]
     pub trait PriceProvider {
-        #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
-        fn update_and_get_tokens_for_given_position_with_safe_price(
+        #[endpoint(getTokensForGivenPositionWithSafePrice)]
+        fn get_tokens_for_given_position_with_safe_price(
             &self,
             liquidity: BigUint,
         ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>;
@@ -27,7 +27,7 @@ pub trait Lib: config::Config {
         if let Some(provider) = self.price_providers().get(&payment.token_identifier) {
             let call_result: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
                 self.price_provider_proxy(provider)
-                    .update_and_get_tokens_for_given_position_with_safe_price(
+                    .get_tokens_for_given_position_with_safe_price(
                         payment.amount.clone(),
                     )
                     .execute_on_dest_context();

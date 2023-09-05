@@ -44,6 +44,9 @@ pub trait LockOptionsModule {
 
     fn unlock_epoch_to_start_of_month_upper_estimate(&self, unlock_epoch: Epoch) -> Epoch {
         let lower_bound_unlock = self.unlock_epoch_to_start_of_month(unlock_epoch);
+        if unlock_epoch == lower_bound_unlock {
+            return lower_bound_unlock;
+        }
         let new_unlock_epoch = lower_bound_unlock + EPOCHS_PER_MONTH;
         let current_epoch = self.blockchain().get_block_epoch();
         if current_epoch >= new_unlock_epoch {
