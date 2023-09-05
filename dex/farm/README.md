@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Liquidity providers of Maiar Exchange are incentivized with MEX rewards in exchange for them locking their LP tokens in Farm contracts.  
+Liquidity providers of xExchange are incentivized with MEX rewards in exchange for them locking their LP tokens in Farm contracts.  
 
 ## Introduction
 

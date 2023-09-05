@@ -1,0 +1,16 @@
+[settings]
+main = "pair"
+
+[contracts.pair]
+name = "pair"
+add-unlabelled = true
+
+[contracts.safe-price-view]
+name = "safe-price-view"
+external-view = true
+add-labels = ["safe-price-view"]
+
+[contracts.full]
+name = "pair-full"
+add-unlabelled = true
+add-labels = ["safe-price-view"]

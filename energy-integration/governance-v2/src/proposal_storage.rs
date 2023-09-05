@@ -17,6 +17,7 @@ pub struct ProposalVotes<M: ManagedTypeApi> {
     pub down_votes: BigUint<M>,
     pub down_veto_votes: BigUint<M>,
     pub abstain_votes: BigUint<M>,
+    pub quorum: BigUint<M>,
 }
 
 impl<M: ManagedTypeApi> Default for ProposalVotes<M> {
@@ -32,6 +33,7 @@ impl<M: ManagedTypeApi> ProposalVotes<M> {
             down_votes: BigUint::zero(),
             down_veto_votes: BigUint::zero(),
             abstain_votes: BigUint::zero(),
+            quorum: BigUint::zero(),
         }
     }
     pub fn get_total_votes(&self) -> BigUint<M> {
@@ -59,21 +61,15 @@ impl<M: ManagedTypeApi> ProposalVotes<M> {
 pub trait ProposalStorageModule {
     fn clear_proposal(&self, proposal_id: ProposalId) {
         self.proposals().clear_entry(proposal_id);
-        self.proposal_start_block(proposal_id).clear();
-        self.proposal_queue_block(proposal_id).clear();
         self.proposal_votes(proposal_id).clear();
     }
 
+    #[view(getProposals)]
     #[storage_mapper("proposals")]
     fn proposals(&self) -> VecMapper<GovernanceProposal<Self::Api>>;
 
-    #[storage_mapper("proposalStartBlock")]
-    fn proposal_start_block(&self, proposal_id: ProposalId) -> SingleValueMapper<u64>;
-
-    #[storage_mapper("proposalQueueBlock")]
-    fn proposal_queue_block(&self, proposal_id: ProposalId) -> SingleValueMapper<u64>;
-
-    #[storage_mapper("governance:userVotedProposals")]
+    #[view(getUserVotedProposals)]
+    #[storage_mapper("userVotedProposals")]
     fn user_voted_proposals(&self, user: &ManagedAddress) -> UnorderedSetMapper<ProposalId>;
 
     #[view(getProposalVotes)]
