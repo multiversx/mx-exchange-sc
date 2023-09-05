@@ -1,11 +1,13 @@
+#![allow(deprecated)]
+
 mod farm_setup;
 
 use config::ConfigModule;
 use farm_setup::single_user_farm_setup::*;
 use multiversx_sc::types::EsdtLocalRole;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
-    DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 use sc_whitelist_module::SCWhitelistModule;
 

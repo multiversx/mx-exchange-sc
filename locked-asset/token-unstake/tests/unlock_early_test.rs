@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod token_unstake_setup;
 
 use energy_factory::energy::EnergyModule;

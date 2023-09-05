@@ -1,8 +1,10 @@
+#![allow(deprecated)]
+
 use multiversx_sc::{codec::multi_types::OptionalValue, types::Address};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, rust_biguint,
-    whitebox::TxTokenTransfer,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::TxTokenTransfer,
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 

@@ -37,7 +37,7 @@ pub trait GovernanceV2:
     /// - `quorum_percentage` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
     /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
     /// - `votingPeriodInBlocks` - Number of blocks the voting period lasts (voting delay does not count towards this)  
-    /// - `withdraw_percentage_defeated` - Percetange of the fee to be returned if proposal defetead 
+    /// - `withdraw_percentage_defeated` - Percetange of the fee to be returned if proposal defetead
     /// - `energy_factory_address`
     /// - `fees_collector_address`
     /// - `fee_token` - The token used to pay the fee
