@@ -133,6 +133,7 @@ fn test_router_upgrade_pair() {
 #[test]
 fn test_multi_pair_swap() {
     let mut router_setup = RouterSetup::new(router::contract_obj, pair::contract_obj);
+    router_setup.migrate_pair_map();
 
     router_setup.add_liquidity();
 
@@ -252,6 +253,8 @@ fn user_enable_pair_swaps_through_router_test() {
                 },
                 managed_address!(pair_wrapper.address_ref()),
             );
+
+            sc.migrate_pair_map();
 
             sc.add_common_tokens_for_user_pairs(MultiValueEncoded::from(ManagedVec::from(vec![
                 managed_token_id!(USDC_TOKEN_ID),
@@ -437,6 +440,8 @@ fn user_enable_pair_swaps_fail_test() {
                 },
                 managed_address!(pair_wrapper.address_ref()),
             );
+
+            sc.migrate_pair_map();
 
             sc.add_common_tokens_for_user_pairs(MultiValueEncoded::from(ManagedVec::from(vec![
                 managed_token_id!(USDC_TOKEN_ID),

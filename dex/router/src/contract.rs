@@ -322,6 +322,8 @@ pub trait Router:
                 .unwrap_or_else(ManagedAddress::zero);
         }
 
+        self.address_pair_map().remove(&pair_address);
+
         pair_address
     }
 
@@ -392,6 +394,20 @@ pub trait Router:
     #[endpoint(setPairCreationEnabled)]
     fn set_pair_creation_enabled(&self, enabled: bool) {
         self.pair_creation_enabled().set(enabled);
+    }
+
+    #[only_owner]
+    #[endpoint(migratePairMap)]
+    fn migrate_pair_map(&self) {
+        let pair_map = self.pair_map();
+        let mut address_pair_map = self.address_pair_map();
+        require!(
+            address_pair_map.is_empty(),
+            "The destination mapper must be empty"
+        );
+        for (pair_tokens, address) in pair_map.iter() {
+            address_pair_map.insert(address, pair_tokens);
+        }
     }
 
     #[view(getPairCreationEnabled)]
