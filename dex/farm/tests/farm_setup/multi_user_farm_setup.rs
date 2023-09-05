@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
@@ -7,10 +8,10 @@ use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
-use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 
@@ -23,6 +24,7 @@ use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
+use week_timekeeping::Epoch;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"REW-123456";
@@ -37,6 +39,14 @@ pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+
+pub struct RawFarmTokenAttributes {
+    pub reward_per_share_bytes: Vec<u8>,
+    pub entering_epoch: Epoch,
+    pub compounded_reward_bytes: Vec<u8>,
+    pub current_farm_amount_bytes: Vec<u8>,
+    pub original_owner_bytes: [u8; 32],
+}
 
 pub struct MultiUserFarmSetup<FarmObjBuilder, EnergyFactoryBuilder, EnergyUpdateObjBuilder>
 where
@@ -346,12 +356,50 @@ where
         attributes: FarmTokenAttributes<DebugApi>,
     ) -> u64 {
         let mut result = 0;
+
+        let raw_attributes = RawFarmTokenAttributes {
+            reward_per_share_bytes: attributes
+                .reward_per_share
+                .to_bytes_be()
+                .as_slice()
+                .to_vec(),
+            entering_epoch: attributes.entering_epoch,
+            compounded_reward_bytes: attributes
+                .compounded_reward
+                .to_bytes_be()
+                .as_slice()
+                .to_vec(),
+            current_farm_amount_bytes: attributes
+                .current_farm_amount
+                .to_bytes_be()
+                .as_slice()
+                .to_vec(),
+            original_owner_bytes: attributes.original_owner.to_byte_array(),
+        };
+
         self.b_mock
             .execute_query(&self.farm_wrapper, |sc| {
+                let attributes_managed = FarmTokenAttributes {
+                    reward_per_share: multiversx_sc::types::BigUint::<DebugApi>::from_bytes_be(
+                        &raw_attributes.reward_per_share_bytes,
+                    ),
+                    entering_epoch: raw_attributes.entering_epoch,
+                    compounded_reward: multiversx_sc::types::BigUint::<DebugApi>::from_bytes_be(
+                        &raw_attributes.compounded_reward_bytes,
+                    ),
+                    current_farm_amount: multiversx_sc::types::BigUint::<DebugApi>::from_bytes_be(
+                        &raw_attributes.current_farm_amount_bytes,
+                    ),
+                    original_owner:
+                        multiversx_sc::types::ManagedAddress::<DebugApi>::new_from_bytes(
+                            &raw_attributes.original_owner_bytes,
+                        ),
+                };
+
                 let result_managed = sc.calculate_rewards_for_given_position(
                     managed_address!(user),
                     managed_biguint!(farm_token_amount),
-                    attributes,
+                    attributes_managed,
                 );
                 result = result_managed.to_u64().unwrap();
             })

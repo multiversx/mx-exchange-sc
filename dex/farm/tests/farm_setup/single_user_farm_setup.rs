@@ -1,12 +1,13 @@
 #![allow(dead_code)]
+#![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use multiversx_sc_scenario::whitebox::{TxContextStack, TxTokenTransfer};
+use multiversx_sc_scenario::whitebox_legacy::{TxContextStack, TxTokenTransfer};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 
 type RustBigUint = num_bigint::BigUint;

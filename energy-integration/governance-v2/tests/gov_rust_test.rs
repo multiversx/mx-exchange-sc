@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod gov_test_setup;
 
 use gov_test_setup::*;

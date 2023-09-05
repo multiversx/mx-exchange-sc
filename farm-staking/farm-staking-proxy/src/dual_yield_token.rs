@@ -114,7 +114,7 @@ pub trait DualYieldTokenModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let register_cost = self.call_value().egld_value();
+        let register_cost = self.call_value().egld_value().clone_value();
         self.dual_yield_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
             register_cost,

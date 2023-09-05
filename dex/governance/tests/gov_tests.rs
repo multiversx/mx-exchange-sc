@@ -1,9 +1,11 @@
+#![allow(deprecated)]
+
 use multiversx_sc::codec::multi_types::{MultiValue2, OptionalValue};
 use multiversx_sc::types::MultiValueEncoded;
 use multiversx_sc::types::{Address, EsdtLocalRole, EsdtTokenPayment, ManagedVec};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint, whitebox::*,
-    DebugApi,
+    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
+    whitebox_legacy::*, DebugApi,
 };
 
 use governance::config::*;

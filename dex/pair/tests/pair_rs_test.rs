@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod pair_setup;
 use fees_collector::{
     config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
@@ -9,7 +11,7 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    whitebox::TxTokenTransfer, DebugApi,
+    whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 // use pair::safe_price::MAX_OBSERVATIONS;
 use pair::{config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule, Pair};
