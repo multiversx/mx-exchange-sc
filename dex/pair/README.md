@@ -33,7 +33,7 @@ The init function is called when deploying/upgrading a smart contract. It receiv
 - __router_address__ - The address of the router smart contract. In most cases it is the caller address. The router address, together with the router owner address act as managers. They have the rights to upgrade and modify the contract's settings until a multisign dApp implementation will be ready and in place.
 - __router_owner_address__
 - __total_fee_percent__ - Each time a swap is made, a fee is charged. The total percent is configurable by this parameter, but is usually 300, representing a percentage of 0.3, base points being 1_000.
-- __special_fee_percent__ - The total fee is handled in two different manners. By default, the fee is reinvested into the pool, thus increasing the amount of tokens of liquidity providers. Part of the total fee is handled differently. More specific, a value of 50, representing a percentage of 0.05 of each swap is used to buyback and burn MEX tokens. The special fee can also be split in many equal parts and can be configured to be sent to other addresses also. The convention is that, if a configured special fee destination address is zero, then the tokens should be burned (the way it is configured in Maiar Exchange as well).
+- __special_fee_percent__ - The total fee is handled in two different manners. By default, the fee is reinvested into the pool, thus increasing the amount of tokens of liquidity providers. Part of the total fee is handled differently. More specific, a value of 50, representing a percentage of 0.05 of each swap is used to buyback and burn MEX tokens. The special fee can also be split in many equal parts and can be configured to be sent to other addresses also. The convention is that, if a configured special fee destination address is zero, then the tokens should be burned (the way it is configured in xExchange as well).
 - __initial_liquidity_adder__ - An optional argument that is usually a Price Discovery smart contract. Used to decrease changes and impact of Pump & Dump at new listings.
 
 ### addLiquidity
@@ -139,7 +139,7 @@ Considering __f__ being the percent of total fee, the formula including fees is 
 rI * rO = (rI + (1 - f) * aI) * (rO - aO)
 ```
 
-Let's presume that __aO__ will be calculated only by taking into account ```(1 - f) * aI```. In Maiar Exchange's current configuration, that would be 0.97% of the input.
+Let's presume that __aO__ will be calculated only by taking into account ```(1 - f) * aI```. In xExchange's current configuration, that would be 0.97% of the input.
 
 The remaining fee, which is ```f * aI``` would be split afterwards into regular fee - reinvested in the pool and special fee - used for buyback and burn mex. For more in depth dive into how the special fee is handled, see ```send_fee``` private function.
 
@@ -208,11 +208,11 @@ There are four test suites around this contract:
 
 ## Interaction
 
-The interaction scripts are located in the _dex/interaction_ directory. The scripts are written in python and erdpy is required in order to be used. Interaction scripts are scripts that ease the interaction with the deployed contract by wrapping erdpy sdk functionality in bash scripts. Make sure to update the PEM path and the PROXY and CHAINID values in order to correctly use the scripts.
+The interaction scripts are located in the _dex/interaction_ directory. The scripts are written in python and mxpy is required in order to be used. Interaction scripts are scripts that ease the interaction with the deployed contract by wrapping mxpy sdk functionality in bash scripts. Make sure to update the PEM path and the PROXY and CHAINID values in order to correctly use the scripts.
 
 ## Deployment
 
-The deployment of this contract is done by the Router smart contract but it can be done also in a standalone manner using the erdpy interaction scripts for deploy/upgrade.
+The deployment of this contract is done by the Router smart contract but it can be done also in a standalone manner using the mxpy interaction scripts for deploy/upgrade.
 
 
 # Safe Price V2

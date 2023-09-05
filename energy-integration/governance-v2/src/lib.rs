@@ -71,7 +71,6 @@ pub trait GovernanceV2:
     /// The proposer's energy is NOT automatically used for voting. A separate vote is needed.
     ///
     /// Returns the ID of the newly created proposal.
-    #[only_owner]
     #[payable("*")]
     #[endpoint]
     fn propose(
@@ -265,8 +264,6 @@ pub trait GovernanceV2:
                 let refund_percentage = BigUint::from(proposal.withdraw_percentage_defeated);
                 let refund_amount =
                     refund_percentage * proposal.fee_payment.amount.clone() / FULL_PERCENTAGE;
-
-                require!(caller == proposal.proposer, ONLY_PROPOSER_WITHDRAW);
 
                 self.refund_proposal_fee(proposal_id, &refund_amount);
                 let remaining_fee = proposal.fee_payment.amount - refund_amount;
