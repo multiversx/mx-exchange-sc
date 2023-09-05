@@ -1,8 +1,10 @@
+#![allow(deprecated)]
+
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
 use multiversx_sc::types::{BigInt, MultiValueEncoded};
 use multiversx_sc::types::{EsdtTokenPayment, ManagedVec, TokenIdentifier};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, rust_biguint, whitebox::*, DebugApi,
+    managed_address, managed_biguint, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 
 const SC_WASM_PATH: &str = "output/factory.wasm";
@@ -815,7 +817,7 @@ fn update_energy_after_old_token_unlock_test() {
         &old_token_attributes,
     );
 
-    let mut user_energy_amount = managed_biguint!(0);
+    let mut user_energy_amount: multiversx_sc::types::BigUint<DebugApi> = managed_biguint!(0);
     user_energy_amount +=
         managed_biguint!(20_000) * USER_BALANCE * (first_unlock_epoch - current_epoch) / 100_000u32;
     user_energy_amount +=
@@ -825,6 +827,8 @@ fn update_energy_after_old_token_unlock_test() {
         managed_biguint!(20_000) * USER_BALANCE * (third_unlock_epoch - current_epoch) / 100_000u32;
     user_energy_amount +=
         managed_biguint!(40_000) * USER_BALANCE * (forth_unlock_epoch - current_epoch) / 100_000u32;
+
+    let expected_energy_vec = user_energy_amount.to_bytes_be().as_slice().to_vec();
 
     setup
         .b_mock
@@ -839,14 +843,14 @@ fn update_energy_after_old_token_unlock_test() {
                 let user_energy = (
                     managed_address!(&first_user),
                     managed_biguint!(USER_BALANCE),
-                    BigInt::from(user_energy_amount.clone()),
+                    BigInt::from_signed_bytes_be(&expected_energy_vec),
                 )
                     .into();
                 users_energy.push(user_energy);
                 sc.set_energy_for_old_tokens(users_energy);
 
                 let expected_energy = Energy::new(
-                    BigInt::from(user_energy_amount.clone()),
+                    BigInt::from_signed_bytes_be(&expected_energy_vec),
                     1441,
                     managed_biguint!(USER_BALANCE),
                 );
@@ -909,7 +913,8 @@ fn update_energy_after_old_token_unlock_test() {
         Some(&new_locked_token_attributes),
     );
 
-    let mut final_user_energy_amount = managed_biguint!(0u64);
+    let mut final_user_energy_amount: multiversx_sc::types::BigUint<DebugApi> =
+        managed_biguint!(0u64);
     final_user_energy_amount += managed_biguint!(33_333)
         * remaining_locked_token_balace
         * (third_unlock_epoch - current_epoch)
@@ -919,11 +924,13 @@ fn update_energy_after_old_token_unlock_test() {
         * (forth_unlock_epoch - current_epoch)
         / 100_000u32; // 66_666 + 1 leftover
 
+    let final_amount_vec = final_user_energy_amount.to_bytes_be().as_slice().to_vec();
+
     setup
         .b_mock
         .execute_query(&setup.energy_factory_wrapper, |sc| {
             let expected_energy = Energy::new(
-                BigInt::from(final_user_energy_amount.clone()),
+                BigInt::from_signed_bytes_be(&final_amount_vec),
                 current_epoch,
                 managed_biguint!(remaining_locked_token_balace),
             );

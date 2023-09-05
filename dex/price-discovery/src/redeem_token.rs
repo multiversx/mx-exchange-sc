@@ -19,7 +19,7 @@ pub trait RedeemTokenModule:
         token_ticker: ManagedBuffer,
         nr_decimals: usize,
     ) {
-        let payment_amount = self.call_value().egld_value();
+        let payment_amount = self.call_value().egld_value().clone_value();
         self.redeem_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
             payment_amount,

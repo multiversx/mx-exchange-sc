@@ -1,12 +1,13 @@
 #[cfg(test)]
 pub mod fuzz_farm_test {
+    #![allow(deprecated)]
 
     multiversx_sc::imports!();
     multiversx_sc::derive_imports!();
 
     use std::cmp::Ordering;
 
-    use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+    use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
     use multiversx_sc_scenario::{managed_biguint, rust_biguint, DebugApi};
 
     use crate::fuzz_data::fuzz_data_tests::*;

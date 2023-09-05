@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 pub mod constants;
 pub mod staking_farm_with_lp_external_contracts;
 pub mod staking_farm_with_lp_staking_contract_interactions;

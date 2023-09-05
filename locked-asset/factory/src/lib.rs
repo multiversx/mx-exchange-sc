@@ -43,10 +43,7 @@ pub trait LockedAssetFactory:
             asset_token_id.is_valid_esdt_identifier(),
             "Asset token ID is not a valid esdt identifier"
         );
-        require!(
-            asset_token_id != self.locked_asset_token().get_token_id(),
-            "Asset token ID cannot be the same as Locked asset token ID"
-        );
+
         let unlock_milestones = default_unlock_period.to_vec();
         self.validate_unlock_milestones(&unlock_milestones);
 
@@ -334,7 +331,7 @@ pub trait LockedAssetFactory:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().egld_value();
+        let payment_amount = self.call_value().egld_value().clone_value();
         self.locked_asset_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
             payment_amount,

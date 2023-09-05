@@ -34,7 +34,7 @@ pub trait ProxyLpModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().egld_value();
+        let payment_amount = self.call_value().egld_value().clone_value();
 
         self.lp_proxy_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,

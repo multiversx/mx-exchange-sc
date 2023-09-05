@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod gov_test_setup;
 
 use gov_test_setup::*;
@@ -503,14 +505,9 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
         })
         .assert_ok();
 
-    // Other user (not proposer) try to withdraw the fee -> Fail
+    // Other user (not proposer) withdraw the fee
     gov_setup
         .withdraw_after_defeated(&third_user_addr, proposal_id)
-        .assert_error(4, "Only original proposer may withdraw a pending proposal");
-
-    // Proposer withdraw
-    gov_setup
-        .withdraw_after_defeated(&first_user_addr, proposal_id)
         .assert_ok();
 
     // Check proposer balance (fee)

@@ -1,7 +1,9 @@
+#![allow(deprecated)]
+
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{BigInt, EsdtLocalRole, MultiValueEncoded};
-use multiversx_sc_scenario::{managed_address, managed_biguint, whitebox::*};
+use multiversx_sc_scenario::{managed_address, managed_biguint, whitebox_legacy::*};
 use multiversx_sc_scenario::{managed_token_id, rust_biguint};
 
 use energy_factory::energy::EnergyModule;
