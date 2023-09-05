@@ -6,6 +6,7 @@ use core::cmp;
 
 use boosted_yields_factors::BoostedYieldsConfig;
 use common_types::PaymentsVec;
+use multiversx_sc::api::ErrorApi;
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{
     base_impl::WeeklyRewardsSplittingTraitsModule, USER_MAX_CLAIM_WEEKS,

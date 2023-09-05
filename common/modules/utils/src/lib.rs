@@ -32,7 +32,7 @@ pub trait UtilsModule {
         let payments = self.call_value().all_esdt_transfers();
         require!(!payments.is_empty(), ERR_EMPTY_PAYMENTS);
 
-        payments
+        payments.clone_value()
     }
 
     fn pop_first_payment(

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod proxy_dex_test_setup;
 
 use common_structs::FarmTokenAttributes;
@@ -11,7 +13,7 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    whitebox::TxTokenTransfer, DebugApi,
+    whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 use num_traits::ToPrimitive;
 use proxy_dex::{

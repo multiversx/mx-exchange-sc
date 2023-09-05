@@ -1,11 +1,12 @@
 #[cfg(test)]
 pub mod fuzz_pair_test {
+    #![allow(deprecated)]
 
     multiversx_sc::imports!();
     multiversx_sc::derive_imports!();
 
     use multiversx_sc_scenario::{
-        managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer, DebugApi,
+        managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi,
     };
 
     use rand::prelude::*;

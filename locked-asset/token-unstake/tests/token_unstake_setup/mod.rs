@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(deprecated)]
 
 pub mod fees_collector_mock;
 
@@ -15,8 +16,8 @@ use multiversx_sc::{
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox::TxResult,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::TxResult,
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 use simple_lock::locked_token::LockedTokenModule;

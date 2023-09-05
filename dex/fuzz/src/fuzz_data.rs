@@ -1,5 +1,7 @@
 #[cfg(test)]
 pub mod fuzz_data_tests {
+    #![allow(deprecated)]
+
     multiversx_sc::imports!();
     multiversx_sc::derive_imports!();
 
@@ -14,7 +16,7 @@ pub mod fuzz_data_tests {
     use multiversx_sc::types::{Address, BigUint, EsdtLocalRole};
     use multiversx_sc_scenario::{
         managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-        whitebox::*, DebugApi,
+        whitebox_legacy::*, DebugApi,
     };
     use pair::*;
     use pausable::{PausableModule, State};
