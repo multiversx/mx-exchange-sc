@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod energy_factory_setup;
 
 use energy_factory::{
@@ -17,7 +19,8 @@ use multiversx_sc::{
 };
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
-    managed_address, managed_token_id, whitebox::BlockchainStateWrapper, whitebox::TxTokenTransfer,
+    managed_address, managed_token_id, whitebox_legacy::BlockchainStateWrapper,
+    whitebox_legacy::TxTokenTransfer,
 };
 use simple_lock::{
     basic_lock_unlock::BasicLockUnlock,

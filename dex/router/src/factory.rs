@@ -69,6 +69,13 @@ pub trait FactoryModule {
             },
             new_address.clone(),
         );
+        self.address_pair_map().insert(
+            new_address.clone(),
+            PairTokens {
+                first_token_id: first_token_id.clone(),
+                second_token_id: second_token_id.clone(),
+            },
+        );
         self.pair_temporary_owner().insert(
             new_address.clone(),
             (
@@ -167,9 +174,7 @@ pub trait FactoryModule {
 
     fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
         require!(
-            self.pair_map()
-                .values()
-                .any(|address| &address == pair_address),
+            self.address_pair_map().contains_key(pair_address),
             "Not a pair SC"
         );
     }
@@ -214,6 +219,9 @@ pub trait FactoryModule {
 
     #[storage_mapper("pair_map")]
     fn pair_map(&self) -> MapMapper<PairTokens<Self::Api>, ManagedAddress>;
+
+    #[storage_mapper("address_pair_map")]
+    fn address_pair_map(&self) -> MapMapper<ManagedAddress, PairTokens<Self::Api>>;
 
     #[view(getPairTemplateAddress)]
     #[storage_mapper("pair_template_address")]

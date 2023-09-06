@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 pub mod farm_staking_setup;
 use farm_staking::{
     claim_stake_farm_rewards::ClaimStakeFarmRewardsModule, stake_farm::StakeFarmModule,

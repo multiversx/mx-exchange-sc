@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod router_setup;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
@@ -19,7 +21,7 @@ use router_setup::*;
 
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    whitebox::BlockchainStateWrapper, whitebox::TxTokenTransfer, DebugApi,
+    whitebox_legacy::BlockchainStateWrapper, whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 use simple_lock::{
     locked_token::{LockedTokenAttributes, LockedTokenModule},
@@ -131,6 +133,7 @@ fn test_router_upgrade_pair() {
 #[test]
 fn test_multi_pair_swap() {
     let mut router_setup = RouterSetup::new(router::contract_obj, pair::contract_obj);
+    router_setup.migrate_pair_map();
 
     router_setup.add_liquidity();
 
@@ -250,6 +253,8 @@ fn user_enable_pair_swaps_through_router_test() {
                 },
                 managed_address!(pair_wrapper.address_ref()),
             );
+
+            sc.migrate_pair_map();
 
             sc.add_common_tokens_for_user_pairs(MultiValueEncoded::from(ManagedVec::from(vec![
                 managed_token_id!(USDC_TOKEN_ID),
@@ -435,6 +440,8 @@ fn user_enable_pair_swaps_fail_test() {
                 },
                 managed_address!(pair_wrapper.address_ref()),
             );
+
+            sc.migrate_pair_map();
 
             sc.add_common_tokens_for_user_pairs(MultiValueEncoded::from(ManagedVec::from(vec![
                 managed_token_id!(USDC_TOKEN_ID),

@@ -29,7 +29,7 @@ pub trait MetabondingStaking:
     #[payable("*")]
     #[endpoint(stakeLockedAsset)]
     fn stake_locked_asset(&self) {
-        let payments = self.call_value().all_esdt_transfers();
+        let payments = self.call_value().all_esdt_transfers().clone_value();
         self.require_all_locked_asset_payments(&payments);
 
         let caller = self.blockchain().get_caller();

@@ -1,9 +1,11 @@
+#![allow(deprecated)]
+
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 
 use farm::exit_penalty::ExitPenaltyModule;

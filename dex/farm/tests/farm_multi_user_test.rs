@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use common_structs::FarmTokenAttributes;
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 

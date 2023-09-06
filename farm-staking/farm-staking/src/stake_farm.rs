@@ -46,7 +46,7 @@ pub trait StakeFarmModule:
         let staked_token_simulated_payment =
             EsdtTokenPayment::new(staked_token_id, 0, staked_token_amount);
 
-        let farm_tokens = self.call_value().all_esdt_transfers();
+        let farm_tokens = self.call_value().all_esdt_transfers().clone_value();
         let mut payments = ManagedVec::from_single_item(staked_token_simulated_payment);
         payments.append_vec(farm_tokens);
 

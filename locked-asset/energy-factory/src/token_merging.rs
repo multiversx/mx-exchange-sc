@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use multiversx_sc::api::BlockchainApi;
+
 use common_structs::PaymentsVec;
 use math::weighted_average_round_up;
 use mergeable::Mergeable;

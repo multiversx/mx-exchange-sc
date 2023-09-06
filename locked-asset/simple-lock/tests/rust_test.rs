@@ -1,6 +1,8 @@
+#![allow(deprecated)]
+
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::types::EsdtLocalRole;
-use multiversx_sc_scenario::{managed_biguint, managed_token_id_wrapped, whitebox::*};
+use multiversx_sc_scenario::{managed_biguint, managed_token_id_wrapped, whitebox_legacy::*};
 use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
