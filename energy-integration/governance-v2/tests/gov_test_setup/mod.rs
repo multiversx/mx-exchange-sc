@@ -10,7 +10,7 @@ use governance_v2::{
 };
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
-    types::{Address, BigInt, ManagedVec, MultiValueEncoded},
+    types::{Address, BigInt, EsdtLocalRole, ManagedVec, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
@@ -174,6 +174,17 @@ where
                 sc.fee_token_id().set(managed_token_id!(WXMEX_TOKEN_ID));
             })
             .assert_ok();
+
+        let vote_nft_roles = [
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftBurn,
+            EsdtLocalRole::NftUpdateAttributes,
+        ];
+        b_mock.set_esdt_local_roles(
+            &gov_wrapper.address_ref(),
+            WXMEX_TOKEN_ID,
+            &vote_nft_roles[..],
+        );
 
         Self {
             b_mock,

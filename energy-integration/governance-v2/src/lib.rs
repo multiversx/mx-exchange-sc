@@ -273,19 +273,18 @@ pub trait GovernanceV2:
                 let refund_amount =
                     refund_percentage * proposal.fee_payment.amount.clone() / FULL_PERCENTAGE;
 
+                // Mark this proposal - fee withdrawn
                 self.refund_proposal_fee(&proposal, &refund_amount);
                 proposal.fee_withdrawn = true;
                 self.proposals().set(proposal_id, &proposal);
 
+                // Burn remaining fees
                 let remaining_fee = proposal.fee_payment.amount - refund_amount;
-
-                self.proposal_remaining_fees().update(|fees| {
-                    fees.push(EsdtTokenPayment::new(
-                        proposal.fee_payment.token_identifier,
-                        proposal.fee_payment.token_nonce,
-                        remaining_fee,
-                    ));
-                });
+                self.send().esdt_local_burn(
+                    &proposal.fee_payment.token_identifier,
+                    proposal.fee_payment.token_nonce,
+                    &remaining_fee,
+                );
             }
             _ => {
                 sc_panic!(WITHDRAW_NOT_ALLOWED);
@@ -318,8 +317,4 @@ pub trait GovernanceV2:
             refund_amount,
         );
     }
-
-    #[storage_mapper("proposalRemainingFees")]
-    fn proposal_remaining_fees(&self)
-        -> SingleValueMapper<ManagedVec<EsdtTokenPayment<Self::Api>>>;
 }
