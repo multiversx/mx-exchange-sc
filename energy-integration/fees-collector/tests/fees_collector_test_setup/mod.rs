@@ -108,7 +108,7 @@ where
             &rust_biguint!(USER_BALANCE * 2),
         );
 
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
 
         b_mock.set_nft_balance(
             &depositor_address,

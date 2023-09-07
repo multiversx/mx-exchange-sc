@@ -209,7 +209,7 @@ fn test_farm_through_simple_lock() {
     const LOCKED_LP_TOKEN_ID: &[u8] = b"LKLP-123456";
     const FARM_PROXY_TOKEN_ID: &[u8] = b"PROXY-123456";
 
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
     let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
     let b_mock = &mut farm_setup.blockchain_wrapper;

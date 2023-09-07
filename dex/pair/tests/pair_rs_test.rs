@@ -956,7 +956,7 @@ fn test_locked_asset() {
         )
         .assert_ok();
 
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     pair_setup.b_mock.check_nft_balance(
         &pair_setup.user_address,
         LOCKED_TOKEN_ID,
@@ -1077,7 +1077,7 @@ fn add_liquidity_through_simple_lock_proxy() {
     );
 
     pair_setup.b_mock.set_block_epoch(5);
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
 
     // lock some tokens first
     pair_setup

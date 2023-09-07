@@ -13,7 +13,7 @@ use weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo;
 
 #[test]
 fn farm_with_no_boost_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
@@ -111,7 +111,7 @@ fn farm_with_no_boost_test() {
 
 #[test]
 fn farm_with_boosted_yields_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
@@ -223,7 +223,7 @@ fn farm_with_boosted_yields_test() {
 
 #[test]
 fn farm_claim_boosted_yields_for_other_user_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
@@ -319,7 +319,7 @@ fn farm_claim_boosted_yields_for_other_user_test() {
 
 #[test]
 fn farm_change_boosted_yields_factors_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
@@ -382,7 +382,7 @@ fn farm_change_boosted_yields_factors_test() {
 
 #[test]
 fn farm_boosted_yields_claim_with_different_user_pos_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
@@ -484,7 +484,7 @@ fn farm_boosted_yields_claim_with_different_user_pos_test() {
 
 #[test]
 fn farm_known_proxy_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
@@ -583,7 +583,7 @@ fn farm_known_proxy_test() {
 
 #[test]
 fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
@@ -833,7 +833,7 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
 
 #[test]
 fn farm_enter_with_multiple_farm_token() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
@@ -948,7 +948,7 @@ fn farm_enter_with_multiple_farm_token() {
 
 #[test]
 fn farm_claim_with_minimum_tokens() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,

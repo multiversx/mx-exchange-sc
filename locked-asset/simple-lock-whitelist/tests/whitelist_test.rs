@@ -82,7 +82,7 @@ fn lock_whitelist_test() {
         )
         .assert_ok();
 
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     b_mock.check_nft_balance(
         &user_addr,
         LOCKED_TOKEN_ID,

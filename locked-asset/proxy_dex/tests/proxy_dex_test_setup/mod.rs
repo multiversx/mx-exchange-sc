@@ -87,7 +87,7 @@ where
         farm_locked_builder: FarmLockedObjBuilder,
         simple_lock_builder: SimpleLockObjBuilder,
     ) -> Self {
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
 
         let rust_zero = rust_biguint!(0);
         let mut b_mock = BlockchainStateWrapper::new();

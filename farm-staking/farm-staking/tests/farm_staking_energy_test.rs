@@ -20,7 +20,7 @@ fn farm_staking_with_energy_setup_test() {
 
 #[test]
 fn farm_staking_boosted_rewards_no_energy_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut fs_setup =
         FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
 
@@ -56,7 +56,7 @@ fn farm_staking_boosted_rewards_no_energy_test() {
 
 #[test]
 fn farm_staking_boosted_rewards_with_energy_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut fs_setup =
         FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
 
@@ -153,7 +153,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
 
 #[test]
 fn farm_staking_claim_boosted_rewards_for_user_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut fs_setup =
         FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
 

@@ -367,7 +367,7 @@ fn redeem_ok() {
     )
     .assert_ok();
 
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let first_user_expected_launched_tokens_balance =
         rust_biguint!(5_000_000_000u64 * 600_000_000 / 1_100_000_000);
     pd_setup.blockchain_wrapper.check_nft_balance(

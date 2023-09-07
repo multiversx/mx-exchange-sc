@@ -12,7 +12,7 @@ mod farm_with_locked_rewards_setup;
 
 #[test]
 fn farm_with_no_boost_no_proxy_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
@@ -112,7 +112,7 @@ fn farm_with_no_boost_no_proxy_test() {
 
 #[test]
 fn farm_with_boosted_yields_no_proxy_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,

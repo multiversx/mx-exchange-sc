@@ -184,7 +184,7 @@ where
             })
             .assert_ok();
 
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
 
         let expected_attributes = FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(expected_reward_per_share),
@@ -300,7 +300,7 @@ where
             )
             .assert_ok();
 
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
         let expected_attributes = FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(expected_reward_per_share),
             entering_epoch: 0,

@@ -775,7 +775,7 @@ fn test_aggregated_unlock_schedule_with_1_offset() {
 
 #[test]
 fn update_energy_after_old_token_unlock_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
     let mut setup = FactorySetup::new(factory::contract_obj, energy_factory::contract_obj);
 

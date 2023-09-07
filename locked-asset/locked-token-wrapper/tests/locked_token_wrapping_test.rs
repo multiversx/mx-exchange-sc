@@ -19,7 +19,7 @@ static WRAPPED_TOKEN_ID: &[u8] = b"WRAPPED-123456";
 
 #[test]
 fn token_wrap_unwrap_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
 
     let mut b_mock = BlockchainStateWrapper::new();
@@ -179,7 +179,7 @@ fn token_wrap_unwrap_test() {
 
 #[test]
 fn tokens_wrap_unwrap_test2() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
 
     let mut b_mock = BlockchainStateWrapper::new();

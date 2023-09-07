@@ -207,7 +207,7 @@ fn unstake_through_proxy_after_claim() {
 
 #[test]
 fn unstake_partial_position_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
         farm::contract_obj,
