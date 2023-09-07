@@ -136,6 +136,7 @@ pub trait GovernanceV2:
             withdraw_percentage_defeated,
             total_quorum: BigUint::zero(),
             proposal_start_block: current_block,
+            fee_withdrawn: false
         };
         let proposal_id = self.proposals().push(&proposal);
 
@@ -231,7 +232,7 @@ pub trait GovernanceV2:
                 let caller = self.blockchain().get_caller();
 
                 require!(caller == proposal.proposer, ONLY_PROPOSER_CANCEL);
-                self.refund_proposal_fee(proposal_id, &proposal.fee_payment.amount);
+                self.refund_proposal_fee(&proposal, &proposal.fee_payment.amount);
                 self.clear_proposal(proposal_id);
                 self.proposal_canceled_event(proposal_id);
             }
@@ -253,19 +254,31 @@ pub trait GovernanceV2:
                 sc_panic!(NO_PROPOSAL);
             }
             GovernanceProposalStatus::Succeeded | GovernanceProposalStatus::Defeated => {
-                let proposal = self.proposals().get(proposal_id);
+                let mut proposal = self.proposals().get(proposal_id);
 
                 require!(caller == proposal.proposer, ONLY_PROPOSER_WITHDRAW);
+                require!(!proposal.fee_withdrawn, FEE_ALREADY_WITHDRAWN);
 
-                self.refund_proposal_fee(proposal_id, &proposal.fee_payment.amount);
+                self.refund_proposal_fee(&proposal, &proposal.fee_payment.amount);
+                proposal.fee_withdrawn = true;
+                self.proposals().set(proposal_id, &proposal);
+
+                proposal.fee_withdrawn = true;
+                self.proposals().set(proposal_id, &proposal);
             }
             GovernanceProposalStatus::DefeatedWithVeto => {
-                let proposal = self.proposals().get(proposal_id);
+                let mut proposal = self.proposals().get(proposal_id);
+
+                require!(!proposal.fee_withdrawn, FEE_ALREADY_WITHDRAWN);
+
                 let refund_percentage = BigUint::from(proposal.withdraw_percentage_defeated);
                 let refund_amount =
                     refund_percentage * proposal.fee_payment.amount.clone() / FULL_PERCENTAGE;
 
-                self.refund_proposal_fee(proposal_id, &refund_amount);
+                self.refund_proposal_fee(&proposal, &refund_amount);
+                proposal.fee_withdrawn = true;
+                self.proposals().set(proposal_id, &proposal);
+
                 let remaining_fee = proposal.fee_payment.amount - refund_amount;
 
                 self.proposal_remaining_fees().update(|fees| {
@@ -295,10 +308,7 @@ pub trait GovernanceV2:
         total
     }
 
-    fn refund_proposal_fee(&self, proposal_id: ProposalId, refund_amount: &BigUint) {
-        let proposal: GovernanceProposal<<Self as ContractBase>::Api> =
-            self.proposals().get(proposal_id);
-
+    fn refund_proposal_fee(&self, proposal: &GovernanceProposal<Self::Api>, refund_amount: &BigUint) {
         self.send().direct_esdt(
             &proposal.proposer,
             &proposal.fee_payment.token_identifier,

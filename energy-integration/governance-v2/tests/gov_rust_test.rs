@@ -518,6 +518,11 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
         &(min_fee / 2u64),
         None,
     );
+
+        // Withdraw the fee twice - error
+        gov_setup
+        .withdraw_after_defeated(&third_user_addr, proposal_id)
+        .assert_error(4, "Fee already withdrawn!");
 }
 
 #[test]
