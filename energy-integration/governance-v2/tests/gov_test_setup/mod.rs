@@ -181,7 +181,7 @@ where
             EsdtLocalRole::NftUpdateAttributes,
         ];
         b_mock.set_esdt_local_roles(
-            &gov_wrapper.address_ref(),
+            gov_wrapper.address_ref(),
             WXMEX_TOKEN_ID,
             &vote_nft_roles[..],
         );
