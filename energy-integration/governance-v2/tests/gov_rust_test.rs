@@ -421,8 +421,8 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
 
     gov_setup
-    .change_withdraw_percentage(FULL_PERCENTAGE + 1u64)
-    .assert_error(4, "Not valid value for withdraw percentage if defeated!");
+        .change_withdraw_percentage(FULL_PERCENTAGE + 1u64)
+        .assert_error(4, "Not valid value for withdraw percentage if defeated!");
 
     gov_setup
         .b_mock
@@ -523,8 +523,8 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
         None,
     );
 
-        // Withdraw the fee twice - error
-        gov_setup
+    // Withdraw the fee twice - error
+    gov_setup
         .withdraw_after_defeated(&third_user_addr, proposal_id)
         .assert_error(4, "Fee already withdrawn!");
 }

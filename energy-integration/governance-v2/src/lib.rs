@@ -134,7 +134,7 @@ pub trait GovernanceV2:
             withdraw_percentage_defeated,
             total_quorum: BigUint::zero(),
             proposal_start_block: current_block,
-            fee_withdrawn: false
+            fee_withdrawn: false,
         };
         let proposal_id = self.proposals().push(&proposal);
 
@@ -306,7 +306,11 @@ pub trait GovernanceV2:
         total
     }
 
-    fn refund_proposal_fee(&self, proposal: &GovernanceProposal<Self::Api>, refund_amount: &BigUint) {
+    fn refund_proposal_fee(
+        &self,
+        proposal: &GovernanceProposal<Self::Api>,
+        refund_amount: &BigUint,
+    ) {
         self.send().direct_esdt(
             &proposal.proposer,
             &proposal.fee_payment.token_identifier,
