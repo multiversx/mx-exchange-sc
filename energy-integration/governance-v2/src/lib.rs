@@ -15,11 +15,9 @@ use proposal_storage::VoteType;
 use weekly_rewards_splitting::events::Week;
 use weekly_rewards_splitting::global_info::ProxyTrait as _;
 
+use crate::configurable::{FULL_PERCENTAGE, MAX_GAS_LIMIT_PER_BLOCK};
 use crate::errors::*;
 use crate::proposal_storage::ProposalVotes;
-
-const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
-const FULL_PERCENTAGE: u64 = 10_000;
 
 /// An empty contract. To be used as a template when starting a new contract from scratch.
 #[multiversx_sc::contract]

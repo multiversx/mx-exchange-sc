@@ -421,6 +421,10 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
 
     gov_setup
+    .change_withdraw_percentage(FULL_PERCENTAGE + 1u64)
+    .assert_error(4, "Not valid value for withdraw percentage if defeated!");
+
+    gov_setup
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
             assert!(
