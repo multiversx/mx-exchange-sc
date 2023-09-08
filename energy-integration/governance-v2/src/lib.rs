@@ -267,13 +267,12 @@ pub trait GovernanceV2:
 
                 // Burn remaining fees
                 let remaining_fee = proposal.fee_payment.amount.clone() - refund_amount.clone();
-                if remaining_fee != BigUint::zero() {
-                    self.send().esdt_local_burn(
-                        &proposal.fee_payment.token_identifier,
-                        proposal.fee_payment.token_nonce,
-                        &remaining_fee,
-                    );
-                }
+                self.send().esdt_non_zero_local_burn(
+                    &proposal.fee_payment.token_identifier,
+                    proposal.fee_payment.token_nonce,
+                    &remaining_fee,
+                );
+
                 // Mark this proposal that fee is withdrawn
                 self.refund_proposal_fee(&proposal, &refund_amount);
                 proposal.fee_withdrawn = true;
