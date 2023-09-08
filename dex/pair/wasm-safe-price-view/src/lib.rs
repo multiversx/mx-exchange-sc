@@ -10,24 +10,29 @@
 // Total number of exported functions:  11
 
 #![no_std]
-#![feature(alloc_error_handler, lang_items)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
+#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
 
+multiversx_sc_wasm_adapter::external_view_init! {}
+
 multiversx_sc_wasm_adapter::external_view_endpoints! {
     pair
     (
-        getLpTokensSafePriceByDefaultOffset
-        getLpTokensSafePriceByRoundOffset
-        getLpTokensSafePriceByTimestampOffset
-        getLpTokensSafePrice
-        getSafePriceByDefaultOffset
-        getSafePriceByRoundOffset
-        getSafePriceByTimestampOffset
-        getSafePrice
-        getPriceObservation
+        getLpTokensSafePriceByDefaultOffset => get_lp_tokens_safe_price_by_default_offset
+        getLpTokensSafePriceByRoundOffset => get_lp_tokens_safe_price_by_round_offset
+        getLpTokensSafePriceByTimestampOffset => get_lp_tokens_safe_price_by_timestamp_offset
+        getLpTokensSafePrice => get_lp_tokens_safe_price
+        getSafePriceByDefaultOffset => get_safe_price_by_default_offset
+        getSafePriceByRoundOffset => get_safe_price_by_round_offset
+        getSafePriceByTimestampOffset => get_safe_price_by_timestamp_offset
+        getSafePrice => get_safe_price
+        getPriceObservation => get_price_observation_view
     )
 }
 
-multiversx_sc_wasm_adapter::empty_callback! {}
+multiversx_sc_wasm_adapter::async_callback_empty! {}

@@ -10,7 +10,10 @@
 // Total number of exported functions:  29
 
 #![no_std]
-#![feature(alloc_error_handler, lang_items)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
+#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -18,33 +21,35 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     price_discovery
     (
-        deposit
-        withdraw
-        redeem
-        getCurrentPrice
-        getMinLaunchedTokenPrice
-        getPricePrecision
-        getLaunchedTokenId
-        getAcceptedTokenId
-        getLaunchedTokenBalance
-        getAcceptedTokenBalance
-        getStartBlock
-        getEndBlock
-        setLockingScAddress
-        setUnlockEpoch
-        getLockingScAddress
-        getUnlockEpoch
-        getCurrentPhase
-        getNoLimitPhaseDurationBlocks
-        getLinearPenaltyPhaseDurationBlocks
-        getFixedPenaltyPhaseDurationBlocks
-        getPenaltyMinPercentage
-        getPenaltyMaxPercentage
-        getFixedPenaltyPercentage
-        issueRedeemToken
-        createInitialRedeemTokens
-        getRedeemTokenId
-        getRedeemTokenTotalCirculatingSupply
-        callBack
+        init => init
+        deposit => deposit
+        withdraw => withdraw
+        redeem => redeem
+        getCurrentPrice => calculate_price
+        getMinLaunchedTokenPrice => min_launched_token_price
+        getPricePrecision => price_precision
+        getLaunchedTokenId => launched_token_id
+        getAcceptedTokenId => accepted_token_id
+        getLaunchedTokenBalance => launched_token_balance
+        getAcceptedTokenBalance => accepted_token_balance
+        getStartBlock => start_block
+        getEndBlock => end_block
+        setLockingScAddress => set_locking_sc_address
+        setUnlockEpoch => set_unlock_epoch
+        getLockingScAddress => locking_sc_address
+        getUnlockEpoch => unlock_epoch
+        getCurrentPhase => get_current_phase
+        getNoLimitPhaseDurationBlocks => no_limit_phase_duration_blocks
+        getLinearPenaltyPhaseDurationBlocks => linear_penalty_phase_duration_blocks
+        getFixedPenaltyPhaseDurationBlocks => fixed_penalty_phase_duration_blocks
+        getPenaltyMinPercentage => penalty_min_percentage
+        getPenaltyMaxPercentage => penalty_max_percentage
+        getFixedPenaltyPercentage => fixed_penalty_percentage
+        issueRedeemToken => issue_redeem_token
+        createInitialRedeemTokens => create_initial_redeem_tokens
+        getRedeemTokenId => redeem_token
+        getRedeemTokenTotalCirculatingSupply => redeem_token_total_circulating_supply
     )
 }
+
+multiversx_sc_wasm_adapter::async_callback! { price_discovery }
