@@ -11,3 +11,4 @@ pub const ONLY_PROPOSER_WITHDRAW: &[u8] = b"Only original proposer may withdraw 
 pub const FEE_ALREADY_WITHDRAWN: &[u8] = b"Fee already withdrawn!";
 pub const NO_PROPOSAL: &[u8] = b"Proposal does not exist";
 pub const WITHDRAW_NOT_ALLOWED: &[u8] = b"You may not withdraw funds from this proposal!";
+pub const PROPOSAL_NOT_ALLOWED_FOR_SC: &[u8] = b"Smart Contracts are not allowed to propose!";

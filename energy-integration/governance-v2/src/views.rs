@@ -9,7 +9,6 @@ use crate::{
 pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
     + crate::configurable::ConfigurablePropertiesModule
-    + crate::caller_check::CallerCheckModule
     + permissions_module::PermissionsModule
     + energy_query::EnergyQueryModule
 {

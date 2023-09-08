@@ -10,7 +10,10 @@
 // Total number of exported functions:  27
 
 #![no_std]
-#![feature(alloc_error_handler, lang_items)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
+#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -18,31 +21,33 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     proxy_dex
     (
-        registerProxyPair
-        setTransferRoleWrappedLpToken
-        registerProxyFarm
-        setTransferRoleWrappedFarmToken
-        getAssetTokenId
-        getLockedTokenIds
-        getOldLockedTokenId
-        getOldFactoryAddress
-        getWrappedLpTokenId
-        getWrappedFarmTokenId
-        addPairToIntermediate
-        removeIntermediatedPair
-        addFarmToIntermediate
-        removeIntermediatedFarm
-        getIntermediatedPairs
-        getIntermediatedFarms
-        addLiquidityProxy
-        removeLiquidityProxy
-        enterFarmProxy
-        exitFarmProxy
-        claimRewardsProxy
-        mergeWrappedFarmTokens
-        mergeWrappedLpTokens
-        setEnergyFactoryAddress
-        getEnergyFactoryAddress
-        callBack
+        init => init
+        registerProxyPair => register_proxy_pair
+        setTransferRoleWrappedLpToken => set_transfer_role_wrapped_lp_token
+        registerProxyFarm => register_proxy_farm
+        setTransferRoleWrappedFarmToken => set_transfer_role_wrapped_farm_token
+        getAssetTokenId => get_asset_token_id_view
+        getLockedTokenIds => get_locked_token_ids_view
+        getOldLockedTokenId => old_locked_token_id
+        getOldFactoryAddress => old_factory_address
+        getWrappedLpTokenId => wrapped_lp_token
+        getWrappedFarmTokenId => wrapped_farm_token
+        addPairToIntermediate => add_pair_to_intermediate
+        removeIntermediatedPair => remove_intermediated_pair
+        addFarmToIntermediate => add_farm_to_intermediate
+        removeIntermediatedFarm => remove_intermediated_farm
+        getIntermediatedPairs => intermediated_pairs
+        getIntermediatedFarms => intermediated_farms
+        addLiquidityProxy => add_liquidity_proxy
+        removeLiquidityProxy => remove_liquidity_proxy
+        enterFarmProxy => enter_farm_proxy_endpoint
+        exitFarmProxy => exit_farm_proxy
+        claimRewardsProxy => claim_rewards_proxy
+        mergeWrappedFarmTokens => merge_wrapped_farm_tokens_endpoint
+        mergeWrappedLpTokens => merge_wrapped_lp_tokens_endpoint
+        setEnergyFactoryAddress => set_energy_factory_address
+        getEnergyFactoryAddress => energy_factory_address
     )
 }
+
+multiversx_sc_wasm_adapter::async_callback! { proxy_dex }

@@ -2,7 +2,6 @@
 
 multiversx_sc::imports!();
 
-pub mod caller_check;
 pub mod configurable;
 mod errors;
 pub mod events;
@@ -25,7 +24,6 @@ pub trait GovernanceV2:
     configurable::ConfigurablePropertiesModule
     + events::EventsModule
     + proposal_storage::ProposalStorageModule
-    + caller_check::CallerCheckModule
     + views::ViewsModule
     + energy_query::EnergyQueryModule
     + permissions_module::PermissionsModule
@@ -76,14 +74,17 @@ pub trait GovernanceV2:
         description: ManagedBuffer,
         actions: MultiValueEncoded<GovernanceActionAsMultiArg<Self::Api>>,
     ) -> ProposalId {
-        self.require_caller_not_self();
+        let proposer = self.blockchain().get_caller();
+        require!(
+            !self.blockchain().is_smart_contract(&proposer),
+            PROPOSAL_NOT_ALLOWED_FOR_SC
+        );
 
         require!(
             actions.len() <= MAX_GOVERNANCE_PROPOSAL_ACTIONS,
             EXEEDED_MAX_ACTIONS
         );
 
-        let proposer = self.blockchain().get_caller();
         let user_energy = self.get_energy_amount_non_zero(&proposer);
         let min_energy_for_propose = self.min_energy_for_propose().get();
         require!(user_energy >= min_energy_for_propose, NOT_ENOUGH_ENERGY);
@@ -148,7 +149,6 @@ pub trait GovernanceV2:
     /// Vote on a proposal. The voting power depends on the user's energy.
     #[endpoint]
     fn vote(&self, proposal_id: ProposalId, vote: VoteType) {
-        self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
         require!(
             self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Active,
@@ -214,13 +214,9 @@ pub trait GovernanceV2:
         }
     }
 
-    /// Cancel a proposed action. This can be done:
-    /// - by the proposer, at any time
-    /// - by anyone, if the proposal was defeated
+    /// Cancel a proposed action. This can be done only during Pending status
     #[endpoint]
     fn cancel(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-
         match self.get_proposal_status(proposal_id) {
             GovernanceProposalStatus::None => {
                 sc_panic!(NO_PROPOSAL);
@@ -241,10 +237,9 @@ pub trait GovernanceV2:
     }
 
     /// When a proposal was defeated, the proposer can withdraw
-    /// a part of the FEE.
+    /// If DefeatedWithVeto only part of the fee  can be withdrawn
     #[endpoint(withdrawDeposit)]
     fn withdraw_deposit(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
         let caller = self.blockchain().get_caller();
 
         match self.get_proposal_status(proposal_id) {
@@ -260,9 +255,6 @@ pub trait GovernanceV2:
                 self.refund_proposal_fee(&proposal, &proposal.fee_payment.amount);
                 proposal.fee_withdrawn = true;
                 self.proposals().set(proposal_id, &proposal);
-
-                proposal.fee_withdrawn = true;
-                self.proposals().set(proposal_id, &proposal);
             }
             GovernanceProposalStatus::DefeatedWithVeto => {
                 let mut proposal = self.proposals().get(proposal_id);
@@ -273,18 +265,18 @@ pub trait GovernanceV2:
                 let refund_amount =
                     refund_percentage * proposal.fee_payment.amount.clone() / FULL_PERCENTAGE;
 
-                // Mark this proposal - fee withdrawn
-                self.refund_proposal_fee(&proposal, &refund_amount);
-                proposal.fee_withdrawn = true;
-                self.proposals().set(proposal_id, &proposal);
-
                 // Burn remaining fees
-                let remaining_fee = proposal.fee_payment.amount - refund_amount;
-                self.send().esdt_local_burn(
+                let remaining_fee = proposal.fee_payment.amount.clone() - refund_amount.clone();
+                self.send().esdt_non_zero_local_burn(
                     &proposal.fee_payment.token_identifier,
                     proposal.fee_payment.token_nonce,
                     &remaining_fee,
                 );
+
+                // Mark this proposal that fee is withdrawn
+                self.refund_proposal_fee(&proposal, &refund_amount);
+                proposal.fee_withdrawn = true;
+                self.proposals().set(proposal_id, &proposal);
             }
             _ => {
                 sc_panic!(WITHDRAW_NOT_ALLOWED);
@@ -310,11 +302,13 @@ pub trait GovernanceV2:
         proposal: &GovernanceProposal<Self::Api>,
         refund_amount: &BigUint,
     ) {
-        self.send().direct_esdt(
+        self.send().direct_non_zero_esdt_payment(
             &proposal.proposer,
-            &proposal.fee_payment.token_identifier,
-            proposal.fee_payment.token_nonce,
-            refund_amount,
+            &EsdtTokenPayment::new(
+                proposal.fee_payment.token_identifier.clone(),
+                proposal.fee_payment.token_nonce,
+                refund_amount.clone(),
+            ),
         );
     }
 }

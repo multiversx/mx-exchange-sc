@@ -10,7 +10,10 @@
 // Total number of exported functions:  12
 
 #![no_std]
-#![feature(alloc_error_handler, lang_items)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
+#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -18,17 +21,18 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     metabonding_staking
     (
-        stakeLockedAsset
-        unstake
-        unbond
-        getStakedAmountForUser
-        getUserEntry
-        getSnapshot
-        getLockedAssetTokenId
-        getLockedAssetFactoryAddress
-        getTotalLockedAssetSupply
-        getUserList
+        init => init
+        stakeLockedAsset => stake_locked_asset
+        unstake => unstake
+        unbond => unbond
+        getStakedAmountForUser => get_staked_amount_for_user
+        getUserEntry => get_user_entry
+        getSnapshot => get_snapshot
+        getLockedAssetTokenId => locked_asset_token_id
+        getLockedAssetFactoryAddress => locked_asset_factory_address
+        getTotalLockedAssetSupply => total_locked_asset_supply
+        getUserList => user_list
     )
 }
 
-multiversx_sc_wasm_adapter::empty_callback! {}
+multiversx_sc_wasm_adapter::async_callback_empty! {}

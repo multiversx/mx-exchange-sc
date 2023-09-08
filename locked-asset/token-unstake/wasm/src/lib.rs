@@ -10,7 +10,10 @@
 // Total number of exported functions:  12
 
 #![no_std]
-#![feature(alloc_error_handler, lang_items)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
+#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -18,17 +21,18 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     token_unstake
     (
-        getUnbondEpochs
-        getUnlockedTokensForUser
-        claimUnlockedTokens
-        cancelUnbond
-        depositUserTokens
-        depositFees
-        getFeesBurnPercentage
-        getFeesCollectorAddress
-        setEnergyFactoryAddress
-        getEnergyFactoryAddress
+        init => init
+        getUnbondEpochs => unbond_epochs
+        getUnlockedTokensForUser => unlocked_tokens_for_user
+        claimUnlockedTokens => claim_unlocked_tokens
+        cancelUnbond => cancel_unbond
+        depositUserTokens => deposit_user_tokens
+        depositFees => deposit_fees
+        getFeesBurnPercentage => fees_burn_percentage
+        getFeesCollectorAddress => fees_collector_address
+        setEnergyFactoryAddress => set_energy_factory_address
+        getEnergyFactoryAddress => energy_factory_address
     )
 }
 
-multiversx_sc_wasm_adapter::empty_callback! {}
+multiversx_sc_wasm_adapter::async_callback_empty! {}
