@@ -270,13 +270,8 @@ pub trait GovernanceV2:
                 let refund_amount =
                     refund_percentage * proposal.fee_payment.amount.clone() / FULL_PERCENTAGE;
 
-                // Mark this proposal - fee withdrawn
-                self.refund_proposal_fee(&proposal, &refund_amount);
-                proposal.fee_withdrawn = true;
-                self.proposals().set(proposal_id, &proposal);
-
                 // Burn remaining fees
-                let remaining_fee = proposal.fee_payment.amount - refund_amount;
+                let remaining_fee = proposal.fee_payment.amount.clone() - refund_amount.clone();
 
                 if remaining_fee != BigUint::zero() {
                     self.send().esdt_local_burn(
@@ -285,6 +280,10 @@ pub trait GovernanceV2:
                         &remaining_fee,
                     );
                 }
+                // Mark this proposal - fee withdrawn
+                self.refund_proposal_fee(&proposal, &refund_amount);
+                proposal.fee_withdrawn = true;
+                self.proposals().set(proposal_id, &proposal);
             }
             _ => {
                 sc_panic!(WITHDRAW_NOT_ALLOWED);
