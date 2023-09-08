@@ -260,9 +260,6 @@ pub trait GovernanceV2:
                 self.refund_proposal_fee(&proposal, &proposal.fee_payment.amount);
                 proposal.fee_withdrawn = true;
                 self.proposals().set(proposal_id, &proposal);
-
-                proposal.fee_withdrawn = true;
-                self.proposals().set(proposal_id, &proposal);
             }
             GovernanceProposalStatus::DefeatedWithVeto => {
                 let mut proposal = self.proposals().get(proposal_id);
@@ -280,11 +277,14 @@ pub trait GovernanceV2:
 
                 // Burn remaining fees
                 let remaining_fee = proposal.fee_payment.amount - refund_amount;
-                self.send().esdt_local_burn(
-                    &proposal.fee_payment.token_identifier,
-                    proposal.fee_payment.token_nonce,
-                    &remaining_fee,
-                );
+
+                if remaining_fee != BigUint::zero() {
+                    self.send().esdt_local_burn(
+                        &proposal.fee_payment.token_identifier,
+                        proposal.fee_payment.token_nonce,
+                        &remaining_fee,
+                    );
+                }
             }
             _ => {
                 sc_panic!(WITHDRAW_NOT_ALLOWED);
@@ -310,11 +310,13 @@ pub trait GovernanceV2:
         proposal: &GovernanceProposal<Self::Api>,
         refund_amount: &BigUint,
     ) {
-        self.send().direct_esdt(
+        self.send().direct_non_zero_esdt_payment(
             &proposal.proposer,
-            &proposal.fee_payment.token_identifier,
-            proposal.fee_payment.token_nonce,
-            refund_amount,
+            &EsdtTokenPayment::new(
+                proposal.fee_payment.token_identifier.clone(),
+                proposal.fee_payment.token_nonce,
+                refund_amount.clone(),
+            ),
         );
     }
 }
