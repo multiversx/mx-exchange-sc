@@ -10,7 +10,10 @@
 // Total number of exported functions:   9
 
 #![no_std]
-#![feature(alloc_error_handler, lang_items)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
+#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -18,14 +21,15 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     pause_all
     (
-        addPausableContracts
-        removePausableContracts
-        pauseSelected
-        pauseAll
-        resumeSelected
-        resumeAll
-        getPausableContracts
+        init => init
+        addPausableContracts => add_pausable_contracts
+        removePausableContracts => remove_pausable_contracts
+        pauseSelected => pause_selected
+        pauseAll => pause_all
+        resumeSelected => resume_selected
+        resumeAll => resume_all
+        getPausableContracts => pausable_contracts
     )
 }
 
-multiversx_sc_wasm_adapter::empty_callback! {}
+multiversx_sc_wasm_adapter::async_callback_empty! {}

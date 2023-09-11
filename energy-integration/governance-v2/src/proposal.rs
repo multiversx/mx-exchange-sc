@@ -63,4 +63,5 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub withdraw_percentage_defeated: u64,
     pub total_quorum: BigUint<M>,
     pub proposal_start_block: u64,
+    pub fee_withdrawn: bool,
 }

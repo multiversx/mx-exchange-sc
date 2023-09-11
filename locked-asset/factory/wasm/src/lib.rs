@@ -10,7 +10,10 @@
 // Total number of exported functions:  26
 
 #![no_std]
-#![feature(alloc_error_handler, lang_items)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
+#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -18,30 +21,32 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     factory
     (
-        whitelist
-        removeWhitelist
-        createAndForwardCustomPeriod
-        createAndForward
-        unlockAssets
-        lockAssets
-        setUnlockPeriod
-        registerLockedAssetToken
-        setInitEpoch
-        getInitEpoch
-        getWhitelistedContracts
-        getDefaultUnlockPeriod
-        getLockedAssetTokenId
-        getAssetTokenId
-        getUnlockScheduleForSFTNonce
-        getCacheSize
-        mergeTokens
-        getExtendedAttributesActivationNonce
-        setLockedTokenBurnRoleForAddress
-        setTransferRoleOldLockedToken
-        setNewFactoryAddress
-        pause
-        unpause
-        isPaused
-        callBack
+        init => init
+        whitelist => whitelist
+        removeWhitelist => remove_whitelist
+        createAndForwardCustomPeriod => create_and_forward_custom_period
+        createAndForward => create_and_forward
+        unlockAssets => unlock_assets
+        lockAssets => lock_assets
+        setUnlockPeriod => set_unlock_period
+        registerLockedAssetToken => register_locked_asset_token
+        setInitEpoch => set_init_epoch
+        getInitEpoch => init_epoch
+        getWhitelistedContracts => whitelisted_contracts
+        getDefaultUnlockPeriod => default_unlock_period
+        getLockedAssetTokenId => locked_asset_token
+        getAssetTokenId => asset_token_id
+        getUnlockScheduleForSFTNonce => get_unlock_schedule_for_sft_nonce
+        getCacheSize => get_cache_size
+        mergeTokens => merge_tokens
+        getExtendedAttributesActivationNonce => extended_attributes_activation_nonce
+        setLockedTokenBurnRoleForAddress => set_locked_token_burn_role_for_address
+        setTransferRoleOldLockedToken => set_transfer_role_old_locked_token
+        setNewFactoryAddress => set_new_factory_address
+        pause => pause_endpoint
+        unpause => unpause_endpoint
+        isPaused => paused_status
     )
 }
+
+multiversx_sc_wasm_adapter::async_callback! { factory }
