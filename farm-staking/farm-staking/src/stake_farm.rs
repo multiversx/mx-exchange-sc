@@ -71,21 +71,25 @@ pub trait StakeFarmModule:
         original_caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
     ) -> EnterFarmResultType<Self::Api> {
-        let first_additional_payment_index = 1;
-        let boosted_rewards = match payments.try_get(first_additional_payment_index) {
-            Some(p) => self.claim_only_boosted_payment(&original_caller, &p),
-            None => EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero()),
+        let caller = self.blockchain().get_caller();
+
+        let boosted_rewards = self.claim_only_boosted_payment(&original_caller);
+        let boosted_rewards_payment = if boosted_rewards > 0 {
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards)
+        } else {
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero())
         };
 
         let enter_result =
-            self.enter_farm_base::<FarmStakingWrapper<Self>>(original_caller, payments);
+            self.enter_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payments);
 
-        let caller = self.blockchain().get_caller();
         let new_farm_token = enter_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &new_farm_token);
-        self.send_payment_non_zero(&caller, &boosted_rewards);
+        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
         self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
+
+        self.update_energy_and_progress(&original_caller);
 
         self.emit_enter_farm_event(
             &caller,
@@ -95,6 +99,6 @@ pub trait StakeFarmModule:
             enter_result.storage_cache,
         );
 
-        (new_farm_token, boosted_rewards).into()
+        (new_farm_token, boosted_rewards_payment).into()
     }
 }

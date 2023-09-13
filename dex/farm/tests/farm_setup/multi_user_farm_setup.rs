@@ -3,7 +3,6 @@
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
-use farm::claim_boost_only::ClaimBoostOnlyModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
@@ -336,7 +335,9 @@ where
 
         self.b_mock
             .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
-                let out_farm_token = sc.merge_farm_tokens_endpoint(OptionalValue::None);
+                let (out_farm_token, _) = sc
+                    .merge_farm_tokens_endpoint(OptionalValue::None)
+                    .into_tuple();
                 assert_eq!(
                     out_farm_token.token_identifier,
                     managed_token_id!(FARM_TOKEN_ID)
@@ -567,8 +568,8 @@ where
         self.b_mock
             .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.user_total_farm_position(&managed_address!(user)).update(
-                    |user_total_farm_position_struct| {
-                        user_total_farm_position_struct.allow_external_claim_boosted_rewards = true;
+                    |user_total_farm_position| {
+                        user_total_farm_position.allow_external_claim_boosted_rewards = true;
                     },
                 );
             })

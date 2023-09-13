@@ -86,8 +86,10 @@ pub trait UnstakeFarmModule:
             "Exit amount is bigger than the payment amount"
         );
 
+        let boosted_rewards = self.claim_only_boosted_payment(&original_caller);
         let boosted_rewards_full_position =
-            self.claim_only_boosted_payment(&original_caller, &payment);
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+
         let remaining_farm_payment = EsdtTokenPayment::new(
             payment.token_identifier.clone(),
             payment.token_nonce,
@@ -113,7 +115,7 @@ pub trait UnstakeFarmModule:
         self.send_payment_non_zero(&caller, &exit_result.reward_payment);
         self.send_payment_non_zero(&caller, &remaining_farm_payment);
 
-        self.clear_user_energy_if_needed(&original_caller, &remaining_farm_payment.amount);
+        self.clear_user_energy_if_needed(&original_caller);
         self.set_farm_supply_for_current_week(&exit_result.storage_cache.farm_token_supply);
 
         self.emit_exit_farm_event(

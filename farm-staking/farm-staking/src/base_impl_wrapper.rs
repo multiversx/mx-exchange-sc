@@ -47,18 +47,16 @@ where
     pub fn calculate_boosted_rewards(
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
-        token_attributes: &<Self as FarmContract>::AttributesType,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
-        if &token_attributes.original_owner != caller {
-            sc.update_energy_and_progress(caller);
-        }
-        let user_total_farm_position_struct = sc.get_user_total_farm_position_struct(caller);
-        let user_total_farm_position = user_total_farm_position_struct.total_farm_position;
-        if user_total_farm_position == BigUint::zero() {
-            return BigUint::zero();
+        let user_total_farm_position = sc.get_user_total_farm_position(caller);
+        let user_farm_position = user_total_farm_position.total_farm_position;
+        let mut boosted_rewards = BigUint::zero();
+
+        if user_farm_position > 0 {
+            boosted_rewards = sc.claim_boosted_yields_rewards(caller, user_farm_position);
         }
 
-        sc.claim_boosted_yields_rewards(caller, user_total_farm_position)
+        boosted_rewards
     }
 }
 
@@ -137,7 +135,7 @@ where
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let base_farm_reward =
             Self::calculate_base_farm_rewards(farm_token_amount, token_attributes, storage_cache);
-        let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller, token_attributes);
+        let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller);
 
         base_farm_reward + boosted_yield_rewards
     }
@@ -207,8 +205,10 @@ where
                 farm_position_increase += &farm_position.amount;
             }
         }
-        let user_total_farm_position_struct = sc.get_user_total_farm_position_struct(user);
-        if user_total_farm_position_struct.total_farm_position == BigUint::zero() {
+        let user_total_farm_position = sc.get_user_total_farm_position(user);
+        if user_total_farm_position.total_farm_position == BigUint::zero()
+            && total_farm_position > 0
+        {
             Self::increase_user_farm_position(sc, user, &total_farm_position);
         } else if farm_position_increase > 0 {
             Self::increase_user_farm_position(sc, user, &farm_position_increase);
@@ -220,10 +220,10 @@ where
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         new_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) {
+        let mut user_total_farm_position = sc.get_user_total_farm_position(user);
+        user_total_farm_position.total_farm_position += new_farm_position_amount;
         sc.user_total_farm_position(user)
-            .update(|user_farm_position_struct| {
-                user_farm_position_struct.total_farm_position += new_farm_position_amount
-            });
+            .set(user_total_farm_position);
     }
 
     fn decrease_user_farm_position(
@@ -235,8 +235,8 @@ where
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
         sc.user_total_farm_position(&token_attributes.original_owner)
-            .update(|user_farm_position_struct| {
-                user_farm_position_struct.total_farm_position -= farm_position.amount.clone()
+            .update(|user_total_farm_position| {
+                user_total_farm_position.total_farm_position -= farm_position.amount.clone()
             });
     }
 }

@@ -210,8 +210,10 @@ pub trait FarmContract {
             }
         }
 
-        let user_total_farm_position_struct = sc.get_user_total_farm_position_struct(user);
-        if user_total_farm_position_struct.total_farm_position == BigUint::zero() {
+        let user_total_farm_position = sc.get_user_total_farm_position(user);
+        if user_total_farm_position.total_farm_position == BigUint::zero()
+            && total_farm_position > 0
+        {
             Self::increase_user_farm_position(sc, user, &total_farm_position);
         } else if farm_position_increase > 0 {
             Self::increase_user_farm_position(sc, user, &farm_position_increase);
@@ -224,10 +226,10 @@ pub trait FarmContract {
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         increase_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) {
+        let mut user_total_farm_position = sc.get_user_total_farm_position(user);
+        user_total_farm_position.total_farm_position += increase_farm_position_amount;
         sc.user_total_farm_position(user)
-            .update(|user_farm_position_struct| {
-                user_farm_position_struct.total_farm_position += increase_farm_position_amount
-            });
+            .set(user_total_farm_position);
     }
 
     fn decrease_user_farm_position(
@@ -238,17 +240,24 @@ pub trait FarmContract {
         let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
-        sc.user_total_farm_position(&token_attributes.original_owner)
-            .update(|user_farm_position_struct| {
-                let mut user_total_farm_position =
-                    user_farm_position_struct.total_farm_position.clone();
-                if user_total_farm_position > farm_position.amount {
-                    user_total_farm_position -= &farm_position.amount;
-                } else {
-                    user_total_farm_position = BigUint::zero();
-                }
-                user_farm_position_struct.total_farm_position = user_total_farm_position;
-            });
+        let mut user_total_farm_position =
+            sc.get_user_total_farm_position(&token_attributes.original_owner);
+
+        if user_total_farm_position.total_farm_position > farm_position.amount {
+            user_total_farm_position.total_farm_position -= &farm_position.amount;
+        } else {
+            user_total_farm_position.total_farm_position = BigUint::zero();
+        }
+
+        if user_total_farm_position.total_farm_position == 0
+            && user_total_farm_position.allow_external_claim_boosted_rewards == false
+        {
+            sc.user_total_farm_position(&token_attributes.original_owner)
+                .clear();
+        } else {
+            sc.user_total_farm_position(&token_attributes.original_owner)
+                .set(user_total_farm_position);
+        }
     }
 }
 

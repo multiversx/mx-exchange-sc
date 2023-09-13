@@ -421,8 +421,8 @@ where
         self.b_mock
             .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.user_total_farm_position(&managed_address!(user)).update(
-                    |user_total_farm_position_struct| {
-                        user_total_farm_position_struct.allow_external_claim_boosted_rewards = true;
+                    |user_total_farm_position| {
+                        user_total_farm_position.allow_external_claim_boosted_rewards = true;
                     },
                 );
             })

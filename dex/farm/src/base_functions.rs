@@ -195,6 +195,15 @@ pub trait BaseFunctionsModule:
         token_mapper.nft_create(new_token_amount, &output_attributes)
     }
 
+    fn claim_only_boosted_payment(&self, caller: &ManagedAddress) -> BigUint {
+        let reward = Wrapper::<Self>::calculate_boosted_rewards(self, caller);
+        if reward > 0 {
+            self.reward_reserve().update(|reserve| *reserve -= &reward);
+        }
+
+        reward
+    }
+
     fn end_produce_rewards<FC: FarmContract<FarmSc = Self>>(&self) {
         let mut storage = StorageCache::new(self);
         FC::generate_aggregated_rewards(self, &mut storage);
@@ -238,22 +247,16 @@ where
     pub fn calculate_boosted_rewards(
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
-        token_attributes: &<Self as FarmContract>::AttributesType,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
-        let original_owner = &token_attributes.original_owner;
+        let user_total_farm_position = sc.get_user_total_farm_position(caller);
+        let user_farm_position = user_total_farm_position.total_farm_position;
+        let mut boosted_rewards = BigUint::zero();
 
-        if original_owner != caller {
-            sc.update_energy_and_progress(caller);
+        if user_farm_position > 0 {
+            boosted_rewards = sc.claim_boosted_yields_rewards(caller, user_farm_position);
         }
 
-        let user_total_farm_position_struct =
-            sc.get_user_total_farm_position_struct(original_owner);
-        let user_total_farm_position = user_total_farm_position_struct.total_farm_position;
-        if user_total_farm_position == BigUint::zero() {
-            return BigUint::zero();
-        }
-
-        sc.claim_boosted_yields_rewards(caller, user_total_farm_position)
+        boosted_rewards
     }
 }
 
@@ -297,7 +300,7 @@ where
             token_attributes,
             storage_cache,
         );
-        let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller, token_attributes);
+        let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller);
 
         base_farm_reward + boosted_yield_rewards
     }

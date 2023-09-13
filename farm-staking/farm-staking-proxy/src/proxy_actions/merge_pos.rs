@@ -1,4 +1,4 @@
-farm-staking/farm-staking-proxy/tests/composed_pos_test.rsuse common_structs::PaymentsVec;
+use common_structs::PaymentsVec;
 
 use crate::{dual_yield_token::DualYieldTokenAttributes, result_types::MergeResult};
 

@@ -129,17 +129,14 @@ pub trait FarmBoostedYieldsModule:
         self.farm_supply_for_week(current_week).set(farm_supply);
     }
 
-    fn clear_user_energy_if_needed(
-        &self,
-        original_caller: &ManagedAddress,
-        user_remaining_farm_tokens: &BigUint,
-    ) {
+    fn clear_user_energy_if_needed(&self, original_caller: &ManagedAddress) {
         let opt_config = self.try_get_boosted_yields_config();
+        let user_total_farm_position = self.get_user_total_farm_position(original_caller);
         if let Some(config) = opt_config {
             let boosted_yields_factors = config.get_latest_factors();
             self.clear_user_energy(
                 original_caller,
-                user_remaining_farm_tokens,
+                &user_total_farm_position.total_farm_position,
                 &boosted_yields_factors.min_farm_amount,
             );
         }
