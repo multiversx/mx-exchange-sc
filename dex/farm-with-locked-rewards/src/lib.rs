@@ -11,7 +11,7 @@ use core::marker::PhantomData;
 use mergeable::Mergeable;
 
 use farm::{
-    base_functions::{BaseFunctionsModule, ClaimRewardsResultType, DoubleMultiPayment, Wrapper},
+    base_functions::{BaseFunctionsModule, ClaimRewardsResultType, Wrapper},
     exit_penalty::{
         DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     },
@@ -34,6 +34,7 @@ pub trait Farm:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm::base_functions::BaseFunctionsModule
     + farm::exit_penalty::ExitPenaltyModule
+    + farm::progress_update::ProgressUpdateModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
@@ -199,23 +200,15 @@ pub trait Farm:
     fn merge_farm_tokens_endpoint(
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> DoubleMultiPayment<Self::Api> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-
-        let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
+        self.check_claim_progress_for_merge(&orig_caller);
 
         let merged_farm_token = self.merge_farm_tokens::<NoMintWrapper<Self>>();
         self.send_payment_non_zero(&caller, &merged_farm_token);
 
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            self.reward_token_id().get(),
-            boosted_rewards,
-            caller,
-            orig_caller.clone(),
-        );
-
-        (merged_farm_token, locked_rewards_payment).into()
+        merged_farm_token
     }
 
     #[endpoint(claimBoostedRewards)]
