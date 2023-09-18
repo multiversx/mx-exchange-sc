@@ -229,15 +229,13 @@ pub trait Farm:
             );
         }
 
-        let boosted_rewards = self.claim_only_boosted_payment(&user);
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
+        let boosted_rewards = self.claim_only_boosted_payment(user);
+        self.send_to_lock_contract_non_zero(
             self.reward_token_id().get(),
             boosted_rewards,
             caller.clone(),
             user.clone(),
-        );
-
-        locked_rewards_payment
+        )
     }
 
     #[endpoint(startProduceRewards)]

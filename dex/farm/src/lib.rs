@@ -228,7 +228,7 @@ pub trait Farm:
             );
         }
 
-        let boosted_rewards = self.claim_only_boosted_payment(&user);
+        let boosted_rewards = self.claim_only_boosted_payment(user);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
