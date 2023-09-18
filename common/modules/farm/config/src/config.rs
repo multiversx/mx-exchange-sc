@@ -53,24 +53,22 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
         }
     }
 
+    fn is_old_farm_position(&self, token_nonce: Nonce) -> bool {
+        let farm_position_migration_block_nonce = self.farm_position_migration_block_nonce().get();
+        token_nonce < farm_position_migration_block_nonce
+    }
+
     #[endpoint(allowExternalClaimBoostedRewards)]
     fn allow_external_claim_boosted_rewards(&self, allow_external_claim: bool) {
         let caller = self.blockchain().get_caller();
         let user_total_farm_position_mapper = self.user_total_farm_position(&caller);
-        if user_total_farm_position_mapper.is_empty() {
-            require!(
-                allow_external_claim,
-                "Can only set to true if there is no farm position"
-            );
-            let mut new_user_farm_position: UserTotalFarmPosition<Self::Api> =
-                UserTotalFarmPosition::default();
-            new_user_farm_position.allow_external_claim_boosted_rewards = allow_external_claim;
-        } else {
-            user_total_farm_position_mapper.update(|user_total_farm_position| {
-                user_total_farm_position.allow_external_claim_boosted_rewards =
-                    allow_external_claim;
-            });
-        }
+        require!(
+            !user_total_farm_position_mapper.is_empty(),
+            "User must have a farm position"
+        );
+        user_total_farm_position_mapper.update(|user_total_farm_position| {
+            user_total_farm_position.allow_external_claim_boosted_rewards = allow_external_claim;
+        });
     }
 
     #[view(getFarmingTokenId)]
@@ -102,4 +100,8 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
         &self,
         user: &ManagedAddress,
     ) -> SingleValueMapper<UserTotalFarmPosition<Self::Api>>;
+
+    #[view(getFarmPositionMigrationBlockNonce)]
+    #[storage_mapper("farm_position_migration_block_nonce")]
+    fn farm_position_migration_block_nonce(&self) -> SingleValueMapper<Nonce>;
 }

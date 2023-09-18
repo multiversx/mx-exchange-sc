@@ -1,5 +1,4 @@
 use fixed_supply_token::FixedSupplyToken;
-use mergeable::Mergeable;
 
 use crate::{dual_yield_token::DualYieldTokenAttributes, result_types::UnstakeResult};
 
@@ -32,24 +31,21 @@ pub trait ProxyUnstakeModule:
 
         let full_attributes: DualYieldTokenAttributes<Self::Api> =
             dual_yield_token_mapper.get_token_attributes(payment.token_nonce);
-        let total_for_nonce = full_attributes.get_total_supply();
-        require!(
-            payment.amount == total_for_nonce,
-            "Must exit with full position as payment"
-        );
+
         require!(
             exit_amount > 0 && exit_amount <= payment.amount,
             "Invalid exit amount"
         );
 
-        let full_staking_token_amount = full_attributes.get_total_staking_token_amount();
+        let full_attributes_adjusted: DualYieldTokenAttributes<Self::Api> =
+            full_attributes.clone().into_part(&payment.amount);
         let exit_attributes: DualYieldTokenAttributes<Self::Api> =
             full_attributes.clone().into_part(&exit_amount);
 
         let lp_farm_exit_result = self.lp_farm_exit(
             orig_caller.clone(),
-            full_attributes.lp_farm_token_nonce,
-            full_attributes.lp_farm_token_amount,
+            full_attributes_adjusted.lp_farm_token_nonce,
+            full_attributes_adjusted.lp_farm_token_amount,
             exit_attributes.lp_farm_token_amount,
         );
         let remove_liq_result = self.pair_remove_liquidity(
@@ -58,40 +54,23 @@ pub trait ProxyUnstakeModule:
             pair_second_token_min_amount,
         );
 
-        let remaining_total_staking_farm_tokens =
-            &full_staking_token_amount - &exit_attributes.virtual_pos_token_amount;
         let staking_farm_exit_result = self.staking_farm_unstake(
             orig_caller.clone(),
             remove_liq_result.staking_token_payment,
-            full_attributes.virtual_pos_token_nonce,
-            full_staking_token_amount,
-            exit_attributes.virtual_pos_token_amount.clone(),
+            full_attributes_adjusted.staking_farm_token_nonce,
+            full_attributes_adjusted.staking_farm_token_amount.clone(),
+            exit_attributes.staking_farm_token_amount.clone(),
         );
 
-        let opt_unstake_user_pos_result = if exit_attributes.real_pos_token_amount > 0 {
-            let res = self.staking_farm_unstake_user_position(
-                orig_caller,
-                full_attributes.virtual_pos_token_nonce,
-                remaining_total_staking_farm_tokens,
-                exit_attributes.real_pos_token_amount.clone(),
-            );
-            Some(res)
-        } else {
-            None
-        };
-
-        let opt_new_dual_yield_tokens = if exit_amount != total_for_nonce {
+        let opt_new_dual_yield_tokens = if exit_amount < payment.amount {
             let remaining_lp_farm_tokens = lp_farm_exit_result.remaining_farm_tokens.amount;
-            let remaining_virtual_farm_tokens =
-                full_attributes.virtual_pos_token_amount - exit_attributes.virtual_pos_token_amount;
-            let remaining_real_farm_tokens =
-                full_attributes.real_pos_token_amount - exit_attributes.real_pos_token_amount;
+            let remaining_staking_farm_tokens = full_attributes_adjusted.staking_farm_token_amount
+                - exit_attributes.staking_farm_token_amount;
             let new_attributes = DualYieldTokenAttributes {
-                lp_farm_token_nonce: full_attributes.lp_farm_token_nonce,
+                lp_farm_token_nonce: full_attributes_adjusted.lp_farm_token_nonce,
                 lp_farm_token_amount: remaining_lp_farm_tokens,
-                virtual_pos_token_nonce: full_attributes.virtual_pos_token_nonce,
-                virtual_pos_token_amount: remaining_virtual_farm_tokens,
-                real_pos_token_amount: remaining_real_farm_tokens,
+                staking_farm_token_nonce: full_attributes_adjusted.staking_farm_token_nonce,
+                staking_farm_token_amount: remaining_staking_farm_tokens,
             };
             let new_dual_yield_tokens =
                 self.create_dual_yield_tokens(&dual_yield_token_mapper, &new_attributes);
@@ -101,20 +80,12 @@ pub trait ProxyUnstakeModule:
             None
         };
 
-        let mut total_staking_rewards = staking_farm_exit_result.staking_rewards;
-        let opt_unbond_token = opt_unstake_user_pos_result.map(|res| {
-            total_staking_rewards.merge_with(res.staking_rewards);
-
-            res.unbond_staking_farm_token
-        });
-
         let caller = self.blockchain().get_caller();
         let unstake_result = UnstakeResult {
             other_token_payment: remove_liq_result.other_token_payment,
             lp_farm_rewards: lp_farm_exit_result.lp_farm_rewards,
-            staking_rewards: total_staking_rewards,
+            staking_rewards: staking_farm_exit_result.staking_rewards,
             unbond_staking_farm_token: staking_farm_exit_result.unbond_staking_farm_token,
-            opt_unbond_staking_farm_token_for_user_pos: opt_unbond_token,
             opt_new_dual_yield_tokens,
         };
 

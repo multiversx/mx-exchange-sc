@@ -250,13 +250,8 @@ where
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
         let user_total_farm_position = sc.get_user_total_farm_position(caller);
         let user_farm_position = user_total_farm_position.total_farm_position;
-        let mut boosted_rewards = BigUint::zero();
 
-        if user_farm_position > 0 {
-            boosted_rewards = sc.claim_boosted_yields_rewards(caller, user_farm_position);
-        }
-
-        boosted_rewards
+        sc.claim_boosted_yields_rewards(caller, user_farm_position)
     }
 }
 

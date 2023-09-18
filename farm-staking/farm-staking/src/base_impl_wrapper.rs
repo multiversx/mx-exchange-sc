@@ -191,27 +191,19 @@ where
         farm_positions: &PaymentsVec<<Self::FarmSc as ContractBase>::Api>,
     ) {
         let farm_token_mapper = sc.farm_token();
-        let mut total_farm_position = BigUint::zero();
-        let mut farm_position_increase = BigUint::zero();
         for farm_position in farm_positions {
+            let is_old_farm_position = sc.is_old_farm_position(farm_position.token_nonce);
             farm_token_mapper.require_same_token(&farm_position.token_identifier);
 
-            total_farm_position += &farm_position.amount;
             let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
                 farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
-            if &token_attributes.original_owner != user {
+            if is_old_farm_position {
+                Self::increase_user_farm_position(sc, user, &farm_position.amount);
+            } else if &token_attributes.original_owner != user {
                 Self::decrease_user_farm_position(sc, &farm_position);
-                farm_position_increase += &farm_position.amount;
+                Self::increase_user_farm_position(sc, user, &farm_position.amount);
             }
-        }
-        let user_total_farm_position = sc.get_user_total_farm_position(user);
-        if user_total_farm_position.total_farm_position == BigUint::zero()
-            && total_farm_position > 0
-        {
-            Self::increase_user_farm_position(sc, user, &total_farm_position);
-        } else if farm_position_increase > 0 {
-            Self::increase_user_farm_position(sc, user, &farm_position_increase);
         }
     }
 
@@ -236,7 +228,11 @@ where
 
         sc.user_total_farm_position(&token_attributes.original_owner)
             .update(|user_total_farm_position| {
-                user_total_farm_position.total_farm_position -= farm_position.amount.clone()
+                if user_total_farm_position.total_farm_position > farm_position.amount {
+                    user_total_farm_position.total_farm_position -= &farm_position.amount;
+                } else {
+                    user_total_farm_position.total_farm_position = BigUint::zero();
+                }
             });
     }
 }

@@ -78,6 +78,11 @@ pub trait Farm:
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
+
+        // Farm position migration code
+        let block_nonce = self.blockchain().get_block_nonce();
+        self.farm_position_migration_block_nonce()
+            .set_if_empty(block_nonce);
     }
 
     #[payable("*")]

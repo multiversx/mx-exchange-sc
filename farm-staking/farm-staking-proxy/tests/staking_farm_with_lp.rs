@@ -226,26 +226,6 @@ fn unstake_partial_position_test() {
 
     let dual_yield_token_amount = 1_001_000_000;
 
-    // unstake with half position - wrong payment amount
-    setup
-        .b_mock
-        .execute_esdt_transfer(
-            &setup.user_addr,
-            &setup.proxy_wrapper,
-            DUAL_YIELD_TOKEN_ID,
-            dual_yield_token_nonce_after_stake,
-            &rust_biguint!(dual_yield_token_amount / 2),
-            |sc| {
-                let _ = sc.unstake_farm_tokens(
-                    managed_biguint!(1),
-                    managed_biguint!(1),
-                    managed_biguint!(dual_yield_token_amount / 4),
-                    OptionalValue::None,
-                );
-            },
-        )
-        .assert_user_error("Must exit with full position as payment");
-
     // unstake with half position - ok
     setup
         .b_mock
@@ -268,7 +248,7 @@ fn unstake_partial_position_test() {
                     wegld_payment.token_identifier,
                     managed_token_id!(WEGLD_TOKEN_ID)
                 );
-                assert_eq!(wegld_payment.amount, 1_001_000_000 / 2);
+                assert_eq!(wegld_payment.amount, dual_yield_token_amount / 2);
 
                 let lp_farm_rewards = results.lp_farm_rewards;
                 assert_eq!(
@@ -289,14 +269,14 @@ fn unstake_partial_position_test() {
                     unbond_tokens.token_identifier,
                     managed_token_id!(STAKING_FARM_TOKEN_ID)
                 );
-                assert_eq!(unbond_tokens.amount, 1_001_000_000 / 2);
+                assert_eq!(unbond_tokens.amount, dual_yield_token_amount / 2);
 
                 let new_dual_yield_tokens = results.opt_new_dual_yield_tokens.unwrap();
                 assert_eq!(
                     new_dual_yield_tokens.token_identifier,
                     managed_token_id!(DUAL_YIELD_TOKEN_ID)
                 );
-                assert_eq!(new_dual_yield_tokens.amount, 1_001_000_000 / 2);
+                assert_eq!(new_dual_yield_tokens.amount, dual_yield_token_amount / 2);
             },
         )
         .assert_ok();
@@ -304,9 +284,8 @@ fn unstake_partial_position_test() {
     let expected_new_dual_yield_attributes = DualYieldTokenAttributes::<DebugApi> {
         lp_farm_token_nonce: 1,
         lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS / 2),
-        virtual_pos_token_nonce: 1,
-        virtual_pos_token_amount: managed_biguint!(1_001_000_000 / 2),
-        real_pos_token_amount: managed_biguint!(0),
+        staking_farm_token_nonce: 1,
+        staking_farm_token_amount: managed_biguint!(1_001_000_000 / 2),
     };
     let new_dual_yield_token_nonce = dual_yield_token_nonce_after_stake + 1;
     let new_dual_yield_token_amount = dual_yield_token_amount / 2;
@@ -464,9 +443,8 @@ fn test_stake_farm_through_proxy_with_merging() {
             Some(&DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce: 1,
                 lp_farm_token_amount: managed_biguint!(400_000_000),
-                virtual_pos_token_nonce: 1,
-                virtual_pos_token_amount: managed_biguint!(400_000_000),
-                real_pos_token_amount: managed_biguint!(0),
+                staking_farm_token_nonce: 1,
+                staking_farm_token_amount: managed_biguint!(400_000_000),
             }),
         )
     });
@@ -495,9 +473,8 @@ fn test_stake_farm_through_proxy_with_merging() {
             Some(&DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce: 2,
                 lp_farm_token_amount: managed_biguint!(1_000_000_000),
-                virtual_pos_token_nonce: 2,
-                virtual_pos_token_amount: managed_biguint!(1_000_000_000),
-                real_pos_token_amount: managed_biguint!(0),
+                staking_farm_token_nonce: 2,
+                staking_farm_token_amount: managed_biguint!(1_000_000_000),
             }),
         )
     });

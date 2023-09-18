@@ -164,30 +164,6 @@ pub trait ExternalContractsInteractionsModule:
         }
     }
 
-    fn staking_farm_unstake_user_position(
-        &self,
-        orig_caller: ManagedAddress,
-        farm_token_nonce: u64,
-        farm_token_amount: BigUint,
-        exit_amount: BigUint,
-    ) -> StakingFarmExitResult<Self::Api> {
-        let staking_farm_token_id = self.staking_farm_token_id().get();
-        let staking_farm_address = self.staking_farm_address().get();
-        let unstake_result: ExitFarmWithPartialPosResultType<Self::Api> = self
-            .staking_farm_proxy_obj(staking_farm_address)
-            .unstake_farm(exit_amount, orig_caller)
-            .with_esdt_transfer((staking_farm_token_id, farm_token_nonce, farm_token_amount))
-            .execute_on_dest_context();
-        let (unbond_staking_farm_token, staking_rewards, remaining_farm_tokens) =
-            unstake_result.into_tuple();
-
-        StakingFarmExitResult {
-            unbond_staking_farm_token,
-            staking_rewards,
-            remaining_farm_tokens,
-        }
-    }
-
     // pair
 
     fn pair_remove_liquidity(

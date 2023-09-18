@@ -36,15 +36,14 @@ pub trait ProxyStakeModule:
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let mut additional_staking_farm_tokens = ManagedVec::new();
         let mut additional_lp_farm_tokens = ManagedVec::new();
-        let mut total_user_real_staking_tokens = BigUint::zero();
         for p in &additional_payments {
             let attributes: DualYieldTokenAttributes<Self::Api> =
                 self.get_attributes_as_part_of_fixed_supply(&p, &dual_yield_token_mapper);
 
             additional_staking_farm_tokens.push(EsdtTokenPayment::new(
                 staking_farm_token_id.clone(),
-                attributes.virtual_pos_token_nonce,
-                attributes.get_total_staking_token_amount(),
+                attributes.staking_farm_token_nonce,
+                attributes.staking_farm_token_amount,
             ));
 
             additional_lp_farm_tokens.push(EsdtTokenPayment::new(
@@ -52,8 +51,6 @@ pub trait ProxyStakeModule:
                 attributes.lp_farm_token_nonce,
                 attributes.lp_farm_token_amount,
             ));
-
-            total_user_real_staking_tokens += attributes.real_pos_token_amount;
 
             dual_yield_token_mapper.nft_burn(p.token_nonce, &p.amount);
         }
@@ -76,14 +73,11 @@ pub trait ProxyStakeModule:
             additional_lp_farm_tokens,
         );
 
-        let new_staking_farm_token_amount =
-            &received_staking_farm_token.amount - &total_user_real_staking_tokens;
         let new_attributes = DualYieldTokenAttributes {
             lp_farm_token_nonce: merged_lp_farm_tokens.token_nonce,
             lp_farm_token_amount: merged_lp_farm_tokens.amount,
-            virtual_pos_token_nonce: received_staking_farm_token.token_nonce,
-            virtual_pos_token_amount: new_staking_farm_token_amount,
-            real_pos_token_amount: total_user_real_staking_tokens,
+            staking_farm_token_nonce: received_staking_farm_token.token_nonce,
+            staking_farm_token_amount: received_staking_farm_token.amount,
         };
         let new_dual_yield_tokens =
             self.create_dual_yield_tokens(&dual_yield_token_mapper, &new_attributes);
