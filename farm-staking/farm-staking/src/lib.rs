@@ -95,6 +95,7 @@ pub trait FarmStaking:
     fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.check_claim_progress_for_merge(&caller);
+        self.migrate_old_farm_positions(&caller);
 
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();

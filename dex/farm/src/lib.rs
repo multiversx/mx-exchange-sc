@@ -96,6 +96,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
+        self.migrate_old_farm_positions(&orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
         let boosted_rewards_payment = if boosted_rewards > 0 {
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards)
@@ -121,6 +122,8 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
+        self.migrate_old_farm_positions(&orig_caller);
+
         let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller.clone());
 
         self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
@@ -137,6 +140,8 @@ pub trait Farm:
     ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
+
+        self.migrate_old_farm_positions(&orig_caller);
 
         let output_farm_token_payment = self.compound_rewards::<Wrapper<Self>>(orig_caller.clone());
 
@@ -203,6 +208,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
         self.check_claim_progress_for_merge(&orig_caller);
+        self.migrate_old_farm_positions(&orig_caller);
 
         let merged_farm_token = self.merge_farm_tokens::<Wrapper<Self>>();
         self.send_payment_non_zero(&caller, &merged_farm_token);

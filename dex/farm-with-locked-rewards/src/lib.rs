@@ -88,6 +88,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
+        self.migrate_old_farm_positions(&orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
         let boosted_rewards_payment = if boosted_rewards > 0 {
             self.send_to_lock_contract_non_zero(
@@ -116,6 +117,8 @@ pub trait Farm:
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
+
+        self.migrate_old_farm_positions(&orig_caller);
 
         let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_claim_rewards_result =
@@ -204,6 +207,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
         self.check_claim_progress_for_merge(&orig_caller);
+        self.migrate_old_farm_positions(&orig_caller);
 
         let merged_farm_token = self.merge_farm_tokens::<NoMintWrapper<Self>>();
         self.send_payment_non_zero(&caller, &merged_farm_token);

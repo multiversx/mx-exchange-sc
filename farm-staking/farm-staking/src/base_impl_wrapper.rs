@@ -192,28 +192,30 @@ where
     ) {
         let farm_token_mapper = sc.farm_token();
         for farm_position in farm_positions {
-            let is_old_farm_position = sc.is_old_farm_position(farm_position.token_nonce);
+            if sc.is_old_farm_position(farm_position.token_nonce) {
+                continue;
+            }
+
             farm_token_mapper.require_same_token(&farm_position.token_identifier);
 
             let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
                 farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
-            if is_old_farm_position {
-                Self::increase_user_farm_position(sc, user, &farm_position.amount);
-            } else if &token_attributes.original_owner != user {
+            if &token_attributes.original_owner != user {
                 Self::decrease_user_farm_position(sc, &farm_position);
                 Self::increase_user_farm_position(sc, user, &farm_position.amount);
             }
         }
     }
 
+    #[inline]
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        new_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+        increase_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) {
         let mut user_total_farm_position = sc.get_user_total_farm_position(user);
-        user_total_farm_position.total_farm_position += new_farm_position_amount;
+        user_total_farm_position.total_farm_position += increase_farm_position_amount;
         sc.user_total_farm_position(user)
             .set(user_total_farm_position);
     }
@@ -222,6 +224,10 @@ where
         sc: &Self::FarmSc,
         farm_position: &EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
     ) {
+        if sc.is_old_farm_position(farm_position.token_nonce) {
+            return;
+        }
+
         let farm_token_mapper = sc.farm_token();
         let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);
