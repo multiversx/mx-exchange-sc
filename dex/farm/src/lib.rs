@@ -17,11 +17,9 @@ use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
 use farm_base_impl::base_traits_impl::FarmContract;
-use mergeable::Mergeable;
 
 pub type EnterFarmResultType<M> = DoubleMultiPayment<M>;
-pub type ExitFarmWithPartialPosResultType<M> =
-    MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
+pub type ExitFarmWithPartialPosResultType<M> = DoubleMultiPayment<M>;
 
 #[multiversx_sc::contract]
 pub trait Farm:
@@ -156,47 +154,23 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(
         &self,
-        exit_amount: BigUint,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let mut payment = self.call_value().single_esdt();
-        require!(
-            payment.amount >= exit_amount,
-            "Exit amount is bigger than the payment amount"
-        );
+        let payment = self.call_value().single_esdt();
 
-        let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
-        let boosted_rewards_full_position =
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+        self.migrate_old_farm_positions(&orig_caller);
 
-        let remaining_farm_payment = EsdtTokenPayment::new(
-            payment.token_identifier.clone(),
-            payment.token_nonce,
-            &payment.amount - &exit_amount,
-        );
-
-        payment.amount = exit_amount;
-
-        let mut exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller.clone(), payment);
-        exit_farm_result
-            .rewards
-            .merge_with(boosted_rewards_full_position);
+        let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller.clone(), payment);
 
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
-        self.send_payment_non_zero(&caller, &remaining_farm_payment);
 
         self.clear_user_energy_if_needed(&orig_caller);
 
-        (
-            exit_farm_result.farming_tokens,
-            exit_farm_result.rewards,
-            remaining_farm_payment,
-        )
-            .into()
+        (exit_farm_result.farming_tokens, exit_farm_result.rewards).into()
     }
 
     #[payable("*")]

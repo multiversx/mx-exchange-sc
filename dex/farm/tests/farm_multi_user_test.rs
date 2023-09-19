@@ -149,7 +149,7 @@ fn farm_with_boosted_yields_test() {
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 5, 1, 1);
+    farm_setup.exit_farm(&third_user, 5, 1);
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);
@@ -262,7 +262,7 @@ fn farm_claim_boosted_yields_for_other_user_test() {
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 5, 1, 1);
+    farm_setup.exit_farm(&third_user, 5, 1);
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);
@@ -434,7 +434,7 @@ fn farm_boosted_yields_claim_with_different_user_pos_test() {
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 5, 1, 1);
+    farm_setup.exit_farm(&third_user, 5, 1);
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);
@@ -625,7 +625,7 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 5, 1, 1);
+    farm_setup.exit_farm(&third_user, 5, 1);
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);
@@ -706,7 +706,7 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.set_user_energy(&second_user, 4_000, 13, 1);
     farm_setup.set_user_energy(&third_user, 1, 13, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 8, 1, 1);
+    farm_setup.exit_farm(&third_user, 8, 1);
 
     // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
@@ -718,7 +718,7 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.set_user_energy(&second_user, 4_000, 20, 1);
     farm_setup.set_user_energy(&third_user, 1, 20, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 9, 1, 1);
+    farm_setup.exit_farm(&third_user, 9, 1);
 
     // advance week
     farm_setup.b_mock.set_block_epoch(22);
@@ -875,7 +875,7 @@ fn farm_enter_with_multiple_farm_token() {
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 5, 1, 1);
+    farm_setup.exit_farm(&third_user, 5, 1);
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);
@@ -990,7 +990,7 @@ fn farm_claim_with_minimum_tokens() {
     farm_setup.set_user_energy(&second_user, 90_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 5, 1, 1);
+    farm_setup.exit_farm(&third_user, 5, 1);
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);

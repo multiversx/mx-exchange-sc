@@ -55,7 +55,7 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
 
     fn is_old_farm_position(&self, token_nonce: Nonce) -> bool {
         let farm_position_migration_block_nonce = self.farm_position_migration_block_nonce().get();
-        token_nonce < farm_position_migration_block_nonce
+        token_nonce > 0 && token_nonce < farm_position_migration_block_nonce
     }
 
     #[endpoint(allowExternalClaimBoostedRewards)]

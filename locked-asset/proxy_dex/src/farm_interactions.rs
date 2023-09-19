@@ -13,7 +13,6 @@ pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub farming_tokens: EsdtTokenPayment<M>,
     pub reward_tokens: EsdtTokenPayment<M>,
-    pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
 #[multiversx_sc::module]
@@ -43,20 +42,18 @@ pub trait FarmInteractionsModule {
         &self,
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
-        exit_amount: BigUint,
     ) -> ExitFarmResultWrapper<Self::Api> {
         let original_caller = self.blockchain().get_caller();
         let raw_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
-            .exit_farm_endpoint(exit_amount, original_caller)
+            .exit_farm_endpoint(original_caller)
             .with_esdt_transfer(farm_token)
             .execute_on_dest_context();
-        let (farming_tokens, reward_tokens, remaining_farm_tokens) = raw_result.into_tuple();
+        let (farming_tokens, reward_tokens) = raw_result.into_tuple();
 
         ExitFarmResultWrapper {
             farming_tokens,
             reward_tokens,
-            remaining_farm_tokens,
         }
     }
 
