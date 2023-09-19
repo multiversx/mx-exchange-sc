@@ -32,7 +32,7 @@ pub trait ProxyUnstakeModule:
             dual_yield_token_mapper.get_token_attributes(payment.token_nonce);
 
         let exit_attributes: DualYieldTokenAttributes<Self::Api> =
-            full_attributes.clone().into_part(&payment.amount);
+            full_attributes.into_part(&payment.amount);
 
         let lp_farm_exit_result = self.lp_farm_exit(
             orig_caller.clone(),
