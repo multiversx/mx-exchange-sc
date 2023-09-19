@@ -212,15 +212,10 @@ pub trait BaseFunctionsModule:
             if farm_position.token_identifier == farm_token_id
                 && self.is_old_farm_position(farm_position.token_nonce)
             {
-                let token_attributes: FarmTokenAttributes<Self::Api> =
-                    farm_token_mapper.get_token_attributes(farm_position.token_nonce);
-
-                if &token_attributes.original_owner == caller {
-                    let mut user_total_farm_position = self.get_user_total_farm_position(caller);
-                    user_total_farm_position.total_farm_position += farm_position.amount;
-                    self.user_total_farm_position(caller)
-                        .set(user_total_farm_position);
-                }
+                let mut user_total_farm_position = self.get_user_total_farm_position(caller);
+                user_total_farm_position.total_farm_position += farm_position.amount;
+                self.user_total_farm_position(caller)
+                    .set(user_total_farm_position);
             }
         }
     }
