@@ -335,7 +335,9 @@ where
 
         self.b_mock
             .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
-                let out_farm_token = sc.merge_farm_tokens_endpoint(OptionalValue::None);
+                let (out_farm_token, _boosted_rewards) = sc
+                    .merge_farm_tokens_endpoint(OptionalValue::None)
+                    .into_tuple();
                 assert_eq!(
                     out_farm_token.token_identifier,
                     managed_token_id!(FARM_TOKEN_ID)

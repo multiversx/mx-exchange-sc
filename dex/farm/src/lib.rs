@@ -7,7 +7,6 @@ multiversx_sc::derive_imports!();
 
 pub mod base_functions;
 pub mod exit_penalty;
-pub mod progress_update;
 
 use base_functions::{ClaimRewardsResultType, DoubleMultiPayment, Wrapper};
 use common_structs::FarmTokenAttributes;
@@ -34,7 +33,6 @@ pub trait Farm:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + base_functions::BaseFunctionsModule
     + exit_penalty::ExitPenaltyModule
-    + progress_update::ProgressUpdateModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
@@ -178,16 +176,23 @@ pub trait Farm:
     fn merge_farm_tokens_endpoint(
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> DoubleMultiPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-        self.check_claim_progress_for_merge(&orig_caller);
         self.migrate_old_farm_positions(&orig_caller);
+
+        let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
+        let boosted_rewards_payment = if boosted_rewards > 0 {
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards)
+        } else {
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero())
+        };
 
         let merged_farm_token = self.merge_farm_tokens::<Wrapper<Self>>();
         self.send_payment_non_zero(&caller, &merged_farm_token);
+        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
-        merged_farm_token
+        (merged_farm_token, boosted_rewards_payment).into()
     }
 
     #[endpoint(claimBoostedRewards)]
