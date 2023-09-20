@@ -11,7 +11,7 @@ type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 const ENTER_FARM_RESULTS_LEN: usize = 2;
-const EXIT_FARM_RESULTS_LEN: usize = 3;
+const EXIT_FARM_RESULTS_LEN: usize = 2;
 const CLAIM_REWARDS_RESULTS_LEN: usize = 2;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
@@ -22,7 +22,6 @@ pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub initial_farming_tokens: EsdtTokenPayment<M>,
     pub reward_tokens: EsdtTokenPayment<M>,
-    pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
 pub struct FarmClaimRewardsResultWrapper<M: ManagedTypeApi> {
@@ -51,7 +50,6 @@ mod farm_proxy {
         #[endpoint(exitFarm)]
         fn exit_farm(
             &self,
-            exit_amount: BigUint,
             opt_orig_caller: OptionalValue<ManagedAddress>,
         ) -> ExitFarmResultType<Self::Api>;
 
@@ -106,12 +104,11 @@ pub trait FarmInteractionsModule {
         farm_token: TokenIdentifier,
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
-        exit_amount: BigUint,
         caller: ManagedAddress,
     ) -> ExitFarmResultWrapper<Self::Api> {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
-            .exit_farm(exit_amount, caller)
+            .exit_farm(caller)
             .with_esdt_transfer(EsdtTokenPayment::new(
                 farm_token,
                 farm_token_nonce,
@@ -124,12 +121,10 @@ pub trait FarmInteractionsModule {
 
         let initial_farming_tokens = results_wrapper.decode_next_result();
         let reward_tokens = results_wrapper.decode_next_result();
-        let remaining_farm_tokens = results_wrapper.decode_next_result();
 
         ExitFarmResultWrapper {
             initial_farming_tokens,
             reward_tokens,
-            remaining_farm_tokens,
         }
     }
 

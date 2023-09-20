@@ -234,12 +234,11 @@ fn unstake_partial_position_test() {
             &setup.proxy_wrapper,
             DUAL_YIELD_TOKEN_ID,
             dual_yield_token_nonce_after_stake,
-            &rust_biguint!(dual_yield_token_amount),
+            &rust_biguint!(dual_yield_token_amount / 2),
             |sc| {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
-                    managed_biguint!(dual_yield_token_amount / 2),
                     OptionalValue::None,
                 );
 
@@ -270,47 +269,23 @@ fn unstake_partial_position_test() {
                     managed_token_id!(STAKING_FARM_TOKEN_ID)
                 );
                 assert_eq!(unbond_tokens.amount, dual_yield_token_amount / 2);
-
-                let new_dual_yield_tokens = results.opt_new_dual_yield_tokens.unwrap();
-                assert_eq!(
-                    new_dual_yield_tokens.token_identifier,
-                    managed_token_id!(DUAL_YIELD_TOKEN_ID)
-                );
-                assert_eq!(new_dual_yield_tokens.amount, dual_yield_token_amount / 2);
             },
         )
         .assert_ok();
 
-    let expected_new_dual_yield_attributes = DualYieldTokenAttributes::<DebugApi> {
-        lp_farm_token_nonce: 1,
-        lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS / 2),
-        staking_farm_token_nonce: 1,
-        staking_farm_token_amount: managed_biguint!(1_001_000_000 / 2),
-    };
-    let new_dual_yield_token_nonce = dual_yield_token_nonce_after_stake + 1;
-    let new_dual_yield_token_amount = dual_yield_token_amount / 2;
-    setup.b_mock.check_nft_balance(
-        &setup.user_addr,
-        DUAL_YIELD_TOKEN_ID,
-        new_dual_yield_token_nonce,
-        &rust_biguint!(new_dual_yield_token_amount),
-        Some(&expected_new_dual_yield_attributes),
-    );
-
-    // unstake with the new dual yield tokens
+    // unstake with the remaining dual yield tokens
     setup
         .b_mock
         .execute_esdt_transfer(
             &setup.user_addr,
             &setup.proxy_wrapper,
             DUAL_YIELD_TOKEN_ID,
-            new_dual_yield_token_nonce,
-            &rust_biguint!(new_dual_yield_token_amount),
+            dual_yield_token_nonce_after_stake,
+            &rust_biguint!(dual_yield_token_amount / 2),
             |sc| {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
-                    managed_biguint!(new_dual_yield_token_amount),
                     OptionalValue::None,
                 );
 
@@ -341,9 +316,6 @@ fn unstake_partial_position_test() {
                     managed_token_id!(STAKING_FARM_TOKEN_ID)
                 );
                 assert_eq!(unbond_tokens.amount, 1_001_000_000 / 2);
-
-                // no new dual yield tokens created
-                assert!(results.opt_new_dual_yield_tokens.is_none());
             },
         )
         .assert_ok();

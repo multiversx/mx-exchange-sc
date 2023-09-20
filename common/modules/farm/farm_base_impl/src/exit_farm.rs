@@ -44,8 +44,6 @@ pub trait BaseExitFarmModule:
             self.blockchain(),
         );
 
-        FC::decrease_user_farm_position(self, &payment);
-
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let farm_token_amount = &exit_farm_context.farm_token.payment.amount;
@@ -63,6 +61,8 @@ pub trait BaseExitFarmModule:
             &storage_cache,
         );
         storage_cache.reward_reserve -= &reward;
+
+        FC::decrease_user_farm_position(self, &payment);
 
         let farming_token_amount = token_attributes.get_total_supply();
         let farming_token_payment = EsdtTokenPayment::new(

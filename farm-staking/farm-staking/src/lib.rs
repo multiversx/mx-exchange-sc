@@ -7,6 +7,7 @@ multiversx_sc::derive_imports!();
 
 use base_impl_wrapper::FarmStakingWrapper;
 use contexts::storage_cache::StorageCache;
+use farm::base_functions::DoubleMultiPayment;
 use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
 use token_attributes::StakingFarmTokenAttributes;
@@ -42,7 +43,6 @@ pub trait FarmStaking:
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
-    + farm::progress_update::ProgressUpdateModule
     + utils::UtilsModule
     + farm_token_roles::FarmTokenRolesModule
     + stake_farm::StakeFarmModule
@@ -92,10 +92,16 @@ pub trait FarmStaking:
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens_endpoint(&self) -> DoubleMultiPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.check_claim_progress_for_merge(&caller);
         self.migrate_old_farm_positions(&caller);
+
+        let boosted_rewards = self.claim_only_boosted_payment(&caller);
+        let boosted_rewards_payment = if boosted_rewards > 0 {
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards)
+        } else {
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero())
+        };
 
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
@@ -105,8 +111,9 @@ pub trait FarmStaking:
 
         let merged_farm_token = token_mapper.nft_create(new_token_amount, &output_attributes);
         self.send_payment_non_zero(&caller, &merged_farm_token);
+        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
-        merged_farm_token
+        (merged_farm_token, boosted_rewards_payment).into()
     }
 
     #[view(calculateRewardsForGivenPosition)]

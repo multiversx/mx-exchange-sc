@@ -50,7 +50,7 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
     }
 
     fn migrate_old_farm_positions(&self, caller: &ManagedAddress) {
-        let payments = self.get_non_empty_payments();
+        let payments = self.call_value().all_esdt_transfers().clone_value();
         let farm_token_mapper = self.farm_token();
         let farm_token_id = farm_token_mapper.get_token_id();
         for farm_position in &payments {

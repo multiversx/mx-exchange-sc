@@ -271,7 +271,6 @@ where
                     let received_tokens = sc.unstake_farm_tokens(
                         managed_biguint!(1),
                         managed_biguint!(1),
-                        managed_biguint!(dual_yield_token_amount),
                         OptionalValue::None,
                     );
 
@@ -405,9 +404,8 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (unbond_farm_tokens, reward_tokens, _) = sc
-                        .unstake_farm(managed_biguint!(farm_token_amount), OptionalValue::None)
-                        .into_tuple();
+                    let (unbond_farm_tokens, reward_tokens) =
+                        sc.unstake_farm(OptionalValue::None).into_tuple();
                     unbond_token_nonce = unbond_farm_tokens.token_nonce;
 
                     assert_eq!(reward_tokens.amount, expected_rewards_amount);
