@@ -214,7 +214,7 @@ pub trait Farm:
         self.send_to_lock_contract_non_zero(
             self.reward_token_id().get(),
             boosted_rewards,
-            caller.clone(),
+            user.clone(),
             user.clone(),
         )
     }
