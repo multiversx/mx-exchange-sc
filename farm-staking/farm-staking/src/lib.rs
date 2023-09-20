@@ -88,6 +88,9 @@ pub trait FarmStaking:
             "Invalid min unbond epochs"
         );
         self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
+
+        // Farm position migration code
+        self.try_set_farm_position_migration_nonce();
     }
 
     #[payable("*")]
@@ -143,5 +146,30 @@ pub trait FarmStaking:
             caller == sc_address,
             "May only call this function through VM query"
         );
+    }
+
+    fn try_set_farm_position_migration_nonce(&self) {
+        if !self.farm_position_migration_nonce().is_empty() {
+            return;
+        }
+
+        let farm_token_mapper = self.farm_token();
+
+        let attributes = StakingFarmTokenAttributes {
+            reward_per_share: BigUint::zero(),
+            compounded_reward: BigUint::zero(),
+            current_farm_amount: BigUint::zero(),
+            original_owner: self.blockchain().get_sc_address(),
+        };
+
+        let migration_farm_token = farm_token_mapper.nft_create(BigUint::from(1u64), &attributes);
+
+        self.farm_position_migration_nonce()
+            .set(migration_farm_token.token_nonce);
+
+        farm_token_mapper.nft_burn(
+            migration_farm_token.token_nonce,
+            &migration_farm_token.amount,
+        )
     }
 }

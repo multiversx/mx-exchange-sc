@@ -72,10 +72,12 @@ pub trait UnstakeFarmModule:
         payment: EsdtTokenPayment,
         opt_unbond_amount: Option<BigUint>,
     ) -> ExitFarmWithPartialPosResultType<Self::Api> {
-        self.migrate_old_farm_positions(&original_caller);
+        let migrated_amount = self.migrate_old_farm_positions(&original_caller);
 
         let exit_result =
             self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment);
+
+        self.decrease_old_farm_positions(migrated_amount, &original_caller);
 
         let unbond_token_amount =
             opt_unbond_amount.unwrap_or(exit_result.farming_token_payment.amount);

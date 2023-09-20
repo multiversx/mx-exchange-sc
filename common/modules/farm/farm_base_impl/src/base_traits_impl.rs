@@ -196,11 +196,11 @@ pub trait FarmContract {
     ) {
         let farm_token_mapper = sc.farm_token();
         for farm_position in farm_positions {
+            farm_token_mapper.require_same_token(&farm_position.token_identifier);
+
             if sc.is_old_farm_position(farm_position.token_nonce) {
                 continue;
             }
-
-            farm_token_mapper.require_same_token(&farm_position.token_identifier);
 
             let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
                 farm_token_mapper.get_token_attributes(farm_position.token_nonce);
