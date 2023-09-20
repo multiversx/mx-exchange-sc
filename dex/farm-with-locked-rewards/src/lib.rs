@@ -192,8 +192,8 @@ pub trait Farm:
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             self.reward_token_id().get(),
             boosted_rewards,
-            caller.clone(),
-            orig_caller.clone(),
+            caller,
+            orig_caller,
         );
 
         (merged_farm_token, locked_rewards_payment).into()
