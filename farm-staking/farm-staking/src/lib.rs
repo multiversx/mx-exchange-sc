@@ -25,6 +25,8 @@ pub mod token_attributes;
 pub mod unbond_farm;
 pub mod unstake_farm;
 
+pub const DEFAULT_FARM_POSITION_MIGRATION_NONCE: u64 = 1;
+
 #[multiversx_sc::contract]
 pub trait FarmStaking:
     custom_rewards::CustomRewardsModule
@@ -162,14 +164,19 @@ pub trait FarmStaking:
             original_owner: self.blockchain().get_sc_address(),
         };
 
-        let migration_farm_token = farm_token_mapper.nft_create(BigUint::from(1u64), &attributes);
+        let migration_farm_token_nonce = if farm_token_mapper.get_token_state().is_set() {
+            let migration_farm_token =
+                farm_token_mapper.nft_create(BigUint::from(1u64), &attributes);
+            farm_token_mapper.nft_burn(
+                migration_farm_token.token_nonce,
+                &migration_farm_token.amount,
+            );
+            migration_farm_token.token_nonce
+        } else {
+            DEFAULT_FARM_POSITION_MIGRATION_NONCE
+        };
 
         self.farm_position_migration_nonce()
-            .set(migration_farm_token.token_nonce);
-
-        farm_token_mapper.nft_burn(
-            migration_farm_token.token_nonce,
-            &migration_farm_token.amount,
-        )
+            .set(migration_farm_token_nonce);
     }
 }

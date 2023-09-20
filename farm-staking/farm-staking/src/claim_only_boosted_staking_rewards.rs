@@ -69,7 +69,7 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
                 .set(user_total_farm_position);
         }
 
-        return migrated_amount;
+        migrated_amount
     }
 
     fn decrease_old_farm_positions(&self, migrated_amount: BigUint, caller: &ManagedAddress) {

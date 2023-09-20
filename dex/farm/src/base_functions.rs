@@ -19,6 +19,8 @@ pub type DoubleMultiPayment<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayme
 pub type ClaimRewardsResultType<M> = DoubleMultiPayment<M>;
 pub type ExitFarmResultType<M> = DoubleMultiPayment<M>;
 
+pub const DEFAULT_FARM_POSITION_MIGRATION_NONCE: u64 = 1;
+
 pub struct ClaimRewardsResultWrapper<M: ManagedTypeApi> {
     pub new_farm_token: EsdtTokenPayment<M>,
     pub rewards: EsdtTokenPayment<M>,
@@ -224,7 +226,7 @@ pub trait BaseFunctionsModule:
                 .set(user_total_farm_position);
         }
 
-        return migrated_amount;
+        migrated_amount
     }
 
     fn decrease_old_farm_positions(&self, migrated_amount: BigUint, caller: &ManagedAddress) {
@@ -252,15 +254,20 @@ pub trait BaseFunctionsModule:
             original_owner: self.blockchain().get_sc_address(),
         };
 
-        let migration_farm_token = farm_token_mapper.nft_create(BigUint::from(1u64), &attributes);
+        let migration_farm_token_nonce = if farm_token_mapper.get_token_state().is_set() {
+            let migration_farm_token =
+                farm_token_mapper.nft_create(BigUint::from(1u64), &attributes);
+            farm_token_mapper.nft_burn(
+                migration_farm_token.token_nonce,
+                &migration_farm_token.amount,
+            );
+            migration_farm_token.token_nonce
+        } else {
+            DEFAULT_FARM_POSITION_MIGRATION_NONCE
+        };
 
         self.farm_position_migration_nonce()
-            .set(migration_farm_token.token_nonce);
-
-        farm_token_mapper.nft_burn(
-            migration_farm_token.token_nonce,
-            &migration_farm_token.amount,
-        )
+            .set(migration_farm_token_nonce);
     }
 
     fn end_produce_rewards<FC: FarmContract<FarmSc = Self>>(&self) {
