@@ -25,8 +25,6 @@ pub mod token_attributes;
 pub mod unbond_farm;
 pub mod unstake_farm;
 
-pub const DEFAULT_FARM_POSITION_MIGRATION_NONCE: u64 = 1;
-
 #[multiversx_sc::contract]
 pub trait FarmStaking:
     custom_rewards::CustomRewardsModule
@@ -92,7 +90,8 @@ pub trait FarmStaking:
         self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
 
         // Farm position migration code
-        self.try_set_farm_position_migration_nonce();
+        let farm_token_mapper = self.farm_token();
+        self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
     #[payable("*")]
@@ -148,24 +147,5 @@ pub trait FarmStaking:
             caller == sc_address,
             "May only call this function through VM query"
         );
-    }
-
-    fn try_set_farm_position_migration_nonce(&self) {
-        if !self.farm_position_migration_nonce().is_empty() {
-            return;
-        }
-
-        let farm_token_mapper = self.farm_token();
-
-        let migration_farm_token_nonce = if farm_token_mapper.get_token_state().is_set() {
-            let token_identifier = farm_token_mapper.get_token_id_ref();
-            self.blockchain()
-                .get_current_esdt_nft_nonce(&self.blockchain().get_sc_address(), token_identifier)
-        } else {
-            DEFAULT_FARM_POSITION_MIGRATION_NONCE
-        };
-
-        self.farm_position_migration_nonce()
-            .set(migration_farm_token_nonce);
     }
 }

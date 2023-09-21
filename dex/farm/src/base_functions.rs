@@ -239,25 +239,6 @@ pub trait BaseFunctionsModule:
             });
     }
 
-    fn try_set_farm_position_migration_nonce(&self) {
-        if !self.farm_position_migration_nonce().is_empty() {
-            return;
-        }
-
-        let farm_token_mapper = self.farm_token();
-
-        let migration_farm_token_nonce = if farm_token_mapper.get_token_state().is_set() {
-            let token_identifier = farm_token_mapper.get_token_id_ref();
-            self.blockchain()
-                .get_current_esdt_nft_nonce(&self.blockchain().get_sc_address(), token_identifier)
-        } else {
-            DEFAULT_FARM_POSITION_MIGRATION_NONCE
-        };
-
-        self.farm_position_migration_nonce()
-            .set(migration_farm_token_nonce);
-    }
-
     fn end_produce_rewards<FC: FarmContract<FarmSc = Self>>(&self) {
         let mut storage = StorageCache::new(self);
         FC::generate_aggregated_rewards(self, &mut storage);
