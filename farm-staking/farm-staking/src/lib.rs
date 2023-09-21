@@ -157,21 +157,10 @@ pub trait FarmStaking:
 
         let farm_token_mapper = self.farm_token();
 
-        let attributes = StakingFarmTokenAttributes {
-            reward_per_share: BigUint::zero(),
-            compounded_reward: BigUint::zero(),
-            current_farm_amount: BigUint::zero(),
-            original_owner: self.blockchain().get_sc_address(),
-        };
-
         let migration_farm_token_nonce = if farm_token_mapper.get_token_state().is_set() {
-            let migration_farm_token =
-                farm_token_mapper.nft_create(BigUint::from(1u64), &attributes);
-            farm_token_mapper.nft_burn(
-                migration_farm_token.token_nonce,
-                &migration_farm_token.amount,
-            );
-            migration_farm_token.token_nonce
+            let token_identifier = farm_token_mapper.get_token_id_ref();
+            self.blockchain()
+                .get_current_esdt_nft_nonce(&self.blockchain().get_sc_address(), token_identifier)
         } else {
             DEFAULT_FARM_POSITION_MIGRATION_NONCE
         };
