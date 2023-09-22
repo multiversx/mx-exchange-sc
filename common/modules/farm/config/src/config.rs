@@ -36,7 +36,6 @@ impl<M: ManagedTypeApi> Default for UserTotalFarmPosition<M> {
 
 #[multiversx_sc::module]
 pub trait ConfigModule: pausable::PausableModule + permissions_module::PermissionsModule {
-
     #[endpoint(allowExternalClaimBoostedRewards)]
     fn allow_external_claim_boosted_rewards(&self, allow_external_claim: bool) {
         let caller = self.blockchain().get_caller();
@@ -69,15 +68,20 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
         token_nonce > 0 && token_nonce < farm_position_migration_nonce
     }
 
-    fn try_set_farm_position_migration_nonce(&self, farm_token_mapper: NonFungibleTokenMapper<Self::Api>) {
+    fn try_set_farm_position_migration_nonce(
+        &self,
+        farm_token_mapper: NonFungibleTokenMapper<Self::Api>,
+    ) {
         if !self.farm_position_migration_nonce().is_empty() {
             return;
         }
 
         let migration_farm_token_nonce = if farm_token_mapper.get_token_state().is_set() {
             let token_identifier = farm_token_mapper.get_token_id_ref();
-            self.blockchain()
-                .get_current_esdt_nft_nonce(&self.blockchain().get_sc_address(), token_identifier)
+            let current_nonce = self
+                .blockchain()
+                .get_current_esdt_nft_nonce(&self.blockchain().get_sc_address(), token_identifier);
+            current_nonce + DEFAULT_FARM_POSITION_MIGRATION_NONCE
         } else {
             DEFAULT_FARM_POSITION_MIGRATION_NONCE
         };
@@ -85,7 +89,6 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
         self.farm_position_migration_nonce()
             .set(migration_farm_token_nonce);
     }
-
 
     #[view(getFarmingTokenId)]
     #[storage_mapper("farming_token_id")]
