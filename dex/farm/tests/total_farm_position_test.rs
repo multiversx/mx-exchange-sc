@@ -181,7 +181,7 @@ fn allow_external_claim_rewards_setting_test() {
 }
 
 #[test]
-fn test_total_farm_position_claim_for_other_test() {
+fn total_farm_position_claim_for_other_test() {
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
@@ -273,6 +273,13 @@ fn test_total_farm_position_claim_for_other_test() {
         &first_user,
         REWARD_TOKEN_ID,
         &rust_biguint!(first_received_boosted_amt),
+    );
+
+    // Second user has the same amount of reward tokens
+    farm_setup.b_mock.check_esdt_balance(
+        &second_user,
+        REWARD_TOKEN_ID,
+        &rust_biguint!(second_received_reward_amt),
     );
 }
 
