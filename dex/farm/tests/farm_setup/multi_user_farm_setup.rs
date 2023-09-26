@@ -667,9 +667,11 @@ where
     pub fn set_user_total_farm_position(&mut self, user_addr: &Address, new_farm_position: u64) {
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                let mut user_farm_position = UserTotalFarmPosition::default();
-                user_farm_position.total_farm_position = managed_biguint!(new_farm_position);
-                sc.user_total_farm_position(&managed_address!(&user_addr))
+                let user_farm_position = UserTotalFarmPosition {
+                    total_farm_position: managed_biguint!(new_farm_position),
+                    ..Default::default()
+                };
+                sc.user_total_farm_position(&managed_address!(user_addr))
                     .set(user_farm_position);
             })
             .assert_ok();
@@ -679,7 +681,7 @@ where
         self.b_mock
             .execute_query(&self.farm_wrapper, |sc| {
                 let user_total_farm_position_mapper =
-                    sc.user_total_farm_position(&managed_address!(&user_addr));
+                    sc.user_total_farm_position(&managed_address!(user_addr));
                 if expected_amount > 0 && !user_total_farm_position_mapper.is_empty() {
                     assert_eq!(
                         managed_biguint!(expected_amount),

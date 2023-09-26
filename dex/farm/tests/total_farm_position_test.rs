@@ -169,6 +169,11 @@ fn allow_external_claim_rewards_setting_test() {
         &rust_biguint!(first_received_boosted_amt),
     );
 
+    // User who called the claim function should not receive anything
+    farm_setup
+        .b_mock
+        .check_esdt_balance(&third_user, REWARD_TOKEN_ID, &rust_biguint!(0));
+
     // Check allow external claim is set to false
     farm_setup.allow_external_claim_rewards(&first_user, false);
 
