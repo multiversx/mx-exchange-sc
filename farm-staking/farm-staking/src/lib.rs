@@ -88,6 +88,10 @@ pub trait FarmStaking:
             "Invalid min unbond epochs"
         );
         self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
+
+        // Farm position migration code
+        let farm_token_mapper = self.farm_token();
+        self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
     #[payable("*")]

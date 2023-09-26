@@ -75,6 +75,10 @@ pub trait Farm:
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
+
+        // Farm position migration code
+        let farm_token_mapper = self.farm_token();
+        self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
     #[payable("*")]
@@ -155,11 +159,13 @@ pub trait Farm:
 
         let payment = self.call_value().single_esdt();
 
-        self.migrate_old_farm_positions(&orig_caller);
+        let migrated_amount = self.migrate_old_farm_positions(&orig_caller);
 
         let exit_farm_result = self.exit_farm::<NoMintWrapper<Self>>(orig_caller.clone(), payment);
-        let rewards = exit_farm_result.rewards;
 
+        self.decrease_old_farm_positions(migrated_amount, &orig_caller);
+
+        let rewards = exit_farm_result.rewards;
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
 
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
