@@ -392,6 +392,8 @@ fn farm_total_position_migration_test() {
     // user claims with old position - should migrate his entire position
     let second_received_reward_amt = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
 
+    farm_setup.check_user_total_farm_position(&first_user, farm_in_amount * 2);
+
     let second_base_farm_amt = (farm_in_amount * 7_500 / total_farm_tokens) * 2; // user claims with initial position (2 weeks worth of rewards)
     let second_boosted_amt = 2_500; // claim boosted with entire total position - receives full rewards
     let second_total_rewards = second_base_farm_amt + second_boosted_amt;
@@ -479,7 +481,7 @@ fn farm_total_position_exit_migration_test() {
 }
 
 #[test]
-fn no_boosted_rewards_penalty_for_exit_farm_test() {
+fn no_boosted_rewards_penalty_for_no_energy_test() {
     DebugApi::dummy();
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
@@ -519,9 +521,12 @@ fn no_boosted_rewards_penalty_for_exit_farm_test() {
 
     // advance to week 2
     farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_epoch(13);
+
+    // User unlocks XMEX and has no energy
+    farm_setup.set_user_energy(&first_user, 0, 13, 1);
 
     // random tx on end of the week, to cummulate rewards
-    farm_setup.b_mock.set_block_epoch(13);
     farm_setup.set_user_energy(&temp_user, 1, 13, 1);
     farm_setup.enter_farm(&temp_user, 1);
     farm_setup.exit_farm(&temp_user, 5, 1);
@@ -537,7 +542,6 @@ fn no_boosted_rewards_penalty_for_exit_farm_test() {
 
     // advance to week 4
     farm_setup.b_mock.set_block_epoch(25);
-    farm_setup.set_user_energy(&first_user, 0, 25, 1);
 
     // first user claims 3 weeks worth of rewards (2-4)
     let total_farm_tokens = farm_in_amount * 2;
