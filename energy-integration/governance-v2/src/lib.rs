@@ -161,7 +161,7 @@ pub trait GovernanceV2:
         let new_user = self.user_voted_proposals(&voter).insert(proposal_id);
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
-        let voting_power = &user_quorum;
+        let voting_power = &user_quorum.sqrt();
 
         match self.get_root_hash(proposal_id) {
             OptionalValue::None => {
