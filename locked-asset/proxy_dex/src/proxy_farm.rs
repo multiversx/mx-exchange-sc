@@ -3,6 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use common_structs::Epoch;
 use fixed_supply_token::FixedSupplyToken;
 
 use crate::{
@@ -319,6 +320,68 @@ pub trait ProxyFarmModule:
         );
 
         (new_wrapped_token, claim_result.rewards).into()
+    }
+
+    #[payable("*")]
+    #[endpoint(increaseProxyFarmTokenEnergy)]
+    fn increase_proxy_farm_token_energy_endpoint(&self, lock_epochs: Epoch) -> EsdtTokenPayment {
+        self.require_wrapped_farm_token_id_not_empty();
+        self.require_wrapped_lp_token_id_not_empty();
+
+        let wrapped_farm_token_mapper = self.wrapped_farm_token();
+        let payment = self.call_value().single_esdt();
+        wrapped_farm_token_mapper.require_same_token(&payment.token_identifier);
+
+        let wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api> =
+            self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_farm_token_mapper);
+
+        let caller = self.blockchain().get_caller();
+        let new_locked_token_id = self.get_locked_token_id();
+        let wrapped_lp_token_id = self.wrapped_lp_token().get_token_id();
+
+        let new_attributes = if wrapped_farm_attributes.proxy_farming_token.token_identifier
+            == new_locked_token_id
+        {
+            let energy_factory_addr = self.energy_factory_address().get();
+            let new_locked_token = self.call_increase_energy(
+                caller.clone(),
+                wrapped_farm_attributes.proxy_farming_token,
+                lock_epochs,
+                energy_factory_addr,
+            );
+
+            WrappedFarmTokenAttributes {
+                farm_token: wrapped_farm_attributes.farm_token,
+                proxy_farming_token: new_locked_token,
+            }
+        } else if wrapped_farm_attributes.proxy_farming_token.token_identifier
+            == wrapped_lp_token_id
+        {
+            let wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> =
+                self.get_attributes_as_part_of_fixed_supply(&payment, &self.wrapped_lp_token());
+            let new_wrapped_lp = self.increase_proxy_pair_token_energy(
+                caller.clone(),
+                lock_epochs,
+                &wrapped_lp_attributes,
+            );
+
+            WrappedFarmTokenAttributes {
+                farm_token: wrapped_farm_attributes.farm_token,
+                proxy_farming_token: new_wrapped_lp,
+            }
+        } else {
+            sc_panic!(INVALID_PAYMENTS_ERR_MSG)
+        };
+
+        self.send().esdt_local_burn(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+        );
+
+        let new_token_amount = new_attributes.get_total_supply();
+
+        wrapped_farm_token_mapper.nft_create_and_send(&caller, new_token_amount, &new_attributes)
     }
 
     fn require_wrapped_farm_token_id_not_empty(&self) {
