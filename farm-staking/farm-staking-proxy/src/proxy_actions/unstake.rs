@@ -49,7 +49,7 @@ pub trait ProxyUnstakeModule:
             orig_caller.clone(),
             remove_liq_result.staking_token_payment,
             exit_attributes.staking_farm_token_nonce,
-            exit_attributes.staking_farm_token_amount.clone(),
+            exit_attributes.staking_farm_token_amount,
         );
 
         let caller = self.blockchain().get_caller();
