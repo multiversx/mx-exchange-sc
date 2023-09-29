@@ -392,7 +392,6 @@ dependencies = [
 name = "multiversx-sc-modules"
 version = "0.43.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b55fe3585cbc745bd7b9793be4bcb3aa7f1869ced7a0981f3d47e6a832c6311"
 checksum = "e5c160745bf0c997146fa816a19fba8a8d0517e99ed30cc514eca0967f2eed74"
 dependencies = [
  "multiversx-sc",
