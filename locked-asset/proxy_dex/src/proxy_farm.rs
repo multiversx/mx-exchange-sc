@@ -357,12 +357,32 @@ pub trait ProxyFarmModule:
         } else if wrapped_farm_attributes.proxy_farming_token.token_identifier
             == wrapped_lp_token_id
         {
+            let wrapped_lp_mapper = self.wrapped_lp_token();
             let wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> =
-                self.get_attributes_as_part_of_fixed_supply(&payment, &self.wrapped_lp_token());
-            let new_wrapped_lp = self.increase_proxy_pair_token_energy(
+                self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_lp_mapper);
+            let new_locked_tokens = self.increase_proxy_pair_token_energy(
                 caller.clone(),
                 lock_epochs,
                 &wrapped_lp_attributes,
+            );
+
+            let new_wrapped_lp_attributes = WrappedLpTokenAttributes {
+                locked_tokens: new_locked_tokens,
+                lp_token_id: wrapped_lp_attributes.lp_token_id,
+                lp_token_amount: wrapped_lp_attributes.lp_token_amount,
+            };
+
+            let new_token_amount = new_wrapped_lp_attributes.get_total_supply();
+            let new_wrapped_lp = wrapped_lp_mapper.nft_create_and_send(
+                &caller,
+                new_token_amount,
+                &new_wrapped_lp_attributes,
+            );
+
+            self.send().esdt_local_burn(
+                &wrapped_farm_attributes.proxy_farming_token.token_identifier,
+                wrapped_farm_attributes.proxy_farming_token.token_nonce,
+                &wrapped_farm_attributes.proxy_farming_token.amount,
             );
 
             WrappedFarmTokenAttributes {
