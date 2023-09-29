@@ -68,11 +68,11 @@ path = "../../energy-integration/common-modules/weekly-rewards-splitting"
 path = "../../energy-integration/common-modules/energy-query"
 
 [dependencies.multiversx-sc]
-version = "=0.43.2"
+version = "=0.43.3"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.43.2"
+version = "=0.43.3"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -81,7 +81,7 @@ num-bigint = "0.4.2"
 path = "../../energy-integration/energy-update"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.43.2"
+version = "=0.43.3"
 
 [dev-dependencies.energy-factory-mock]
 path = "../../energy-integration/energy-factory-mock"

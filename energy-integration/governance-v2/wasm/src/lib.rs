@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           27
+// Endpoints:                           28
 // Async Callback (empty):               1
-// Total number of exported functions:  29
+// Total number of exported functions:  30
 
 #![no_std]
 
@@ -29,6 +29,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         changeMinEnergyForProposal => change_min_energy_for_propose
         changeMinFeeForProposal => change_min_fee_for_propose
         changeQuorumPercentage => change_quorum_percentage
+        changeWithdrawPercentage => change_withdraw_percentage
         changeVotingDelayInBlocks => change_voting_delay_in_blocks
         changeVotingPeriodInBlocks => change_voting_period_in_blocks
         getMinEnergyForPropose => min_energy_for_propose

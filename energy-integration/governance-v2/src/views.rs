@@ -9,7 +9,6 @@ use crate::{
 pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
     + crate::configurable::ConfigurablePropertiesModule
-    + crate::caller_check::CallerCheckModule
     + permissions_module::PermissionsModule
     + energy_query::EnergyQueryModule
 {
@@ -50,11 +49,6 @@ pub trait ViewsModule:
     fn vote_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
-
-        if total_votes == 0u64 {
-            return false;
-        }
-
         let total_up_votes = proposal_votes.up_votes;
         let total_down_veto_votes = proposal_votes.down_veto_votes;
         let third_total_votes = &total_votes / 3u64;
@@ -70,11 +64,6 @@ pub trait ViewsModule:
     fn vote_down_with_veto(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
-
-        if total_votes == 0u64 {
-            return false;
-        }
-
         let total_down_veto_votes = proposal_votes.down_veto_votes;
         let third_total_votes = &total_votes / 3u64;
 
@@ -84,18 +73,10 @@ pub trait ViewsModule:
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal = self.proposals().get(proposal_id);
         let total_quorum_for_proposal = proposal.total_quorum;
-
-        if total_quorum_for_proposal == 0u64 {
-            return false;
-        }
-
         let required_minimum_percentage = proposal.minimum_quorum;
-
         let current_quorum = self.proposal_votes(proposal_id).get().quorum;
-        let current_quorum_percentage =
-            current_quorum * FULL_PERCENTAGE / total_quorum_for_proposal;
 
-        current_quorum_percentage >= required_minimum_percentage
+        current_quorum * FULL_PERCENTAGE >= required_minimum_percentage * total_quorum_for_proposal
     }
 
     fn require_valid_proposal_id(&self, proposal_id: ProposalId) {

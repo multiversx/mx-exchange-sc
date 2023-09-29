@@ -1,4 +1,4 @@
-use crate::{errors::ERROR_NOT_AN_ESDT, FULL_PERCENTAGE};
+use crate::errors::ERROR_NOT_AN_ESDT;
 
 multiversx_sc::imports!();
 
@@ -39,6 +39,8 @@ const MAX_QUORUM: u64 = 6_000; // 60%
 const MIN_MIN_FEE_FOR_PROPOSE: u64 = 2_000_000;
 const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
 const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
+pub const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
+pub const FULL_PERCENTAGE: u64 = 10_000;
 
 #[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule:
@@ -63,6 +65,12 @@ pub trait ConfigurablePropertiesModule:
     #[endpoint(changeQuorumPercentage)]
     fn change_quorum_percentage(&self, new_value: BigUint) {
         self.try_change_quorum_percentage(new_value);
+    }
+
+    #[only_owner]
+    #[endpoint(changeWithdrawPercentage)]
+    fn change_withdraw_percentage(&self, new_value: u64) {
+        self.try_change_withdraw_percentage_defeated(new_value);
     }
 
     #[only_owner]
@@ -125,7 +133,7 @@ pub trait ConfigurablePropertiesModule:
 
     fn try_change_withdraw_percentage_defeated(&self, new_value: u64) {
         require!(
-            new_value > 0 && new_value < FULL_PERCENTAGE,
+            new_value <= FULL_PERCENTAGE,
             "Not valid value for withdraw percentage if defeated!"
         );
 

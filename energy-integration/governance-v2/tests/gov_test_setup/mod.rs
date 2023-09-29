@@ -10,7 +10,7 @@ use governance_v2::{
 };
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
-    types::{Address, BigInt, ManagedVec, MultiValueEncoded},
+    types::{Address, BigInt, EsdtLocalRole, ManagedVec, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
@@ -30,7 +30,7 @@ pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
 pub static WXMEX_TOKEN_ID: &[u8] = b"WXMEX-123456";
 pub const LOCKED_TOKEN_ID: &[u8] = b"LOCKED-abcdef";
 pub const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
-
+pub const FULL_PERCENTAGE: u64 = 10_000;
 pub const USER_ENERGY: u64 = 1_000_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
 
@@ -175,6 +175,17 @@ where
             })
             .assert_ok();
 
+        let vote_nft_roles = [
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftBurn,
+            EsdtLocalRole::NftUpdateAttributes,
+        ];
+        b_mock.set_esdt_local_roles(
+            gov_wrapper.address_ref(),
+            WXMEX_TOKEN_ID,
+            &vote_nft_roles[..],
+        );
+
         Self {
             b_mock,
             owner,
@@ -257,6 +268,13 @@ where
         self.b_mock
             .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
                 sc.withdraw_deposit(proposal_id);
+            })
+    }
+
+    pub fn change_withdraw_percentage(&mut self, withdraw_value: u64) -> TxResult {
+        self.b_mock
+            .execute_tx(&self.owner, &self.gov_wrapper, &rust_biguint!(0), |sc| {
+                sc.change_withdraw_percentage(withdraw_value);
             })
     }
 
