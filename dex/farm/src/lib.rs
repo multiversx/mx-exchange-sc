@@ -119,7 +119,7 @@ pub trait Farm:
 
         self.migrate_old_farm_positions(&orig_caller);
 
-        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller.clone());
+        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
 
         self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
         self.send_payment_non_zero(&caller, &claim_rewards_result.rewards);
