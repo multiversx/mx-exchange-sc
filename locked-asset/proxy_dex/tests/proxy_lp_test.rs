@@ -798,3 +798,146 @@ fn wrapped_different_nonce_lp_token_merge_test() {
         }),
     );
 }
+
+#[test]
+fn increase_proxy_lp_token_energy() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let full_balance = rust_biguint!(USER_BALANCE);
+    let locked_token_amount = rust_biguint!(1_000_000_000);
+    let other_token_amount = rust_biguint!(500_000_000);
+    let expected_lp_token_amount = rust_biguint!(499_999_000);
+
+    // set the price to 1 EGLD = 2 MEX
+    let payments = vec![
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: locked_token_amount.clone(),
+        },
+        TxTokenTransfer {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: other_token_amount.clone(),
+        },
+    ];
+
+    // add liquidity
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount.to_u64().unwrap()),
+                managed_biguint!(other_token_amount.to_u64().unwrap()),
+            );
+        })
+        .assert_ok();
+
+    // check user's balance
+    setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &(&full_balance - &locked_token_amount),
+        None,
+    );
+    setup.b_mock.check_esdt_balance(
+        &first_user,
+        WEGLD_TOKEN_ID,
+        &(&full_balance - &other_token_amount),
+    );
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_LP_TOKEN_ID,
+        1,
+        &expected_lp_token_amount,
+        Some(&WrappedLpTokenAttributes::<DebugApi> {
+            locked_tokens: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(locked_token_amount.to_u64().unwrap()),
+            },
+            lp_token_id: managed_token_id!(LP_TOKEN_ID),
+            lp_token_amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
+        }),
+    );
+
+    let block_epoch = 1;
+    let user_locked_tokens_in_lp = locked_token_amount.to_u64().unwrap();
+
+    // check user energy before
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let lock_epochs = LOCK_OPTIONS[0] - block_epoch;
+            let expected_energy_amount =
+                BigInt::from((USER_BALANCE) as i64) * BigInt::from(lock_epochs as i64);
+            let expected_energy = Energy::new(
+                expected_energy_amount,
+                block_epoch,
+                managed_biguint!(USER_BALANCE),
+            );
+            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            assert_eq!(expected_energy, actual_energy);
+        })
+        .assert_ok();
+
+    // call increase energy
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &setup.first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            1,
+            &expected_lp_token_amount,
+            |sc| {
+                let _ = sc.increase_proxy_pair_token_energy_endpoint(LOCK_OPTIONS[1]);
+            },
+        )
+        .assert_ok();
+
+    // chceck new wrapped lp token
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_LP_TOKEN_ID,
+        2,
+        &expected_lp_token_amount,
+        Some(&WrappedLpTokenAttributes::<DebugApi> {
+            locked_tokens: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 2,
+                amount: managed_biguint!(locked_token_amount.to_u64().unwrap()),
+            },
+            lp_token_id: managed_token_id!(LP_TOKEN_ID),
+            lp_token_amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
+        }),
+    );
+
+    // check user energy after
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let first_lock_epochs = LOCK_OPTIONS[1] - block_epoch;
+            let second_lock_epochs = LOCK_OPTIONS[0] - block_epoch;
+            let expected_energy_amount = BigInt::from((user_locked_tokens_in_lp) as i64)
+                * BigInt::from(first_lock_epochs as i64)
+                + BigInt::from((USER_BALANCE - user_locked_tokens_in_lp) as i64)
+                    * BigInt::from(second_lock_epochs as i64);
+            let expected_energy = Energy::new(
+                expected_energy_amount,
+                block_epoch,
+                managed_biguint!(USER_BALANCE),
+            );
+            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            assert_eq!(expected_energy, actual_energy);
+        })
+        .assert_ok();
+}

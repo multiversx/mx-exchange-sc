@@ -235,12 +235,8 @@ pub trait ProxyPairModule:
         let old_attributes: WrappedLpTokenAttributes<Self::Api> =
             self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_lp_mapper);
 
-        let new_locked_tokens = self.increase_proxy_pair_token_energy(
-            caller.clone(),
-            payment.clone(),
-            lock_epochs,
-            &old_attributes,
-        );
+        let new_locked_tokens =
+            self.increase_proxy_pair_token_energy(caller.clone(), lock_epochs, &old_attributes);
         let new_token_attributes = WrappedLpTokenAttributes {
             locked_tokens: new_locked_tokens,
             lp_token_id: old_attributes.lp_token_id,
@@ -261,7 +257,6 @@ pub trait ProxyPairModule:
     fn increase_proxy_pair_token_energy(
         &self,
         user: ManagedAddress,
-        payment: EsdtTokenPayment,
         lock_epochs: Epoch,
         old_attributes: &WrappedLpTokenAttributes<Self::Api>,
     ) -> EsdtTokenPayment {
@@ -272,7 +267,12 @@ pub trait ProxyPairModule:
         );
 
         let energy_factory_addr = self.energy_factory_address().get();
-        self.call_increase_energy(user, payment, lock_epochs, energy_factory_addr)
+        self.call_increase_energy(
+            user,
+            old_attributes.locked_tokens.clone(),
+            lock_epochs,
+            energy_factory_addr,
+        )
     }
 
     fn require_wrapped_lp_token_id_not_empty(&self) {
