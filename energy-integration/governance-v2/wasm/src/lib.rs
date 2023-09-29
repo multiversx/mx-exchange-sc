@@ -10,7 +10,10 @@
 // Total number of exported functions:  29
 
 #![no_std]
-#![feature(alloc_error_handler, lang_items)]
+
+// Configuration that works with rustc < 1.73.0.
+// TODO: Recommended rustc version: 1.73.0 or newer.
+#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -18,34 +21,35 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     governance_v2
     (
-        propose
-        vote
-        cancel
-        withdrawDeposit
-        changeMinEnergyForProposal
-        changeMinFeeForProposal
-        changeQuorumPercentage
-        changeVotingDelayInBlocks
-        changeVotingPeriodInBlocks
-        getMinEnergyForPropose
-        getMinFeeForPropose
-        getQuorum
-        getVotingDelayInBlocks
-        getVotingPeriodInBlocks
-        getFeeTokenId
-        getWithdrawPercentageDefeated
-        getProposals
-        getUserVotedProposals
-        getProposalVotes
-        getProposalStatus
-        getFeesCollectorAddress
-        setEnergyFactoryAddress
-        getEnergyFactoryAddress
-        addAdmin
-        removeAdmin
-        updateOwnerOrAdmin
-        getPermissions
+        init => init
+        propose => propose
+        vote => vote
+        cancel => cancel
+        withdrawDeposit => withdraw_deposit
+        changeMinEnergyForProposal => change_min_energy_for_propose
+        changeMinFeeForProposal => change_min_fee_for_propose
+        changeQuorumPercentage => change_quorum_percentage
+        changeVotingDelayInBlocks => change_voting_delay_in_blocks
+        changeVotingPeriodInBlocks => change_voting_period_in_blocks
+        getMinEnergyForPropose => min_energy_for_propose
+        getMinFeeForPropose => min_fee_for_propose
+        getQuorum => quorum_percentage
+        getVotingDelayInBlocks => voting_delay_in_blocks
+        getVotingPeriodInBlocks => voting_period_in_blocks
+        getFeeTokenId => fee_token_id
+        getWithdrawPercentageDefeated => withdraw_percentage_defeated
+        getProposals => proposals
+        getUserVotedProposals => user_voted_proposals
+        getProposalVotes => proposal_votes
+        getProposalStatus => get_proposal_status
+        getFeesCollectorAddress => fees_collector_address
+        setEnergyFactoryAddress => set_energy_factory_address
+        getEnergyFactoryAddress => energy_factory_address
+        addAdmin => add_admin_endpoint
+        removeAdmin => remove_admin_endpoint
+        updateOwnerOrAdmin => update_owner_or_admin_endpoint
+        getPermissions => permissions
     )
 }
 
-multiversx_sc_wasm_adapter::empty_callback! {}
+multiversx_sc_wasm_adapter::async_callback_empty! {}
