@@ -209,8 +209,14 @@ pub trait SimpleLockEnergy:
         );
 
         let output_tokens = self.update_energy(&user, |energy: &mut Energy<Self::Api>| {
-            self.extend_new_token_period(payment, unlock_epoch, current_epoch, energy)
+            self.extend_new_token_period(payment.clone(), unlock_epoch, current_epoch, energy)
         });
+
+        self.send().esdt_local_burn(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+        );
 
         self.send().direct_esdt(
             &caller,
