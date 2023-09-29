@@ -9,7 +9,7 @@ use crate::base_impl_wrapper::FarmStakingWrapper;
 
 pub const MAX_PERCENT: u64 = 10_000;
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
-const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
+pub const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 
 #[multiversx_sc::module]
 pub trait CustomRewardsModule:

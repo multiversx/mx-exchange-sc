@@ -195,26 +195,20 @@ pub trait FarmContract {
         farm_positions: &PaymentsVec<<Self::FarmSc as ContractBase>::Api>,
     ) {
         let farm_token_mapper = sc.farm_token();
-        let mut total_farm_position = BigUint::zero();
-        let mut farm_position_increase = BigUint::zero();
         for farm_position in farm_positions {
             farm_token_mapper.require_same_token(&farm_position.token_identifier);
 
-            total_farm_position += &farm_position.amount;
+            if sc.is_old_farm_position(farm_position.token_nonce) {
+                continue;
+            }
+
             let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
                 farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
             if &token_attributes.original_owner != user {
                 Self::decrease_user_farm_position(sc, &farm_position);
-                farm_position_increase += &farm_position.amount;
+                Self::increase_user_farm_position(sc, user, &farm_position.amount);
             }
-        }
-
-        let user_total_farm_position_struct = sc.get_user_total_farm_position_struct(user);
-        if user_total_farm_position_struct.total_farm_position == BigUint::zero() {
-            Self::increase_user_farm_position(sc, user, &total_farm_position);
-        } else if farm_position_increase > 0 {
-            Self::increase_user_farm_position(sc, user, &farm_position_increase);
         }
     }
 
@@ -224,30 +218,31 @@ pub trait FarmContract {
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         increase_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) {
+        let mut user_total_farm_position = sc.get_user_total_farm_position(user);
+        user_total_farm_position.total_farm_position += increase_farm_position_amount;
         sc.user_total_farm_position(user)
-            .update(|user_farm_position_struct| {
-                user_farm_position_struct.total_farm_position += increase_farm_position_amount
-            });
+            .set(user_total_farm_position);
     }
 
     fn decrease_user_farm_position(
         sc: &Self::FarmSc,
         farm_position: &EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
     ) {
+        if sc.is_old_farm_position(farm_position.token_nonce) {
+            return;
+        }
+
         let farm_token_mapper = sc.farm_token();
         let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
         sc.user_total_farm_position(&token_attributes.original_owner)
-            .update(|user_farm_position_struct| {
-                let mut user_total_farm_position =
-                    user_farm_position_struct.total_farm_position.clone();
-                if user_total_farm_position > farm_position.amount {
-                    user_total_farm_position -= &farm_position.amount;
+            .update(|user_total_farm_position| {
+                if user_total_farm_position.total_farm_position > farm_position.amount {
+                    user_total_farm_position.total_farm_position -= &farm_position.amount;
                 } else {
-                    user_total_farm_position = BigUint::zero();
+                    user_total_farm_position.total_farm_position = BigUint::zero();
                 }
-                user_farm_position_struct.total_farm_position = user_total_farm_position;
             });
     }
 }

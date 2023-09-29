@@ -396,7 +396,7 @@ fn test_farm_through_simple_lock() {
             2,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token(managed_biguint!(1_000_000_000));
+                let exit_farm_result = sc.exit_farm_locked_token();
                 let (locked_tokens, reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(
@@ -594,7 +594,7 @@ fn test_farm_through_simple_lock() {
             7,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token(managed_biguint!(1_000_000_000));
+                let exit_farm_result = sc.exit_farm_locked_token();
                 let (locked_tokens, _reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(

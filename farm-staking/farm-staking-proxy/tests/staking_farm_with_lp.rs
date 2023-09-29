@@ -226,7 +226,7 @@ fn unstake_partial_position_test() {
 
     let dual_yield_token_amount = 1_001_000_000;
 
-    // unstake with half position - wrong payment amount
+    // unstake with half position - ok
     setup
         .b_mock
         .execute_esdt_transfer(
@@ -236,17 +236,44 @@ fn unstake_partial_position_test() {
             dual_yield_token_nonce_after_stake,
             &rust_biguint!(dual_yield_token_amount / 2),
             |sc| {
-                let _ = sc.unstake_farm_tokens(
+                let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
-                    managed_biguint!(dual_yield_token_amount / 4),
                     OptionalValue::None,
                 );
+
+                let wegld_payment = results.other_token_payment;
+                assert_eq!(
+                    wegld_payment.token_identifier,
+                    managed_token_id!(WEGLD_TOKEN_ID)
+                );
+                assert_eq!(wegld_payment.amount, dual_yield_token_amount / 2);
+
+                let lp_farm_rewards = results.lp_farm_rewards;
+                assert_eq!(
+                    lp_farm_rewards.token_identifier,
+                    managed_token_id!(RIDE_TOKEN_ID)
+                );
+                assert_eq!(lp_farm_rewards.amount, 99_999 / 2);
+
+                let staking_rewards = results.staking_rewards;
+                assert_eq!(
+                    staking_rewards.token_identifier,
+                    managed_token_id!(RIDE_TOKEN_ID)
+                );
+                assert_eq!(staking_rewards.amount, 1_899 / 2);
+
+                let unbond_tokens = results.unbond_staking_farm_token;
+                assert_eq!(
+                    unbond_tokens.token_identifier,
+                    managed_token_id!(STAKING_FARM_TOKEN_ID)
+                );
+                assert_eq!(unbond_tokens.amount, dual_yield_token_amount / 2);
             },
         )
-        .assert_user_error("Must exit with full position as payment");
+        .assert_ok();
 
-    // unstake with half position - ok
+    // unstake with the remaining dual yield tokens
     setup
         .b_mock
         .execute_esdt_transfer(
@@ -254,12 +281,11 @@ fn unstake_partial_position_test() {
             &setup.proxy_wrapper,
             DUAL_YIELD_TOKEN_ID,
             dual_yield_token_nonce_after_stake,
-            &rust_biguint!(dual_yield_token_amount),
+            &rust_biguint!(dual_yield_token_amount / 2),
             |sc| {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
-                    managed_biguint!(dual_yield_token_amount / 2),
                     OptionalValue::None,
                 );
 
@@ -290,81 +316,6 @@ fn unstake_partial_position_test() {
                     managed_token_id!(STAKING_FARM_TOKEN_ID)
                 );
                 assert_eq!(unbond_tokens.amount, 1_001_000_000 / 2);
-
-                let new_dual_yield_tokens = results.opt_new_dual_yield_tokens.unwrap();
-                assert_eq!(
-                    new_dual_yield_tokens.token_identifier,
-                    managed_token_id!(DUAL_YIELD_TOKEN_ID)
-                );
-                assert_eq!(new_dual_yield_tokens.amount, 1_001_000_000 / 2);
-            },
-        )
-        .assert_ok();
-
-    let expected_new_dual_yield_attributes = DualYieldTokenAttributes::<DebugApi> {
-        lp_farm_token_nonce: 1,
-        lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS / 2),
-        virtual_pos_token_nonce: 1,
-        virtual_pos_token_amount: managed_biguint!(1_001_000_000 / 2),
-        real_pos_token_amount: managed_biguint!(0),
-    };
-    let new_dual_yield_token_nonce = dual_yield_token_nonce_after_stake + 1;
-    let new_dual_yield_token_amount = dual_yield_token_amount / 2;
-    setup.b_mock.check_nft_balance(
-        &setup.user_addr,
-        DUAL_YIELD_TOKEN_ID,
-        new_dual_yield_token_nonce,
-        &rust_biguint!(new_dual_yield_token_amount),
-        Some(&expected_new_dual_yield_attributes),
-    );
-
-    // unstake with the new dual yield tokens
-    setup
-        .b_mock
-        .execute_esdt_transfer(
-            &setup.user_addr,
-            &setup.proxy_wrapper,
-            DUAL_YIELD_TOKEN_ID,
-            new_dual_yield_token_nonce,
-            &rust_biguint!(new_dual_yield_token_amount),
-            |sc| {
-                let results = sc.unstake_farm_tokens(
-                    managed_biguint!(1),
-                    managed_biguint!(1),
-                    managed_biguint!(new_dual_yield_token_amount),
-                    OptionalValue::None,
-                );
-
-                let wegld_payment = results.other_token_payment;
-                assert_eq!(
-                    wegld_payment.token_identifier,
-                    managed_token_id!(WEGLD_TOKEN_ID)
-                );
-                assert_eq!(wegld_payment.amount, 1_001_000_000 / 2);
-
-                let lp_farm_rewards = results.lp_farm_rewards;
-                assert_eq!(
-                    lp_farm_rewards.token_identifier,
-                    managed_token_id!(RIDE_TOKEN_ID)
-                );
-                assert_eq!(lp_farm_rewards.amount, 99_999 / 2);
-
-                let staking_rewards = results.staking_rewards;
-                assert_eq!(
-                    staking_rewards.token_identifier,
-                    managed_token_id!(RIDE_TOKEN_ID)
-                );
-                assert_eq!(staking_rewards.amount, 1_899 / 2);
-
-                let unbond_tokens = results.unbond_staking_farm_token;
-                assert_eq!(
-                    unbond_tokens.token_identifier,
-                    managed_token_id!(STAKING_FARM_TOKEN_ID)
-                );
-                assert_eq!(unbond_tokens.amount, 1_001_000_000 / 2);
-
-                // no new dual yield tokens created
-                assert!(results.opt_new_dual_yield_tokens.is_none());
             },
         )
         .assert_ok();
@@ -464,9 +415,8 @@ fn test_stake_farm_through_proxy_with_merging() {
             Some(&DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce: 1,
                 lp_farm_token_amount: managed_biguint!(400_000_000),
-                virtual_pos_token_nonce: 1,
-                virtual_pos_token_amount: managed_biguint!(400_000_000),
-                real_pos_token_amount: managed_biguint!(0),
+                staking_farm_token_nonce: 1,
+                staking_farm_token_amount: managed_biguint!(400_000_000),
             }),
         )
     });
@@ -495,9 +445,8 @@ fn test_stake_farm_through_proxy_with_merging() {
             Some(&DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce: 2,
                 lp_farm_token_amount: managed_biguint!(1_000_000_000),
-                virtual_pos_token_nonce: 2,
-                virtual_pos_token_amount: managed_biguint!(1_000_000_000),
-                real_pos_token_amount: managed_biguint!(0),
+                staking_farm_token_nonce: 2,
+                staking_farm_token_amount: managed_biguint!(1_000_000_000),
             }),
         )
     });

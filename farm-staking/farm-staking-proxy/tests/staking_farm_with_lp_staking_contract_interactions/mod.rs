@@ -156,9 +156,8 @@ where
             let expected_dual_yield_attributes = DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce,
                 lp_farm_token_amount: managed_biguint!(lp_farm_token_stake_amount),
-                virtual_pos_token_nonce: expected_staking_farm_token_nonce,
-                virtual_pos_token_amount: managed_biguint!(expected_staking_token_amount),
-                real_pos_token_amount: managed_biguint!(0),
+                staking_farm_token_nonce: expected_staking_farm_token_nonce,
+                staking_farm_token_amount: managed_biguint!(expected_staking_token_amount),
             };
 
             self.b_mock.check_nft_balance(
@@ -272,7 +271,6 @@ where
                     let received_tokens = sc.unstake_farm_tokens(
                         managed_biguint!(1),
                         managed_biguint!(1),
-                        managed_biguint!(dual_yield_token_amount),
                         OptionalValue::None,
                     );
 
@@ -406,9 +404,8 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (unbond_farm_tokens, reward_tokens, _) = sc
-                        .unstake_farm(managed_biguint!(farm_token_amount), OptionalValue::None)
-                        .into_tuple();
+                    let (unbond_farm_tokens, reward_tokens) =
+                        sc.unstake_farm(OptionalValue::None).into_tuple();
                     unbond_token_nonce = unbond_farm_tokens.token_nonce;
 
                     assert_eq!(reward_tokens.amount, expected_rewards_amount);

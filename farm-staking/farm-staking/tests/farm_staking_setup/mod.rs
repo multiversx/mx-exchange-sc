@@ -328,10 +328,9 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let multi_result =
-                        sc.unstake_farm(managed_biguint!(farm_token_amount), OptionalValue::None);
+                    let multi_result = sc.unstake_farm(OptionalValue::None);
 
-                    let (first_result, second_result, _) = multi_result.into_tuple();
+                    let (first_result, second_result) = multi_result.into_tuple();
 
                     assert_eq!(
                         first_result.token_identifier,
@@ -421,8 +420,8 @@ where
         self.b_mock
             .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.user_total_farm_position(&managed_address!(user)).update(
-                    |user_total_farm_position_struct| {
-                        user_total_farm_position_struct.allow_external_claim_boosted_rewards = true;
+                    |user_total_farm_position| {
+                        user_total_farm_position.allow_external_claim_boosted_rewards = true;
                     },
                 );
             })

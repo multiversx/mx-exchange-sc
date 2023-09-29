@@ -30,53 +30,65 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
             OptionalValue::Some(user) => user,
-            #[allow(clippy::redundant_clone)]
             OptionalValue::None => &caller,
         };
-        let user_total_farm_position_struct = self.get_user_total_farm_position_struct(user);
+        let user_total_farm_position = self.get_user_total_farm_position(user);
         if user != &caller {
             require!(
-                user_total_farm_position_struct.allow_external_claim_boosted_rewards,
+                user_total_farm_position.allow_external_claim_boosted_rewards,
                 "Cannot claim rewards for this address"
             );
         }
-        let reward_token_id = self.reward_token_id().get();
-        let user_total_farm_position = user_total_farm_position_struct.total_farm_position;
-        if user_total_farm_position == BigUint::zero() {
-            return EsdtTokenPayment::new(reward_token_id, 0, BigUint::zero());
+
+        let boosted_rewards = self.claim_only_boosted_payment(user);
+        let boosted_rewards_payment =
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+
+        self.send_payment_non_zero(user, &boosted_rewards_payment);
+
+        boosted_rewards_payment
+    }
+
+    fn migrate_old_farm_positions(&self, caller: &ManagedAddress) -> BigUint {
+        let payments = self.call_value().all_esdt_transfers().clone_value();
+        let farm_token_mapper = self.farm_token();
+        let farm_token_id = farm_token_mapper.get_token_id();
+        let mut migrated_amount = BigUint::zero();
+        for farm_position in &payments {
+            if farm_position.token_identifier == farm_token_id
+                && self.is_old_farm_position(farm_position.token_nonce)
+            {
+                migrated_amount += farm_position.amount;
+            }
         }
 
-        let reward = self.claim_boosted_yields_rewards(user, user_total_farm_position);
-        if reward > 0 {
-            self.reward_reserve().update(|reserve| *reserve -= &reward);
+        if migrated_amount > 0 {
+            let mut user_total_farm_position = self.get_user_total_farm_position(caller);
+            user_total_farm_position.total_farm_position += &migrated_amount;
+            self.user_total_farm_position(caller)
+                .set(user_total_farm_position);
         }
 
-        let boosted_rewards = EsdtTokenPayment::new(reward_token_id, 0, reward);
-        self.send_payment_non_zero(user, &boosted_rewards);
+        migrated_amount
+    }
 
-        self.update_energy_and_progress(user);
-
-        boosted_rewards
+    fn decrease_old_farm_positions(&self, migrated_amount: BigUint, caller: &ManagedAddress) {
+        if migrated_amount == BigUint::zero() {
+            return;
+        }
+        self.user_total_farm_position(caller)
+            .update(|user_total_farm_position| {
+                user_total_farm_position.total_farm_position -= migrated_amount;
+            });
     }
 
     // Cannot import the one from farm, as the Wrapper struct has different dependencies
-    fn claim_only_boosted_payment(
-        &self,
-        caller: &ManagedAddress,
-        payment: &EsdtTokenPayment,
-    ) -> EsdtTokenPayment {
-        let farm_token_mapper = self.farm_token();
-        farm_token_mapper.require_same_token(&payment.token_identifier);
-
-        let token_attributes =
-            self.get_attributes_as_part_of_fixed_supply(payment, &farm_token_mapper);
-        let reward =
-            FarmStakingWrapper::<Self>::calculate_boosted_rewards(self, caller, &token_attributes);
+    fn claim_only_boosted_payment(&self, caller: &ManagedAddress) -> BigUint {
+        let reward = FarmStakingWrapper::<Self>::calculate_boosted_rewards(self, caller);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }
 
-        let reward_token_id = self.reward_token_id().get();
-        EsdtTokenPayment::new(reward_token_id, 0, reward)
+        reward
     }
 }

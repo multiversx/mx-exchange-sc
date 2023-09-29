@@ -51,7 +51,6 @@ pub trait BaseCompoundRewardsModule:
             self.blockchain(),
         );
 
-        FC::check_and_update_user_farm_position(self, &caller, &payments);
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let farm_token_amount = &compound_rewards_context.first_farm_token.payment.amount;
@@ -70,6 +69,8 @@ pub trait BaseCompoundRewardsModule:
         );
         storage_cache.reward_reserve -= &reward;
         storage_cache.farm_token_supply += &reward;
+
+        FC::check_and_update_user_farm_position(self, &caller, &payments);
 
         let farm_token_mapper = self.farm_token();
         let base_attributes = FC::create_compound_rewards_initial_attributes(

@@ -16,8 +16,7 @@ pub struct FarmingFarmTokenPair<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
 }
 
-pub type ExitFarmProxyResultType<M> =
-    MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
+pub type ExitFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
 #[multiversx_sc::module]
@@ -152,11 +151,7 @@ pub trait ProxyFarmModule:
 
     #[payable("*")]
     #[endpoint(exitFarmProxy)]
-    fn exit_farm_proxy(
-        &self,
-        farm_address: ManagedAddress,
-        exit_amount: BigUint,
-    ) -> ExitFarmProxyResultType<Self::Api> {
+    fn exit_farm_proxy(&self, farm_address: ManagedAddress) -> ExitFarmProxyResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -175,22 +170,14 @@ pub trait ProxyFarmModule:
                 .into_part(&payment.amount);
         let exit_result = self.call_exit_farm(
             farm_address.clone(),
-            wrapped_farm_attributes_for_exit.farm_token,
-            exit_amount.clone(),
+            wrapped_farm_attributes_for_exit.farm_token.clone(),
         );
-
-        let mut remaining_wrapped_tokens = payment.clone();
-        remaining_wrapped_tokens.amount = exit_result.remaining_farm_tokens.amount;
 
         self.burn_if_base_asset(&exit_result.farming_tokens);
 
-        let mut payment_used_for_exit = payment.clone();
-        payment_used_for_exit.amount = exit_amount.clone();
-        let wrapped_attributes_used_for_exit_farm: WrappedFarmTokenAttributes<Self::Api> =
-            full_wrapped_farm_attributes.into_part(&exit_amount);
         let wrapped_farm_tokens_for_initial_tokens = WrappedFarmToken {
-            payment: payment_used_for_exit,
-            attributes: wrapped_attributes_used_for_exit_farm.clone(),
+            payment: payment.clone(),
+            attributes: wrapped_farm_attributes_for_exit.clone(),
         };
 
         let caller = self.blockchain().get_caller();
@@ -203,24 +190,18 @@ pub trait ProxyFarmModule:
 
         self.send_payment_non_zero(&caller, &initial_proxy_farming_tokens);
         self.send_payment_non_zero(&caller, &exit_result.reward_tokens);
-        self.send_payment_non_zero(&caller, &remaining_wrapped_tokens);
 
-        wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &exit_amount);
+        wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         self.emit_exit_farm_proxy_event(
             &caller,
             &farm_address,
             payment,
-            wrapped_attributes_used_for_exit_farm,
+            wrapped_farm_attributes_for_exit,
             exit_result.reward_tokens.clone(),
         );
 
-        (
-            initial_proxy_farming_tokens,
-            exit_result.reward_tokens,
-            remaining_wrapped_tokens,
-        )
-            .into()
+        (initial_proxy_farming_tokens, exit_result.reward_tokens).into()
     }
 
     fn handle_farm_penalty_and_get_output_proxy_farming_token(
