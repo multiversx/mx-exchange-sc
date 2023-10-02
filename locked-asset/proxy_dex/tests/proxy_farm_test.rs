@@ -240,8 +240,7 @@ fn farm_proxy_actions_test() {
             3,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                let output = sc
-                    .exit_farm_proxy(managed_address!(&farm_addr), managed_biguint!(USER_BALANCE));
+                let output = sc.exit_farm_proxy(managed_address!(&farm_addr));
                 let output_lp_token = output.0 .0;
                 assert_eq!(output_lp_token.token_nonce, 1);
                 assert_eq!(output_lp_token.amount, USER_BALANCE);
@@ -442,12 +441,9 @@ fn farm_with_wrapped_lp_test() {
             &setup.proxy_wrapper,
             WRAPPED_FARM_TOKEN_ID,
             1,
-            &expected_lp_token_amount,
+            &(expected_lp_token_amount.clone() / rust_biguint!(2)),
             |sc| {
-                sc.exit_farm_proxy(
-                    managed_address!(&farm_locked_addr),
-                    managed_biguint!(expected_lp_token_amount.to_u64().unwrap() / 2),
-                );
+                sc.exit_farm_proxy(managed_address!(&farm_locked_addr));
             },
         )
         .assert_ok();
@@ -758,12 +754,9 @@ fn farm_proxy_partial_exit_test() {
             &setup.proxy_wrapper,
             WRAPPED_FARM_TOKEN_ID,
             1,
-            &rust_biguint!(USER_BALANCE),
+            &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.exit_farm_proxy(
-                    managed_address!(&farm_locked_addr),
-                    managed_biguint!(USER_BALANCE / 2),
-                );
+                sc.exit_farm_proxy(managed_address!(&farm_locked_addr));
             },
         )
         .assert_ok();
@@ -936,12 +929,9 @@ fn farm_proxy_partial_exit_with_penalty_test() {
             &setup.proxy_wrapper,
             WRAPPED_FARM_TOKEN_ID,
             1,
-            &rust_biguint!(USER_BALANCE),
+            &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.exit_farm_proxy(
-                    managed_address!(&farm_locked_addr),
-                    managed_biguint!(USER_BALANCE / 2),
-                );
+                sc.exit_farm_proxy(managed_address!(&farm_locked_addr));
             },
         )
         .assert_ok();
@@ -1159,10 +1149,7 @@ fn different_farm_locked_token_nonce_merging_test() {
             3,
             &rust_biguint!(USER_BALANCE * 2),
             |sc| {
-                sc.exit_farm_proxy(
-                    managed_address!(&farm_addr),
-                    managed_biguint!(USER_BALANCE * 2),
-                );
+                sc.exit_farm_proxy(managed_address!(&farm_addr));
             },
         )
         .assert_ok();

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           62
+// Endpoints:                           66
 // Async Callback:                       1
-// Total number of exported functions:  64
+// Total number of exported functions:  68
 
 #![no_std]
 
@@ -25,18 +25,22 @@ multiversx_sc_wasm_adapter::endpoints! {
         enterFarm => enter_farm_endpoint
         claimRewards => claim_rewards_endpoint
         exitFarm => exit_farm_endpoint
-        calculateRewardsForGivenPosition => calculate_rewards_for_given_position
         mergeFarmTokens => merge_farm_tokens_endpoint
+        claimBoostedRewards => claim_boosted_rewards
         startProduceRewards => start_produce_rewards_endpoint
         endProduceRewards => end_produce_rewards_endpoint
         setPerBlockRewardAmount => set_per_block_rewards_endpoint
+        calculateRewardsForGivenPosition => calculate_rewards_for_given_position
         getRewardPerShare => reward_per_share
         getRewardReserve => reward_reserve
+        allowExternalClaimBoostedRewards => allow_external_claim_boosted_rewards
         getFarmingTokenId => farming_token_id
         getRewardTokenId => reward_token_id
         getPerBlockRewardAmount => per_block_reward_amount
         getLastRewardBlockNonce => last_reward_block_nonce
         getDivisionSafetyConstant => division_safety_constant
+        getUserTotalFarmPosition => user_total_farm_position
+        getFarmPositionMigrationNonce => farm_position_migration_nonce
         setLockingScAddress => set_locking_sc_address
         setLockEpochs => set_lock_epochs
         getLockingScAddress => locking_sc_address

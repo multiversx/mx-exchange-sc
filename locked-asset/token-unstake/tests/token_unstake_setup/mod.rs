@@ -65,7 +65,7 @@ where
         energy_factory_builder: EnergyFactoryBuilder,
         unstake_sc_builder: UnstakeScBuilder,
     ) -> Self {
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner = b_mock.create_user_account(&rust_zero);

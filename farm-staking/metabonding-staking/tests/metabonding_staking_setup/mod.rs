@@ -47,7 +47,7 @@ where
         mbs_builder: MetabondingStakingObjBuilder,
         laf_builder: LockedAssetFactoryObjBuilder,
     ) -> Self {
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
 
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();

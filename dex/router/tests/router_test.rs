@@ -347,7 +347,7 @@ fn user_enable_pair_swaps_through_router_test() {
         )
         .assert_ok();
 
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     b_mock.check_nft_balance(
         &user,
         LOCKED_TOKEN_ID,
@@ -518,7 +518,7 @@ fn user_enable_pair_swaps_fail_test() {
         .assert_ok();
 
     let custom_locked_token = b"LTOK2-123456";
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     b_mock.set_nft_balance(
         &user,
         custom_locked_token,

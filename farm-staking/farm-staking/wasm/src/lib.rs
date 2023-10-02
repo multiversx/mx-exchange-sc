@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           64
+// Endpoints:                           68
 // Async Callback:                       1
-// Total number of exported functions:  66
+// Total number of exported functions:  70
 
 #![no_std]
 
@@ -36,11 +36,14 @@ multiversx_sc_wasm_adapter::endpoints! {
         getMinUnbondEpochs => min_unbond_epochs
         getRewardPerShare => reward_per_share
         getRewardReserve => reward_reserve
+        allowExternalClaimBoostedRewards => allow_external_claim_boosted_rewards
         getFarmingTokenId => farming_token_id
         getRewardTokenId => reward_token_id
         getPerBlockRewardAmount => per_block_reward_amount
         getLastRewardBlockNonce => last_reward_block_nonce
         getDivisionSafetyConstant => division_safety_constant
+        getUserTotalFarmPosition => user_total_farm_position
+        getFarmPositionMigrationNonce => farm_position_migration_nonce
         registerFarmToken => register_farm_token
         getFarmTokenId => farm_token
         getFarmTokenSupply => farm_token_supply
@@ -65,6 +68,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         unstakeFarm => unstake_farm
         unstakeFarmThroughProxy => unstake_farm_through_proxy
         unbondFarm => unbond_farm
+        claimBoostedRewards => claim_boosted_rewards
         setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getBoostedYieldsRewardsPercentage => boosted_yields_rewards_percentage

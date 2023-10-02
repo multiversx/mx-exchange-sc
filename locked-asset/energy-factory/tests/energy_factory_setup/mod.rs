@@ -52,7 +52,7 @@ where
     ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub fn new(sc_builder: ScBuilder) -> Self {
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner = b_mock.create_user_account(&rust_zero);

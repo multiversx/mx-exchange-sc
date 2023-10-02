@@ -184,7 +184,7 @@ where
             })
             .assert_ok();
 
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
 
         let expected_attributes = FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(expected_reward_per_share),
@@ -222,13 +222,9 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let multi_result = sc.exit_farm_endpoint(
-                        managed_biguint!(farm_token_amount),
-                        OptionalValue::None,
-                    );
+                    let multi_result = sc.exit_farm_endpoint(OptionalValue::None);
 
-                    let (first_result, second_result, remaining_farm_amount) =
-                        multi_result.into_tuple();
+                    let (first_result, second_result) = multi_result.into_tuple();
 
                     assert_eq!(
                         first_result.token_identifier,
@@ -246,7 +242,6 @@ where
                     );
                     assert_eq!(second_result.token_nonce, 0);
                     assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
-                    assert_eq!(remaining_farm_amount.amount, managed_biguint!(0));
                 },
             )
             .assert_ok();
@@ -300,7 +295,7 @@ where
             )
             .assert_ok();
 
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
         let expected_attributes = FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(expected_reward_per_share),
             entering_epoch: 0,

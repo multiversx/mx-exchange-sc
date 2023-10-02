@@ -12,7 +12,7 @@ mod farm_with_locked_rewards_setup;
 
 #[test]
 fn farm_with_no_boost_no_proxy_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
@@ -112,7 +112,7 @@ fn farm_with_no_boost_no_proxy_test() {
 
 #[test]
 fn farm_with_boosted_yields_no_proxy_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
@@ -149,7 +149,7 @@ fn farm_with_boosted_yields_no_proxy_test() {
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 5, 1, 1);
+    farm_setup.exit_farm(&third_user, 5, 1);
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);
@@ -225,6 +225,113 @@ fn farm_with_boosted_yields_no_proxy_test() {
             LOCKED_REWARD_TOKEN_ID,
             1, //nonce caching
             &rust_biguint!(second_receveived_reward_amt),
+            None,
+        );
+}
+
+#[test]
+fn total_farm_position_claim_with_locked_rewards_test() {
+    DebugApi::dummy();
+    let mut farm_setup = FarmSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    let temp_user = farm_setup.third_user.clone();
+
+    // first user enter farm
+    let farm_in_amount = 50_000_000;
+    let first_user = farm_setup.first_user.clone();
+    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+
+    farm_setup.b_mock.check_nft_balance(
+        &first_user,
+        FARM_TOKEN_ID,
+        1,
+        &rust_biguint!(farm_in_amount),
+        Some(&FarmTokenAttributes::<DebugApi> {
+            reward_per_share: managed_biguint!(0),
+            compounded_reward: managed_biguint!(0),
+            entering_epoch: 2,
+            current_farm_amount: managed_biguint!(farm_in_amount),
+            original_owner: managed_address!(&first_user),
+        }),
+    );
+
+    farm_setup.b_mock.check_nft_balance(
+        &first_user,
+        FARM_TOKEN_ID,
+        2,
+        &rust_biguint!(farm_in_amount),
+        Some(&FarmTokenAttributes::<DebugApi> {
+            reward_per_share: managed_biguint!(0),
+            compounded_reward: managed_biguint!(0),
+            entering_epoch: 2,
+            current_farm_amount: managed_biguint!(farm_in_amount),
+            original_owner: managed_address!(&first_user),
+        }),
+    );
+
+    // users claim rewards to get their energy registered
+    let _ = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
+
+    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // 7_500 base farm, 2_500 boosted yields
+    farm_setup.b_mock.set_block_nonce(10);
+
+    // random tx on end of week 1, to cummulate rewards
+    farm_setup.b_mock.set_block_epoch(6);
+    farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
+    farm_setup.set_user_energy(&temp_user, 1, 6, 1);
+    farm_setup.enter_farm(&temp_user, 1);
+    farm_setup.exit_farm(&temp_user, 4, 1);
+
+    // advance 1 week
+    farm_setup.b_mock.set_block_epoch(10);
+    farm_setup.set_user_energy(&first_user, 1_000, 10, 1);
+
+    let total_farm_tokens = farm_in_amount * 2;
+
+    // first user claim with half total position
+    let first_base_farm_amt = farm_in_amount * 7_500 / total_farm_tokens;
+
+    // Boosted yields rewards formula
+    // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
+    // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
+    // (2_500 * 3 * 1_000 / 1_000 + 2_500 * 2 * 100_000_000 / 100_000_000) / (3 + 2)
+    // (7_500 + 2_500) / (5) = 2_500
+    let first_boosted_amt = 2_500; // 1000 energy & 100_000_000 farm tokens
+    let first_total_rewards = first_base_farm_amt + first_boosted_amt;
+
+    let first_received_reward_amt = farm_setup.claim_rewards(&first_user, 3, farm_in_amount);
+
+    // Should be equal to half base generated rewards + full boosted generated rewards
+    assert_eq!(first_received_reward_amt, first_total_rewards);
+
+    farm_setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            &first_user,
+            FARM_TOKEN_ID,
+            5,
+            &rust_biguint!(farm_in_amount),
+            None,
+        );
+
+    // Check user receive locked rewards
+    farm_setup
+        .b_mock
+        .check_nft_balance::<LockedTokenAttributes<DebugApi>>(
+            &first_user,
+            LOCKED_REWARD_TOKEN_ID,
+            1,
+            &rust_biguint!(first_received_reward_amt),
             None,
         );
 }

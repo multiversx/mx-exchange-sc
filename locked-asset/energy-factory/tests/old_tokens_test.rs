@@ -21,7 +21,7 @@ use multiversx_sc_scenario::{
 
 #[test]
 fn extend_lock_period_old_token_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
 
@@ -140,7 +140,7 @@ fn extend_lock_period_old_token_test() {
 
 #[test]
 fn min_period_migrated_token_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
 
@@ -250,7 +250,7 @@ fn min_period_migrated_token_test() {
 
 #[test]
 fn min_period_migrated_token_test2() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
 
@@ -370,7 +370,7 @@ fn min_period_migrated_token_test2() {
 
 #[test]
 fn check_initial_old_unlock_schedule_decode_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
 

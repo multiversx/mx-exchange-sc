@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           16
+// Endpoints:                           15
 // Async Callback:                       1
-// Total number of exported functions:  18
+// Total number of exported functions:  17
 
 #![no_std]
 
@@ -37,7 +37,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         stakeFarmTokens => stake_farm_tokens
         claimDualYield => claim_dual_yield_endpoint
         unstakeFarmTokens => unstake_farm_tokens
-        mergeMetastakingWithStakingToken => merge_metastaking_with_staking_token
     )
 }
 

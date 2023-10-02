@@ -31,7 +31,7 @@ use multiversx_sc_scenario::{managed_token_id_wrapped, rust_biguint, DebugApi};
 
 #[test]
 fn token_merging_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
 
@@ -101,7 +101,7 @@ fn token_merging_test() {
 
 #[test]
 fn token_merging_different_years_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
 
@@ -171,7 +171,7 @@ fn token_merging_different_years_test() {
 
 #[test]
 fn token_merging_different_years2_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
 
@@ -241,7 +241,7 @@ fn token_merging_different_years2_test() {
 
 #[test]
 fn test_specific_tokens_merge() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0u64);
     let mut b_mock = BlockchainStateWrapper::new();
     let owner = b_mock.create_user_account(&rust_zero);
@@ -371,7 +371,7 @@ fn test_specific_tokens_merge() {
 
 #[test]
 fn merge_same_schedule_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let user = setup.first_user.clone();
     let unlock_epoch = to_start_of_month(LOCK_OPTIONS[0]);

@@ -66,7 +66,7 @@ fn lock_unlock_test() {
         .assert_ok();
 
     // needed for the managed types in LockedTokenAttributes
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     b_mock.check_nft_balance(
         &user_addr,
         LOCKED_TOKEN_ID,

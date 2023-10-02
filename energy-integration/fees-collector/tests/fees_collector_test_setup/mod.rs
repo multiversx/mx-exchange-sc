@@ -108,7 +108,7 @@ where
             &rust_biguint!(USER_BALANCE * 2),
         );
 
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
 
         b_mock.set_nft_balance(
             &depositor_address,
@@ -226,6 +226,21 @@ where
         self.b_mock
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
                 let _ = sc.claim_rewards(OptionalValue::None);
+            })
+    }
+
+    pub fn claim_for_user(&mut self, owner: &Address, broker: &Address) -> TxResult {
+        self.b_mock
+            .execute_tx(broker, &self.fc_wrapper, &rust_biguint!(0), |sc| {
+                let _ = sc.claim_rewards(OptionalValue::Some(managed_address!(owner)));
+            })
+    }
+
+    pub fn allow_external_claim_rewards(&mut self, user: &Address) -> TxResult {
+        self.b_mock
+            .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
+                sc.allow_external_claim_rewards(&managed_address!(user))
+                    .set(true);
             })
     }
 

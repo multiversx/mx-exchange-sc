@@ -7,6 +7,7 @@ use crate::base_impl_wrapper::FarmStakingWrapper;
 #[multiversx_sc::module]
 pub trait ClaimStakeFarmRewardsModule:
     crate::custom_rewards::CustomRewardsModule
+    + crate::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
@@ -60,10 +61,11 @@ pub trait ClaimStakeFarmRewardsModule:
         original_caller: ManagedAddress,
         opt_new_farming_amount: Option<BigUint>,
     ) -> ClaimRewardsResultType<Self::Api> {
+        self.migrate_old_farm_positions(&original_caller);
         let payment = self.call_value().single_esdt();
         let mut claim_result = self
             .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
-                original_caller,
+                original_caller.clone(),
                 ManagedVec::from_single_item(payment),
             );
 
@@ -77,6 +79,8 @@ pub trait ClaimStakeFarmRewardsModule:
 
             self.set_farm_supply_for_current_week(&claim_result.storage_cache.farm_token_supply);
         }
+
+        self.update_energy_and_progress(&original_caller);
 
         let new_farm_token_nonce = self.send().esdt_nft_create_compact(
             &virtual_farm_token.payment.token_identifier,

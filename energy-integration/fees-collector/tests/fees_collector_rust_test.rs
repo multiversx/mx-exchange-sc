@@ -466,6 +466,140 @@ fn claim_second_week_test() {
 }
 
 #[test]
+fn claim_for_other_user_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
+
+    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
+
+    fc_setup.set_energy(&first_user, 500, 1_000);
+    fc_setup.set_energy(&second_user, 500, 9_000);
+
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .assert_ok();
+
+    // user claim first week - user only get registered for week 2, without receiving rewards
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // advance week
+    fc_setup.advance_week();
+
+    // increase first user's energy
+    fc_setup.set_energy(&first_user, 1000, 2_000);
+
+    // claim week 2 - receives rewards accumulated in week 1, and gets new energy saved
+    fc_setup
+        .claim_for_user(&first_user, &second_user)
+        .assert_user_error("Cannot claim rewards for this address");
+
+    fc_setup
+        .allow_external_claim_rewards(&first_user)
+        .assert_ok();
+    // claim week 2 - receives rewards accumulated in week 1, and gets new energy saved
+
+    fc_setup
+        .claim_for_user(&first_user, &second_user)
+        .assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            let mut expected_total_rewards = ManagedVec::new();
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(FIRST_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(SECOND_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 2),
+            ));
+            assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
+        })
+        .assert_ok();
+
+    let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 1_000u32 / 10_000u32;
+    let first_user_expected_second_token_amt =
+        rust_biguint!(USER_BALANCE / 2) * 1_000u32 / 10_000u32;
+
+    fc_setup.b_mock.check_esdt_balance(
+        &first_user,
+        FIRST_TOKEN_ID,
+        &first_user_expected_first_token_amt,
+    );
+    fc_setup.b_mock.check_esdt_balance(
+        &first_user,
+        SECOND_TOKEN_ID,
+        &first_user_expected_second_token_amt,
+    );
+
+    let current_epoch = fc_setup.current_epoch;
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            // fees were cleared and accumulated in the total_rewards mapper
+            assert_eq!(
+                sc.accumulated_fees(1, &managed_token_id!(FIRST_TOKEN_ID))
+                    .get(),
+                managed_biguint!(0)
+            );
+            assert_eq!(
+                sc.accumulated_fees(1, &managed_token_id!(SECOND_TOKEN_ID))
+                    .get(),
+                managed_biguint!(0)
+            );
+
+            let mut expected_total_rewards = ManagedVec::new();
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(FIRST_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(SECOND_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 2),
+            ));
+            assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
+
+            // first user's new energy is added to week 2
+            let first_user_energy = Energy::new(
+                BigInt::from(managed_biguint!(2_000)),
+                current_epoch,
+                managed_biguint!(1_000),
+            );
+
+            // 10_000 total prev week
+            // first user's tokens get removed, as they expired
+            // so we only decrease by second user's 500 tokens worth of energy
+            //
+            // - 7 * 500 global decrease (-3_500)
+            // - 1_000 (first user's surplus energy)
+            // + 2_000 (first user's new energy)
+            // = 7_500
+            assert_eq!(sc.total_energy_for_week(2).get(), 7_500);
+            assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
+            assert_eq!(sc.last_global_update_week().get(), 2);
+
+            assert_eq!(
+                sc.current_claim_progress(&managed_address!(&first_user))
+                    .get(),
+                ClaimProgress {
+                    energy: first_user_energy,
+                    week: 2
+                }
+            );
+        })
+        .assert_ok();
+}
+
+#[test]
 fn claim_inactive_week_test() {
     let rust_zero = rust_biguint!(0);
     let mut fc_setup =
@@ -566,71 +700,6 @@ fn claim_inactive_week_test() {
         SECOND_TOKEN_ID,
         &second_user_expected_second_token_amt,
     );
-}
-
-#[test]
-fn try_claim_after_unlock() {
-    let rust_zero = rust_biguint!(0);
-    let mut fc_setup =
-        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
-
-    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
-    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
-
-    fc_setup.set_energy(&first_user, 50, 3_000);
-    fc_setup.set_energy(&second_user, 50, 9_000);
-
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
-        .assert_ok();
-
-    // user claim first week - users only get registered for week 2, without receiving rewards
-    fc_setup.claim(&first_user).assert_ok();
-    fc_setup.claim(&second_user).assert_ok();
-
-    // advance week
-    fc_setup.advance_week();
-
-    // deposit rewards week 2
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
-        .assert_ok();
-
-    // decrease user energy
-    fc_setup.set_energy(&first_user, 50, 1_000);
-
-    // only first user claims in second week
-    fc_setup.claim(&first_user).assert_ok();
-
-    // no rewards are received, as energy decreased from the calculated amount
-    fc_setup
-        .b_mock
-        .check_esdt_balance(&first_user, FIRST_TOKEN_ID, &rust_zero);
-    fc_setup
-        .b_mock
-        .check_esdt_balance(&first_user, SECOND_TOKEN_ID, &rust_zero);
-
-    let current_epoch = fc_setup.current_epoch;
-    fc_setup
-        .b_mock
-        .execute_query(&fc_setup.fc_wrapper, |sc| {
-            let first_user_energy = Energy::new(
-                BigInt::from(managed_biguint!(1_000)),
-                current_epoch,
-                managed_biguint!(50),
-            );
-            assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user))
-                    .get(),
-                ClaimProgress {
-                    energy: first_user_energy,
-                    week: 2
-                }
-            );
-        })
-        .assert_ok();
 }
 
 #[test]

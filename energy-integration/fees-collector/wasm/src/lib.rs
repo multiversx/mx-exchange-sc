@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           35
+// Endpoints:                           37
 // Async Callback (empty):               1
-// Total number of exported functions:  37
+// Total number of exported functions:  39
 
 #![no_std]
 
@@ -27,9 +27,11 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeKnownContracts => remove_known_contracts
         addKnownTokens => add_known_tokens
         removeKnownTokens => remove_known_tokens
+        setAllowExternalClaimRewards => set_allow_external_claim_rewards
         getLockedTokenId => locked_token_id
         getAllTokens => get_all_tokens
         getAllKnownContracts => known_contracts
+        getAllowExternalClaimRewards => allow_external_claim_rewards
         getLastActiveWeekForUser => get_last_active_week_for_user_view
         getUserEnergyForWeek => get_user_energy_for_week_view
         getLastGlobalUpdateWeek => last_global_update_week
