@@ -52,4 +52,7 @@ pub trait FarmStakingProxy:
             .set_if_empty(&staking_farm_token_id);
         self.lp_token_id().set_if_empty(&lp_token_id);
     }
+
+    #[endpoint]
+    fn upgrade(&self) {}
 }

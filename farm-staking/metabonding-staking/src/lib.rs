@@ -26,6 +26,9 @@ pub trait MetabondingStaking:
             .set_if_empty(&locked_asset_factory_address);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[payable("*")]
     #[endpoint(stakeLockedAsset)]
     fn stake_locked_asset(&self) {

@@ -102,6 +102,9 @@ pub trait Pair<ContractReader>:
         };
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[payable("*")]
     #[endpoint(addInitialLiquidity)]
     fn add_initial_liquidity(&self) -> AddLiquidityResultType<Self::Api> {

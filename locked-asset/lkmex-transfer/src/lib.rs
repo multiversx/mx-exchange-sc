@@ -57,6 +57,9 @@ pub trait LkmexTransfer:
     }
 
     #[endpoint]
+    fn upgrade(&self) {}
+
+    #[endpoint]
     fn withdraw(&self, sender: ManagedAddress) {
         let receiver = self.blockchain().get_caller();
         let receiver_last_transfer_mapper = self.receiver_last_transfer_epoch(&receiver);

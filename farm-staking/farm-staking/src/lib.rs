@@ -94,6 +94,9 @@ pub trait FarmStaking:
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(&self) -> DoubleMultiPayment<Self::Api> {

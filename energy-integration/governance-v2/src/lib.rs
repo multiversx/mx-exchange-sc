@@ -61,6 +61,9 @@ pub trait GovernanceV2:
         self.try_change_fee_token_id(fee_token);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     /// Propose a list of actions.
     /// A maximum of MAX_GOVERNANCE_PROPOSAL_ACTIONS can be proposed at a time.
     ///
