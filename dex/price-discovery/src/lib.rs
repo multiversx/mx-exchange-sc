@@ -113,6 +113,9 @@ pub trait PriceDiscovery:
         self.set_locking_sc_address(locking_sc_address);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     /// Users can deposit either launched_token or accepted_token.
     /// They will receive an SFT that can be used to withdraw said tokens
     #[payable("*")]

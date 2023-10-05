@@ -57,6 +57,9 @@ pub trait ProxyDexImpl:
             .set_if_empty(&energy_factory_address);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[only_owner]
     #[payable("EGLD")]
     #[endpoint(registerProxyPair)]

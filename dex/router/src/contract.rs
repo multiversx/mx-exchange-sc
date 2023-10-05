@@ -39,6 +39,9 @@ pub trait Router:
         self.owner().set(&self.blockchain().get_caller());
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[only_owner]
     #[endpoint]
     fn pause(&self, address: ManagedAddress) {

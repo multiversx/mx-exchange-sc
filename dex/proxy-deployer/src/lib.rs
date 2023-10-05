@@ -15,4 +15,7 @@ pub trait ProxyDeployer: farm_deploy::FarmDeployModule {
 
         self.farm_template_address().set(&farm_template_address);
     }
+
+    #[endpoint]
+    fn upgrade(&self) {}
 }

@@ -63,6 +63,9 @@ pub trait LockedAssetFactory:
         self.set_paused(true);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     fn set_extended_attributes_activation_nonce(&self, is_sc_upgrade: bool) {
         if !self.extended_attributes_activation_nonce().is_empty() {
             return;

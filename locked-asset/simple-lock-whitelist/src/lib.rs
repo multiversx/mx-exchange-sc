@@ -28,6 +28,9 @@ pub trait SimpleLockWhitelist:
         }
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     /// Sets the transfer role for the given address. Defaults to own address.
     #[only_owner]
     #[endpoint(setTransferRoleLockedToken)]
