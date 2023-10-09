@@ -193,9 +193,7 @@ pub trait ProxyFarmModule:
             .get_token_attributes(&payment.token_identifier, payment.token_nonce);
 
         let wrapped_farm_attributes_for_exit: WrappedFarmTokenAttributes<Self::Api> =
-            full_wrapped_farm_attributes
-                .clone()
-                .into_part(&payment.amount);
+            full_wrapped_farm_attributes.into_part(&payment.amount);
 
         let caller = self.blockchain().get_caller();
         let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
