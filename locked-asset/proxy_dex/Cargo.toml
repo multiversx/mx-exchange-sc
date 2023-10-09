@@ -59,6 +59,9 @@ path = "../../energy-integration/common-modules/energy-query"
 [dependencies.simple-lock]
 path = "../simple-lock"
 
+[dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"
@@ -81,9 +84,6 @@ path = "../../common/modules/farm/farm_token"
 
 [dev-dependencies.rewards]
 path = "../../common/modules/farm/rewards"
-
-[dev-dependencies.sc_whitelist_module]
-path = "../../common/modules/sc_whitelist_module"
 
 [dev-dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"

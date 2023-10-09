@@ -57,7 +57,7 @@ fn farm_proxy_actions_test() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr));
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -122,7 +122,7 @@ fn farm_proxy_actions_test() {
             1,
             &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.claim_rewards_proxy(managed_address!(&farm_addr));
+                sc.claim_rewards_proxy(managed_address!(&farm_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -240,7 +240,7 @@ fn farm_proxy_actions_test() {
             3,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                let output = sc.exit_farm_proxy(managed_address!(&farm_addr));
+                let output = sc.exit_farm_proxy(managed_address!(&farm_addr), OptionalValue::None);
                 let output_lp_token = output.0 .0;
                 assert_eq!(output_lp_token.token_nonce, 1);
                 assert_eq!(output_lp_token.amount, USER_BALANCE);
@@ -375,7 +375,10 @@ fn farm_with_wrapped_lp_test() {
             1,
             &expected_lp_token_amount,
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_locked_addr));
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
@@ -443,7 +446,7 @@ fn farm_with_wrapped_lp_test() {
             1,
             &(expected_lp_token_amount.clone() / rust_biguint!(2)),
             |sc| {
-                sc.exit_farm_proxy(managed_address!(&farm_locked_addr));
+                sc.exit_farm_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -545,7 +548,10 @@ fn farm_proxy_claim_energy_test() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_locked_addr));
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
@@ -619,7 +625,7 @@ fn farm_proxy_claim_energy_test() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.claim_rewards_proxy(managed_address!(&farm_locked_addr));
+                sc.claim_rewards_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -680,7 +686,10 @@ fn farm_proxy_partial_exit_test() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_locked_addr));
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
@@ -756,7 +765,7 @@ fn farm_proxy_partial_exit_test() {
             1,
             &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.exit_farm_proxy(managed_address!(&farm_locked_addr));
+                sc.exit_farm_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -855,7 +864,10 @@ fn farm_proxy_partial_exit_with_penalty_test() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_locked_addr));
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
@@ -931,7 +943,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
             1,
             &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.exit_farm_proxy(managed_address!(&farm_locked_addr));
+                sc.exit_farm_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1042,7 +1054,7 @@ fn different_farm_locked_token_nonce_merging_test() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr));
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1056,7 +1068,7 @@ fn different_farm_locked_token_nonce_merging_test() {
             2,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr));
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1149,7 +1161,7 @@ fn different_farm_locked_token_nonce_merging_test() {
             3,
             &rust_biguint!(USER_BALANCE * 2),
             |sc| {
-                sc.exit_farm_proxy(managed_address!(&farm_addr));
+                sc.exit_farm_proxy(managed_address!(&farm_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1190,7 +1202,7 @@ fn increase_proxy_farm_lkmex_energy() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr));
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1343,7 +1355,10 @@ fn increase_proxy_farm_proxy_lp_energy() {
             1,
             &expected_lp_token_amount,
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_locked_addr));
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
