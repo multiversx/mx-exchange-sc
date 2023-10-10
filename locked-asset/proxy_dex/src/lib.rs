@@ -13,7 +13,7 @@ pub mod pair_interactions;
 pub mod proxy_common;
 pub mod proxy_farm;
 pub mod proxy_pair;
-pub mod sc_whitelist;
+pub mod other_sc_whitelist;
 pub mod wrapped_farm_attributes;
 pub mod wrapped_farm_token_merge;
 pub mod wrapped_lp_attributes;
@@ -22,7 +22,7 @@ pub mod wrapped_lp_token_merge;
 #[multiversx_sc::contract]
 pub trait ProxyDexImpl:
     proxy_common::ProxyCommonModule
-    + sc_whitelist::ScWhitelistModule
+    + crate::other_sc_whitelist::OtherScWhitelistModule
     + proxy_pair::ProxyPairModule
     + pair_interactions::PairInteractionsModule
     + proxy_farm::ProxyFarmModule
@@ -37,6 +37,7 @@ pub trait ProxyDexImpl:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
+    + sc_whitelist_module::SCWhitelistModule
 {
     #[init]
     fn init(

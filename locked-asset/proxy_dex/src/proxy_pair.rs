@@ -12,14 +12,14 @@ use fixed_supply_token::FixedSupplyToken;
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
     crate::proxy_common::ProxyCommonModule
-    + crate::sc_whitelist::ScWhitelistModule
+    + crate::other_sc_whitelist::OtherScWhitelistModule
     + crate::pair_interactions::PairInteractionsModule
     + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
     + crate::energy_update::EnergyUpdateModule
+    + crate::events::EventsModule
     + energy_query::EnergyQueryModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + crate::events::EventsModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
 {
