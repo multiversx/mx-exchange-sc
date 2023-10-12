@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           25
+// Endpoints:                           31
 // Async Callback:                       1
-// Total number of exported functions:  27
+// Total number of exported functions:  33
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     proxy_dex
     (
         init => init
+        upgrade => upgrade
         registerProxyPair => register_proxy_pair
         setTransferRoleWrappedLpToken => set_transfer_role_wrapped_lp_token
         registerProxyFarm => register_proxy_farm
@@ -40,13 +41,18 @@ multiversx_sc_wasm_adapter::endpoints! {
         getIntermediatedFarms => intermediated_farms
         addLiquidityProxy => add_liquidity_proxy
         removeLiquidityProxy => remove_liquidity_proxy
+        increaseProxyPairTokenEnergy => increase_proxy_pair_token_energy_endpoint
         enterFarmProxy => enter_farm_proxy_endpoint
         exitFarmProxy => exit_farm_proxy
         claimRewardsProxy => claim_rewards_proxy
+        increaseProxyFarmTokenEnergy => increase_proxy_farm_token_energy_endpoint
         mergeWrappedFarmTokens => merge_wrapped_farm_tokens_endpoint
         mergeWrappedLpTokens => merge_wrapped_lp_tokens_endpoint
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
+        addSCAddressToWhitelist => add_sc_address_to_whitelist
+        removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
+        isSCAddressWhitelisted => is_sc_address_whitelisted
     )
 }
 

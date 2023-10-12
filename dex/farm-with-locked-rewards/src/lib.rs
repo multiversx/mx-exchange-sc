@@ -95,16 +95,12 @@ pub trait Farm:
 
         self.migrate_old_farm_positions(&orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
-        let boosted_rewards_payment = if boosted_rewards > 0 {
-            self.send_to_lock_contract_non_zero(
-                self.reward_token_id().get(),
-                boosted_rewards,
-                caller.clone(),
-                orig_caller.clone(),
-            )
-        } else {
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero())
-        };
+        let boosted_rewards_payment = self.send_to_lock_contract_non_zero(
+            self.reward_token_id().get(),
+            boosted_rewards,
+            caller.clone(),
+            orig_caller.clone(),
+        );
 
         let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(orig_caller.clone());
         self.send_payment_non_zero(&caller, &new_farm_token);
