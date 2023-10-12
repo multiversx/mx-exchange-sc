@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           15
+// Endpoints:                           16
 // Async Callback:                       1
-// Total number of exported functions:  17
+// Total number of exported functions:  18
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     farm_staking_proxy
     (
         init => init
+        upgrade => upgrade
         registerDualYieldToken => register_dual_yield_token
         getDualYieldTokenId => dual_yield_token
         getLpFarmAddress => lp_farm_address

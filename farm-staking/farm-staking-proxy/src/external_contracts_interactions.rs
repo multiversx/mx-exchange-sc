@@ -1,13 +1,14 @@
 multiversx_sc::imports!();
 
 use farm::{
-    base_functions::ClaimRewardsResultType, EnterFarmResultType, ExitFarmWithPartialPosResultType,
-    ProxyTrait as _,
+    base_functions::{ClaimRewardsResultType, DoubleMultiPayment},
+    EnterFarmResultType, ExitFarmWithPartialPosResultType,
 };
 use farm_staking::{
     claim_stake_farm_rewards::ProxyTrait as _, stake_farm::ProxyTrait as _,
     unstake_farm::ProxyTrait as _,
 };
+use farm_with_locked_rewards::ProxyTrait as _;
 use pair::safe_price_view::ProxyTrait as _;
 
 use crate::result_types::*;
@@ -68,9 +69,11 @@ pub trait ExternalContractsInteractionsModule:
         orig_caller: ManagedAddress,
         base_lp_token: EsdtTokenPayment,
         mut additional_lp_tokens: PaymentsVec<Self::Api>,
-    ) -> EsdtTokenPayment {
+    ) -> DoubleMultiPayment<Self::Api> {
         if additional_lp_tokens.is_empty() {
-            return base_lp_token;
+            let rewards_payment =
+                EsdtTokenPayment::new(base_lp_token.token_identifier.clone(), 0, BigUint::zero());
+            return (base_lp_token, rewards_payment).into();
         }
 
         additional_lp_tokens.push(base_lp_token);
@@ -216,7 +219,10 @@ pub trait ExternalContractsInteractionsModule:
     fn staking_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_staking::Proxy<Self::Api>;
 
     #[proxy]
-    fn lp_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm::Proxy<Self::Api>;
+    fn lp_farm_proxy_obj(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> farm_with_locked_rewards::Proxy<Self::Api>;
 
     #[proxy]
     fn pair_proxy_obj(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;

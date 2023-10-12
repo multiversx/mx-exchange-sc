@@ -21,6 +21,9 @@ version = "=0.43.3"
 [dependencies.farm]
 path = "../../dex/farm"
 
+[dependencies.farm-with-locked-rewards]
+path = "../../dex/farm-with-locked-rewards"
+
 [dependencies.farm-staking]
 path = "../farm-staking"
 
