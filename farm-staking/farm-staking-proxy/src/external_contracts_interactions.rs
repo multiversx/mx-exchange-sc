@@ -18,7 +18,7 @@ pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPaym
 
 #[multiversx_sc::module]
 pub trait ExternalContractsInteractionsModule:
-    crate::lp_farm_token::LpFarmTokenModule + utils::UtilsModule
+    crate::lp_farm_token::LpFarmTokenModule + utils::UtilsModule + energy_query::EnergyQueryModule
 {
     // lp farm
 
@@ -67,21 +67,21 @@ pub trait ExternalContractsInteractionsModule:
     fn merge_lp_farm_tokens(
         &self,
         orig_caller: ManagedAddress,
-        base_lp_token: EsdtTokenPayment,
-        mut additional_lp_tokens: PaymentsVec<Self::Api>,
+        base_lp_farm_token: EsdtTokenPayment,
+        mut additional_lp_farm_tokens: PaymentsVec<Self::Api>,
     ) -> DoubleMultiPayment<Self::Api> {
-        if additional_lp_tokens.is_empty() {
-            let rewards_payment =
-                EsdtTokenPayment::new(base_lp_token.token_identifier.clone(), 0, BigUint::zero());
-            return (base_lp_token, rewards_payment).into();
+        if additional_lp_farm_tokens.is_empty() {
+            let locked_token_id = self.get_locked_token_id();
+            let rewards_payment = EsdtTokenPayment::new(locked_token_id, 0, BigUint::zero());
+            return (base_lp_farm_token, rewards_payment).into();
         }
 
-        additional_lp_tokens.push(base_lp_token);
+        additional_lp_farm_tokens.push(base_lp_farm_token);
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
             .merge_farm_tokens_endpoint(orig_caller)
-            .with_multi_token_transfer(additional_lp_tokens)
+            .with_multi_token_transfer(additional_lp_farm_tokens)
             .execute_on_dest_context()
     }
 

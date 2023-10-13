@@ -16,6 +16,7 @@ pub trait ProxyClaimModule:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + token_send::TokenSendModule
+    + energy_query::EnergyQueryModule
     + sc_whitelist_module::SCWhitelistModule
 {
     #[payable("*")]

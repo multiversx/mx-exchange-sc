@@ -278,7 +278,8 @@ pub trait Farm:
         energy_address: ManagedAddress,
     ) -> EsdtTokenPayment {
         if amount == 0 {
-            return EsdtTokenPayment::new(token_id, 0, amount);
+            let locked_token_id = self.get_locked_token_id();
+            return EsdtTokenPayment::new(locked_token_id, 0, amount);
         }
 
         self.lock_virtual(token_id, amount, destination_address, energy_address)

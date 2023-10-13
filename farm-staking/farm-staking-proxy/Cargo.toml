@@ -60,6 +60,9 @@ path = "../../common/traits/unwrappable"
 [dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
 
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 
