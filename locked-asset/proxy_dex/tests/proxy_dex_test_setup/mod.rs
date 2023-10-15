@@ -21,7 +21,9 @@ use multiversx_sc_scenario::{
 };
 use pair::{config::ConfigModule as OtherConfigModule, Pair};
 use pausable::{PausableModule, State};
-use proxy_dex::{proxy_common::ProxyCommonModule, other_sc_whitelist::OtherScWhitelistModule, ProxyDexImpl};
+use proxy_dex::{
+    other_sc_whitelist::OtherScWhitelistModule, proxy_common::ProxyCommonModule, ProxyDexImpl,
+};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 
@@ -315,6 +317,8 @@ where
             );
             sc.set_locking_sc_address(managed_address!(simple_lock_addr));
             sc.set_lock_epochs(EPOCHS_IN_YEAR);
+            sc.energy_factory_address()
+                .set(managed_address!(simple_lock_addr));
         })
         .assert_ok();
 

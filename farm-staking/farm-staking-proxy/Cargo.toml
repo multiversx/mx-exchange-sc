@@ -74,3 +74,12 @@ path = "../../common/modules/farm/farm_token"
 
 [dev-dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"
+
+[dev-dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"
+
+[dev-dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
+
+[dev-dependencies.locking_module]
+path = "../../common/modules/locking_module"

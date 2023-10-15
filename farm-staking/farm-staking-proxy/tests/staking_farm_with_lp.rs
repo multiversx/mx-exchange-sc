@@ -20,7 +20,8 @@ use staking_farm_with_lp_staking_contract_interactions::*;
 fn test_all_setup() {
     let _ = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -30,7 +31,8 @@ fn test_all_setup() {
 fn test_stake_farm_proxy() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -44,7 +46,8 @@ fn test_stake_farm_proxy() {
 fn test_claim_rewards_farm_proxy_full() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -71,7 +74,8 @@ fn test_claim_rewards_farm_proxy_full() {
 fn test_claim_rewards_farm_proxy_half() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -98,7 +102,8 @@ fn test_claim_rewards_farm_proxy_half() {
 fn test_claim_rewards_farm_proxy_twice() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -140,7 +145,8 @@ fn test_claim_rewards_farm_proxy_twice() {
 fn test_unstake_through_proxy_no_claim() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -170,7 +176,8 @@ fn test_unstake_through_proxy_no_claim() {
 fn unstake_through_proxy_after_claim() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -210,7 +217,8 @@ fn unstake_partial_position_test() {
     DebugApi::dummy();
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -252,7 +260,7 @@ fn unstake_partial_position_test() {
                 let lp_farm_rewards = results.lp_farm_rewards;
                 assert_eq!(
                     lp_farm_rewards.token_identifier,
-                    managed_token_id!(RIDE_TOKEN_ID)
+                    managed_token_id!(LOCKED_TOKEN_ID)
                 );
                 assert_eq!(lp_farm_rewards.amount, 99_999 / 2);
 
@@ -299,7 +307,7 @@ fn unstake_partial_position_test() {
                 let lp_farm_rewards = results.lp_farm_rewards;
                 assert_eq!(
                     lp_farm_rewards.token_identifier,
-                    managed_token_id!(RIDE_TOKEN_ID)
+                    managed_token_id!(LOCKED_TOKEN_ID)
                 );
                 assert_eq!(lp_farm_rewards.amount, 99_999 / 2);
 
@@ -325,7 +333,8 @@ fn unstake_partial_position_test() {
 fn unbond_test() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -369,7 +378,8 @@ fn unbond_test() {
 fn farm_staking_compound_rewards_and_unstake_test() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -399,7 +409,8 @@ fn farm_staking_compound_rewards_and_unstake_test() {
 fn test_stake_farm_through_proxy_with_merging() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
-        farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
     );
@@ -469,3 +480,6 @@ fn test_stake_farm_through_proxy_with_merging() {
         )
     });
 }
+
+#[test]
+fn test_farm_stake_proxy_merging_boosted_rewards() {}

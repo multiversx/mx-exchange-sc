@@ -23,7 +23,7 @@ use sc_whitelist_module::SCWhitelistModule;
 
 use crate::{
     constants::*,
-    staking_farm_with_lp_external_contracts::{setup_lp_farm, setup_pair},
+    staking_farm_with_lp_external_contracts::{setup_energy_factory, setup_lp_farm, setup_pair},
     staking_farm_with_lp_staking_contract_setup::{
         add_proxy_to_whitelist, setup_proxy, setup_staking_farm,
     },
@@ -37,11 +37,13 @@ pub struct NonceAmountPair {
 pub struct FarmStakingSetup<
     PairObjBuilder,
     FarmObjBuilder,
+    EnergyFactoryBuilder,
     StakingContractObjBuilder,
     ProxyContractObjBuilder,
 > where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     ProxyContractObjBuilder: 'static + Copy + Fn() -> farm_staking_proxy::ContractObj<DebugApi>,
 {
@@ -49,29 +51,41 @@ pub struct FarmStakingSetup<
     pub user_addr: Address,
     pub b_mock: BlockchainStateWrapper,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
-    pub lp_farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
+    pub lp_farm_wrapper:
+        ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>,
+    pub energy_factory_wrapper:
+        ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
     pub staking_farm_wrapper:
         ContractObjWrapper<farm_staking::ContractObj<DebugApi>, StakingContractObjBuilder>,
     pub proxy_wrapper:
         ContractObjWrapper<farm_staking_proxy::ContractObj<DebugApi>, ProxyContractObjBuilder>,
 }
 
-impl<PairObjBuilder, FarmObjBuilder, StakingContractObjBuilder, ProxyContractObjBuilder>
+impl<
+        PairObjBuilder,
+        FarmObjBuilder,
+        EnergyFactoryBuilder,
+        StakingContractObjBuilder,
+        ProxyContractObjBuilder,
+    >
     FarmStakingSetup<
         PairObjBuilder,
         FarmObjBuilder,
+        EnergyFactoryBuilder,
         StakingContractObjBuilder,
         ProxyContractObjBuilder,
     >
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     ProxyContractObjBuilder: 'static + Copy + Fn() -> farm_staking_proxy::ContractObj<DebugApi>,
 {
     pub fn new(
         pair_builder: PairObjBuilder,
         lp_farm_builder: FarmObjBuilder,
+        energy_factory_builder: EnergyFactoryBuilder,
         staking_farm_builder: StakingContractObjBuilder,
         proxy_builder: ProxyContractObjBuilder,
     ) -> Self {
@@ -80,10 +94,13 @@ where
         let owner_addr = b_mock.create_user_account(&rust_zero);
         let user_addr = b_mock.create_user_account(&rust_biguint!(100_000_000));
 
+        let energy_factory_wrapper =
+            setup_energy_factory(&owner_addr, &mut b_mock, energy_factory_builder);
         let pair_wrapper = setup_pair(&owner_addr, &user_addr, &mut b_mock, pair_builder);
         let lp_farm_wrapper = setup_lp_farm(
             &owner_addr,
             &user_addr,
+            energy_factory_wrapper.address_ref(),
             &mut b_mock,
             lp_farm_builder,
             USER_TOTAL_LP_TOKENS,
@@ -111,6 +128,11 @@ where
                 sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
             })
             .assert_ok();
+        b_mock
+            .execute_tx(&owner_addr, &energy_factory_wrapper, &rust_zero, |sc| {
+                sc.add_sc_address_to_whitelist(managed_address!(lp_farm_wrapper.address_ref()));
+            })
+            .assert_ok();
 
         FarmStakingSetup {
             owner_addr,
@@ -118,6 +140,7 @@ where
             b_mock,
             pair_wrapper,
             lp_farm_wrapper,
+            energy_factory_wrapper,
             staking_farm_wrapper,
             proxy_wrapper,
         }

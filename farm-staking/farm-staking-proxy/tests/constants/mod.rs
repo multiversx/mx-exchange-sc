@@ -44,3 +44,12 @@ pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
 pub static PROXY_WASM_PATH: &str = "farm-staking-proxy/output/farm-staking-proxy";
 pub static DUAL_YIELD_TOKEN_ID: &[u8] = b"DYIELD-abcdef";
+
+// Energy factory constants
+
+pub const EPOCHS_IN_YEAR: u64 = 360;
+pub static MEX_TOKEN_ID: &[u8] = b"MEX-123456";
+pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
+pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
+pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 5 * EPOCHS_IN_YEAR, 10 * EPOCHS_IN_YEAR]; // 1, 5 or 10 years
+pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
