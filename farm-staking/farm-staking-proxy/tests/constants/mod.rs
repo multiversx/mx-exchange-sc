@@ -39,6 +39,7 @@ pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
 
 // Proxy constants
 

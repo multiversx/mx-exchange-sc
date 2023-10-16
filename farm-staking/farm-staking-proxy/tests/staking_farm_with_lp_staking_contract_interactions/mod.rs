@@ -1,8 +1,15 @@
 #![allow(deprecated)]
 
-use multiversx_sc::{codec::multi_types::OptionalValue, types::Address};
+use energy_factory::energy::EnergyModule;
+use energy_query::Energy;
+use farm_boosted_yields::FarmBoostedYieldsModule;
+use farm_with_locked_rewards::Farm;
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
+    types::{Address, BigInt},
+};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, rust_biguint,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
     whitebox_legacy::TxTokenTransfer,
     whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
@@ -441,5 +448,113 @@ where
             .assert_ok();
 
         unbond_token_nonce
+    }
+
+    pub fn enter_lp_farm(&mut self, user: &Address, farm_token_amount: u64) -> u64 {
+        let mut farm_token_nonce = 0;
+        self.b_mock
+            .execute_esdt_transfer(
+                user,
+                &self.lp_farm_wrapper,
+                LP_TOKEN_ID,
+                0,
+                &rust_biguint!(farm_token_amount),
+                |sc| {
+                    let (new_farm_token, _boosted_rewards_payment) =
+                        sc.enter_farm_endpoint(OptionalValue::None).into_tuple();
+                    assert_eq!(
+                        new_farm_token.token_identifier,
+                        managed_token_id!(LP_FARM_TOKEN_ID)
+                    );
+                    assert_eq!(new_farm_token.amount, farm_token_amount);
+                    farm_token_nonce = new_farm_token.token_nonce;
+                },
+            )
+            .assert_ok();
+
+        farm_token_nonce
+    }
+
+    pub fn exit_lp_farm(&mut self, user: &Address, farm_token_nonce: u64, farm_token_amount: u64) {
+        self.b_mock
+            .execute_esdt_transfer(
+                user,
+                &self.lp_farm_wrapper,
+                LP_FARM_TOKEN_ID,
+                farm_token_nonce,
+                &rust_biguint!(farm_token_amount),
+                |sc| {
+                    let (_lp_tokens, _boosted_rewards_payment) =
+                        sc.exit_farm_endpoint(OptionalValue::None).into_tuple();
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn claim_lp_farm(
+        &mut self,
+        user: &Address,
+        farm_token_nonce: u64,
+        farm_token_amount: u64,
+        expected_lp_farm_rewards: u64,
+    ) -> u64 {
+        let mut new_farm_token_nonce = 0;
+        self.b_mock
+            .execute_esdt_transfer(
+                user,
+                &self.lp_farm_wrapper,
+                LP_FARM_TOKEN_ID,
+                farm_token_nonce,
+                &rust_biguint!(farm_token_amount),
+                |sc| {
+                    let (output_farm_token, boosted_rewards_payment) =
+                        sc.claim_rewards_endpoint(OptionalValue::None).into_tuple();
+                    assert_eq!(output_farm_token.amount, farm_token_amount);
+                    assert_eq!(boosted_rewards_payment.amount, expected_lp_farm_rewards);
+                    new_farm_token_nonce = output_farm_token.token_nonce;
+                },
+            )
+            .assert_ok();
+
+        new_farm_token_nonce
+    }
+
+    pub fn set_user_energy(
+        &mut self,
+        user: &Address,
+        energy: u64,
+        last_update_epoch: u64,
+        locked_tokens: u64,
+    ) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.energy_factory_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                        BigInt::from(managed_biguint!(energy)),
+                        last_update_epoch,
+                        managed_biguint!(locked_tokens),
+                    ));
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn set_lp_farm_boosted_yields_rewards_percentage(
+        &mut self,
+        boosted_yields_rewards_percentage: u64,
+    ) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.lp_farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.set_boosted_yields_rewards_percentage(boosted_yields_rewards_percentage);
+                },
+            )
+            .assert_ok();
     }
 }
