@@ -46,7 +46,7 @@ pub trait ProxyUnstakeModule:
         );
 
         let staking_farm_exit_result = self.staking_farm_unstake(
-            orig_caller.clone(),
+            orig_caller,
             remove_liq_result.staking_token_payment,
             exit_attributes.staking_farm_token_nonce,
             exit_attributes.staking_farm_token_amount,
