@@ -65,3 +65,18 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub proposal_start_block: u64,
     pub fee_withdrawn: bool,
 }
+
+
+impl<M: ManagedTypeApi> Default for GovernanceProposal<M> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<M: ManagedTypeApi> GovernanceProposal<M> {
+    pub fn new() -> Self {
+        GovernanceProposal {
+            ..Default::default()
+        }
+    }
+}
