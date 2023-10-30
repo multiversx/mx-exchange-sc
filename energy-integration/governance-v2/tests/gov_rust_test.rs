@@ -730,6 +730,11 @@ fn gov_propose_cancel_proposal_id_test() {
         &min_fee,
         None,
     );
+    assert_eq!(proposal_id, 3);
+    gov_setup
+        .check_proposal_id_consistency(&first_user_addr, proposal_id)
+        .assert_ok();
+
 
     // Proposal ID = 4
     let (result, proposal_id) = gov_setup.propose(
