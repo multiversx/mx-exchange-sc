@@ -722,6 +722,11 @@ fn gov_propose_cancel_proposal_id_test() {
 
     gov_setup.cancel_proposal(&first_user_addr, 2).assert_ok();
 
+    // Try to retrieve the cancelled proposal
+    gov_setup.b_mock.execute_tx(&gov_setup.first_user.clone(), &gov_setup.gov_wrapper, &rust_biguint!(0), |sc| {
+        sc.proposals().get(2);
+    }).assert_ok();
+
     // Check proposer balance (fee should be refunded)
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
