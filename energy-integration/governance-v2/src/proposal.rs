@@ -50,7 +50,7 @@ impl<M: ManagedTypeApi> From<GovernanceActionAsMultiArg<M>> for GovernanceAction
     }
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub proposal_id: usize,
     pub proposer: ManagedAddress<M>,
@@ -66,7 +66,6 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub fee_withdrawn: bool,
 }
 
-
 impl<M: ManagedTypeApi> Default for GovernanceProposal<M> {
     fn default() -> Self {
         Self::new()
@@ -76,7 +75,22 @@ impl<M: ManagedTypeApi> Default for GovernanceProposal<M> {
 impl<M: ManagedTypeApi> GovernanceProposal<M> {
     pub fn new() -> Self {
         GovernanceProposal {
-            ..Default::default()
+            proposal_id: 0,
+            proposer: ManagedAddress::default(),
+            actions: ArrayVec::default(),
+            description: ManagedBuffer::default(),
+            fee_payment: EsdtTokenPayment {
+                token_identifier: TokenIdentifier::from(""),
+                token_nonce: 0,
+                amount: BigUint::zero(),
+            },
+            minimum_quorum: BigUint::default(),
+            voting_delay_in_blocks: 0,
+            voting_period_in_blocks: 0,
+            withdraw_percentage_defeated: 0,
+            total_quorum: BigUint::default(),
+            proposal_start_block: 0,
+            fee_withdrawn: false,
         }
     }
 }
