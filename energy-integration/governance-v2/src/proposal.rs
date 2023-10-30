@@ -1,3 +1,5 @@
+use multiversx_sc::codec::{EncodeDefault, DecodeDefault};
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -50,7 +52,7 @@ impl<M: ManagedTypeApi> From<GovernanceActionAsMultiArg<M>> for GovernanceAction
     }
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
+#[derive(TypeAbi, NestedEncode, NestedDecode, PartialEq, Debug, TopEncodeOrDefault, TopDecodeOrDefault)]
 pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub proposal_id: usize,
     pub proposer: ManagedAddress<M>,
@@ -66,7 +68,13 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub fee_withdrawn: bool,
 }
 
-impl<M: ManagedTypeApi> Default for GovernanceProposal<M> {
+impl<M: ManagedTypeApi> EncodeDefault for GovernanceProposal<M> {
+    fn is_default(&self) -> bool {
+        self.proposal_id == 0
+    }
+}
+
+impl<M: ManagedTypeApi> DecodeDefault for GovernanceProposal<M> {
     fn default() -> Self {
         Self::new()
     }
