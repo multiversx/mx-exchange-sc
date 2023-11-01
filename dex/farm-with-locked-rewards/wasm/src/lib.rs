@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           66
+// Endpoints:                           67
 // Async Callback:                       1
-// Total number of exported functions:  68
+// Total number of exported functions:  69
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     farm_with_locked_rewards
     (
         init => init
+        upgrade => upgrade
         enterFarm => enter_farm_endpoint
         claimRewards => claim_rewards_endpoint
         exitFarm => exit_farm_endpoint

@@ -104,11 +104,8 @@ pub trait FarmStaking:
         self.migrate_old_farm_positions(&caller);
 
         let boosted_rewards = self.claim_only_boosted_payment(&caller);
-        let boosted_rewards_payment = if boosted_rewards > 0 {
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards)
-        } else {
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero())
-        };
+        let boosted_rewards_payment =
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();

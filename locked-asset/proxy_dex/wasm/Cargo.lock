@@ -480,6 +480,7 @@ dependencies = [
  "multiversx-sc",
  "multiversx-sc-modules",
  "pair",
+ "sc_whitelist_module",
  "simple-lock",
  "token_merge_helper",
  "token_send",
