@@ -215,8 +215,10 @@ version = "0.0.0"
 dependencies = [
  "common_structs",
  "config",
+ "energy-query",
  "farm",
  "farm-staking",
+ "farm-with-locked-rewards",
  "fixed-supply-token",
  "hex-literal",
  "mergeable",
@@ -237,6 +239,36 @@ version = "0.0.0"
 dependencies = [
  "farm-staking-proxy",
  "multiversx-sc-wasm-adapter",
+]
+
+[[package]]
+name = "farm-with-locked-rewards"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "energy-factory",
+ "energy-query",
+ "events",
+ "farm",
+ "farm-boosted-yields",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "locking_module",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "pausable",
+ "permissions_module",
+ "rewards",
+ "sc_whitelist_module",
+ "token_send",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
 ]
 
 [[package]]

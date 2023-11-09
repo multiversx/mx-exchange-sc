@@ -96,11 +96,8 @@ pub trait Farm:
 
         self.migrate_old_farm_positions(&orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
-        let boosted_rewards_payment = if boosted_rewards > 0 {
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards)
-        } else {
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero())
-        };
+        let boosted_rewards_payment =
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
         let new_farm_token = self.enter_farm::<Wrapper<Self>>(orig_caller.clone());
         self.send_payment_non_zero(&caller, &new_farm_token);
@@ -186,11 +183,8 @@ pub trait Farm:
         self.migrate_old_farm_positions(&orig_caller);
 
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
-        let boosted_rewards_payment = if boosted_rewards > 0 {
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards)
-        } else {
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero())
-        };
+        let boosted_rewards_payment =
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
         let merged_farm_token = self.merge_farm_tokens::<Wrapper<Self>>();
         self.send_payment_non_zero(&caller, &merged_farm_token);

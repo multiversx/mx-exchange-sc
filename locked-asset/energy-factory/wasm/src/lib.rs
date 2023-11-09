@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           32
+// Endpoints:                           34
 // Async Callback:                       1
-// Total number of exported functions:  34
+// Total number of exported functions:  36
 
 #![no_std]
 
@@ -22,8 +22,10 @@ multiversx_sc_wasm_adapter::endpoints! {
     energy_factory
     (
         init => init
+        upgrade => upgrade
         lockTokens => lock_tokens_endpoint
         unlockTokens => unlock_tokens_endpoint
+        extendLockPeriod => extend_lock_period
         issueLockedToken => issue_locked_token
         getLockedTokenId => locked_token
         getBaseAssetTokenId => base_asset_token_id

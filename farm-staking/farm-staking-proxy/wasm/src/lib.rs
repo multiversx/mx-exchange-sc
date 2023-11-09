@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           15
+// Endpoints:                           18
 // Async Callback:                       1
-// Total number of exported functions:  17
+// Total number of exported functions:  20
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     farm_staking_proxy
     (
         init => init
+        upgrade => upgrade
         registerDualYieldToken => register_dual_yield_token
         getDualYieldTokenId => dual_yield_token
         getLpFarmAddress => lp_farm_address
@@ -34,6 +35,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
+        setEnergyFactoryAddress => set_energy_factory_address
+        getEnergyFactoryAddress => energy_factory_address
         stakeFarmTokens => stake_farm_tokens
         claimDualYield => claim_dual_yield_endpoint
         unstakeFarmTokens => unstake_farm_tokens

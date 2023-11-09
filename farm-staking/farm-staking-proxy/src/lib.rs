@@ -16,6 +16,7 @@ pub trait FarmStakingProxy:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + token_send::TokenSendModule
+    + energy_query::EnergyQueryModule
     + sc_whitelist_module::SCWhitelistModule
     + proxy_actions::stake::ProxyStakeModule
     + proxy_actions::claim::ProxyClaimModule
@@ -24,6 +25,7 @@ pub trait FarmStakingProxy:
     #[init]
     fn init(
         &self,
+        energy_factory_address: ManagedAddress,
         lp_farm_address: ManagedAddress,
         staking_farm_address: ManagedAddress,
         pair_address: ManagedAddress,
@@ -32,6 +34,7 @@ pub trait FarmStakingProxy:
         staking_farm_token_id: TokenIdentifier,
         lp_token_id: TokenIdentifier,
     ) {
+        self.require_sc_address(&energy_factory_address);
         self.require_sc_address(&lp_farm_address);
         self.require_sc_address(&staking_farm_address);
         self.require_sc_address(&pair_address);
@@ -41,6 +44,8 @@ pub trait FarmStakingProxy:
         self.require_valid_token_id(&staking_farm_token_id);
         self.require_valid_token_id(&lp_token_id);
 
+        self.energy_factory_address()
+            .set_if_empty(&energy_factory_address);
         self.lp_farm_address().set_if_empty(&lp_farm_address);
         self.staking_farm_address()
             .set_if_empty(&staking_farm_address);

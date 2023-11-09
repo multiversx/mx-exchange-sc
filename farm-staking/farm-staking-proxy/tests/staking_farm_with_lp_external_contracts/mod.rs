@@ -1,12 +1,18 @@
 #![allow(deprecated)]
 
+use energy_factory::token_whitelist::TokenWhitelistModule;
+use energy_factory::SimpleLockEnergy;
+use energy_query::EnergyQueryModule;
+use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
+use simple_lock::locked_token::LockedTokenModule;
 
 use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
@@ -16,10 +22,10 @@ use pair_config::ConfigModule as _;
 use pausable::{PausableModule, State};
 
 use ::config as farm_config;
-use farm::*;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_config::ConfigModule as _;
 use farm_token::FarmTokenModule;
+use farm_with_locked_rewards::*;
 
 use crate::constants::*;
 
@@ -241,12 +247,13 @@ fn remove_liquidity<PairObjBuilder>(
 pub fn setup_lp_farm<FarmObjBuilder>(
     owner_addr: &Address,
     user_addr: &Address,
+    energy_factory_address: &Address,
     b_mock: &mut BlockchainStateWrapper,
     farm_builder: FarmObjBuilder,
     user_farm_in_amount: u64,
-) -> ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>
+) -> ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let farm_wrapper =
@@ -256,7 +263,7 @@ where
 
     b_mock
         .execute_tx(owner_addr, &farm_wrapper, &rust_zero, |sc| {
-            let reward_token_id = managed_token_id!(RIDE_TOKEN_ID);
+            let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
             let farming_token_id = managed_token_id!(LP_TOKEN_ID);
             let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
             let pair_address = managed_address!(&Address::zero());
@@ -282,6 +289,11 @@ where
                 .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
             sc.last_reward_block_nonce()
                 .set(BLOCK_NONCE_AFTER_PAIR_SETUP);
+            sc.lock_epochs().set(LOCK_OPTIONS[2]);
+            sc.locking_sc_address()
+                .set(managed_address!(energy_factory_address));
+            sc.energy_factory_address()
+                .set(managed_address!(energy_factory_address));
         })
         .assert_ok();
 
@@ -327,14 +339,80 @@ where
     farm_wrapper
 }
 
+pub fn setup_energy_factory<EnergyFactoryObjBuilder>(
+    owner_addr: &Address,
+    b_mock: &mut BlockchainStateWrapper,
+    energy_factory_builder: EnergyFactoryObjBuilder,
+) -> ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryObjBuilder>
+where
+    EnergyFactoryObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+{
+    let rust_zero = rust_biguint!(0u64);
+    let energy_factory_wrapper = b_mock.create_sc_account(
+        &rust_zero,
+        Some(owner_addr),
+        energy_factory_builder,
+        "energy factory",
+    );
+
+    b_mock
+        .execute_tx(owner_addr, &energy_factory_wrapper, &rust_zero, |sc| {
+            let mut lock_options = MultiValueEncoded::new();
+            for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
+                lock_options.push((*option, *penalty).into());
+            }
+
+            sc.init(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
+                managed_address!(energy_factory_wrapper.address_ref()),
+                0,
+                lock_options,
+            );
+
+            sc.base_asset_token_id()
+                .set(managed_token_id!(MEX_TOKEN_ID));
+            sc.locked_token()
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
+            sc.set_paused(false);
+        })
+        .assert_ok();
+
+    b_mock.set_esdt_local_roles(
+        energy_factory_wrapper.address_ref(),
+        MEX_TOKEN_ID,
+        &[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
+    );
+    b_mock.set_esdt_local_roles(
+        energy_factory_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+            EsdtLocalRole::Transfer,
+        ],
+    );
+    b_mock.set_esdt_local_roles(
+        energy_factory_wrapper.address_ref(),
+        LEGACY_LOCKED_TOKEN_ID,
+        &[EsdtLocalRole::NftBurn],
+    );
+
+    energy_factory_wrapper
+}
+
 fn enter_farm<FarmObjBuilder>(
     user_address: &Address,
     b_mock: &mut BlockchainStateWrapper,
-    farm_wrapper: &ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
+    farm_wrapper: &ContractObjWrapper<
+        farm_with_locked_rewards::ContractObj<DebugApi>,
+        FarmObjBuilder,
+    >,
     farm_in_amount: u64,
     additional_farm_tokens: &[TxTokenTransfer],
 ) where
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
 {
     let mut payments = Vec::with_capacity(1 + additional_farm_tokens.len());
     payments.push(TxTokenTransfer {

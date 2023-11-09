@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           68
+// Endpoints:                           69
 // Async Callback:                       1
-// Total number of exported functions:  70
+// Total number of exported functions:  71
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     farm_staking
     (
         init => init
+        upgrade => upgrade
         mergeFarmTokens => merge_farm_tokens_endpoint
         calculateRewardsForGivenPosition => calculate_rewards_for_given_position
         topUpRewards => top_up_rewards
