@@ -23,4 +23,4 @@ default-features = false
 path = ".."
 
 [dependencies.multiversx-sc-wasm-adapter]
-version = "=0.43.3"
+version = "=0.44.0"

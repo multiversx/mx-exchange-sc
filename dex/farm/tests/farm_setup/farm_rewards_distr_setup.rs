@@ -183,7 +183,7 @@ where
                 &self.farm_wrapper,
                 FARM_TOKEN_ID,
                 farm_token_nonce,
-                &farm_out_amount.clone(),
+                &farm_out_amount,
                 |sc| {
                     let multi_result = sc.exit_farm_endpoint(OptionalValue::None);
 

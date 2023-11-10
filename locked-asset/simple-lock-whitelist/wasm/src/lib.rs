@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           24
+// Endpoints:                           25
 // Async Callback:                       1
-// Total number of exported functions:  26
+// Total number of exported functions:  27
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     simple_lock_whitelist
     (
         init => init
+        upgrade => upgrade
         setTransferRoleLockedToken => set_transfer_role
         setTransferRoleProxyLpToken => set_transfer_role_proxy_lp
         setTransferRoleProxyFarmToken => set_transfer_role_proxy_farm

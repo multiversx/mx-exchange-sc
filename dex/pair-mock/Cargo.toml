@@ -11,11 +11,11 @@ path = "src/pair.rs"
 path = "../../common/common_errors"
 
 [dependencies.multiversx-sc]
-version = "=0.43.3"
+version = "=0.44.0"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.itertools]
 version = "0.10.1"
 default-features = false
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.43.3"
+version = "=0.44.0"
