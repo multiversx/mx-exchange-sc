@@ -22,8 +22,8 @@ path = "../../token_merge_helper"
 path = "../farm_token"
 
 [dependencies.multiversx-sc]
-version = "=0.43.3"
+version = "=0.44.0"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.43.3"
+version = "=0.44.0"
