@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           10
+// Endpoints:                           11
 // Async Callback (empty):               1
-// Total number of exported functions:  12
+// Total number of exported functions:  13
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     token_unstake
     (
         init => init
+        upgrade => upgrade
         getUnbondEpochs => unbond_epochs
         getUnlockedTokensForUser => unlocked_tokens_for_user
         claimUnlockedTokens => claim_unlocked_tokens

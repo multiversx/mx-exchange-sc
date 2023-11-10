@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           19
+// Endpoints:                           20
 // Async Callback:                       1
-// Total number of exported functions:  21
+// Total number of exported functions:  22
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     simple_lock
     (
         init => init
+        upgrade => upgrade
         lockTokens => lock_tokens_endpoint
         unlockTokens => unlock_tokens_endpoint
         issueLockedToken => issue_locked_token

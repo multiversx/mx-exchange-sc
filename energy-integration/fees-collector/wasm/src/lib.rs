@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           37
+// Endpoints:                           38
 // Async Callback (empty):               1
-// Total number of exported functions:  39
+// Total number of exported functions:  40
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     fees_collector
     (
         init => init
+        upgrade => upgrade
         claimRewards => claim_rewards
         addKnownContracts => add_known_contracts
         removeKnownContracts => remove_known_contracts

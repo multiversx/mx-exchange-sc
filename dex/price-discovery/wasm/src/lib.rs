@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           27
+// Endpoints:                           28
 // Async Callback:                       1
-// Total number of exported functions:  29
+// Total number of exported functions:  30
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     price_discovery
     (
         init => init
+        upgrade => upgrade
         deposit => deposit
         withdraw => withdraw
         redeem => redeem

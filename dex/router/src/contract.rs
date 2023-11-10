@@ -70,6 +70,7 @@ pub trait Router:
         }
     }
 
+    #[allow_multiple_var_args]
     #[endpoint(createPair)]
     fn create_pair_endpoint(
         &self,

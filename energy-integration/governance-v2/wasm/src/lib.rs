@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           28
+// Endpoints:                           29
 // Async Callback (empty):               1
-// Total number of exported functions:  30
+// Total number of exported functions:  31
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     governance_v2
     (
         init => init
+        upgrade => upgrade
         propose => propose
         vote => vote
         cancel => cancel

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           24
+// Endpoints:                           25
 // Async Callback:                       1
-// Total number of exported functions:  26
+// Total number of exported functions:  27
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     factory
     (
         init => init
+        upgrade => upgrade
         whitelist => whitelist
         removeWhitelist => remove_whitelist
         createAndForwardCustomPeriod => create_and_forward_custom_period

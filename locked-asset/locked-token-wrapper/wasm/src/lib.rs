@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            8
+// Endpoints:                            9
 // Async Callback:                       1
-// Total number of exported functions:  10
+// Total number of exported functions:  11
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     locked_token_wrapper
     (
         init => init
+        upgrade => upgrade
         wrapLockedToken => wrap_locked_token_endpoint
         unwrapLockedToken => unwrap_locked_token_endpoint
         issueWrappedToken => issue_wrapped_token
