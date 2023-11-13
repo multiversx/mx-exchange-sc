@@ -1,3 +1,5 @@
+use multiversx_sc::codec::{DecodeDefault, EncodeDefault};
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -50,7 +52,9 @@ impl<M: ManagedTypeApi> From<GovernanceActionAsMultiArg<M>> for GovernanceAction
     }
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
+#[derive(
+    TypeAbi, NestedEncode, NestedDecode, PartialEq, Debug, TopEncodeOrDefault, TopDecodeOrDefault,
+)]
 pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub proposal_id: usize,
     pub proposer: ManagedAddress<M>,
@@ -64,4 +68,45 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub total_quorum: BigUint<M>,
     pub proposal_start_block: u64,
     pub fee_withdrawn: bool,
+}
+
+impl<M: ManagedTypeApi> EncodeDefault for GovernanceProposal<M> {
+    fn is_default(&self) -> bool {
+        self.proposal_id == 0
+    }
+}
+
+impl<M: ManagedTypeApi> DecodeDefault for GovernanceProposal<M> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<M: ManagedTypeApi> Default for GovernanceProposal<M> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<M: ManagedTypeApi> GovernanceProposal<M> {
+    pub fn new() -> Self {
+        GovernanceProposal {
+            proposal_id: 0,
+            proposer: ManagedAddress::default(),
+            actions: ArrayVec::default(),
+            description: ManagedBuffer::default(),
+            fee_payment: EsdtTokenPayment {
+                token_identifier: TokenIdentifier::from(""),
+                token_nonce: 0,
+                amount: BigUint::zero(),
+            },
+            minimum_quorum: BigUint::default(),
+            voting_delay_in_blocks: 0,
+            voting_period_in_blocks: 0,
+            withdraw_percentage_defeated: 0,
+            total_quorum: BigUint::default(),
+            proposal_start_block: 0,
+            fee_withdrawn: false,
+        }
+    }
 }
