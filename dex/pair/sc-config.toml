@@ -8,6 +8,7 @@ add-unlabelled = true
 [contracts.safe-price-view]
 name = "safe-price-view"
 external-view = true
+add-unlabelled = false
 add-labels = ["safe-price-view"]
 
 [contracts.full]

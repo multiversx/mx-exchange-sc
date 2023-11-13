@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            4
+// Endpoints:                            5
 // Async Callback (empty):               1
-// Total number of exported functions:   6
+// Total number of exported functions:   7
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     proxy_deployer
     (
         init => init
+        upgrade => upgrade
         deployFarm => deploy_farm
         callFarmEndpoint => call_farm_endpoint
         getAllDeployedFarms => get_all_deployed_farms

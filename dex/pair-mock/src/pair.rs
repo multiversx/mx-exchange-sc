@@ -16,6 +16,7 @@ pub const DEFAULT_SKIP_MINTING_LP_TOKENS: bool = true;
 
 #[multiversx_sc::derive::contract]
 pub trait PairMock {
+    #[allow_multiple_var_args]
     #[init]
     fn init(
         &self,

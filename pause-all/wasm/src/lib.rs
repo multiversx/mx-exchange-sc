@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            7
+// Endpoints:                            8
 // Async Callback (empty):               1
-// Total number of exported functions:   9
+// Total number of exported functions:  10
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     pause_all
     (
         init => init
+        upgrade => upgrade
         addPausableContracts => add_pausable_contracts
         removePausableContracts => remove_pausable_contracts
         pauseSelected => pause_selected

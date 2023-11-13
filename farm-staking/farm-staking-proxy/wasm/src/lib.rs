@@ -32,11 +32,11 @@ multiversx_sc_wasm_adapter::endpoints! {
         getFarmTokenId => staking_farm_token_id
         getLpTokenId => lp_token_id
         getLpFarmTokenId => lp_farm_token_id
+        setEnergyFactoryAddress => set_energy_factory_address
+        getEnergyFactoryAddress => energy_factory_address
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
-        setEnergyFactoryAddress => set_energy_factory_address
-        getEnergyFactoryAddress => energy_factory_address
         stakeFarmTokens => stake_farm_tokens
         claimDualYield => claim_dual_yield_endpoint
         unstakeFarmTokens => unstake_farm_tokens
