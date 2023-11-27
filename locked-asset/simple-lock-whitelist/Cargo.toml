@@ -7,6 +7,7 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
 [dependencies.simple-lock]
 path = "../simple-lock"
 
@@ -14,11 +15,11 @@ path = "../simple-lock"
 path = "../../common/modules/utils"
 
 [dependencies.multiversx-sc]
-version = "=0.44.0"
+version = "=0.45.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.44.0"
+version = "=0.45.1"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -26,4 +27,4 @@ num-traits = "0.2"
 hex = "0.4"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.44.0"
+version = "=0.45.1"
