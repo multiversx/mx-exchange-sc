@@ -3,8 +3,9 @@ name = "distribution-tests"
 version = "0.0.0"
 edition = "2021"
 publish = false
+
 [dependencies.multiversx-sc]
-version = "=0.44.0"
+version = "=0.45.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.farm]
@@ -49,7 +50,7 @@ num-traits = "0.2"
 hex = "0.4"
 
 [dev-dependencies.multiversx-sc-modules]
-version = "=0.44.0"
+version = "=0.45.1"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.44.0"
+version = "=0.45.1"
