@@ -121,7 +121,7 @@ where
                 &fees_collector_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.claim_rewards(OptionalValue::None);
+                    sc.claim_rewards_endpoint(OptionalValue::None);
                 },
             )
             .assert_ok();
@@ -132,7 +132,7 @@ where
                 &fees_collector_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.claim_rewards(OptionalValue::None);
+                    sc.claim_rewards_endpoint(OptionalValue::None);
                 },
             )
             .assert_ok();
@@ -143,7 +143,7 @@ where
                 &fees_collector_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.claim_rewards(OptionalValue::None);
+                    sc.claim_rewards_endpoint(OptionalValue::None);
                 },
             )
             .assert_ok();
