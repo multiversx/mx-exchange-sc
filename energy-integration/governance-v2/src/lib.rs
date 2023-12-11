@@ -42,7 +42,7 @@ pub trait GovernanceV2:
         &self,
         min_energy_for_propose: BigUint,
         min_fee_for_propose: BigUint,
-        quorum_percentage: BigUint,
+        quorum_percentage: u64,
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
         withdraw_percentage_defeated: u64,

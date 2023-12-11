@@ -73,7 +73,7 @@ pub trait ViewsModule:
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal = self.proposals().get(proposal_id);
         let total_quorum_for_proposal = proposal.total_quorum;
-        let required_minimum_percentage = proposal.minimum_quorum;
+        let required_minimum_percentage = BigUint::from(proposal.minimum_quorum);
         let current_quorum = self.proposal_votes(proposal_id).get().quorum;
 
         current_quorum * FULL_PERCENTAGE >= required_minimum_percentage * total_quorum_for_proposal

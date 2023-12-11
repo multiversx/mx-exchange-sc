@@ -8,7 +8,7 @@ use governance_v2::{
     proposal_storage::ProposalStorageModule, views::ViewsModule,
 };
 use multiversx_sc::{codec::Empty, types::ManagedVec};
-use multiversx_sc_scenario::{managed_biguint, managed_buffer, rust_biguint};
+use multiversx_sc_scenario::{managed_buffer, rust_biguint};
 
 #[test]
 fn init_gov_test() {
@@ -26,7 +26,7 @@ fn gov_propose_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -94,7 +94,7 @@ fn gov_propose_total_energy_0_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&no_energy_user, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&no_energy_user, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     gov_setup.change_min_energy(0).assert_ok();
 
@@ -131,7 +131,7 @@ fn gov_no_veto_vote_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -148,7 +148,7 @@ fn gov_no_veto_vote_test() {
         .execute_query(&gov_setup.gov_wrapper, |sc| {
             assert_eq!(
                 sc.quorum_percentage().get(),
-                managed_biguint!(QUORUM_PERCENTAGE)
+                QUORUM_PERCENTAGE
             );
         })
         .assert_ok();
@@ -189,7 +189,7 @@ fn gov_abstain_vote_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -231,7 +231,7 @@ fn gov_no_quorum_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -270,7 +270,7 @@ fn gov_modify_quorum_after_end_vote_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -295,8 +295,8 @@ fn gov_modify_quorum_after_end_vote_test() {
                 sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
                 "Action should have been Defeated"
             );
-            sc.try_change_quorum_percentage(managed_biguint!(QUORUM_PERCENTAGE / 2));
-            assert!(sc.quorum_percentage().get() == managed_biguint!(QUORUM_PERCENTAGE / 2));
+            sc.try_change_quorum_percentage(QUORUM_PERCENTAGE / 2);
+            assert!(sc.quorum_percentage().get() == QUORUM_PERCENTAGE / 2);
 
             assert!(
                 sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
@@ -317,7 +317,7 @@ fn gov_withdraw_defeated_proposal_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -332,7 +332,7 @@ fn gov_withdraw_defeated_proposal_test() {
     // Check proposer balance
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &rust_biguint!(0),
         None,
@@ -370,7 +370,7 @@ fn gov_withdraw_defeated_proposal_test() {
     // Check proposer balance (fee)
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &min_fee,
         None,
@@ -388,7 +388,7 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -403,7 +403,7 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     // Check proposer balance
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &rust_biguint!(0),
         None,
@@ -449,7 +449,7 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     // Check proposer balance (fee)
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &min_fee,
         None,
@@ -467,7 +467,7 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -482,7 +482,7 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
     // Check proposer balance
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &rust_biguint!(0),
         None,
@@ -515,7 +515,7 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
     // Check proposer balance (fee)
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &(min_fee / 2u64),
         None,
@@ -538,7 +538,7 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     gov_setup.change_withdraw_percentage(0).assert_ok();
     let (result, proposal_id) = gov_setup.propose(
@@ -554,7 +554,7 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
     // Check proposer balance
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &rust_biguint!(0),
         None,
@@ -587,7 +587,7 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
     // Check proposer balance (fee)
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &rust_biguint!(0),
         None,
@@ -596,7 +596,7 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&first_user_addr, MEX_TOKEN_ID, 1, &min_fee, &Empty);
 
     gov_setup.change_withdraw_percentage(10_000).assert_ok();
     let (result, proposal_id) = gov_setup.propose(
@@ -612,7 +612,7 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
     // Check proposer balance
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &rust_biguint!(0),
         None,
@@ -645,7 +645,7 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
     // Check proposer balance (fee)
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &min_fee,
         None,
@@ -662,7 +662,7 @@ fn gov_propose_cancel_proposal_id_test() {
     // Give proposer the minimum fee
     gov_setup.b_mock.set_nft_balance(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &(min_fee.clone() * 3u64),
         &Empty,
@@ -712,7 +712,7 @@ fn gov_propose_cancel_proposal_id_test() {
     // Check proposer balance (fee = 0)
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &rust_biguint!(0),
         None,
@@ -736,7 +736,7 @@ fn gov_propose_cancel_proposal_id_test() {
     // Check proposer balance (fee should be refunded)
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
-        WXMEX_TOKEN_ID,
+        MEX_TOKEN_ID,
         1,
         &min_fee,
         None,

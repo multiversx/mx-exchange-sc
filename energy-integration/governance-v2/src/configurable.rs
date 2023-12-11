@@ -63,7 +63,7 @@ pub trait ConfigurablePropertiesModule:
 
     #[only_owner]
     #[endpoint(changeQuorumPercentage)]
-    fn change_quorum_percentage(&self, new_value: BigUint) {
+    fn change_quorum_percentage(&self, new_value: u64) {
         self.try_change_quorum_percentage(new_value);
     }
 
@@ -102,40 +102,40 @@ pub trait ConfigurablePropertiesModule:
         self.min_fee_for_propose().set(&new_value);
     }
 
-    fn try_change_quorum_percentage(&self, new_value: BigUint) {
+    fn try_change_quorum_percentage(&self, new_quorum_percetange: u64) {
         require!(
-            new_value > MIN_QUORUM && new_value < MAX_QUORUM,
+            (MIN_QUORUM..MAX_QUORUM).contains(&new_quorum_percetange),
             "Not valid value for Quorum!"
         );
 
-        self.quorum_percentage().set(&new_value);
+        self.quorum_percentage().set(new_quorum_percetange);
     }
 
-    fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
+    fn try_change_voting_delay_in_blocks(&self, new_voting_delay: u64) {
         require!(
-            new_value > MIN_VOTING_DELAY && new_value < MAX_VOTING_DELAY,
+            (MIN_VOTING_DELAY..MAX_VOTING_DELAY).contains(&new_voting_delay),
             "Not valid value for voting delay!"
         );
 
-        self.voting_delay_in_blocks().set(new_value);
+        self.voting_delay_in_blocks().set(new_voting_delay);
     }
 
-    fn try_change_voting_period_in_blocks(&self, new_value: u64) {
+    fn try_change_voting_period_in_blocks(&self, new_voting_period: u64) {
         require!(
-            new_value > MIN_VOTING_PERIOD && new_value < MAX_VOTING_PERIOD,
+            (MIN_VOTING_PERIOD..MAX_VOTING_PERIOD).contains(&new_voting_period),
             "Not valid value for voting period!"
         );
 
-        self.voting_period_in_blocks().set(new_value);
+        self.voting_period_in_blocks().set(new_voting_period);
     }
 
-    fn try_change_withdraw_percentage_defeated(&self, new_value: u64) {
+    fn try_change_withdraw_percentage_defeated(&self, new_withdraw_percentage: u64) {
         require!(
-            new_value <= FULL_PERCENTAGE,
+            new_withdraw_percentage <= FULL_PERCENTAGE,
             "Not valid value for withdraw percentage if defeated!"
         );
 
-        self.withdraw_percentage_defeated().set(new_value);
+        self.withdraw_percentage_defeated().set(new_withdraw_percentage);
     }
 
     fn try_change_fee_token_id(&self, fee_token_id: TokenIdentifier) {
@@ -157,7 +157,7 @@ pub trait ConfigurablePropertiesModule:
 
     #[view(getQuorum)]
     #[storage_mapper("quorumPercentage")]
-    fn quorum_percentage(&self) -> SingleValueMapper<BigUint>;
+    fn quorum_percentage(&self) -> SingleValueMapper<u64>;
 
     #[view(getVotingDelayInBlocks)]
     #[storage_mapper("votingDelayInBlocks")]
