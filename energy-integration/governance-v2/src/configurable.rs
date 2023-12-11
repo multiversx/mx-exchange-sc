@@ -86,8 +86,6 @@ pub trait ConfigurablePropertiesModule:
     }
 
     fn try_change_min_energy_for_propose(&self, new_value: BigUint) {
-        require!(new_value != 0, "Min energy for proposal can't be set to 0");
-
         self.min_energy_for_propose().set(&new_value);
     }
 
