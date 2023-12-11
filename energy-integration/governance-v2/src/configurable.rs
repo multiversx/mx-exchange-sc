@@ -102,13 +102,13 @@ pub trait ConfigurablePropertiesModule:
         self.min_fee_for_propose().set(&new_value);
     }
 
-    fn try_change_quorum_percentage(&self, new_quorum_percetange: u64) {
+    fn try_change_quorum_percentage(&self, new_quorum_percentage: u64) {
         require!(
-            (MIN_QUORUM..MAX_QUORUM).contains(&new_quorum_percetange),
+            (MIN_QUORUM..MAX_QUORUM).contains(&new_quorum_percentage),
             "Not valid value for Quorum!"
         );
 
-        self.quorum_percentage().set(new_quorum_percetange);
+        self.quorum_percentage().set(new_quorum_percentage);
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_voting_delay: u64) {
