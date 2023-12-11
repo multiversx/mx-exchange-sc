@@ -28,6 +28,7 @@ pub const VOTING_PERIOD_BLOCKS: u64 = 144_000; // 10 days
 pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
 pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
 pub const MEX_TOKEN_ID: &[u8] = b"MEX-123456";
+pub const XMEX_TOKEN_ID: &[u8] = b"XMEX-123456";
 pub const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
 pub const FULL_PERCENTAGE: u64 = 10_000;
 pub const USER_ENERGY: u64 = 1_000_000;
@@ -116,7 +117,7 @@ where
         b_mock
             .execute_tx(&owner, &fees_collector_wrapper, &rust_biguint!(0), |sc| {
                 sc.init(
-                    managed_token_id!(MEX_TOKEN_ID),
+                    managed_token_id!(XMEX_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
                 );
             })
@@ -182,9 +183,8 @@ where
             .assert_ok();
 
         let vote_nft_roles = [
-            EsdtLocalRole::NftCreate,
-            EsdtLocalRole::NftBurn,
-            EsdtLocalRole::NftUpdateAttributes,
+            EsdtLocalRole::Mint,
+            EsdtLocalRole::Burn,
         ];
         b_mock.set_esdt_local_roles(
             gov_wrapper.address_ref(),
@@ -217,7 +217,7 @@ where
             proposer,
             &self.gov_wrapper,
             MEX_TOKEN_ID,
-            1u64,
+            0,
             fee_amount,
             |sc| {
                 let mut args_managed = ManagedVec::new();
