@@ -88,16 +88,18 @@ fn gov_propose_test() {
 fn gov_propose_total_energy_0_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
+    let no_energy_user = gov_setup.no_energy_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_nft_balance(&no_energy_user, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+
+    gov_setup.change_min_energy(0).assert_ok();
 
     let (result, proposal_id) = gov_setup.propose(
-        &first_user_addr,
+        &no_energy_user,
         &min_fee,
         &sc_addr,
         b"changeTODO",
@@ -105,16 +107,12 @@ fn gov_propose_total_energy_0_test() {
     );
     result.assert_ok();
     assert_eq!(proposal_id, 1);
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS + VOTING_DELAY_BLOCKS);
 
     gov_setup
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
-            let mut proposal = sc.proposals().get(1);
-            proposal.total_quorum = managed_biguint!(0);
-            sc.proposals().set(1, &proposal);
             assert!(
-                sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Pending,
                 "Action should have been Defeated"
             );
         })

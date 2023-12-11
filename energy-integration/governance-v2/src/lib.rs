@@ -88,7 +88,7 @@ pub trait GovernanceV2:
             EXEEDED_MAX_ACTIONS
         );
 
-        let user_energy = self.get_energy_amount_non_zero(&proposer);
+        let user_energy = self.get_energy_amount(&proposer);
         let min_energy_for_propose = self.min_energy_for_propose().get();
         require!(user_energy >= min_energy_for_propose, NOT_ENOUGH_ENERGY);
 

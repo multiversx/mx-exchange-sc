@@ -50,6 +50,7 @@ where
     pub first_user: Address,
     pub second_user: Address,
     pub third_user: Address,
+    pub no_energy_user: Address,
     pub gov_wrapper: ContractObjWrapper<governance_v2::ContractObj<DebugApi>, GovBuilder>,
     pub current_block: u64,
 }
@@ -65,6 +66,7 @@ where
         let first_user = b_mock.create_user_account(&rust_zero);
         let second_user = b_mock.create_user_account(&rust_zero);
         let third_user = b_mock.create_user_account(&rust_zero);
+        let no_energy_user = b_mock.create_user_account(&rust_zero);
 
         // init energy factory
         let energy_factory_wrapper = b_mock.create_sc_account(
@@ -100,6 +102,12 @@ where
                 sc.user_energy(&managed_address!(&third_user))
                     .set(&Energy::new(
                         BigInt::from(managed_biguint!(USER_ENERGY + 210_000)),
+                        0,
+                        managed_biguint!(0),
+                    ));
+                sc.user_energy(&managed_address!(&no_energy_user))
+                    .set(&Energy::new(
+                        BigInt::from(managed_biguint!(0)),
                         0,
                         managed_biguint!(0),
                     ));
@@ -192,6 +200,7 @@ where
             first_user,
             second_user,
             third_user,
+            no_energy_user,
             gov_wrapper,
             current_block: 0,
         }
@@ -275,6 +284,13 @@ where
         self.b_mock
             .execute_tx(&self.owner, &self.gov_wrapper, &rust_biguint!(0), |sc| {
                 sc.change_withdraw_percentage(withdraw_value);
+            })
+    }
+
+    pub fn change_min_energy(&mut self, min_energy_for_propose: usize) -> TxResult {
+        self.b_mock
+            .execute_tx(&self.owner, &self.gov_wrapper, &rust_biguint!(0), |sc| {
+                sc.min_energy_for_propose().set(&managed_biguint!(min_energy_for_propose));
             })
     }
 
