@@ -95,7 +95,11 @@ pub trait FarmStaking:
     }
 
     #[endpoint]
-    fn upgrade(&self) {}
+    fn upgrade(&self) {
+        // Farm position migration code
+        let farm_token_mapper = self.farm_token();
+        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+    }
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
