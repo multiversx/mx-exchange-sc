@@ -42,7 +42,7 @@ pub trait GovernanceV2:
         &self,
         min_energy_for_propose: BigUint,
         min_fee_for_propose: BigUint,
-        quorum_percentage: BigUint,
+        quorum_percentage: u64,
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
         withdraw_percentage_defeated: u64,
@@ -88,7 +88,7 @@ pub trait GovernanceV2:
             EXEEDED_MAX_ACTIONS
         );
 
-        let user_energy = self.get_energy_amount_non_zero(&proposer);
+        let user_energy = self.get_energy_amount(&proposer);
         let min_energy_for_propose = self.min_energy_for_propose().get();
         require!(user_energy >= min_energy_for_propose, NOT_ENOUGH_ENERGY);
 
