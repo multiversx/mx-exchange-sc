@@ -90,7 +90,7 @@ pub trait Pair<ContractReader>:
         if admins.is_empty() {
             // backwards compatibility
             let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
-            self.add_permissions(router_address, all_permissions);
+            self.add_permissions(router_address, all_permissions.clone());
             self.add_permissions(router_owner_address, all_permissions);
         } else {
             self.add_permissions(router_address, Permissions::OWNER | Permissions::PAUSE);
