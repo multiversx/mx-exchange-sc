@@ -1,7 +1,11 @@
 name: On pull request, build contracts
 
 on:
+  push:
+    branches: [ main, feat/* ]
   pull_request:
+    branches: [ main, feat/* ]
+  workflow_dispatch:
 
 permissions:
   contents: write
