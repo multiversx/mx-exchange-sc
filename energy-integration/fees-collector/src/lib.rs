@@ -48,13 +48,24 @@ pub trait FeesCollector:
     fn upgrade(&self) {}
 
     #[endpoint(claimRewards)]
-    fn claim_rewards(
+    fn claim_rewards_endpoint(
         &self,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "Cannot claim while paused");
 
-        self.accumulate_additional_locked_tokens();
+        let caller = self.blockchain().get_caller();
+        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
+
+        self.claim_rewards(caller, original_caller)
+    }
+
+    #[endpoint(claimBoostedRewards)]
+    fn claim_boosted_rewards(
+        &self,
+        opt_original_caller: OptionalValue<ManagedAddress>,
+    ) -> PaymentsVec<Self::Api> {
+        require!(self.not_paused(), "Cannot claim while paused");
 
         let original_caller = match opt_original_caller {
             OptionalValue::Some(user) => {
@@ -66,6 +77,16 @@ pub trait FeesCollector:
             }
             OptionalValue::None => self.blockchain().get_caller(),
         };
+
+        self.claim_rewards(original_caller.clone(), original_caller)
+    }
+
+    fn claim_rewards(
+        &self,
+        caller: ManagedAddress,
+        original_caller: ManagedAddress,
+    ) -> PaymentsVec<Self::Api> {
+        self.accumulate_additional_locked_tokens();
 
         let wrapper = FeesCollectorWrapper::new();
         let mut rewards = self.claim_multi(&wrapper, &original_caller);
@@ -90,14 +111,14 @@ pub trait FeesCollector:
         }
 
         if !rewards.is_empty() {
-            self.send().direct_multi(&original_caller, &rewards);
+            self.send().direct_multi(&caller, &rewards);
         }
 
         if total_locked_token_rewards_amount > 0 {
             let locked_rewards = self.lock_virtual(
                 self.get_base_token_id(),
                 total_locked_token_rewards_amount,
-                original_caller.clone(),
+                caller,
                 original_caller,
             );
 

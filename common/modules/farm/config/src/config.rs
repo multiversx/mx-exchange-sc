@@ -45,6 +45,12 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
             .set(user_total_farm_position);
     }
 
+    #[view(getAllowExternalClaimRewards)]
+    fn get_allow_external_claim_rewards(&self, user: ManagedAddress) -> bool {
+        let user_total_farm_position = self.get_user_total_farm_position(&user);
+        user_total_farm_position.allow_external_claim_boosted_rewards
+    }
+
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
