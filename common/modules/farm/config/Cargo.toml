@@ -17,4 +17,4 @@ path = "../../../common_errors_old"
 path = "../../token_send"
 
 [dependencies.elrond-wasm]
-version = "0.28.0"
+version = "=0.28.0"
