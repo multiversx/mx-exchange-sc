@@ -12,4 +12,4 @@ jobs:
     with:
       image_tag: v4.2.1
       package_whole_project_src: true
-      skip_preliminary_checks: true
+      # skip_preliminary_checks: true
