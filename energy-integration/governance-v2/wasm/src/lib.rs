@@ -10,22 +10,24 @@ elrond_wasm_node::wasm_endpoints! {
         cancel
         changeLockTimeAfterVotingEndsInBlocks
         changeMinEnergyForProposal
+        changeMinFeeForProposal
         changeQuorum
         changeVotingDelayInBlocks
         changeVotingPeriodInBlocks
+        claimDepositedTokens
         depositTokensForProposal
-        downvote
         execute
         getEnergyFactoryAddress
+        getFeeTokenId
         getLockTimeAfterVotingEndsInBlocks
         getMinEnergyForPropose
+        getMinFeeForPropose
         getProposalActions
         getProposalDescription
         getProposalStatus
+        getProposalVotes
         getProposer
         getQuorum
-        getTotalDownvotes
-        getTotalVotes
         getVotingDelayInBlocks
         getVotingPeriodInBlocks
         propose
