@@ -10,6 +10,3 @@ path = ".."
 
 [dependencies.elrond-wasm]
 version = "=0.38.0"
-
-[dependencies.elrond-wasm-debug]
-version = "=0.38.0"
