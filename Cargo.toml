@@ -56,3 +56,6 @@ members = [
   "pause-all",
   "pause-all/meta",
 ]
+
+[patch.crates-io]
+elrond-wasm-debug = { git = "https://github.com/multiversx/mx-sdk-rs", package = "elrond-wasm-debug", branch = "reproducible/v0.36.1" }
