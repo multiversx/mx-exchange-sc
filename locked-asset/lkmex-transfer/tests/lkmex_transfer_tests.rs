@@ -788,7 +788,7 @@ fn transfer_locked_token_after_unlock_period_test() {
             let unlock_epoch = sc.unlock_epoch_to_start_of_month(5 + LOCK_OPTIONS[0]);  
             let lock_epochs = unlock_epoch as i64 - current_epoch as i64;
             let expected_energy_amount =
-                BigInt::from((USER_BALANCE / 2) as i64) * BigInt::from(lock_epochs as i64);
+                BigInt::from((USER_BALANCE / 2) as i64) * BigInt::from(lock_epochs);
             let expected_energy = Energy::new(
                 expected_energy_amount,
                 current_epoch,
@@ -806,7 +806,7 @@ fn transfer_locked_token_after_unlock_period_test() {
             let unlock_epoch = sc.unlock_epoch_to_start_of_month(5 + LOCK_OPTIONS[0]);
             let lock_epochs = unlock_epoch as i64 - current_epoch as i64;
             let expected_energy_amount =
-                BigInt::from((USER_BALANCE / 2) as i64) * BigInt::from(lock_epochs as i64);
+                BigInt::from((USER_BALANCE / 2) as i64) * BigInt::from(lock_epochs);
             let expected_energy = Energy::new(
                 expected_energy_amount,
                 current_epoch,
