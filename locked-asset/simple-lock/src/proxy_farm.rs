@@ -1,7 +1,10 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{error_messages::*, proxy_lp::LpProxyTokenAttributes};
+use crate::{
+    error_messages::*,
+    proxy_lp::{LpProxyTokenAttributes, RemoveLiquidityThroughProxyResultType},
+};
 
 #[derive(
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy,
@@ -246,6 +249,76 @@ pub trait ProxyFarmModule:
         }
 
         (lp_proxy_token_payment, exit_farm_result.reward_tokens).into()
+    }
+
+    /// Exit a farm previously entered through `enterFarmLockedToken`.
+    ///
+    /// Expected payment: FARM_PROXY tokens
+    ///
+    /// Output Payments:
+    /// - original tokens
+    /// - farm reward tokens
+    #[payable("*")]
+    #[endpoint(exitFarmLockedTokenToTokens)]
+    fn exit_farm_locked_token_to_tokens(
+        &self,
+        first_token_min_amount_out: BigUint,
+        second_token_min_amont_out: BigUint,
+    ) -> RemoveLiquidityThroughProxyResultType<Self::Api> {
+        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
+
+        let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
+            self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
+
+        let farm_address = self.try_get_farm_address(
+            &farm_proxy_token_attributes.farming_token_id,
+            farm_proxy_token_attributes.farm_type,
+        );
+        let caller = self.blockchain().get_caller();
+        let exit_farm_result = self.call_farm_exit(
+            farm_address,
+            farm_proxy_token_attributes.farm_token_id,
+            farm_proxy_token_attributes.farm_token_nonce,
+            payment.amount,
+            caller.clone(),
+        );
+        require!(
+            exit_farm_result.initial_farming_tokens.token_identifier
+                == farm_proxy_token_attributes.farming_token_id,
+            INVALID_PAYMENTS_RECEIVED_FROM_FARM_ERR_MSG
+        );
+
+        if exit_farm_result.reward_tokens.amount > 0 {
+            self.send().direct_esdt(
+                &caller,
+                &exit_farm_result.reward_tokens.token_identifier,
+                exit_farm_result.reward_tokens.token_nonce,
+                &exit_farm_result.reward_tokens.amount,
+            );
+        }
+
+        let remove_liquidity_result = self.remove_liquidity_locked_token_common(
+            exit_farm_result.initial_farming_tokens,
+            first_token_min_amount_out,
+            second_token_min_amont_out,
+        );
+
+        // let lp_proxy_token = self.lp_proxy_token();
+
+        // let lp_proxy_token_payment = EsdtTokenPayment::new(
+        //     lp_proxy_token.get_token_id(),
+        //     farm_proxy_token_attributes.farming_token_locked_nonce,
+        //     exit_farm_result.initial_farming_tokens.amount,
+        // );
+        // self.send().direct_esdt(
+        //     &caller,
+        //     &lp_proxy_token_payment.token_identifier,
+        //     lp_proxy_token_payment.token_nonce,
+        //     &lp_proxy_token_payment.amount,
+        // );
+
+        // (lp_proxy_token_payment, exit_farm_result.reward_tokens).into()
+        remove_liquidity_result
     }
 
     /// Claim rewards from a previously entered farm.
