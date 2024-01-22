@@ -1,12 +1,12 @@
 #![allow(deprecated)]
 
 use multiversx_sc_scenario::{
-    managed_address, rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi,
+    rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 
 pub mod farm_staking_setup;
 use farm_staking::{
-    custom_rewards::{CustomRewardsModule, BLOCKS_IN_YEAR, MAX_PERCENT},
+    custom_rewards::{BLOCKS_IN_YEAR, MAX_PERCENT},
     token_attributes::UnbondSftAttributes,
 };
 use farm_staking_setup::*;
