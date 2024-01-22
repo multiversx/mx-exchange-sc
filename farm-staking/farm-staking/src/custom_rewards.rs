@@ -43,6 +43,25 @@ pub trait CustomRewardsModule:
         self.reward_capacity().update(|r| *r += payment_amount);
     }
 
+    #[payable("*")]
+    #[endpoint(withdrawRewards)]
+    fn withdraw_rewards(&self, withdraw_amount: BigUint) {
+        self.require_caller_has_admin_permissions();
+
+        self.reward_capacity().update(|rewards| {
+            require!(
+                *rewards >= withdraw_amount,
+                "Not enough rewards to withdraw"
+            );
+
+            *rewards -= withdraw_amount.clone()
+        });
+
+        let caller = self.blockchain().get_caller();
+        let reward_token_id = self.reward_token_id().get();
+        self.send_tokens_non_zero(&caller, &reward_token_id, 0, &withdraw_amount);
+    }
+
     #[endpoint(endProduceRewards)]
     fn end_produce_rewards(&self) {
         self.require_caller_has_admin_permissions();
