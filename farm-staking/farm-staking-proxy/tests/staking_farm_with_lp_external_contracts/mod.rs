@@ -13,6 +13,7 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 use pair::pair_actions::add_liq::AddLiquidityModule;
+use pair::pair_actions::remove_liq::RemoveLiquidityModule;
 use simple_lock::locked_token::LockedTokenModule;
 
 use farm::exit_penalty::ExitPenaltyModule;

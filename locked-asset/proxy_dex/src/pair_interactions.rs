@@ -1,11 +1,9 @@
 multiversx_sc::imports!();
 
-use pair::{
-    pair_actions::{
-        add_liq::ProxyTrait as _,
-        common_result_types::{AddLiquidityResultType, RemoveLiquidityResultType},
-    },
-    ProxyTrait as _,
+use pair::pair_actions::{
+    add_liq::ProxyTrait as _,
+    common_result_types::{AddLiquidityResultType, RemoveLiquidityResultType},
+    remove_liq::ProxyTrait as _,
 };
 
 pub struct AddLiquidityResultWrapper<M: ManagedTypeApi> {

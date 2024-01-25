@@ -10,7 +10,8 @@ use farm_staking::{
 };
 use farm_with_locked_rewards::ProxyTrait as _;
 use pair::{
-    pair_actions::common_result_types::RemoveLiquidityResultType, safe_price_view::ProxyTrait as _,
+    pair_actions::{common_result_types::RemoveLiquidityResultType, remove_liq::ProxyTrait as _},
+    safe_price_view::ProxyTrait as _,
 };
 
 use crate::result_types::*;
