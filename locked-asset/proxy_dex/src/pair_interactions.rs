@@ -1,6 +1,9 @@
 multiversx_sc::imports!();
 
-use pair::{AddLiquidityResultType, ProxyTrait as _, RemoveLiquidityResultType};
+use pair::{
+    pair_actions::common_result_types::{AddLiquidityResultType, RemoveLiquidityResultType},
+    ProxyTrait as _,
+};
 
 pub struct AddLiquidityResultWrapper<M: ManagedTypeApi> {
     pub lp_tokens_received: EsdtTokenPayment<M>,

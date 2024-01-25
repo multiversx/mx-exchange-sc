@@ -11,6 +11,7 @@ mod events;
 pub mod fee;
 mod liquidity_pool;
 pub mod locking_wrapper;
+pub mod pair_actions;
 pub mod safe_price;
 pub mod safe_price_view;
 
@@ -18,22 +19,14 @@ use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
 
-use common_errors::ERROR_PERMISSION_DENIED;
 use contexts::base::*;
 use contexts::swap::SwapContext;
+use pair_actions::common_result_types::{
+    AddLiquidityResultType, RemoveLiquidityResultType, SwapTokensFixedInputResultType,
+    SwapTokensFixedOutputResultType,
+};
 use pausable::State;
 use permissions_module::Permissions;
-
-pub type AddLiquidityResultType<BigUint> =
-    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-
-pub type RemoveLiquidityResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-
-pub type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
-
-pub type SwapTokensFixedOutputResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[multiversx_sc::contract]
 pub trait Pair<ContractReader>:
@@ -49,6 +42,8 @@ pub trait Pair<ContractReader>:
     + locking_wrapper::LockingWrapperModule
     + permissions_module::PermissionsModule
     + pausable::PausableModule
+    + pair_actions::initial_liq::InitialLiquidityModule
+    + pair_actions::common_methods::CommonMethodsModule
 {
     #[init]
     fn init(
@@ -104,68 +99,6 @@ pub trait Pair<ContractReader>:
 
     #[endpoint]
     fn upgrade(&self) {}
-
-    #[payable("*")]
-    #[endpoint(addInitialLiquidity)]
-    fn add_initial_liquidity(&self) -> AddLiquidityResultType<Self::Api> {
-        let mut storage_cache = StorageCache::new(self);
-        let caller = self.blockchain().get_caller();
-
-        let opt_initial_liq_adder = self.initial_liquidity_adder().get();
-        if let Some(initial_liq_adder) = opt_initial_liq_adder {
-            require!(caller == initial_liq_adder, ERROR_PERMISSION_DENIED);
-        }
-
-        let [first_payment, second_payment] = self.call_value().multi_esdt();
-        require!(
-            first_payment.token_identifier == storage_cache.first_token_id
-                && first_payment.amount > 0,
-            ERROR_BAD_PAYMENT_TOKENS
-        );
-        require!(
-            second_payment.token_identifier == storage_cache.second_token_id
-                && second_payment.amount > 0,
-            ERROR_BAD_PAYMENT_TOKENS
-        );
-        require!(
-            !self.is_state_active(storage_cache.contract_state),
-            ERROR_ACTIVE
-        );
-        require!(
-            storage_cache.lp_token_supply == 0,
-            ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED
-        );
-
-        let first_token_optimal_amount = &first_payment.amount;
-        let second_token_optimal_amount = &second_payment.amount;
-        let liq_added = self.pool_add_initial_liquidity(
-            first_token_optimal_amount,
-            second_token_optimal_amount,
-            &mut storage_cache,
-        );
-
-        self.send()
-            .esdt_local_mint(&storage_cache.lp_token_id, 0, &liq_added);
-        self.send()
-            .direct_esdt(&caller, &storage_cache.lp_token_id, 0, &liq_added);
-
-        self.state().set(State::PartialActive);
-
-        let add_liq_context = AddLiquidityContext {
-            first_payment: first_payment.clone(),
-            second_payment: second_payment.clone(),
-            first_token_amount_min: BigUint::from(1u32),
-            second_token_amount_min: BigUint::from(1u32),
-            first_token_optimal_amount: first_token_optimal_amount.clone(),
-            second_token_optimal_amount: second_token_optimal_amount.clone(),
-            liq_added,
-        };
-        let output = self.build_add_initial_liq_results(&storage_cache, &add_liq_context);
-
-        self.emit_add_liquidity_event(&storage_cache, add_liq_context);
-
-        output
-    }
 
     #[payable("*")]
     #[endpoint(addLiquidity)]
@@ -673,11 +606,6 @@ pub trait Pair<ContractReader>:
         } else {
             sc_panic!(ERROR_UNKNOWN_TOKEN);
         }
-    }
-
-    #[inline]
-    fn is_state_active(&self, state: State) -> bool {
-        state == State::Active || state == State::PartialActive
     }
 
     #[inline]

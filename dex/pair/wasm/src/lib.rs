@@ -21,7 +21,6 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
-        addInitialLiquidity => add_initial_liquidity
         addLiquidity => add_liquidity
         removeLiquidity => remove_liquidity
         removeLiquidityAndBuyBackAndBurnToken => remove_liquidity_and_burn_token
@@ -75,6 +74,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         pause => pause
         resume => resume
         getState => state
+        addInitialLiquidity => add_initial_liquidity
     )
 }
 
