@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           55
+// Endpoints:                           59
 // Async Callback (empty):               1
-// Total number of exported functions:  57
+// Total number of exported functions:  61
 
 #![no_std]
 #![allow(internal_features)]
@@ -75,6 +75,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         getAmountOut => get_amount_out_view
         getAmountIn => get_amount_in_view
         getEquivalent => get_equivalent
+        addBannedAddress => add_banned_address
+        removeBannedAddress => remove_banned_address
+        addHook => add_hook
+        removeHook => remove_hook
     )
 }
 
