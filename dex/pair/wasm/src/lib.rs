@@ -22,11 +22,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         init => init
         upgrade => upgrade
         setLpTokenIdentifier => set_lp_token_identifier
-        getTokensForGivenPosition => get_tokens_for_given_position
-        getReservesAndTotalSupply => get_reserves_and_total_supply
-        getAmountOut => get_amount_out_view
-        getAmountIn => get_amount_in_view
-        getEquivalent => get_equivalent
         getFeeState => is_fee_enabled
         whitelist => whitelist_endpoint
         removeWhitelist => remove_whitelist
@@ -75,6 +70,11 @@ multiversx_sc_wasm_adapter::endpoints! {
         swapNoFeeAndForward => swap_no_fee
         swapTokensFixedInput => swap_tokens_fixed_input
         swapTokensFixedOutput => swap_tokens_fixed_output
+        getTokensForGivenPosition => get_tokens_for_given_position
+        getReservesAndTotalSupply => get_reserves_and_total_supply
+        getAmountOut => get_amount_out_view
+        getAmountIn => get_amount_in_view
+        getEquivalent => get_equivalent
     )
 }
 
