@@ -1,7 +1,10 @@
 multiversx_sc::imports!();
 
 use pair::{
-    pair_actions::common_result_types::{AddLiquidityResultType, RemoveLiquidityResultType},
+    pair_actions::{
+        add_liq::ProxyTrait as _,
+        common_result_types::{AddLiquidityResultType, RemoveLiquidityResultType},
+    },
     ProxyTrait as _,
 };
 

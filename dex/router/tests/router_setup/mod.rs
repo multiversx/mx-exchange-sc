@@ -28,6 +28,7 @@ pub const USER_CUSTOM_TOKEN_BALANCE: u64 = 1_000_000_000;
 pub const USER_USDC_BALANCE: u64 = 1_000_000;
 
 use pair::config::*;
+use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::*;
 use pausable::{PausableModule, State};
 use router::factory::*;

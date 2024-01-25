@@ -12,7 +12,7 @@ pub mod fuzz_pair_test {
     use rand::prelude::*;
 
     use crate::fuzz_data::fuzz_data_tests::*;
-    use pair::*;
+    use pair::{pair_actions::add_liq::AddLiquidityModule, *};
 
     pub fn add_liquidity<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
         fuzzer_data: &mut FuzzerData<
