@@ -21,9 +21,6 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
-        swapNoFeeAndForward => swap_no_fee
-        swapTokensFixedInput => swap_tokens_fixed_input
-        swapTokensFixedOutput => swap_tokens_fixed_output
         setLpTokenIdentifier => set_lp_token_identifier
         getTokensForGivenPosition => get_tokens_for_given_position
         getReservesAndTotalSupply => get_reserves_and_total_supply
@@ -75,6 +72,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         addLiquidity => add_liquidity
         removeLiquidity => remove_liquidity
         removeLiquidityAndBuyBackAndBurnToken => remove_liquidity_and_burn_token
+        swapNoFeeAndForward => swap_no_fee
+        swapTokensFixedInput => swap_tokens_fixed_input
+        swapTokensFixedOutput => swap_tokens_fixed_output
         getLpTokensSafePriceByDefaultOffset => get_lp_tokens_safe_price_by_default_offset
         getLpTokensSafePriceByRoundOffset => get_lp_tokens_safe_price_by_round_offset
         getLpTokensSafePriceByTimestampOffset => get_lp_tokens_safe_price_by_timestamp_offset

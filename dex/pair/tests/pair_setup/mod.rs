@@ -21,6 +21,7 @@ pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
 use pair::config::ConfigModule as PairConfigModule;
 use pair::pair_actions::add_liq::AddLiquidityModule;
+use pair::pair_actions::swap::SwapModule;
 use pair::safe_price_view::*;
 use pair::*;
 use pausable::{PausableModule, State};
