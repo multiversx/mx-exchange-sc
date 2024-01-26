@@ -123,6 +123,28 @@ pub trait LpInteractionsModule {
         }
     }
 
+    fn call_pair_remove_liquidity_simple(
+        &self,
+        lp_address: ManagedAddress,
+        lp_token_id: TokenIdentifier,
+        lp_token_amount: BigUint,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    ) -> RemoveLiquidityResultWrapper<Self::Api> {
+        let lp_payments_out: RemoveLiquidityResultType<Self::Api> = self
+            .lp_proxy(lp_address)
+            .remove_liquidity(first_token_amount_min, second_token_amount_min)
+            .with_esdt_transfer((lp_token_id, 0, lp_token_amount))
+            .execute_on_dest_context();
+
+        let (first_token_payment_out, second_token_payment_out) = lp_payments_out.into_tuple();
+
+        RemoveLiquidityResultWrapper {
+            first_token_payment_out,
+            second_token_payment_out,
+        }
+    }
+
     #[proxy]
     fn lp_proxy(&self, sc_address: ManagedAddress) -> lp_proxy::Proxy<Self::Api>;
 }

@@ -165,7 +165,7 @@ pub trait ProxyLpModule:
         );
 
         let add_liq_result = self.call_pair_add_liquidity(
-            lp_address,
+            lp_address.clone(),
             ref_first_payment_unlocked,
             ref_second_payment_unlocked,
             first_token_amount_min,
@@ -183,6 +183,8 @@ pub trait ProxyLpModule:
             add_liq_result.second_token_refund,
             second_payment_unlocked_wrapper.status_before,
         );
+
+        self.lp_address_for_lp(&add_liq_result.lp_tokens.token_identifier).set(lp_address);
 
         let lp_token_name = add_liq_result
             .lp_tokens
@@ -391,6 +393,13 @@ pub trait ProxyLpModule:
         &self,
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<ManagedAddress>;
+
+
+    #[storage_mapper("lpAddressForLp")]
+    fn lp_address_for_lp(
+        &self,
+        lp: &TokenIdentifier,
     ) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getLpProxyTokenId)]
