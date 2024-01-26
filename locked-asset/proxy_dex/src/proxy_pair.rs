@@ -68,6 +68,8 @@ pub trait ProxyPairModule:
             second_payment.amount.clone() - &add_liq_result.second_token_leftover.amount
         };
 
+        self.lp_address_for_lp(&add_liq_result.lp_tokens_received.token_identifier).set(pair_address.clone());
+
         let new_token_attributes = WrappedLpTokenAttributes {
             locked_tokens: locked_token_used,
             lp_token_id: add_liq_result.lp_tokens_received.token_identifier.clone(),
@@ -143,12 +145,32 @@ pub trait ProxyPairModule:
         self.require_wrapped_lp_token_id_not_empty();
 
         let payment = self.call_value().single_esdt();
+
+        let output_payments = self.remove_liquidity_proxy_common(
+            payment,
+            pair_address,
+            first_token_amount_min,
+            second_token_amount_min,
+        );
+        let caller = self.blockchain().get_caller();
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+
+        output_payments.into()
+    }
+
+    fn remove_liquidity_proxy_common(
+        &self,
+        input_payment: EsdtTokenPayment,
+        pair_address: ManagedAddress,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    ) -> ManagedVec<EsdtTokenPayment> {
         let wrapped_lp_mapper = self.wrapped_lp_token();
-        wrapped_lp_mapper.require_same_token(&payment.token_identifier);
+        wrapped_lp_mapper.require_same_token(&input_payment.token_identifier);
 
         let caller = self.blockchain().get_caller();
         let attributes: WrappedLpTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_lp_mapper);
+            self.get_attributes_as_part_of_fixed_supply(&input_payment, &wrapped_lp_mapper);
 
         let remove_liq_result = self.call_remove_liquidity(
             pair_address.clone(),
@@ -206,20 +228,18 @@ pub trait ProxyPairModule:
         let other_tokens = received_token_refs.other_token_ref.clone();
         output_payments.push(other_tokens);
 
-        wrapped_lp_mapper.nft_burn(payment.token_nonce, &payment.amount);
-
-        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+        wrapped_lp_mapper.nft_burn(input_payment.token_nonce, &input_payment.amount);
 
         self.emit_remove_liquidity_proxy_event(
             &caller,
             &pair_address,
-            payment,
+            input_payment,
             attributes,
             remove_liq_result.first_token_received,
             remove_liq_result.second_token_received,
         );
 
-        output_payments.into()
+        output_payments
     }
 
     #[payable("*")]
@@ -278,4 +298,11 @@ pub trait ProxyPairModule:
     fn require_wrapped_lp_token_id_not_empty(&self) {
         require!(!self.wrapped_lp_token().is_empty(), "Empty token id");
     }
+
+    #[storage_mapper("lpAddressForLp")]
+    fn lp_address_for_lp(
+        &self,
+        lp: &TokenIdentifier,
+    ) -> SingleValueMapper<ManagedAddress>;
+
 }
