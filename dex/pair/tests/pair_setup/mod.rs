@@ -20,7 +20,7 @@ pub const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
 use pair::config::ConfigModule as PairConfigModule;
-use pair::pair_actions::add_liq::AddLiquidityModule;
+use pair::pair_actions::initial_liq::InitialLiquidityModule;
 use pair::pair_actions::swap::SwapModule;
 use pair::safe_price_view::*;
 use pair::*;
@@ -74,8 +74,6 @@ where
 
                 let lp_token_id = managed_token_id!(LP_TOKEN_ID);
                 sc.lp_token_identifier().set(&lp_token_id);
-
-                sc.state().set(State::Active);
             })
             .assert_ok();
 
@@ -130,13 +128,24 @@ where
         }
     }
 
+    pub fn set_state_active(&mut self) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.pair_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.state().set(State::Active);
+                },
+            )
+            .assert_ok();
+    }
+
     #[allow(clippy::too_many_arguments)]
-    pub fn add_liquidity(
+    pub fn add_initial_liquidity(
         &mut self,
         first_token_amount: u64,
-        first_token_min: u64,
         second_token_amount: u64,
-        second_token_min: u64,
         expected_lp_amount: u64,
         expected_first_amount: u64,
         expected_second_amount: u64,
@@ -156,10 +165,7 @@ where
 
         self.b_mock
             .execute_esdt_multi_transfer(&self.user_address, &self.pair_wrapper, &payments, |sc| {
-                let MultiValue3 { 0: payments } = sc.add_liquidity(
-                    managed_biguint!(first_token_min),
-                    managed_biguint!(second_token_min),
-                );
+                let MultiValue3 { 0: payments } = sc.add_initial_liquidity();
 
                 assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
                 assert_eq!(payments.0.token_nonce, 0);

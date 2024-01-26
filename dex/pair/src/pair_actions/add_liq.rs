@@ -79,19 +79,16 @@ pub trait AddLiquidityModule:
         );
         self.set_optimal_amounts(&mut add_liq_context, &storage_cache);
 
-        add_liq_context.liq_added = if storage_cache.lp_token_supply == 0u64 {
-            self.pool_add_initial_liquidity(
-                &add_liq_context.first_token_optimal_amount,
-                &add_liq_context.second_token_optimal_amount,
-                &mut storage_cache,
-            )
-        } else {
-            self.pool_add_liquidity(
-                &add_liq_context.first_token_optimal_amount,
-                &add_liq_context.second_token_optimal_amount,
-                &mut storage_cache,
-            )
-        };
+        require!(
+            storage_cache.lp_token_supply > 0,
+            "Add initial liquidity first"
+        );
+
+        add_liq_context.liq_added = self.pool_add_liquidity(
+            &add_liq_context.first_token_optimal_amount,
+            &add_liq_context.second_token_optimal_amount,
+            &mut storage_cache,
+        );
 
         let new_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,

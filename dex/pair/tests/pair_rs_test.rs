@@ -33,18 +33,15 @@ fn test_pair_setup() {
 fn test_add_liquidity() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
 
-    pair_setup.add_liquidity(
-        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
-    );
+    pair_setup.add_initial_liquidity(1_001_000, 1_001_000, 1_000_000, 1_001_000, 1_001_000);
 }
 
 #[test]
 fn test_swap_fixed_input() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
 
-    pair_setup.add_liquidity(
-        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
-    );
+    pair_setup.add_initial_liquidity(1_001_000, 1_001_000, 1_000_000, 1_001_000, 1_001_000);
+    pair_setup.set_state_active();
 
     pair_setup.swap_fixed_input(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 900, 996);
 }
@@ -53,9 +50,8 @@ fn test_swap_fixed_input() {
 fn test_swap_fixed_output() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
 
-    pair_setup.add_liquidity(
-        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
-    );
+    pair_setup.add_initial_liquidity(1_001_000, 1_001_000, 1_000_000, 1_001_000, 1_001_000);
+    pair_setup.set_state_active();
 
     pair_setup.swap_fixed_output(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 900, 96);
 }
@@ -75,15 +71,10 @@ fn test_safe_price() {
     let mut second_token_reserve = 1_000_004;
     let mut first_token_accumulated = 1_001_000;
     let mut second_token_accumulated = 1_001_000;
-    pair_setup.add_liquidity(
-        1_001_000,
-        1_000_000,
-        1_001_000,
-        1_000_000,
-        1_000_000,
-        first_token_accumulated,
-        second_token_accumulated,
-    );
+
+    pair_setup.add_initial_liquidity(1_001_000, 1_001_000, 1_000_000, 1_001_000, 1_001_000);
+    pair_setup.set_state_active();
+
     pair_setup.swap_fixed_input(
         WEGLD_TOKEN_ID,
         payment_amount,
@@ -431,15 +422,14 @@ fn test_safe_price_linear_interpolation() {
     let mut first_token_accumulated = weight * first_token_reserve;
     let mut second_token_accumulated = weight * second_token_reserve;
 
-    pair_setup.add_liquidity(
-        first_token_reserve,
+    pair_setup.add_initial_liquidity(
         first_token_reserve,
         second_token_reserve,
-        first_token_reserve,
         first_token_reserve - min_pool_reserve,
         first_token_reserve,
         second_token_reserve,
     );
+    pair_setup.set_state_active();
 
     // Initial price ~ 30
     let mut first_token_payment_amount = 1_000;
@@ -626,15 +616,10 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
     let mut second_token_reserve = 1_000_004;
     let mut first_token_accumulated = 1_001_000;
     let mut second_token_accumulated = 1_001_000;
-    pair_setup.add_liquidity(
-        1_001_000,
-        1_000_000,
-        1_001_000,
-        1_000_000,
-        1_000_000,
-        first_token_accumulated,
-        second_token_accumulated,
-    );
+
+    pair_setup.add_initial_liquidity(1_001_000, 1_001_000, 1_000_000, 1_001_000, 1_001_000);
+    pair_setup.set_state_active();
+
     pair_setup.swap_fixed_input(
         WEGLD_TOKEN_ID,
         payment_amount,
@@ -888,9 +873,8 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 fn test_locked_asset() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
 
-    pair_setup.add_liquidity(
-        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
-    );
+    pair_setup.add_initial_liquidity(1_001_000, 1_001_000, 1_000_000, 1_001_000, 1_001_000);
+    pair_setup.set_state_active();
 
     // init locking SC
     let rust_zero = rust_biguint!(0);
@@ -1018,9 +1002,8 @@ fn test_locked_asset() {
 fn add_liquidity_through_simple_lock_proxy() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
 
-    pair_setup.add_liquidity(
-        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
-    );
+    pair_setup.add_initial_liquidity(1_001_000, 1_001_000, 1_000_000, 1_001_000, 1_001_000);
+    pair_setup.set_state_active();
 
     // init locking SC
     let lp_address = pair_setup.pair_wrapper.address_ref().clone();
@@ -1373,9 +1356,8 @@ fn fees_collector_pair_test() {
         )
         .assert_ok();
 
-    pair_setup.add_liquidity(
-        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
-    );
+    pair_setup.add_initial_liquidity(1_001_000, 1_001_000, 1_000_000, 1_001_000, 1_001_000);
+    pair_setup.set_state_active();
 
     pair_setup.swap_fixed_input(WEGLD_TOKEN_ID, 100_000, MEX_TOKEN_ID, 900, 90_669);
 
