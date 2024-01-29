@@ -13,6 +13,7 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 use pair::pair_actions::add_liq::AddLiquidityModule;
+use pair::pair_actions::initial_liq::InitialLiquidityModule;
 use pair::pair_actions::remove_liq::RemoveLiquidityModule;
 use simple_lock::locked_token::LockedTokenModule;
 
@@ -66,8 +67,6 @@ where
 
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
             sc.lp_token_identifier().set(&lp_token_id);
-
-            sc.state().set(pausable::State::Active);
         })
         .assert_ok();
 
@@ -102,18 +101,20 @@ where
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS * 2),
     );
 
-    add_liquidity(
+    add_initial_liq(
         &temp_user_addr,
         b_mock,
         &pair_wrapper,
         1_001_000_000,
-        1_000_000_000,
         1_001_000_000,
-        1_000_000_000,
         1_000_999_000,
-        1_001_000_000,
-        1_001_000_000,
     );
+
+    b_mock
+        .execute_tx(owner_addr, &pair_wrapper, &rust_zero, |sc| {
+            sc.resume();
+        })
+        .assert_ok();
 
     block_round += 1;
     b_mock.set_block_round(block_round);
@@ -163,6 +164,41 @@ where
     b_mock.set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP);
 
     pair_wrapper
+}
+
+#[allow(clippy::too_many_arguments)]
+fn add_initial_liq<PairObjBuilder>(
+    user_address: &Address,
+    b_mock: &mut BlockchainStateWrapper,
+    pair_wrapper: &ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    first_token_amount: u64,
+    second_token_amount: u64,
+    expected_lp_amount: u64,
+) where
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+{
+    let payments = vec![
+        TxTokenTransfer {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: rust_biguint!(first_token_amount),
+        },
+        TxTokenTransfer {
+            token_identifier: RIDE_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: rust_biguint!(second_token_amount),
+        },
+    ];
+
+    b_mock
+        .execute_esdt_multi_transfer(user_address, pair_wrapper, &payments, |sc| {
+            let MultiValue3 { 0: payments } = sc.add_initial_liquidity();
+
+            assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
+            assert_eq!(payments.0.token_nonce, 0);
+            assert_eq!(payments.0.amount, managed_biguint!(expected_lp_amount));
+        })
+        .assert_ok();
 }
 
 #[allow(clippy::too_many_arguments)]
