@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           64
+// Endpoints:                           68
 // Async Callback (empty):               1
-// Total number of exported functions:  66
+// Total number of exported functions:  70
 
 #![no_std]
 #![allow(internal_features)]
@@ -75,6 +75,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         getAmountOut => get_amount_out_view
         getAmountIn => get_amount_in_view
         getEquivalent => get_equivalent
+        addBannedAddress => add_banned_address
+        removeBannedAddress => remove_banned_address
+        addHook => add_hook
+        removeHook => remove_hook
         getLpTokensSafePriceByDefaultOffset => get_lp_tokens_safe_price_by_default_offset
         getLpTokensSafePriceByRoundOffset => get_lp_tokens_safe_price_by_round_offset
         getLpTokensSafePriceByTimestampOffset => get_lp_tokens_safe_price_by_timestamp_offset
