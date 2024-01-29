@@ -18,6 +18,7 @@ pub trait CallHookModule {
             return input_payments;
         }
 
+        let payments_len = input_payments.len();
         let mut call_args = ManagedArgBuffer::new();
         call_args.push_arg(caller);
 
@@ -37,6 +38,10 @@ pub trait CallHookModule {
                 .execute_on_dest_context_with_back_transfers::<MultiValueEncoded<ManagedBuffer>>();
 
             output_payments = back_transfers.esdt_payments;
+            require!(
+                output_payments.len() == payments_len,
+                "Wrong payments received from SC"
+            );
         }
 
         output_payments
