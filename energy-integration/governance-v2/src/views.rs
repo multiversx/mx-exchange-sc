@@ -96,7 +96,7 @@ pub trait ViewsModule:
 
     #[only_owner]
     #[endpoint(changeFeesCollectorAddress)]
-    fn change_voting_period_in_blocks(&self, new_value: ManagedAddress) {
+    fn change_fees_collector_address(&self, new_value: ManagedAddress) {
         self.fees_collector_address().set(new_value);
     }
 
