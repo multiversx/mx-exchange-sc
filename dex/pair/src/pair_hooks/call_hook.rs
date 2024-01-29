@@ -47,6 +47,12 @@ pub trait CallHookModule {
         output_payments
     }
 
+    fn encode_arg_to_vec<T: TopEncode>(&self, arg: &T, vec: &mut ManagedVec<ManagedBuffer>) {
+        let mut encoded_value = ManagedBuffer::new();
+        let _ = arg.top_encode(&mut encoded_value);
+        vec.push(encoded_value);
+    }
+
     #[storage_mapper("hooks")]
     fn hooks(&self, hook_type: HookType) -> SingleValueMapper<ManagedVec<Hook<Self::Api>>>;
 }
