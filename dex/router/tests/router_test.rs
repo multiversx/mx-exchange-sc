@@ -9,7 +9,7 @@ use multiversx_sc::{
         MultiValueEncoded,
     },
 };
-use pair::{config::ConfigModule, Pair};
+use pair::{config::ConfigModule, pair_actions::initial_liq::InitialLiquidityModule, Pair};
 use pausable::{PausableModule, State};
 use router::{
     enable_swap_by_user::EnableSwapByUserModule,

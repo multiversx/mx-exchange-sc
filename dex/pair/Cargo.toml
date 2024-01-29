@@ -29,6 +29,9 @@ path = "../../locked-asset/simple-lock"
 [dependencies.fees-collector]
 path = "../../energy-integration/fees-collector"
 
+[dependencies.utils]
+path = "../../common/modules/utils"
+
 [dependencies.itertools]
 version = "0.10.1"
 default-features = false

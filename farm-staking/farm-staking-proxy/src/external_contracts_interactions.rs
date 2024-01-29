@@ -9,10 +9,12 @@ use farm_staking::{
     unstake_farm::ProxyTrait as _,
 };
 use farm_with_locked_rewards::ProxyTrait as _;
-use pair::safe_price_view::ProxyTrait as _;
+use pair::{
+    pair_actions::{common_result_types::RemoveLiquidityResultType, remove_liq::ProxyTrait as _},
+    safe_price_view::ProxyTrait as _,
+};
 
 use crate::result_types::*;
-use pair::RemoveLiquidityResultType;
 
 pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
 
