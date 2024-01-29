@@ -23,7 +23,7 @@
                     "storage": {
                         "str:first_token_id": "str:WEGLD-abcdef",
                         "str:second_token_id": "str:ALC-abcdef",
-                        "str:state": "1",
+                        "str:state": "0",
                         "str:lpTokenIdentifier": "str:LPTOK-abcdef",
                         "str:router_address": "sc:router_contract",
                         "str:router_owner_address": "address:owner",

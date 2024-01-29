@@ -21,11 +21,8 @@
                         "value": "2,000,000,000"
                     }
                 ],
-                "function": "addLiquidity",
-                "arguments": [
-                    "1,000,000,000",
-                    "1,000,000,000"
-                ],
+                "function": "addInitialLiquidity",
+                "arguments": [],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
             },
@@ -35,6 +32,25 @@
                     "*",
                     "*"
                 ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "resume",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:pair_contract",
+                "function": "resume",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
                 "status": "0",
                 "message": "",
                 "gas": "*",
