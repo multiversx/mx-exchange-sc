@@ -416,6 +416,18 @@ where
             .assert_ok();
     }
 
+    pub fn check_rewards_capacity(&mut self, expected_farm_token_supply: u64) {
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let actual_farm_supply = sc.reward_capacity().get();
+                assert_eq!(
+                    managed_biguint!(expected_farm_token_supply),
+                    actual_farm_supply
+                );
+            })
+            .assert_ok();
+    }
+
     pub fn allow_external_claim_rewards(&mut self, user: &Address) {
         self.b_mock
             .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
@@ -486,6 +498,19 @@ where
                         managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
                         managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
                     );
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn withdraw_rewards(&mut self, withdraw_amount: &RustBigUint) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.withdraw_rewards(withdraw_amount.into());
                 },
             )
             .assert_ok();
