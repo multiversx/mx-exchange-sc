@@ -127,8 +127,6 @@ pub trait SwapModule:
 
         let mut args = ManagedVec::new();
         self.encode_arg_to_vec(&SwapType::FixedInput, &mut args);
-        self.encode_arg_to_vec(&token_out, &mut args);
-        self.encode_arg_to_vec(&amount_out_min, &mut args);
 
         let payments_after_hook = self.call_hook(
             HookType::BeforeSwap,
@@ -137,6 +135,9 @@ pub trait SwapModule:
             args.clone(),
         );
         let payment = payments_after_hook.get(0);
+
+        self.encode_arg_to_vec(&token_out, &mut args);
+        self.encode_arg_to_vec(&amount_out_min, &mut args);
 
         let mut swap_context = SwapContext::new(
             payment.token_identifier,
@@ -166,6 +167,11 @@ pub trait SwapModule:
         let output_payments = self.build_swap_output_payments(&swap_context);
         let output_payments_after_hook =
             self.call_hook(HookType::AfterSwap, caller.clone(), output_payments, args);
+
+        require!(
+            output_payments_after_hook.get(0).amount >= swap_context.output_token_amount,
+            ERROR_SLIPPAGE_EXCEEDED
+        );
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments_after_hook);
 
@@ -209,8 +215,6 @@ pub trait SwapModule:
 
         let mut args = ManagedVec::new();
         self.encode_arg_to_vec(&SwapType::FixedOutput, &mut args);
-        self.encode_arg_to_vec(&token_out, &mut args);
-        self.encode_arg_to_vec(&amount_out, &mut args);
 
         let payments_after_hook = self.call_hook(
             HookType::BeforeSwap,
@@ -219,6 +223,9 @@ pub trait SwapModule:
             args.clone(),
         );
         let payment = payments_after_hook.get(0);
+
+        self.encode_arg_to_vec(&token_out, &mut args);
+        self.encode_arg_to_vec(&amount_out, &mut args);
 
         let mut swap_context = SwapContext::new(
             payment.token_identifier,

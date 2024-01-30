@@ -79,7 +79,7 @@ pub trait AddLiquidityModule:
             (HookType::BeforeAddLiq, HookType::AfterAddLiq)
         };
         let payments_after_hook =
-            self.call_hook(hook_type_before, caller.clone(), payments_vec, args.clone());
+            self.call_hook(hook_type_before, caller.clone(), payments_vec, args);
         let first_payment = payments_after_hook.get(0);
         let second_payment = payments_after_hook.get(1);
 
@@ -133,7 +133,7 @@ pub trait AddLiquidityModule:
             hook_type_after,
             caller.clone(),
             ManagedVec::from_single_item(lp_payment),
-            args,
+            ManagedVec::new(),
         );
         lp_payment = lp_payment_after_hook.get(0);
 

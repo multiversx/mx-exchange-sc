@@ -2,6 +2,7 @@ use crate::{
     contexts::remove_liquidity::RemoveLiquidityContext, pair_hooks::hook_type::HookType,
     StorageCache, SwapTokensOrder, ERROR_BAD_PAYMENT_TOKENS, ERROR_INVALID_ARGS,
     ERROR_K_INVARIANT_FAILED, ERROR_LP_TOKEN_NOT_ISSUED, ERROR_NOT_ACTIVE, ERROR_NOT_WHITELISTED,
+    ERROR_SLIPPAGE_ON_REMOVE,
 };
 
 use super::common_result_types::RemoveLiquidityResultType;
@@ -74,7 +75,7 @@ pub trait RemoveLiquidityModule:
             HookType::BeforeRemoveLiq,
             caller.clone(),
             ManagedVec::from_single_item(payment),
-            args.clone(),
+            ManagedVec::new(),
         );
         let payment = payments_after_hook.get(0);
 
@@ -103,6 +104,17 @@ pub trait RemoveLiquidityModule:
             caller.clone(),
             output_payments,
             args,
+        );
+
+        let first_payment_after = output_payments_after_hook.get(0);
+        let second_payment_after = output_payments_after_hook.get(1);
+        require!(
+            first_payment_after.amount >= remove_liq_context.first_token_amount_min,
+            ERROR_SLIPPAGE_ON_REMOVE
+        );
+        require!(
+            second_payment_after.amount >= remove_liq_context.second_token_amount_min,
+            ERROR_SLIPPAGE_ON_REMOVE
         );
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments_after_hook);
