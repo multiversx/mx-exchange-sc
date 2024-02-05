@@ -1,7 +1,7 @@
 use crate::{
-    contexts::add_liquidity::AddLiquidityContext, pair_hooks::hook_type::HookType, StorageCache,
-    ERROR_BAD_PAYMENT_TOKENS, ERROR_INITIAL_LIQUIDITY_NOT_ADDED, ERROR_INVALID_ARGS,
-    ERROR_K_INVARIANT_FAILED, ERROR_LP_TOKEN_NOT_ISSUED, ERROR_NOT_ACTIVE,
+    contexts::add_liquidity::AddLiquidityContext, StorageCache, ERROR_BAD_PAYMENT_TOKENS,
+    ERROR_INITIAL_LIQUIDITY_NOT_ADDED, ERROR_INVALID_ARGS, ERROR_K_INVARIANT_FAILED,
+    ERROR_LP_TOKEN_NOT_ISSUED, ERROR_NOT_ACTIVE,
 };
 
 use super::common_result_types::AddLiquidityResultType;
@@ -21,9 +21,6 @@ pub trait AddLiquidityModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
     + super::common_methods::CommonMethodsModule
-    + crate::pair_hooks::banned_address::BannedAddressModule
-    + crate::pair_hooks::change_hooks::ChangeHooksModule
-    + crate::pair_hooks::call_hook::CallHookModule
     + utils::UtilsModule
 {
     #[payable("*")]
@@ -64,24 +61,6 @@ pub trait AddLiquidityModule:
             self.initial_liquidity_adder().get().is_none() || storage_cache.lp_token_supply != 0,
             ERROR_INITIAL_LIQUIDITY_NOT_ADDED
         );
-
-        let mut payments_vec = ManagedVec::new();
-        payments_vec.push(first_payment);
-        payments_vec.push(second_payment);
-
-        let mut args = ManagedVec::new();
-        self.encode_arg_to_vec(&first_token_amount_min, &mut args);
-        self.encode_arg_to_vec(&second_token_amount_min, &mut args);
-
-        let (hook_type_before, hook_type_after) = if storage_cache.lp_token_supply == 0 {
-            (HookType::BeforeAddInitialLiq, HookType::AfterAddInitialLiq)
-        } else {
-            (HookType::BeforeAddLiq, HookType::AfterAddLiq)
-        };
-        let payments_after_hook =
-            self.call_hook(hook_type_before, caller.clone(), payments_vec, args);
-        let first_payment = payments_after_hook.get(0);
-        let second_payment = payments_after_hook.get(1);
 
         self.update_safe_price(
             &storage_cache.first_token_reserve,
@@ -124,18 +103,11 @@ pub trait AddLiquidityModule:
         self.send()
             .esdt_local_mint(&storage_cache.lp_token_id, 0, &add_liq_context.liq_added);
 
-        let mut lp_payment = EsdtTokenPayment::new(
+        let lp_payment = EsdtTokenPayment::new(
             storage_cache.lp_token_id.clone(),
             0,
             add_liq_context.liq_added.clone(),
         );
-        let lp_payment_after_hook = self.call_hook(
-            hook_type_after,
-            caller.clone(),
-            ManagedVec::from_single_item(lp_payment),
-            ManagedVec::new(),
-        );
-        lp_payment = lp_payment_after_hook.get(0);
 
         let mut output_payments =
             self.build_add_liq_output_payments(&storage_cache, &add_liq_context);
