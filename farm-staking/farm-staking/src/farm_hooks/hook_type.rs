@@ -39,7 +39,7 @@ pub trait FarmHook {
     fn after_stake(
         sc: &Self::Sc,
         new_farm_token: EsdtTokenPayment<<Self::Sc as ContractBase>::Api>,
-        boosted_rewards: EsdtTokenPayment<<Self::Sc as ContractBase>::Api>,
+        opt_boosted_rewards: Option<EsdtTokenPayment<<Self::Sc as ContractBase>::Api>>,
         original_caller: ManagedAddress<<Self::Sc as ContractBase>::Api>,
     );
 
@@ -52,7 +52,7 @@ pub trait FarmHook {
     fn after_claim_rewards(
         sc: &Self::Sc,
         new_farm_token: EsdtTokenPayment<<Self::Sc as ContractBase>::Api>,
-        rewards: EsdtTokenPayment<<Self::Sc as ContractBase>::Api>,
+        opt_rewards: Option<EsdtTokenPayment<<Self::Sc as ContractBase>::Api>>,
         original_caller: ManagedAddress<<Self::Sc as ContractBase>::Api>,
     );
 
@@ -78,7 +78,7 @@ pub trait FarmHook {
     fn after_unstake(
         sc: &Self::Sc,
         unbond_token: EsdtTokenPayment<<Self::Sc as ContractBase>::Api>,
-        rewards: EsdtTokenPayment<<Self::Sc as ContractBase>::Api>,
+        opt_rewards: Option<EsdtTokenPayment<<Self::Sc as ContractBase>::Api>>,
         original_caller: ManagedAddress<<Self::Sc as ContractBase>::Api>,
     );
 
