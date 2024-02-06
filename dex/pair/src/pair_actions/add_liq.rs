@@ -70,12 +70,13 @@ pub trait AddLiquidityModule:
         payments_vec.push(second_payment);
 
         let mut args = ManagedVec::new();
-        self.encode_arg_to_vec(&first_token_amount_min, &mut args);
-        self.encode_arg_to_vec(&second_token_amount_min, &mut args);
 
         let (hook_type_before, hook_type_after) = if storage_cache.lp_token_supply == 0 {
             (HookType::BeforeAddInitialLiq, HookType::AfterAddInitialLiq)
         } else {
+            self.encode_arg_to_vec(&first_token_amount_min, &mut args);
+            self.encode_arg_to_vec(&second_token_amount_min, &mut args);
+
             (HookType::BeforeAddLiq, HookType::AfterAddLiq)
         };
         let payments_after_hook =
