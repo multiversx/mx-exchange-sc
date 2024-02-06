@@ -7,7 +7,7 @@ use crate::{base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHo
 #[multiversx_sc::module]
 pub trait ClaimStakeFarmRewardsModule:
     crate::custom_rewards::CustomRewardsModule
-    + crate::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
+    + super::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule

@@ -16,9 +16,9 @@ use multiversx_sc_scenario::{
 };
 
 use farm_staking::{
-    compound_stake_farm_rewards::CompoundStakeFarmRewardsModule, stake_farm::StakeFarmModule,
-    token_attributes::UnbondSftAttributes, unbond_farm::UnbondFarmModule,
-    unstake_farm::UnstakeFarmModule,
+    farm_actions::compound_stake_farm_rewards::CompoundStakeFarmRewardsModule,
+    farm_actions::stake_farm::StakeFarmModule, farm_actions::unbond_farm::UnbondFarmModule,
+    farm_actions::unstake_farm::UnstakeFarmModule, token_attributes::UnbondSftAttributes,
 };
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::proxy_actions::claim::ProxyClaimModule;

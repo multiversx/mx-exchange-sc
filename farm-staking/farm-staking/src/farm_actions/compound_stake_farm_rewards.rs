@@ -5,7 +5,7 @@ multiversx_sc::imports!();
 #[multiversx_sc::module]
 pub trait CompoundStakeFarmRewardsModule:
     crate::custom_rewards::CustomRewardsModule
-    + crate::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
+    + super::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule

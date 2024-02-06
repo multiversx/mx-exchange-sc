@@ -4,7 +4,7 @@ use farm::{
     base_functions::{ClaimRewardsResultType, DoubleMultiPayment},
     EnterFarmResultType, ExitFarmWithPartialPosResultType,
 };
-use farm_staking::{
+use farm_staking::farm_actions::{
     claim_stake_farm_rewards::ProxyTrait as _, stake_farm::ProxyTrait as _,
     unstake_farm::ProxyTrait as _,
 };
