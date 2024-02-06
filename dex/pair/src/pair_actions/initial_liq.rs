@@ -2,8 +2,8 @@ use common_errors::ERROR_PERMISSION_DENIED;
 use pausable::State;
 
 use crate::{
-    contexts::add_liquidity::AddLiquidityContext, pair_hooks::hook_type::HookType, StorageCache,
-    ERROR_ACTIVE, ERROR_BAD_PAYMENT_TOKENS, ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED,
+    contexts::add_liquidity::AddLiquidityContext, StorageCache, ERROR_ACTIVE,
+    ERROR_BAD_PAYMENT_TOKENS, ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED,
 };
 
 use super::common_result_types::AddLiquidityResultType;
@@ -22,9 +22,6 @@ pub trait InitialLiquidityModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
     + super::common_methods::CommonMethodsModule
-    + crate::pair_hooks::banned_address::BannedAddressModule
-    + crate::pair_hooks::change_hooks::ChangeHooksModule
-    + crate::pair_hooks::call_hook::CallHookModule
     + utils::UtilsModule
 {
     #[payable("*")]
@@ -58,19 +55,6 @@ pub trait InitialLiquidityModule:
             ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED
         );
 
-        let mut payments_vec = ManagedVec::new();
-        payments_vec.push(first_payment);
-        payments_vec.push(second_payment);
-
-        let payments_after_hook = self.call_hook(
-            HookType::BeforeAddInitialLiq,
-            caller.clone(),
-            payments_vec,
-            ManagedVec::new(),
-        );
-        let first_payment = payments_after_hook.get(0);
-        let second_payment = payments_after_hook.get(1);
-
         let first_token_optimal_amount = &first_payment.amount;
         let second_token_optimal_amount = &second_payment.amount;
         let liq_added = self.pool_add_initial_liquidity(
@@ -82,15 +66,8 @@ pub trait InitialLiquidityModule:
         self.send()
             .esdt_local_mint(&storage_cache.lp_token_id, 0, &liq_added);
 
-        let mut lp_payment =
+        let lp_payment =
             EsdtTokenPayment::new(storage_cache.lp_token_id.clone(), 0, liq_added.clone());
-        let lp_payment_after_hook = self.call_hook(
-            HookType::AfterAddInitialLiq,
-            caller.clone(),
-            ManagedVec::from_single_item(lp_payment),
-            ManagedVec::new(),
-        );
-        lp_payment = lp_payment_after_hook.get(0);
 
         self.send()
             .direct_non_zero_esdt_payment(&caller, &lp_payment);
