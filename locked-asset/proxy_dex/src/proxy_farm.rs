@@ -289,11 +289,13 @@ pub trait ProxyFarmModule:
             second_token_amount_min,
         );
 
+        // Burn farm token
+        wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
         // Push farm rewards
         output_payments.push(exit_result.reward_tokens.clone());
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
-
 
         self.emit_exit_farm_proxy_event(
             &original_caller,
@@ -395,6 +397,9 @@ pub trait ProxyFarmModule:
 
         self.send_payment_non_zero(&caller, &new_wrapped_token);
         self.send_payment_non_zero(&caller, &claim_result.rewards);
+
+        // Burn farm token
+        wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         self.emit_claim_rewards_farm_proxy_event(
             &original_caller,
