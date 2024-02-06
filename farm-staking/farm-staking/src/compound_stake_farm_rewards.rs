@@ -1,4 +1,4 @@
-use crate::base_impl_wrapper::FarmStakingWrapper;
+use crate::{base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType};
 
 multiversx_sc::imports!();
 
@@ -28,18 +28,41 @@ pub trait CompoundStakeFarmRewardsModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + banned_addresses::BannedAddressModule
+    + crate::farm_hooks::change_hooks::ChangeHooksModule
+    + crate::farm_hooks::call_hook::CallHookModule
 {
     #[payable("*")]
     #[endpoint(compoundRewards)]
     fn compound_rewards(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         self.migrate_old_farm_positions(&caller);
+
         let payments = self.get_non_empty_payments();
-        let compound_result =
-            self.compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments);
+        let payments_after_hook = self.call_hook(
+            FarmHookType::BeforeCompoundRewards,
+            caller.clone(),
+            payments,
+            ManagedVec::new(),
+        );
+
+        let mut compound_result = self
+            .compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments_after_hook);
 
         let new_farm_token = compound_result.new_farm_token.payment.clone();
+        let mut args = ManagedVec::new();
+        self.encode_arg_to_vec(&compound_result.compounded_rewards, &mut args);
+
+        let output_payments = self.call_hook(
+            FarmHookType::AfterCompoundRewards,
+            caller.clone(),
+            ManagedVec::from_single_item(new_farm_token),
+            args,
+        );
+        let new_farm_token = output_payments.get(0);
         self.send_payment_non_zero(&caller, &new_farm_token);
+
+        compound_result.new_farm_token.payment = new_farm_token.clone();
 
         self.set_farm_supply_for_current_week(&compound_result.storage_cache.farm_token_supply);
 

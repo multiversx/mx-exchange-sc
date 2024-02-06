@@ -86,7 +86,7 @@ pub trait StakeFarmModule:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let enter_result =
+        let mut enter_result =
             self.enter_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payments);
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
@@ -110,6 +110,8 @@ pub trait StakeFarmModule:
         self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
 
         self.update_energy_and_progress(&original_caller);
+
+        enter_result.new_farm_token.payment = new_farm_token.clone();
 
         self.emit_enter_farm_event(
             &caller,
