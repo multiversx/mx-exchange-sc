@@ -34,14 +34,26 @@ pub trait CallHookModule {
                     hook.endpoint_name,
                 )
                 .with_raw_arguments(call_args.clone())
-                .with_multi_token_transfer(output_payments)
+                .with_multi_token_transfer(output_payments.clone())
                 .execute_on_dest_context_with_back_transfers::<MultiValueEncoded<ManagedBuffer>>();
 
-            output_payments = back_transfers.esdt_payments;
             require!(
-                output_payments.len() == payments_len,
+                back_transfers.esdt_payments.len() == payments_len,
                 "Wrong payments received from SC"
             );
+
+            for (payment_before, payment_after) in output_payments
+                .iter()
+                .zip(back_transfers.esdt_payments.iter())
+            {
+                require!(
+                    payment_before.token_identifier == payment_after.token_identifier
+                        && payment_before.token_nonce == payment_after.token_nonce,
+                    "Invalid payment received from SC"
+                );
+            }
+
+            output_payments = back_transfers.esdt_payments;
         }
 
         output_payments
