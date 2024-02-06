@@ -4,7 +4,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy)]
-pub enum HookType {
+pub enum PairHookType {
     // can't be done, execute_on_dest does not work on init
     _BeforeInitialize,
     _AfterInitialize,

@@ -1,16 +1,16 @@
-use super::hook_type::{Hook, HookType};
+use super::hook_type::{Hook, PairHookType};
 
 multiversx_sc::imports!();
 
 #[multiversx_sc::module]
 pub trait ChangeHooksModule:
     super::call_hook::CallHookModule
-    + super::banned_address::BannedAddressModule
+    + banned_addresses::BannedAddressModule
     + permissions_module::PermissionsModule
     + utils::UtilsModule
 {
     #[endpoint(addHook)]
-    fn add_hook(&self, hook_type: HookType, to: ManagedAddress, endpoint_name: ManagedBuffer) {
+    fn add_hook(&self, hook_type: PairHookType, to: ManagedAddress, endpoint_name: ManagedBuffer) {
         self.require_caller_has_owner_or_admin_permissions();
         self.require_not_banned_address(&to);
         self.require_sc_address(&to);
@@ -25,7 +25,12 @@ pub trait ChangeHooksModule:
     }
 
     #[endpoint(removeHook)]
-    fn remove_hook(&self, hook_type: HookType, to: ManagedAddress, endpoint_name: ManagedBuffer) {
+    fn remove_hook(
+        &self,
+        hook_type: PairHookType,
+        to: ManagedAddress,
+        endpoint_name: ManagedBuffer,
+    ) {
         self.require_caller_has_owner_or_admin_permissions();
 
         self.hooks(hook_type).update(|hooks| {

@@ -1,6 +1,6 @@
 use crate::{
-    contexts::swap::SwapContext, pair_hooks::hook_type::HookType, StorageCache, ERROR_INVALID_ARGS,
-    ERROR_K_INVARIANT_FAILED, ERROR_NOT_ENOUGH_RESERVE, ERROR_NOT_WHITELISTED,
+    contexts::swap::SwapContext, pair_hooks::hook_type::PairHookType, StorageCache,
+    ERROR_INVALID_ARGS, ERROR_K_INVARIANT_FAILED, ERROR_NOT_ENOUGH_RESERVE, ERROR_NOT_WHITELISTED,
     ERROR_SLIPPAGE_EXCEEDED, ERROR_SWAP_NOT_ENABLED, ERROR_ZERO_AMOUNT,
 };
 
@@ -29,9 +29,9 @@ pub trait SwapModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
     + super::common_methods::CommonMethodsModule
-    + crate::pair_hooks::banned_address::BannedAddressModule
     + crate::pair_hooks::change_hooks::ChangeHooksModule
     + crate::pair_hooks::call_hook::CallHookModule
+    + banned_addresses::BannedAddressModule
     + utils::UtilsModule
 {
     #[payable("*")]
@@ -129,7 +129,7 @@ pub trait SwapModule:
         self.encode_arg_to_vec(&SwapType::FixedInput, &mut args);
 
         let payments_after_hook = self.call_hook(
-            HookType::BeforeSwap,
+            PairHookType::BeforeSwap,
             caller.clone(),
             ManagedVec::from_single_item(payment),
             args.clone(),
@@ -165,8 +165,12 @@ pub trait SwapModule:
 
         let caller = self.blockchain().get_caller();
         let output_payments = self.build_swap_output_payments(&swap_context);
-        let output_payments_after_hook =
-            self.call_hook(HookType::AfterSwap, caller.clone(), output_payments, args);
+        let output_payments_after_hook = self.call_hook(
+            PairHookType::AfterSwap,
+            caller.clone(),
+            output_payments,
+            args,
+        );
 
         require!(
             output_payments_after_hook.get(0).amount >= swap_context.output_token_amount,
@@ -217,7 +221,7 @@ pub trait SwapModule:
         self.encode_arg_to_vec(&SwapType::FixedOutput, &mut args);
 
         let payments_after_hook = self.call_hook(
-            HookType::BeforeSwap,
+            PairHookType::BeforeSwap,
             caller.clone(),
             ManagedVec::from_single_item(payment),
             args.clone(),
@@ -253,8 +257,12 @@ pub trait SwapModule:
 
         let caller = self.blockchain().get_caller();
         let output_payments = self.build_swap_output_payments(&swap_context);
-        let output_payments_after_hook =
-            self.call_hook(HookType::AfterSwap, caller.clone(), output_payments, args);
+        let output_payments_after_hook = self.call_hook(
+            PairHookType::AfterSwap,
+            caller.clone(),
+            output_payments,
+            args,
+        );
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments_after_hook);
 

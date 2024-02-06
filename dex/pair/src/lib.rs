@@ -46,9 +46,9 @@ pub trait Pair<ContractReader>:
     + pair_actions::swap::SwapModule
     + pair_actions::views::ViewsModule
     + pair_actions::common_methods::CommonMethodsModule
-    + crate::pair_hooks::banned_address::BannedAddressModule
-    + crate::pair_hooks::change_hooks::ChangeHooksModule
-    + crate::pair_hooks::call_hook::CallHookModule
+    + pair_hooks::change_hooks::ChangeHooksModule
+    + pair_hooks::call_hook::CallHookModule
+    + banned_addresses::BannedAddressModule
     + utils::UtilsModule
 {
     #[init]

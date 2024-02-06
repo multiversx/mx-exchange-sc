@@ -1,6 +1,6 @@
 use common_structs::PaymentsVec;
 
-use super::hook_type::{Hook, HookType};
+use super::hook_type::{Hook, PairHookType};
 
 multiversx_sc::imports!();
 
@@ -8,7 +8,7 @@ multiversx_sc::imports!();
 pub trait CallHookModule {
     fn call_hook(
         &self,
-        hook_type: HookType,
+        hook_type: PairHookType,
         caller: ManagedAddress,
         input_payments: PaymentsVec<Self::Api>,
         args: ManagedVec<ManagedBuffer>,
@@ -66,5 +66,5 @@ pub trait CallHookModule {
     }
 
     #[storage_mapper("hooks")]
-    fn hooks(&self, hook_type: HookType) -> SingleValueMapper<ManagedVec<Hook<Self::Api>>>;
+    fn hooks(&self, hook_type: PairHookType) -> SingleValueMapper<ManagedVec<Hook<Self::Api>>>;
 }

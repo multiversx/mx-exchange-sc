@@ -1,6 +1,6 @@
 use crate::{
-    contexts::add_liquidity::AddLiquidityContext, pair_hooks::hook_type::HookType, StorageCache,
-    ERROR_BAD_PAYMENT_TOKENS, ERROR_INITIAL_LIQUIDITY_NOT_ADDED, ERROR_INVALID_ARGS,
+    contexts::add_liquidity::AddLiquidityContext, pair_hooks::hook_type::PairHookType,
+    StorageCache, ERROR_BAD_PAYMENT_TOKENS, ERROR_INITIAL_LIQUIDITY_NOT_ADDED, ERROR_INVALID_ARGS,
     ERROR_K_INVARIANT_FAILED, ERROR_LP_TOKEN_NOT_ISSUED, ERROR_NOT_ACTIVE,
 };
 
@@ -21,9 +21,9 @@ pub trait AddLiquidityModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
     + super::common_methods::CommonMethodsModule
-    + crate::pair_hooks::banned_address::BannedAddressModule
     + crate::pair_hooks::change_hooks::ChangeHooksModule
     + crate::pair_hooks::call_hook::CallHookModule
+    + banned_addresses::BannedAddressModule
     + utils::UtilsModule
 {
     #[payable("*")]
@@ -72,12 +72,15 @@ pub trait AddLiquidityModule:
         let mut args = ManagedVec::new();
 
         let (hook_type_before, hook_type_after) = if storage_cache.lp_token_supply == 0 {
-            (HookType::BeforeAddInitialLiq, HookType::AfterAddInitialLiq)
+            (
+                PairHookType::BeforeAddInitialLiq,
+                PairHookType::AfterAddInitialLiq,
+            )
         } else {
             self.encode_arg_to_vec(&first_token_amount_min, &mut args);
             self.encode_arg_to_vec(&second_token_amount_min, &mut args);
 
-            (HookType::BeforeAddLiq, HookType::AfterAddLiq)
+            (PairHookType::BeforeAddLiq, PairHookType::AfterAddLiq)
         };
         let payments_after_hook =
             self.call_hook(hook_type_before, caller.clone(), payments_vec, args);

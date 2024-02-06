@@ -1,5 +1,5 @@
 use crate::{
-    contexts::remove_liquidity::RemoveLiquidityContext, pair_hooks::hook_type::HookType,
+    contexts::remove_liquidity::RemoveLiquidityContext, pair_hooks::hook_type::PairHookType,
     StorageCache, SwapTokensOrder, ERROR_BAD_PAYMENT_TOKENS, ERROR_INVALID_ARGS,
     ERROR_K_INVARIANT_FAILED, ERROR_LP_TOKEN_NOT_ISSUED, ERROR_NOT_ACTIVE, ERROR_NOT_WHITELISTED,
     ERROR_SLIPPAGE_ON_REMOVE,
@@ -23,9 +23,9 @@ pub trait RemoveLiquidityModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
     + super::common_methods::CommonMethodsModule
-    + crate::pair_hooks::banned_address::BannedAddressModule
     + crate::pair_hooks::change_hooks::ChangeHooksModule
     + crate::pair_hooks::call_hook::CallHookModule
+    + banned_addresses::BannedAddressModule
     + utils::UtilsModule
 {
     #[payable("*")]
@@ -72,7 +72,7 @@ pub trait RemoveLiquidityModule:
         self.encode_arg_to_vec(&second_token_amount_min, &mut args);
 
         let payments_after_hook = self.call_hook(
-            HookType::BeforeRemoveLiq,
+            PairHookType::BeforeRemoveLiq,
             caller.clone(),
             ManagedVec::from_single_item(payment),
             ManagedVec::new(),
@@ -100,7 +100,7 @@ pub trait RemoveLiquidityModule:
         let output_payments =
             self.build_remove_liq_output_payments(&storage_cache, &remove_liq_context);
         let output_payments_after_hook = self.call_hook(
-            HookType::AfterRemoveLiq,
+            PairHookType::AfterRemoveLiq,
             caller.clone(),
             output_payments,
             args,

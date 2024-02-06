@@ -2,8 +2,8 @@ use common_errors::ERROR_PERMISSION_DENIED;
 use pausable::State;
 
 use crate::{
-    contexts::add_liquidity::AddLiquidityContext, pair_hooks::hook_type::HookType, StorageCache,
-    ERROR_ACTIVE, ERROR_BAD_PAYMENT_TOKENS, ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED,
+    contexts::add_liquidity::AddLiquidityContext, pair_hooks::hook_type::PairHookType,
+    StorageCache, ERROR_ACTIVE, ERROR_BAD_PAYMENT_TOKENS, ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED,
 };
 
 use super::common_result_types::AddLiquidityResultType;
@@ -22,9 +22,9 @@ pub trait InitialLiquidityModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
     + super::common_methods::CommonMethodsModule
-    + crate::pair_hooks::banned_address::BannedAddressModule
     + crate::pair_hooks::change_hooks::ChangeHooksModule
     + crate::pair_hooks::call_hook::CallHookModule
+    + banned_addresses::BannedAddressModule
     + utils::UtilsModule
 {
     #[payable("*")]
@@ -63,7 +63,7 @@ pub trait InitialLiquidityModule:
         payments_vec.push(second_payment);
 
         let payments_after_hook = self.call_hook(
-            HookType::BeforeAddInitialLiq,
+            PairHookType::BeforeAddInitialLiq,
             caller.clone(),
             payments_vec,
             ManagedVec::new(),
@@ -85,7 +85,7 @@ pub trait InitialLiquidityModule:
         let mut lp_payment =
             EsdtTokenPayment::new(storage_cache.lp_token_id.clone(), 0, liq_added.clone());
         let lp_payment_after_hook = self.call_hook(
-            HookType::AfterAddInitialLiq,
+            PairHookType::AfterAddInitialLiq,
             caller.clone(),
             ManagedVec::from_single_item(lp_payment),
             ManagedVec::new(),
