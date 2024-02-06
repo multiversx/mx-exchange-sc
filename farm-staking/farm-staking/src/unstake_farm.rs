@@ -2,7 +2,10 @@ multiversx_sc::imports!();
 
 use farm::ExitFarmWithPartialPosResultType;
 
-use crate::{base_impl_wrapper::FarmStakingWrapper, token_attributes::UnbondSftAttributes};
+use crate::{
+    base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType,
+    token_attributes::UnbondSftAttributes,
+};
 
 #[multiversx_sc::module]
 pub trait UnstakeFarmModule:
@@ -30,6 +33,9 @@ pub trait UnstakeFarmModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + banned_addresses::BannedAddressModule
+    + crate::farm_hooks::change_hooks::ChangeHooksModule
+    + crate::farm_hooks::call_hook::CallHookModule
 {
     #[payable("*")]
     #[endpoint(unstakeFarm)]
@@ -74,7 +80,15 @@ pub trait UnstakeFarmModule:
     ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let migrated_amount = self.migrate_old_farm_positions(&original_caller);
 
-        let exit_result =
+        let payments_after_hook = self.call_hook(
+            FarmHookType::BeforeUnstake,
+            original_caller.clone(),
+            ManagedVec::from_single_item(payment),
+            ManagedVec::new(),
+        );
+        let payment = payments_after_hook.get(0);
+
+        let mut exit_result =
             self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment);
 
         self.decrease_old_farm_positions(migrated_amount, &original_caller);
@@ -82,11 +96,24 @@ pub trait UnstakeFarmModule:
         let unbond_token_amount =
             opt_unbond_amount.unwrap_or(exit_result.farming_token_payment.amount);
         let farm_token_id = exit_result.storage_cache.farm_token_id.clone();
+        let unbond_farm_token = self.create_unbond_tokens(farm_token_id, unbond_token_amount);
+
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(unbond_farm_token);
+        self.push_if_non_zero_payment(&mut output_payments, exit_result.reward_payment.clone());
+
+        let mut output_payments_after_hook = self.call_hook(
+            FarmHookType::AfterUnstake,
+            original_caller.clone(),
+            output_payments,
+            ManagedVec::new(),
+        );
+        let unbond_farm_token = self.pop_first_payment(&mut output_payments_after_hook);
+        exit_result.reward_payment =
+            self.pop_or_return_payment(&mut output_payments_after_hook, exit_result.reward_payment);
 
         let caller = self.blockchain().get_caller();
-        let unbond_farm_token =
-            self.create_and_send_unbond_tokens(&caller, farm_token_id, unbond_token_amount);
-
+        self.send_payment_non_zero(&caller, &unbond_farm_token);
         self.send_payment_non_zero(&caller, &exit_result.reward_payment);
 
         self.clear_user_energy_if_needed(&original_caller);
@@ -103,9 +130,8 @@ pub trait UnstakeFarmModule:
         (unbond_farm_token, exit_result.reward_payment).into()
     }
 
-    fn create_and_send_unbond_tokens(
+    fn create_unbond_tokens(
         &self,
-        to: &ManagedAddress,
         farm_token_id: TokenIdentifier,
         amount: BigUint,
     ) -> EsdtTokenPayment {
@@ -118,8 +144,6 @@ pub trait UnstakeFarmModule:
                 unlock_epoch: current_epoch + min_unbond_epochs,
             },
         );
-        self.send()
-            .direct_esdt(to, &farm_token_id, nft_nonce, &amount);
 
         EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
     }
