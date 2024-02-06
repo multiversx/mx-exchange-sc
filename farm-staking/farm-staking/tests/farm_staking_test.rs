@@ -249,7 +249,7 @@ fn test_withdraw_rewards() {
 }
 
 #[test]
-fn test_admin_cannot_withdraw_users_rewards() {
+fn test_withdraw_after_produced_rewards() {
     DebugApi::dummy();
     let mut farm_setup =
         FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);

@@ -48,10 +48,16 @@ pub trait CustomRewardsModule:
     #[endpoint(withdrawRewards)]
     fn withdraw_rewards(&self, withdraw_amount: BigUint) {
         self.require_caller_has_admin_permissions();
-        
-        let remaining_uncolected_rewards = self.reward_capacity().get() - self.accumulated_rewards().get();
-        require!(withdraw_amount < remaining_uncolected_rewards, WITHDRAW_AMOUNT_TOO_HIGH);
-        self.reward_capacity().update(|rewards| {
+
+        let mut storage_cache = StorageCache::new(self);
+        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
+        let reward_capacity_mapper = self.reward_capacity();
+        let accumulated_rewards_mapper = self.accumulated_rewards();
+        let remaining_rewards = reward_capacity_mapper.get() - accumulated_rewards_mapper.get();
+        require!(withdraw_amount <= remaining_rewards, WITHDRAW_AMOUNT_TOO_HIGH);
+
+        reward_capacity_mapper.update(|rewards| {
             require!(
                 *rewards >= withdraw_amount,
                 "Not enough rewards to withdraw"
