@@ -1594,7 +1594,7 @@ fn destroy_farm_locked_tokens_test() {
     setup.b_mock.set_block_nonce(100);
 
     ////////////////////////////////////////////// DESTROY FARM /////////////////////////////////////
-
+    
     // should be 500_000_000, but ends up so due to approximations
     let removed_locked_token_amount = rust_biguint!(499_999_000);
     // should be 250_000_000, but ends up so due to approximations
@@ -1633,12 +1633,19 @@ fn destroy_farm_locked_tokens_test() {
         )
         .assert_ok();
 
-    // check user received half of the farm tokens back, and another new wrapped LP token
     setup.b_mock.check_nft_balance::<Empty>(
         &first_user,
         WRAPPED_FARM_TOKEN_ID,
         1,
         &(&expected_lp_token_amount / 2u64),
+        None,
+    );
+
+    setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        WRAPPED_LP_TOKEN_ID,
+        1,
+        &rust_biguint!(0u64),
         None,
     );
 }
