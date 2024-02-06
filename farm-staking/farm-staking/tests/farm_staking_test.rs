@@ -1,6 +1,8 @@
 #![allow(deprecated)]
 
-use multiversx_sc_scenario::{rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi};
+use multiversx_sc_scenario::{
+    rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi,
+};
 
 pub mod farm_staking_setup;
 use farm_staking::{
@@ -230,4 +232,20 @@ fn test_unbond() {
         farm_in_amount,
         USER_TOTAL_RIDE_TOKENS + expected_rewards,
     );
+}
+
+#[test]
+fn test_withdraw_rewards() {
+    DebugApi::dummy();
+    let mut farm_setup =
+        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let initial_rewards_capacity = 1_000_000_000_000u64;
+    farm_setup.check_rewards_capacity(initial_rewards_capacity);
+
+    let withdraw_amount = rust_biguint!(TOTAL_REWARDS_AMOUNT);
+    farm_setup.withdraw_rewards(&withdraw_amount);
+
+    let final_rewards_capacity = 0u64;
+    farm_setup.check_rewards_capacity(final_rewards_capacity);
 }

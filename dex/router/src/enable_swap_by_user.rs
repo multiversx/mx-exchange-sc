@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use pair::config::ProxyTrait as _;
+use pair::{config::ProxyTrait as _, pair_actions::views::ProxyTrait as _};
 use pausable::{ProxyTrait as _, State};
 use simple_lock::locked_token::LockedTokenAttributes;
 

@@ -21,19 +21,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
-        addInitialLiquidity => add_initial_liquidity
-        addLiquidity => add_liquidity
-        removeLiquidity => remove_liquidity
-        removeLiquidityAndBuyBackAndBurnToken => remove_liquidity_and_burn_token
-        swapNoFeeAndForward => swap_no_fee
-        swapTokensFixedInput => swap_tokens_fixed_input
-        swapTokensFixedOutput => swap_tokens_fixed_output
         setLpTokenIdentifier => set_lp_token_identifier
-        getTokensForGivenPosition => get_tokens_for_given_position
-        getReservesAndTotalSupply => get_reserves_and_total_supply
-        getAmountOut => get_amount_out_view
-        getAmountIn => get_amount_in_view
-        getEquivalent => get_equivalent
         getFeeState => is_fee_enabled
         whitelist => whitelist_endpoint
         removeWhitelist => remove_whitelist
@@ -75,6 +63,18 @@ multiversx_sc_wasm_adapter::endpoints! {
         pause => pause
         resume => resume
         getState => state
+        addInitialLiquidity => add_initial_liquidity
+        addLiquidity => add_liquidity
+        removeLiquidity => remove_liquidity
+        removeLiquidityAndBuyBackAndBurnToken => remove_liquidity_and_burn_token
+        swapNoFeeAndForward => swap_no_fee
+        swapTokensFixedInput => swap_tokens_fixed_input
+        swapTokensFixedOutput => swap_tokens_fixed_output
+        getTokensForGivenPosition => get_tokens_for_given_position
+        getReservesAndTotalSupply => get_reserves_and_total_supply
+        getAmountOut => get_amount_out_view
+        getAmountIn => get_amount_in_view
+        getEquivalent => get_equivalent
     )
 }
 
