@@ -19,6 +19,7 @@ pub mod claim_only_boosted_staking_rewards;
 pub mod claim_stake_farm_rewards;
 pub mod compound_stake_farm_rewards;
 pub mod custom_rewards;
+pub mod farm_hooks;
 pub mod farm_token_roles;
 pub mod stake_farm;
 pub mod token_attributes;
@@ -60,6 +61,9 @@ pub trait FarmStaking:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + banned_addresses::BannedAddressModule
+    + farm_hooks::change_hooks::ChangeHooksModule
+    + farm_hooks::call_hook::CallHookModule
 {
     #[init]
     fn init(
@@ -89,9 +93,8 @@ pub trait FarmStaking:
         );
         self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
 
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+        let sc_address = self.blockchain().get_sc_address();
+        self.banned_addresses().add(&sc_address);
     }
 
     #[endpoint]
@@ -123,7 +126,7 @@ pub trait FarmStaking:
 
         (merged_farm_token, boosted_rewards_payment).into()
     }
-    
+
     #[view(calculateRewardsForGivenPosition)]
     fn calculate_rewards_for_given_position(
         &self,
