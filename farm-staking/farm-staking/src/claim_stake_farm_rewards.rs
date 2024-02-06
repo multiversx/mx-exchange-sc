@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 
 use farm::base_functions::ClaimRewardsResultType;
 
-use crate::base_impl_wrapper::FarmStakingWrapper;
+use crate::{base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType};
 
 #[multiversx_sc::module]
 pub trait ClaimStakeFarmRewardsModule:
@@ -30,6 +30,9 @@ pub trait ClaimStakeFarmRewardsModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + banned_addresses::BannedAddressModule
+    + crate::farm_hooks::change_hooks::ChangeHooksModule
+    + crate::farm_hooks::call_hook::CallHookModule
 {
     #[payable("*")]
     #[endpoint(claimRewards)]
@@ -62,7 +65,16 @@ pub trait ClaimStakeFarmRewardsModule:
         opt_new_farming_amount: Option<BigUint>,
     ) -> ClaimRewardsResultType<Self::Api> {
         self.migrate_old_farm_positions(&original_caller);
+
         let payment = self.call_value().single_esdt();
+        let payments_after_hook = self.call_hook(
+            FarmHookType::BeforeClaimRewards,
+            original_caller.clone(),
+            ManagedVec::from_single_item(payment),
+            ManagedVec::new(),
+        );
+        let payment = payments_after_hook.get(0);
+
         let mut claim_result = self
             .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
                 original_caller.clone(),
@@ -88,6 +100,20 @@ pub trait ClaimStakeFarmRewardsModule:
             &virtual_farm_token.attributes,
         );
         virtual_farm_token.payment.token_nonce = new_farm_token_nonce;
+
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(virtual_farm_token.payment);
+        self.push_if_non_zero_payment(&mut output_payments, claim_result.rewards.clone());
+
+        let mut output_payments_after_hook = self.call_hook(
+            FarmHookType::AfterClaimRewards,
+            original_caller,
+            output_payments,
+            ManagedVec::new(),
+        );
+        virtual_farm_token.payment = self.pop_first_payment(&mut output_payments_after_hook);
+        claim_result.rewards =
+            self.pop_or_return_payment(&mut output_payments_after_hook, claim_result.rewards);
 
         let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
