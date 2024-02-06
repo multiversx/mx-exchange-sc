@@ -9,7 +9,7 @@ pub trait CallHookModule {
     fn call_hook(
         &self,
         hook_type: PairHookType,
-        caller: ManagedAddress,
+        original_caller: ManagedAddress,
         input_payments: PaymentsVec<Self::Api>,
         args: ManagedVec<ManagedBuffer>,
     ) -> PaymentsVec<Self::Api> {
@@ -20,7 +20,7 @@ pub trait CallHookModule {
 
         let payments_len = input_payments.len();
         let mut call_args = ManagedArgBuffer::new();
-        call_args.push_arg(caller);
+        call_args.push_arg(original_caller);
 
         for arg in &args {
             call_args.push_arg(arg);
