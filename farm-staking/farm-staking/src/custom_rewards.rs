@@ -10,6 +10,7 @@ use crate::base_impl_wrapper::FarmStakingWrapper;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
 pub const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
+pub const WITHDRAW_AMOUNT_TOO_HIGH: &str = "Withdraw amount is higher than the remaining uncollected rewards!";
 
 #[multiversx_sc::module]
 pub trait CustomRewardsModule:
@@ -47,7 +48,9 @@ pub trait CustomRewardsModule:
     #[endpoint(withdrawRewards)]
     fn withdraw_rewards(&self, withdraw_amount: BigUint) {
         self.require_caller_has_admin_permissions();
-
+        
+        let remaining_uncolected_rewards = self.reward_capacity().get() - self.accumulated_rewards().get();
+        require!(withdraw_amount < remaining_uncolected_rewards, WITHDRAW_AMOUNT_TOO_HIGH);
         self.reward_capacity().update(|rewards| {
             require!(
                 *rewards >= withdraw_amount,
