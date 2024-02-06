@@ -1611,6 +1611,7 @@ fn destroy_farm_locked_tokens_test() {
             |sc| {
                 let output_payments = sc.destroy_farm_proxy(
                     managed_address!(&farm_locked_addr),
+                    managed_address!(&pair_addr),
                     managed_biguint!(1),
                     managed_biguint!(1),
                     OptionalValue::None,

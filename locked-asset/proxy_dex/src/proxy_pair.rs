@@ -68,8 +68,6 @@ pub trait ProxyPairModule:
             second_payment.amount.clone() - &add_liq_result.second_token_leftover.amount
         };
 
-        self.lp_address_for_lp(&add_liq_result.lp_tokens_received.token_identifier).set(pair_address.clone());
-
         let new_token_attributes = WrappedLpTokenAttributes {
             locked_tokens: locked_token_used,
             lp_token_id: add_liq_result.lp_tokens_received.token_identifier.clone(),
@@ -298,11 +296,4 @@ pub trait ProxyPairModule:
     fn require_wrapped_lp_token_id_not_empty(&self) {
         require!(!self.wrapped_lp_token().is_empty(), "Empty token id");
     }
-
-    #[storage_mapper("lpAddressForLp")]
-    fn lp_address_for_lp(
-        &self,
-        lp: &TokenIdentifier,
-    ) -> SingleValueMapper<ManagedAddress>;
-
 }

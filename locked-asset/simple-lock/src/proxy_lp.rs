@@ -184,8 +184,6 @@ pub trait ProxyLpModule:
             second_payment_unlocked_wrapper.status_before,
         );
 
-        self.lp_address_for_lp(&add_liq_result.lp_tokens.token_identifier).set(lp_address);
-
         let lp_token_name = add_liq_result
             .lp_tokens
             .token_identifier
@@ -393,13 +391,6 @@ pub trait ProxyLpModule:
         &self,
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
-    ) -> SingleValueMapper<ManagedAddress>;
-
-
-    #[storage_mapper("lpAddressForLp")]
-    fn lp_address_for_lp(
-        &self,
-        lp: &TokenIdentifier,
     ) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getLpProxyTokenId)]

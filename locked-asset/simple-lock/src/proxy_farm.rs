@@ -261,6 +261,7 @@ pub trait ProxyFarmModule:
     #[endpoint(destroyFarmLockedTokens)]
     fn destroy_farm_locked_tokens(
         &self,
+        pair_address: ManagedAddress,
         first_token_min_amount_out: BigUint,
         second_token_min_amount_out: BigUint,
     ) -> ExitFarmThroughProxyResultType<Self::Api> {
@@ -294,12 +295,8 @@ pub trait ProxyFarmModule:
 
         let initial_farming_tokens = exit_farm_result.initial_farming_tokens;
 
-        let lp_address = self
-            .lp_address_for_lp(&initial_farming_tokens.token_identifier)
-            .get();
-
         let remove_liq_result = self.call_pair_remove_liquidity_simple(
-            lp_address,
+            pair_address,
             initial_farming_tokens.token_identifier,
             initial_farming_tokens.amount,
             first_token_min_amount_out,

@@ -239,6 +239,7 @@ pub trait ProxyFarmModule:
     fn destroy_farm_proxy(
         &self,
         farm_address: ManagedAddress,
+        pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
         opt_original_caller: OptionalValue<ManagedAddress>,
@@ -280,8 +281,6 @@ pub trait ProxyFarmModule:
                 wrapped_farm_tokens_for_initial_tokens,
                 exit_result.farming_tokens.amount,
             );
-
-        let pair_address = self.lp_address_for_lp(&exit_result.farming_tokens.token_identifier).get();
 
         let mut output_payments = self.remove_liquidity_proxy_common(
             initial_proxy_farming_tokens.clone(),
