@@ -192,10 +192,6 @@ where
     ) {
         let farm_token_mapper = sc.farm_token();
         for farm_position in farm_positions {
-            if sc.is_old_farm_position(farm_position.token_nonce) {
-                continue;
-            }
-
             farm_token_mapper.require_same_token(&farm_position.token_identifier);
 
             let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
@@ -223,10 +219,6 @@ where
         sc: &Self::FarmSc,
         farm_position: &EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
     ) {
-        if sc.is_old_farm_position(farm_position.token_nonce) {
-            return;
-        }
-
         let farm_token_mapper = sc.farm_token();
         let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);
