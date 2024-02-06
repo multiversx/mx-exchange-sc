@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 
 use farm::base_functions::ClaimRewardsResultType;
 
-use crate::{base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType};
+use crate::{base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType};
 
 #[multiversx_sc::module]
 pub trait ClaimStakeFarmRewardsModule:
@@ -47,7 +47,7 @@ pub trait ClaimStakeFarmRewardsModule:
         let payment = payments_after_hook.get(0);
 
         let mut claim_result = self
-            .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
+            .claim_rewards_base_no_farm_token_mint::<FarmStakingNftWrapper<Self>>(
                 caller.clone(),
                 ManagedVec::from_single_item(payment),
             );

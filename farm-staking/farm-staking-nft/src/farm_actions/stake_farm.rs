@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 
 use farm::EnterFarmResultType;
 
-use crate::{base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType};
+use crate::{base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType};
 
 #[multiversx_sc::module]
 pub trait StakeFarmModule:
@@ -49,8 +49,8 @@ pub trait StakeFarmModule:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let mut enter_result =
-            self.enter_farm_base::<FarmStakingWrapper<Self>>(caller.clone(), payments_after_hook);
+        let mut enter_result = self
+            .enter_farm_base::<FarmStakingNftWrapper<Self>>(caller.clone(), payments_after_hook);
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
         let mut output_payments = ManagedVec::new();

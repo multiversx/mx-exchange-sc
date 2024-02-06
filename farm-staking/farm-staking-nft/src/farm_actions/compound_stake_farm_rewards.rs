@@ -1,4 +1,4 @@
-use crate::{base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType};
+use crate::{base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType};
 
 multiversx_sc::imports!();
 
@@ -43,8 +43,10 @@ pub trait CompoundStakeFarmRewardsModule:
             ManagedVec::new(),
         );
 
-        let mut compound_result = self
-            .compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments_after_hook);
+        let mut compound_result = self.compound_rewards_base::<FarmStakingNftWrapper<Self>>(
+            caller.clone(),
+            payments_after_hook,
+        );
 
         let new_farm_token = compound_result.new_farm_token.payment.clone();
         let mut args = ManagedVec::new();

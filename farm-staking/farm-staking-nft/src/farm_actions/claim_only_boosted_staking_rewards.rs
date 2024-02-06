@@ -1,4 +1,4 @@
-use crate::base_impl_wrapper::FarmStakingWrapper;
+use crate::base_impl_wrapper::FarmStakingNftWrapper;
 
 multiversx_sc::imports!();
 
@@ -51,7 +51,7 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
 
     // Cannot import the one from farm, as the Wrapper struct has different dependencies
     fn claim_only_boosted_payment(&self, caller: &ManagedAddress) -> BigUint {
-        let reward = FarmStakingWrapper::<Self>::calculate_boosted_rewards(self, caller);
+        let reward = FarmStakingNftWrapper::<Self>::calculate_boosted_rewards(self, caller);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }

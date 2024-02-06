@@ -1,4 +1,4 @@
-use super::hook_type::{Hook, FarmHookType};
+use super::hook_type::{FarmHookType, Hook};
 
 multiversx_sc::imports!();
 

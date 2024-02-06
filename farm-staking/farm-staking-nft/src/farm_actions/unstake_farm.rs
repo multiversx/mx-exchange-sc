@@ -3,7 +3,7 @@ multiversx_sc::imports!();
 use farm::ExitFarmWithPartialPosResultType;
 
 use crate::{
-    base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType,
+    base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType,
     token_attributes::UnbondSftAttributes,
 };
 
@@ -51,7 +51,7 @@ pub trait UnstakeFarmModule:
         let payment = payments_after_hook.get(0);
 
         let mut exit_result =
-            self.exit_farm_base::<FarmStakingWrapper<Self>>(caller.clone(), payment);
+            self.exit_farm_base::<FarmStakingNftWrapper<Self>>(caller.clone(), payment);
 
         let unbond_token_amount = exit_result.farming_token_payment.amount;
         let farm_token_id = exit_result.storage_cache.farm_token_id.clone();

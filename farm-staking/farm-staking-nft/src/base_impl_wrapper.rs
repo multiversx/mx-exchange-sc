@@ -19,14 +19,14 @@ pub trait FarmStakingNftTraits =
         + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
         + farm_boosted_yields::FarmBoostedYieldsModule;
 
-pub struct FarmStakingWrapper<T>
+pub struct FarmStakingNftWrapper<T>
 where
     T:,
 {
     _phantom: PhantomData<T>,
 }
 
-impl<T> FarmStakingWrapper<T>
+impl<T> FarmStakingNftWrapper<T>
 where
     T: FarmStakingNftTraits,
 {
@@ -58,7 +58,7 @@ where
     }
 }
 
-impl<T> FarmContract for FarmStakingWrapper<T>
+impl<T> FarmContract for FarmStakingNftWrapper<T>
 where
     T: FarmStakingNftTraits,
 {

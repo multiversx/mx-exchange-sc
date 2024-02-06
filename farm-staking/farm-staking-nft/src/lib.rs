@@ -5,7 +5,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use base_impl_wrapper::FarmStakingWrapper;
+use base_impl_wrapper::FarmStakingNftWrapper;
 use contexts::storage_cache::StorageCache;
 use farm::base_functions::DoubleMultiPayment;
 use farm_base_impl::base_traits_impl::FarmContract;
@@ -124,9 +124,9 @@ pub trait FarmStaking:
         self.require_queried();
 
         let mut storage_cache = StorageCache::new(self);
-        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+        FarmStakingNftWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        FarmStakingWrapper::<Self>::calculate_rewards(
+        FarmStakingNftWrapper::<Self>::calculate_rewards(
             self,
             &ManagedAddress::zero(),
             &farm_token_amount,
