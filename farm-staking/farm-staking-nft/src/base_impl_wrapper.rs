@@ -9,7 +9,7 @@ use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::token_attributes::StakingFarmTokenAttributes;
 
-pub trait FarmStakingTraits =
+pub trait FarmStakingNftTraits =
     crate::custom_rewards::CustomRewardsModule
         + rewards::RewardsModule
         + config::ConfigModule
@@ -28,7 +28,7 @@ where
 
 impl<T> FarmStakingWrapper<T>
 where
-    T: FarmStakingTraits,
+    T: FarmStakingNftTraits,
 {
     pub fn calculate_base_farm_rewards(
         farm_token_amount: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
@@ -60,7 +60,7 @@ where
 
 impl<T> FarmContract for FarmStakingWrapper<T>
 where
-    T: FarmStakingTraits,
+    T: FarmStakingNftTraits,
 {
     type FarmSc = T;
     type AttributesType = StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
