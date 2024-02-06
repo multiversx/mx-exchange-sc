@@ -261,7 +261,6 @@ pub trait ProxyFarmModule:
     #[endpoint(destroyFarmLockedTokens)]
     fn destroy_farm_locked_tokens(
         &self,
-        pair_address: ManagedAddress,
         first_token_min_amount_out: BigUint,
         second_token_min_amount_out: BigUint,
     ) -> ExitFarmThroughProxyResultType<Self::Api> {
@@ -295,24 +294,23 @@ pub trait ProxyFarmModule:
 
         let initial_farming_tokens = exit_farm_result.initial_farming_tokens;
 
-        let remove_liq_result = self.call_pair_remove_liquidity_simple(
-            pair_address,
-            initial_farming_tokens.token_identifier,
-            initial_farming_tokens.amount,
+        let (first_token_payment_out, second_token_payment_out) = self.remove_liquidity_locked_token_common(
+            initial_farming_tokens,
             first_token_min_amount_out,
             second_token_min_amount_out,
-        );
+        ).into_tuple();
 
-        output_payments.push(remove_liq_result.first_token_payment_out.clone());
-        output_payments.push(remove_liq_result.second_token_payment_out.clone());
+        output_payments.push(first_token_payment_out.clone());
+        output_payments.push(second_token_payment_out.clone());
 
         let caller = self.blockchain().get_caller();
         self.send().direct_multi(&caller, &output_payments);
 
         (
-            remove_liq_result.first_token_payment_out.clone(),
-            remove_liq_result.second_token_payment_out,
-        ).into()
+            first_token_payment_out,
+            second_token_payment_out,
+        )
+            .into()
     }
 
     /// Claim rewards from a previously entered farm.
