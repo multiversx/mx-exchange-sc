@@ -3,7 +3,7 @@ multiversx_sc::imports!();
 use common_structs::PaymentsVec;
 use farm::EnterFarmResultType;
 
-use crate::base_impl_wrapper::FarmStakingWrapper;
+use crate::{base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType};
 
 #[multiversx_sc::module]
 pub trait StakeFarmModule:
@@ -31,6 +31,9 @@ pub trait StakeFarmModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + banned_addresses::BannedAddressModule
+    + crate::farm_hooks::change_hooks::ChangeHooksModule
+    + crate::farm_hooks::call_hook::CallHookModule
 {
     #[payable("*")]
     #[endpoint(stakeFarmThroughProxy)]
@@ -62,8 +65,14 @@ pub trait StakeFarmModule:
         let caller = self.blockchain().get_caller();
         let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
         let payments = self.get_non_empty_payments();
+        let payments_after_hook = self.call_hook(
+            FarmHookType::BeforeStake,
+            original_caller.clone(),
+            payments,
+            ManagedVec::new(),
+        );
 
-        self.stake_farm_common(original_caller, payments)
+        self.stake_farm_common(original_caller, payments_after_hook)
     }
 
     fn stake_farm_common(
@@ -81,6 +90,20 @@ pub trait StakeFarmModule:
             self.enter_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payments);
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(new_farm_token);
+        self.push_if_non_zero_payment(&mut output_payments, boosted_rewards_payment.clone());
+
+        let mut output_payments_after_hook = self.call_hook(
+            FarmHookType::AfterStake,
+            original_caller.clone(),
+            output_payments,
+            ManagedVec::new(),
+        );
+        let new_farm_token = self.pop_first_payment(&mut output_payments_after_hook);
+        let boosted_rewards_payment =
+            self.pop_or_return_payment(&mut output_payments_after_hook, boosted_rewards_payment);
+
         self.send_payment_non_zero(&caller, &new_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
