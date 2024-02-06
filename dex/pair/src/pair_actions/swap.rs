@@ -1,7 +1,7 @@
 use crate::{
-    contexts::swap::SwapContext, StorageCache, ERROR_INVALID_ARGS, ERROR_K_INVARIANT_FAILED,
-    ERROR_NOT_ENOUGH_RESERVE, ERROR_NOT_WHITELISTED, ERROR_SLIPPAGE_EXCEEDED,
-    ERROR_SWAP_NOT_ENABLED, ERROR_ZERO_AMOUNT,
+    contexts::swap::SwapContext, pair_hooks::hook_type::HookType, StorageCache, ERROR_INVALID_ARGS,
+    ERROR_K_INVARIANT_FAILED, ERROR_NOT_ENOUGH_RESERVE, ERROR_NOT_WHITELISTED,
+    ERROR_SLIPPAGE_EXCEEDED, ERROR_SWAP_NOT_ENABLED, ERROR_ZERO_AMOUNT,
 };
 
 use super::common_result_types::{SwapTokensFixedInputResultType, SwapTokensFixedOutputResultType};
@@ -29,6 +29,9 @@ pub trait SwapModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
     + super::common_methods::CommonMethodsModule
+    + crate::pair_hooks::banned_address::BannedAddressModule
+    + crate::pair_hooks::change_hooks::ChangeHooksModule
+    + crate::pair_hooks::call_hook::CallHookModule
     + utils::UtilsModule
 {
     #[payable("*")]
@@ -99,6 +102,7 @@ pub trait SwapModule:
         require!(amount_out_min > 0, ERROR_INVALID_ARGS);
 
         let mut storage_cache = StorageCache::new(self);
+        let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
         let swap_tokens_order =
             storage_cache.get_swap_tokens_order(&payment.token_identifier, &token_out);
@@ -120,6 +124,20 @@ pub trait SwapModule:
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
+
+        let mut args = ManagedVec::new();
+        self.encode_arg_to_vec(&SwapType::FixedInput, &mut args);
+
+        let payments_after_hook = self.call_hook(
+            HookType::BeforeSwap,
+            caller.clone(),
+            ManagedVec::from_single_item(payment),
+            args.clone(),
+        );
+        let payment = payments_after_hook.get(0);
+
+        self.encode_arg_to_vec(&token_out, &mut args);
+        self.encode_arg_to_vec(&amount_out_min, &mut args);
 
         let mut swap_context = SwapContext::new(
             payment.token_identifier,
@@ -147,17 +165,19 @@ pub trait SwapModule:
 
         let caller = self.blockchain().get_caller();
         let output_payments = self.build_swap_output_payments(&swap_context);
+        let output_payments_after_hook =
+            self.call_hook(HookType::AfterSwap, caller.clone(), output_payments, args);
 
         require!(
-            output_payments.get(0).amount >= swap_context.output_token_amount,
+            output_payments_after_hook.get(0).amount >= swap_context.output_token_amount,
             ERROR_SLIPPAGE_EXCEEDED
         );
 
-        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments_after_hook);
 
         self.emit_swap_event(&storage_cache, swap_context);
 
-        self.build_swap_fixed_input_results(output_payments)
+        self.build_swap_fixed_input_results(output_payments_after_hook)
     }
 
     #[payable("*")]
@@ -170,6 +190,7 @@ pub trait SwapModule:
         require!(amount_out > 0, ERROR_INVALID_ARGS);
 
         let mut storage_cache = StorageCache::new(self);
+        let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
         let swap_tokens_order =
             storage_cache.get_swap_tokens_order(&payment.token_identifier, &token_out);
@@ -191,6 +212,20 @@ pub trait SwapModule:
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
+
+        let mut args = ManagedVec::new();
+        self.encode_arg_to_vec(&SwapType::FixedOutput, &mut args);
+
+        let payments_after_hook = self.call_hook(
+            HookType::BeforeSwap,
+            caller.clone(),
+            ManagedVec::from_single_item(payment),
+            args.clone(),
+        );
+        let payment = payments_after_hook.get(0);
+
+        self.encode_arg_to_vec(&token_out, &mut args);
+        self.encode_arg_to_vec(&amount_out, &mut args);
 
         let mut swap_context = SwapContext::new(
             payment.token_identifier,
@@ -218,12 +253,14 @@ pub trait SwapModule:
 
         let caller = self.blockchain().get_caller();
         let output_payments = self.build_swap_output_payments(&swap_context);
+        let output_payments_after_hook =
+            self.call_hook(HookType::AfterSwap, caller.clone(), output_payments, args);
 
-        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments_after_hook);
 
         self.emit_swap_event(&storage_cache, swap_context);
 
-        self.build_swap_fixed_output_results(output_payments)
+        self.build_swap_fixed_output_results(output_payments_after_hook)
     }
 
     fn perform_swap_fixed_input(
