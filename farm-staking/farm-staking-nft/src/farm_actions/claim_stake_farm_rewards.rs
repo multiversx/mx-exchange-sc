@@ -13,7 +13,6 @@ pub trait ClaimStakeFarmRewardsModule:
     + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -36,40 +35,12 @@ pub trait ClaimStakeFarmRewardsModule:
 {
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards(
-        &self,
-        opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> ClaimRewardsResultType<Self::Api> {
+    fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
-
-        self.claim_rewards_common(original_caller, None)
-    }
-
-    #[payable("*")]
-    #[endpoint(claimRewardsWithNewValue)]
-    fn claim_rewards_with_new_value(
-        &self,
-        new_farming_amount: BigUint,
-        original_caller: ManagedAddress,
-    ) -> ClaimRewardsResultType<Self::Api> {
-        let caller = self.blockchain().get_caller();
-        self.require_sc_address_whitelisted(&caller);
-
-        self.claim_rewards_common(original_caller, Some(new_farming_amount))
-    }
-
-    fn claim_rewards_common(
-        &self,
-        original_caller: ManagedAddress,
-        opt_new_farming_amount: Option<BigUint>,
-    ) -> ClaimRewardsResultType<Self::Api> {
-        self.migrate_old_farm_positions(&original_caller);
-
         let payment = self.call_value().single_esdt();
         let payments_after_hook = self.call_hook(
             FarmHookType::BeforeClaimRewards,
-            original_caller.clone(),
+            caller.clone(),
             ManagedVec::from_single_item(payment),
             ManagedVec::new(),
         );
@@ -77,22 +48,13 @@ pub trait ClaimStakeFarmRewardsModule:
 
         let mut claim_result = self
             .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
-                original_caller.clone(),
+                caller.clone(),
                 ManagedVec::from_single_item(payment),
             );
 
         let mut virtual_farm_token = claim_result.new_farm_token.clone();
-        if let Some(new_amount) = opt_new_farming_amount {
-            claim_result.storage_cache.farm_token_supply -= &virtual_farm_token.payment.amount;
-            claim_result.storage_cache.farm_token_supply += &new_amount;
 
-            virtual_farm_token.payment.amount = new_amount.clone();
-            virtual_farm_token.attributes.current_farm_amount = new_amount;
-
-            self.set_farm_supply_for_current_week(&claim_result.storage_cache.farm_token_supply);
-        }
-
-        self.update_energy_and_progress(&original_caller);
+        self.update_energy_and_progress(&caller);
 
         let new_farm_token_nonce = self.send().esdt_nft_create_compact(
             &virtual_farm_token.payment.token_identifier,
@@ -107,7 +69,7 @@ pub trait ClaimStakeFarmRewardsModule:
 
         let mut output_payments_after_hook = self.call_hook(
             FarmHookType::AfterClaimRewards,
-            original_caller,
+            caller.clone(),
             output_payments,
             ManagedVec::new(),
         );
@@ -115,7 +77,6 @@ pub trait ClaimStakeFarmRewardsModule:
         claim_result.rewards =
             self.pop_or_return_payment(&mut output_payments_after_hook, claim_result.rewards);
 
-        let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
         self.send_payment_non_zero(&caller, &claim_result.rewards);
 

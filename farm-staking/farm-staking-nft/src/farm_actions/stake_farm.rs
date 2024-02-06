@@ -1,6 +1,5 @@
 multiversx_sc::imports!();
 
-use common_structs::PaymentsVec;
 use farm::EnterFarmResultType;
 
 use crate::{base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType};
@@ -14,7 +13,6 @@ pub trait StakeFarmModule:
     + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -36,58 +34,23 @@ pub trait StakeFarmModule:
     + crate::farm_hooks::call_hook::CallHookModule
 {
     #[payable("*")]
-    #[endpoint(stakeFarmThroughProxy)]
-    fn stake_farm_through_proxy(
-        &self,
-        staked_token_amount: BigUint,
-        original_caller: ManagedAddress,
-    ) -> EnterFarmResultType<Self::Api> {
-        let caller = self.blockchain().get_caller();
-        self.require_sc_address_whitelisted(&caller);
-
-        let staked_token_id = self.farming_token_id().get();
-        let staked_token_simulated_payment =
-            EsdtTokenPayment::new(staked_token_id, 0, staked_token_amount);
-
-        let farm_tokens = self.call_value().all_esdt_transfers().clone_value();
-        let mut payments = ManagedVec::from_single_item(staked_token_simulated_payment);
-        payments.append_vec(farm_tokens);
-
-        self.stake_farm_common(original_caller, payments)
-    }
-
-    #[payable("*")]
     #[endpoint(stakeFarm)]
-    fn stake_farm_endpoint(
-        &self,
-        opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> EnterFarmResultType<Self::Api> {
+    fn stake_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
         let payments = self.get_non_empty_payments();
         let payments_after_hook = self.call_hook(
             FarmHookType::BeforeStake,
-            original_caller.clone(),
+            caller.clone(),
             payments,
             ManagedVec::new(),
         );
 
-        self.stake_farm_common(original_caller, payments_after_hook)
-    }
-
-    fn stake_farm_common(
-        &self,
-        original_caller: ManagedAddress,
-        payments: PaymentsVec<Self::Api>,
-    ) -> EnterFarmResultType<Self::Api> {
-        let caller = self.blockchain().get_caller();
-        self.migrate_old_farm_positions(&original_caller);
-        let boosted_rewards = self.claim_only_boosted_payment(&original_caller);
+        let boosted_rewards = self.claim_only_boosted_payment(&caller);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
         let mut enter_result =
-            self.enter_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payments);
+            self.enter_farm_base::<FarmStakingWrapper<Self>>(caller.clone(), payments_after_hook);
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
         let mut output_payments = ManagedVec::new();
@@ -96,7 +59,7 @@ pub trait StakeFarmModule:
 
         let mut output_payments_after_hook = self.call_hook(
             FarmHookType::AfterStake,
-            original_caller.clone(),
+            caller.clone(),
             output_payments,
             ManagedVec::new(),
         );
@@ -109,7 +72,7 @@ pub trait StakeFarmModule:
 
         self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
 
-        self.update_energy_and_progress(&original_caller);
+        self.update_energy_and_progress(&caller);
 
         enter_result.new_farm_token.payment = new_farm_token.clone();
 

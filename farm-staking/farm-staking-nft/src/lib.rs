@@ -29,7 +29,6 @@ pub trait FarmStaking:
     + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -93,18 +92,12 @@ pub trait FarmStaking:
     }
 
     #[endpoint]
-    fn upgrade(&self) {
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
-    }
+    fn upgrade(&self) {}
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(&self) -> DoubleMultiPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.migrate_old_farm_positions(&caller);
-
         let boosted_rewards = self.claim_only_boosted_payment(&caller);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);

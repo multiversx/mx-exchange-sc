@@ -194,7 +194,6 @@ dependencies = [
  "pausable",
  "permissions_module",
  "rewards",
- "sc_whitelist_module",
  "token_send",
  "utils",
  "week-timekeeping",

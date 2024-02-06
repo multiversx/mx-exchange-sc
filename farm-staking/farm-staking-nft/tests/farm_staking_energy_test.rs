@@ -6,7 +6,6 @@ use farm_staking_nft::farm_actions::{
     unstake_farm::UnstakeFarmModule,
 };
 use farm_staking_setup::*;
-use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc_scenario::{rust_biguint, DebugApi};
 
 #[test]
@@ -79,7 +78,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
             1,
             &rust_biguint!(farm_in_amount),
             |sc| {
-                let _ = sc.claim_rewards(OptionalValue::None);
+                let _ = sc.claim_rewards();
             },
         )
         .assert_ok();
@@ -107,7 +106,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
             0,
             &rust_biguint!(10),
             |sc| {
-                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+                let _ = sc.stake_farm_endpoint();
             },
         )
         .assert_ok();
@@ -121,7 +120,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
             3,
             &rust_biguint!(10),
             |sc| {
-                let _ = sc.unstake_farm(OptionalValue::None);
+                let _ = sc.unstake_farm();
             },
         )
         .assert_ok();
@@ -176,7 +175,7 @@ fn farm_staking_claim_boosted_rewards_for_user_test() {
             1,
             &rust_biguint!(farm_in_amount),
             |sc| {
-                let _ = sc.claim_rewards(OptionalValue::None);
+                let _ = sc.claim_rewards();
             },
         )
         .assert_ok();
@@ -203,7 +202,7 @@ fn farm_staking_claim_boosted_rewards_for_user_test() {
             0,
             &rust_biguint!(10),
             |sc| {
-                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+                let _ = sc.stake_farm_endpoint();
             },
         )
         .assert_ok();
@@ -217,7 +216,7 @@ fn farm_staking_claim_boosted_rewards_for_user_test() {
             3,
             &rust_biguint!(10),
             |sc| {
-                let _ = sc.unstake_farm(OptionalValue::None);
+                let _ = sc.unstake_farm();
             },
         )
         .assert_ok();
@@ -272,7 +271,7 @@ fn farm_staking_full_position_boosted_rewards_test() {
             1,
             &rust_biguint!(farm_in_amount),
             |sc| {
-                let _ = sc.claim_rewards(OptionalValue::None);
+                let _ = sc.claim_rewards();
             },
         )
         .assert_ok();
@@ -300,7 +299,7 @@ fn farm_staking_full_position_boosted_rewards_test() {
             0,
             &rust_biguint!(10),
             |sc| {
-                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+                let _ = sc.stake_farm_endpoint();
             },
         )
         .assert_ok();
@@ -314,7 +313,7 @@ fn farm_staking_full_position_boosted_rewards_test() {
             4,
             &rust_biguint!(10),
             |sc| {
-                let _ = sc.unstake_farm(OptionalValue::None);
+                let _ = sc.unstake_farm();
             },
         )
         .assert_ok();
