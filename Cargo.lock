@@ -828,6 +828,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "farm-staking-nft"
+version = "0.0.0"
+dependencies = [
+ "banned_addresses",
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "energy-factory",
+ "energy-query",
+ "events",
+ "farm",
+ "farm-boosted-yields",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "math",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "pair",
+ "pausable",
+ "permissions_module",
+ "rewards",
+ "sc_whitelist_module",
+ "token_send",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
+name = "farm-staking-nft-abi"
+version = "0.0.0"
+dependencies = [
+ "farm-staking-nft",
+ "multiversx-sc-meta",
+]
+
+[[package]]
 name = "farm-staking-proxy"
 version = "0.0.0"
 dependencies = [
