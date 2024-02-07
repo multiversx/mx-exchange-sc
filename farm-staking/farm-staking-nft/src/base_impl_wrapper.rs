@@ -7,7 +7,7 @@ use contexts::storage_cache::StorageCache;
 use farm_base_impl::base_traits_impl::FarmContract;
 use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
-use crate::token_attributes::StakingFarmTokenAttributes;
+use crate::token_attributes::StakingFarmNftTokenAttributes;
 
 pub trait FarmStakingNftTraits =
     crate::custom_rewards::CustomRewardsModule
@@ -63,7 +63,7 @@ where
     T: FarmStakingNftTraits,
 {
     type FarmSc = T;
-    type AttributesType = StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
+    type AttributesType = StakingFarmNftTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
 
     fn mint_rewards(
         _sc: &Self::FarmSc,
@@ -144,11 +144,12 @@ where
         farming_token_amount: BigUint<<Self::FarmSc as ContractBase>::Api>,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
-        StakingFarmTokenAttributes {
+        StakingFarmNftTokenAttributes {
             reward_per_share: current_reward_per_share,
             compounded_reward: BigUint::zero(),
             current_farm_amount: farming_token_amount,
             original_owner: caller,
+            farming_token_parts: PaymentsVec::new(),
         }
     }
 
@@ -158,11 +159,12 @@ where
         first_token_attributes: Self::AttributesType,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
-        StakingFarmTokenAttributes {
+        StakingFarmNftTokenAttributes {
             reward_per_share: current_reward_per_share,
             compounded_reward: first_token_attributes.compounded_reward,
             current_farm_amount: first_token_attributes.current_farm_amount,
             original_owner: caller,
+            farming_token_parts: PaymentsVec::new(),
         }
     }
 
@@ -175,11 +177,12 @@ where
     ) -> Self::AttributesType {
         let new_pos_compounded_reward = first_token_attributes.compounded_reward + reward;
         let new_pos_current_farm_amount = first_token_attributes.current_farm_amount + reward;
-        StakingFarmTokenAttributes {
+        StakingFarmNftTokenAttributes {
             reward_per_share: current_reward_per_share,
             compounded_reward: new_pos_compounded_reward,
             current_farm_amount: new_pos_current_farm_amount,
             original_owner: caller,
+            farming_token_parts: PaymentsVec::new(),
         }
     }
 
@@ -192,8 +195,9 @@ where
         for farm_position in farm_positions {
             farm_token_mapper.require_same_token(&farm_position.token_identifier);
 
-            let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
-                farm_token_mapper.get_token_attributes(farm_position.token_nonce);
+            let token_attributes: StakingFarmNftTokenAttributes<
+                <Self::FarmSc as ContractBase>::Api,
+            > = farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
             if &token_attributes.original_owner != user {
                 Self::decrease_user_farm_position(sc, &farm_position);
@@ -218,7 +222,7 @@ where
         farm_position: &EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
     ) {
         let farm_token_mapper = sc.farm_token();
-        let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
+        let token_attributes: StakingFarmNftTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
         sc.user_total_farm_position(&token_attributes.original_owner)

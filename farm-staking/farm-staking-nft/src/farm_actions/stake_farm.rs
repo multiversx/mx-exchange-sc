@@ -1,8 +1,12 @@
 multiversx_sc::imports!();
 
+use common_structs::PaymentsVec;
 use farm::EnterFarmResultType;
 
-use crate::{base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType};
+use crate::{
+    base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType,
+    token_attributes::StakingFarmNftTokenAttributes,
+};
 
 #[multiversx_sc::module]
 pub trait StakeFarmModule:
@@ -49,10 +53,49 @@ pub trait StakeFarmModule:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let mut enter_result = self
-            .enter_farm_base::<FarmStakingNftWrapper<Self>>(caller.clone(), payments_after_hook);
+        let farm_token_mapper = self.farm_token();
+        let farming_token_id = self.farming_token_id().get();
+        let farm_token_id = farm_token_mapper.get_token_id();
+        let mut total_farming_token = BigUint::zero();
+        let mut all_farming_tokens = PaymentsVec::new();
+        let mut other_farm_tokens = PaymentsVec::new();
+        for payment in &payments_after_hook {
+            if payment.token_identifier == farm_token_id {
+                let attributes: StakingFarmNftTokenAttributes<Self::Api> =
+                    farm_token_mapper.get_token_attributes(payment.token_nonce);
+                require!(
+                    payment.amount == attributes.current_farm_amount,
+                    "Cannot split farm pos"
+                );
+
+                other_farm_tokens.push(payment);
+            } else if payment.token_identifier == farming_token_id {
+                total_farming_token += &payment.amount;
+                all_farming_tokens.push(payment);
+            } else {
+                sc_panic!("Invalid payments");
+            }
+        }
+
+        require!(total_farming_token > 0, "No farming tokens");
+
+        let farming_token_payment = EsdtTokenPayment::new(farming_token_id, 0, total_farming_token);
+        let mut enter_input_payments = PaymentsVec::from_single_item(farming_token_payment);
+        enter_input_payments.append_vec(other_farm_tokens);
+
+        let mut enter_result = self.enter_farm_base_no_token_create::<FarmStakingNftWrapper<Self>>(
+            caller.clone(),
+            enter_input_payments,
+        );
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
+        let mut attributes = enter_result.new_farm_token.attributes;
+        attributes
+            .farming_token_parts
+            .append_vec(all_farming_tokens);
+
+        let new_farm_token = farm_token_mapper.nft_create(new_farm_token.amount, &attributes);
+
         let mut output_payments = ManagedVec::new();
         output_payments.push(new_farm_token);
         self.push_if_non_zero_payment(&mut output_payments, boosted_rewards_payment.clone());
@@ -75,6 +118,7 @@ pub trait StakeFarmModule:
         self.update_energy_and_progress(&caller);
 
         enter_result.new_farm_token.payment = new_farm_token.clone();
+        enter_result.new_farm_token.attributes = attributes;
 
         self.emit_enter_farm_event(
             &caller,
