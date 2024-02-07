@@ -164,7 +164,7 @@ where
             compounded_reward: first_token_attributes.compounded_reward,
             current_farm_amount: first_token_attributes.current_farm_amount,
             original_owner: caller,
-            farming_token_parts: PaymentsVec::new(),
+            farming_token_parts: first_token_attributes.farming_token_parts,
         }
     }
 
@@ -182,7 +182,7 @@ where
             compounded_reward: new_pos_compounded_reward,
             current_farm_amount: new_pos_current_farm_amount,
             original_owner: caller,
-            farming_token_parts: PaymentsVec::new(),
+            farming_token_parts: first_token_attributes.farming_token_parts,
         }
     }
 
