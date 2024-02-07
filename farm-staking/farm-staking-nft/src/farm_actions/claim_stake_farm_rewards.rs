@@ -46,22 +46,14 @@ pub trait ClaimStakeFarmRewardsModule:
         );
         let payment = payments_after_hook.get(0);
 
-        let mut claim_result = self
-            .claim_rewards_base_no_farm_token_mint::<FarmStakingNftWrapper<Self>>(
-                caller.clone(),
-                ManagedVec::from_single_item(payment),
-            );
+        let mut claim_result = self.claim_rewards_base::<FarmStakingNftWrapper<Self>>(
+            caller.clone(),
+            ManagedVec::from_single_item(payment),
+        );
 
         let mut virtual_farm_token = claim_result.new_farm_token.clone();
 
         self.update_energy_and_progress(&caller);
-
-        let new_farm_token_nonce = self.send().esdt_nft_create_compact(
-            &virtual_farm_token.payment.token_identifier,
-            &virtual_farm_token.payment.amount,
-            &virtual_farm_token.attributes,
-        );
-        virtual_farm_token.payment.token_nonce = new_farm_token_nonce;
 
         let mut output_payments = ManagedVec::new();
         output_payments.push(virtual_farm_token.payment);
