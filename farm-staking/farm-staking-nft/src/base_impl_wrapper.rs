@@ -19,6 +19,53 @@ pub trait FarmStakingNftTraits =
         + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
         + farm_boosted_yields::FarmBoostedYieldsModule;
 
+#[multiversx_sc::module]
+pub trait FarmBaseImpl:
+    farm_boosted_yields::FarmBoostedYieldsModule
+    + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + config::ConfigModule
+    + week_timekeeping::WeekTimekeepingModule
+    + pausable::PausableModule
+    + permissions_module::PermissionsModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+    + energy_query::EnergyQueryModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + crate::custom_rewards::CustomRewardsModule
+    + rewards::RewardsModule
+    + farm_token::FarmTokenModule
+    + utils::UtilsModule
+    + token_send::TokenSendModule
+{
+    pub fn calculate_base_farm_rewards(
+        &self,
+        farm_token_amount: &BigUint,
+        token_attributes: &StakingFarmNftTokenAttributes<Self::Api>,
+        storage_cache: &StorageCache<Self>,
+    ) -> BigUint {
+        let token_rps = token_attributes.get_reward_per_share();
+        if storage_cache.reward_per_share > token_rps {
+            let rps_diff = &storage_cache.reward_per_share - &token_rps;
+            farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
+        } else {
+            BigUint::zero()
+        }
+    }
+
+    pub fn calculate_boosted_rewards(&self, caller: &ManagedAddress) -> BigUint {
+        let user_total_farm_position = self.get_user_total_farm_position(caller);
+        let user_farm_position = user_total_farm_position.total_farm_position;
+        if user_farm_position == 0 {
+            return BigUint::zero();
+        }
+
+        self.claim_boosted_yields_rewards(caller, user_farm_position)
+    }
+}
+
 pub struct FarmStakingNftWrapper<T>
 where
     T:,
