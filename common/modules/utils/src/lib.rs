@@ -17,10 +17,7 @@ pub trait UtilsModule {
         }
     }
 
-    fn to_esdt_payment(
-        &self,
-        egld_or_esdt_payment: EgldOrEsdtTokenPayment<Self::Api>,
-    ) -> EsdtTokenPayment {
+    fn to_esdt_payment(&self, egld_or_esdt_payment: EgldOrEsdtTokenPayment) -> EsdtTokenPayment {
         EsdtTokenPayment::new(
             egld_or_esdt_payment.token_identifier.unwrap_esdt(),
             egld_or_esdt_payment.token_nonce,
@@ -35,16 +32,40 @@ pub trait UtilsModule {
         payments.clone_value()
     }
 
-    fn pop_first_payment(
-        &self,
-        payments: &mut PaymentsVec<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    fn pop_first_payment(&self, payments: &mut PaymentsVec<Self::Api>) -> EsdtTokenPayment {
         require!(!payments.is_empty(), ERR_EMPTY_PAYMENTS);
 
         let first_payment = payments.get(0);
         payments.remove(0);
 
         first_payment
+    }
+
+    fn pop_or_return_payment(
+        &self,
+        payments: &mut PaymentsVec<Self::Api>,
+        payment_if_empty: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
+        if payments.is_empty() {
+            return payment_if_empty;
+        }
+
+        let first_payment = payments.get(0);
+        payments.remove(0);
+
+        first_payment
+    }
+
+    fn push_if_non_zero_payment(
+        &self,
+        payments: &mut PaymentsVec<Self::Api>,
+        new_payment: EsdtTokenPayment,
+    ) {
+        if new_payment.amount == 0 {
+            return;
+        }
+
+        payments.push(new_payment);
     }
 
     fn get_attributes_as_part_of_fixed_supply<T: FixedSupplyToken<Self::Api> + TopDecode>(
