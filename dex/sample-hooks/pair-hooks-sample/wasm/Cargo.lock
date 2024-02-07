@@ -15,18 +15,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
-name = "banned_addresses"
-version = "0.0.0"
-dependencies = [
- "multiversx-sc",
- "permissions_module",
-]
-
-[[package]]
 name = "bitflags"
-version = "2.4.1"
+version = "2.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "327762f6e5a765692301e5bb513e0d9fef63be86bbc14528052b1cd3e6f03e07"
+checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
 
 [[package]]
 name = "common-types"
@@ -255,7 +247,6 @@ dependencies = [
 name = "pair"
 version = "0.0.0"
 dependencies = [
- "banned_addresses",
  "common_errors",
  "common_structs",
  "fees-collector",
@@ -269,11 +260,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "pair-wasm"
+name = "pair-hooks-sample"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "pair",
+]
+
+[[package]]
+name = "pair-hooks-sample-wasm"
 version = "0.0.0"
 dependencies = [
  "multiversx-sc-wasm-adapter",
- "pair",
+ "pair-hooks-sample",
 ]
 
 [[package]]
@@ -295,9 +294,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.75"
+version = "1.0.78"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "907a61bd0f64c2f29cd1cf1dc34d05176426a3f504a78010f08416ddb7b13708"
+checksum = "e2422ad645d89c99f8f3e6b88a9fdeca7fabeac836b1002371c4367c8f984aae"
 dependencies = [
  "unicode-ident",
 ]
@@ -340,9 +339,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.11.2"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dccd0940a2dcdf68d092b8cbab7dc0ad8fa938bf95787e1b916b0e3d0e8e970"
+checksum = "e6ecd384b10a64542d77071bd64bd7b231f4ed5940fba55e98c3de13824cf3d7"
 
 [[package]]
 name = "syn"
