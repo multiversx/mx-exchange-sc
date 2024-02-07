@@ -59,6 +59,7 @@ pub trait ClaimStakeFarmRewardsModule:
         output_payments.push(virtual_farm_token.payment);
         self.push_if_non_zero_payment(&mut output_payments, claim_result.rewards.clone());
 
+        // TODO: Fix attributes
         let mut output_payments_after_hook = self.call_hook(
             FarmHookType::AfterClaimRewards,
             caller.clone(),

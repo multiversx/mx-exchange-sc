@@ -3,10 +3,7 @@ multiversx_sc::imports!();
 use common_structs::PaymentsVec;
 use farm::EnterFarmResultType;
 
-use crate::{
-    base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType,
-    token_attributes::StakingFarmNftTokenAttributes,
-};
+use crate::{base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType};
 
 #[multiversx_sc::module]
 pub trait StakeFarmModule:
@@ -61,13 +58,6 @@ pub trait StakeFarmModule:
         let mut other_farm_tokens = PaymentsVec::new();
         for payment in &payments_after_hook {
             if payment.token_identifier == farm_token_id {
-                let attributes: StakingFarmNftTokenAttributes<Self::Api> =
-                    farm_token_mapper.get_token_attributes(payment.token_nonce);
-                require!(
-                    payment.amount == attributes.current_farm_amount,
-                    "Cannot split farm pos"
-                );
-
                 other_farm_tokens.push(payment);
             } else if payment.token_identifier == farming_token_id {
                 total_farming_token += &payment.amount;

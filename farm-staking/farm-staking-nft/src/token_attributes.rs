@@ -99,6 +99,7 @@ impl<M: ManagedTypeApi> Mergeable<M> for StakingFarmNftTokenAttributes<M> {
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
-pub struct UnbondSftAttributes {
+pub struct UnbondSftAttributes<M: ManagedTypeApi> {
     pub unlock_epoch: u64,
+    pub farming_token_parts: PaymentsVec<M>,
 }
