@@ -410,6 +410,7 @@ dependencies = [
  "permissions_module",
  "simple-lock",
  "token_send",
+ "utils",
 ]
 
 [[package]]
