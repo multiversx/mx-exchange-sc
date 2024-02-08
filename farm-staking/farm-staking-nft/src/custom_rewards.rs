@@ -1,10 +1,12 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::{Epoch, FarmToken, Nonce, PaymentsVec};
+use common_structs::{Epoch, Nonce, PaymentsVec};
 use contexts::storage_cache::StorageCache;
 
-use crate::token_attributes::StakingFarmNftTokenAttributes;
+use crate::token_attributes::{
+    PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes,
+};
 
 pub const MAX_PERCENT: u64 = 10_000;
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
@@ -113,10 +115,10 @@ pub trait CustomRewardsModule:
     fn calculate_base_farm_rewards(
         &self,
         farm_token_amount: &BigUint,
-        token_attributes: &StakingFarmNftTokenAttributes<Self::Api>,
+        token_attributes: &PartialStakingFarmNftTokenAttributes<Self::Api>,
         storage_cache: &StorageCache<Self>,
     ) -> BigUint {
-        let token_rps = token_attributes.get_reward_per_share();
+        let token_rps = token_attributes.reward_per_share.clone();
         if storage_cache.reward_per_share > token_rps {
             let rps_diff = &storage_cache.reward_per_share - &token_rps;
             farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
@@ -200,7 +202,7 @@ pub trait CustomRewardsModule:
         &self,
         caller: &ManagedAddress,
         farm_token_amount: &BigUint,
-        token_attributes: &StakingFarmNftTokenAttributes<Self::Api>,
+        token_attributes: &PartialStakingFarmNftTokenAttributes<Self::Api>,
         storage_cache: &StorageCache<Self>,
     ) -> BigUint {
         let base_farm_reward =
@@ -215,8 +217,8 @@ pub trait CustomRewardsModule:
         caller: ManagedAddress,
         farming_token_amount: BigUint,
         current_reward_per_share: BigUint,
-    ) -> StakingFarmNftTokenAttributes<Self::Api> {
-        StakingFarmNftTokenAttributes {
+    ) -> PartialStakingFarmNftTokenAttributes<Self::Api> {
+        PartialStakingFarmNftTokenAttributes {
             reward_per_share: current_reward_per_share,
             compounded_reward: BigUint::zero(),
             current_farm_amount: farming_token_amount,
@@ -228,10 +230,10 @@ pub trait CustomRewardsModule:
     fn create_claim_rewards_initial_attributes(
         &self,
         caller: ManagedAddress,
-        first_token_attributes: StakingFarmNftTokenAttributes<Self::Api>,
+        first_token_attributes: PartialStakingFarmNftTokenAttributes<Self::Api>,
         current_reward_per_share: BigUint,
-    ) -> StakingFarmNftTokenAttributes<Self::Api> {
-        StakingFarmNftTokenAttributes {
+    ) -> PartialStakingFarmNftTokenAttributes<Self::Api> {
+        PartialStakingFarmNftTokenAttributes {
             reward_per_share: current_reward_per_share,
             compounded_reward: first_token_attributes.compounded_reward,
             current_farm_amount: first_token_attributes.current_farm_amount,
@@ -243,13 +245,13 @@ pub trait CustomRewardsModule:
     fn create_compound_rewards_initial_attributes(
         &self,
         caller: ManagedAddress,
-        first_token_attributes: StakingFarmNftTokenAttributes<Self::Api>,
+        first_token_attributes: PartialStakingFarmNftTokenAttributes<Self::Api>,
         current_reward_per_share: BigUint,
         reward: &BigUint,
-    ) -> StakingFarmNftTokenAttributes<Self::Api> {
+    ) -> PartialStakingFarmNftTokenAttributes<Self::Api> {
         let new_pos_compounded_reward = first_token_attributes.compounded_reward + reward;
         let new_pos_current_farm_amount = first_token_attributes.current_farm_amount + reward;
-        StakingFarmNftTokenAttributes {
+        PartialStakingFarmNftTokenAttributes {
             reward_per_share: current_reward_per_share,
             compounded_reward: new_pos_compounded_reward,
             current_farm_amount: new_pos_current_farm_amount,
