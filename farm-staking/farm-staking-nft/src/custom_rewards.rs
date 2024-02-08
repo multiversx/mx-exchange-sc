@@ -28,7 +28,7 @@ pub trait CustomRewardsModule:
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
-    + energy_query::EnergyQueryModule // + crate::base_impl_wrapper::FarmBaseImpl
+    + energy_query::EnergyQueryModule
 {
     #[payable("*")]
     #[endpoint(topUpRewards)]
