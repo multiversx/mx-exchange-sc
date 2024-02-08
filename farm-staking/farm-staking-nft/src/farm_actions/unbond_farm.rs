@@ -6,8 +6,7 @@ use crate::{farm_hooks::hook_type::FarmHookType, token_attributes::UnbondSftAttr
 
 #[multiversx_sc::module]
 pub trait UnbondFarmModule:
-    // crate::custom_rewards::CustomRewardsModule
-     rewards::RewardsModule
+    rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
     + token_send::TokenSendModule
@@ -31,6 +30,7 @@ pub trait UnbondFarmModule:
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
 {
+    // TODO: Fix to actually send the required token parts
     #[payable("*")]
     #[endpoint(unbondFarm)]
     fn unbond_farm(&self) -> EsdtTokenPayment {

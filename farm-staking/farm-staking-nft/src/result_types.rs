@@ -23,3 +23,9 @@ pub struct ClaimRewardsResultType<M: ManagedTypeApi> {
 pub struct CompoundRewardsResultType<M: ManagedTypeApi> {
     pub new_farm_token: EsdtTokenPayment<M>,
 }
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct UnstakeRewardsResultType<M: ManagedTypeApi> {
+    pub unbond_farm_token: EsdtTokenPayment<M>,
+    pub reward_payment: EsdtTokenPayment<M>,
+}

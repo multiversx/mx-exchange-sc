@@ -1,11 +1,11 @@
 multiversx_sc::imports!();
 
 use contexts::{exit_farm_context::ExitFarmContext, storage_cache::StorageCache};
-use farm::ExitFarmWithPartialPosResultType;
 use farm_base_impl::exit_farm::InternalExitFarmResult;
 
 use crate::{
     farm_hooks::hook_type::FarmHookType,
+    result_types::UnstakeRewardsResultType,
     token_attributes::{StakingFarmNftTokenAttributes, UnbondSftAttributes},
 };
 
@@ -40,7 +40,7 @@ pub trait UnstakeFarmModule:
 {
     #[payable("*")]
     #[endpoint(unstakeFarm)]
-    fn unstake_farm(&self) -> ExitFarmWithPartialPosResultType<Self::Api> {
+    fn unstake_farm(&self) -> UnstakeRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
 
@@ -87,7 +87,10 @@ pub trait UnstakeFarmModule:
             exit_result.storage_cache,
         );
 
-        (unbond_farm_token, exit_result.reward_payment).into()
+        UnstakeRewardsResultType {
+            unbond_farm_token,
+            reward_payment: exit_result.reward_payment,
+        }
     }
 
     fn create_unbond_tokens(
