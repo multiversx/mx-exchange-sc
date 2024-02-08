@@ -6,8 +6,8 @@ use crate::{farm_hooks::hook_type::FarmHookType, token_attributes::UnbondSftAttr
 
 #[multiversx_sc::module]
 pub trait UnbondFarmModule:
-    crate::custom_rewards::CustomRewardsModule
-    + rewards::RewardsModule
+    // crate::custom_rewards::CustomRewardsModule
+     rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
     + token_send::TokenSendModule

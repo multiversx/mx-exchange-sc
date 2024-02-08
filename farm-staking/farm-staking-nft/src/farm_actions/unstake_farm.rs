@@ -1,10 +1,13 @@
 multiversx_sc::imports!();
 
+use contexts::{exit_farm_context::ExitFarmContext, storage_cache::StorageCache};
 use farm::ExitFarmWithPartialPosResultType;
+use farm_base_impl::exit_farm::InternalExitFarmResult;
+use fixed_supply_token::FixedSupplyToken;
 
 use crate::{
-    base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType,
-    token_attributes::UnbondSftAttributes,
+    farm_hooks::hook_type::FarmHookType,
+    token_attributes::{StakingFarmNftTokenAttributes, UnbondSftAttributes},
 };
 
 #[multiversx_sc::module]
@@ -21,7 +24,6 @@ pub trait UnstakeFarmModule:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
-    + farm_base_impl::exit_farm::BaseExitFarmModule
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
@@ -50,8 +52,7 @@ pub trait UnstakeFarmModule:
         );
         let payment = payments_after_hook.get(0);
 
-        let mut exit_result =
-            self.exit_farm_base::<FarmStakingNftWrapper<Self>>(caller.clone(), payment);
+        let mut exit_result = self.exit_farm_base(caller.clone(), payment);
 
         let unbond_token_amount = exit_result.farming_token_payment.amount;
         let farm_token_id = exit_result.storage_cache.farm_token_id.clone();
@@ -105,5 +106,65 @@ pub trait UnstakeFarmModule:
         );
 
         EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
+    }
+
+    fn exit_farm_base(
+        &self,
+        caller: ManagedAddress,
+        payment: EsdtTokenPayment<Self::Api>,
+    ) -> InternalExitFarmResult<Self, StakingFarmNftTokenAttributes<Self::Api>> {
+        let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+
+        let exit_farm_context =
+            ExitFarmContext::<Self::Api, StakingFarmNftTokenAttributes<Self::Api>>::new(
+                payment.clone(),
+                &storage_cache.farm_token_id,
+                self.blockchain(),
+            );
+
+        self.generate_aggregated_rewards(&mut storage_cache);
+
+        let farm_token_amount = &exit_farm_context.farm_token.payment.amount;
+        let token_attributes = exit_farm_context
+            .farm_token
+            .attributes
+            .clone()
+            .into_part(farm_token_amount);
+
+        let reward = self.calculate_rewards(
+            &caller,
+            farm_token_amount,
+            &token_attributes,
+            &storage_cache,
+        );
+        storage_cache.reward_reserve -= &reward;
+
+        self.decrease_user_farm_position(&payment);
+
+        let farming_token_amount = token_attributes.get_total_supply();
+        let farming_token_payment = EsdtTokenPayment::new(
+            storage_cache.farming_token_id.clone(),
+            0,
+            farming_token_amount,
+        );
+        let reward_payment =
+            EsdtTokenPayment::new(storage_cache.reward_token_id.clone(), 0, reward);
+
+        let farm_token_payment = &exit_farm_context.farm_token.payment;
+        self.send().esdt_local_burn(
+            &farm_token_payment.token_identifier,
+            farm_token_payment.token_nonce,
+            &farm_token_payment.amount,
+        );
+
+        storage_cache.farm_token_supply -= &farming_token_payment.amount;
+
+        InternalExitFarmResult {
+            context: exit_farm_context,
+            farming_token_payment,
+            reward_payment,
+            storage_cache,
+        }
     }
 }
