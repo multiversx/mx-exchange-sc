@@ -131,18 +131,6 @@ pub trait FarmStaking:
         )
     }
 
-    #[only_owner]
-    #[endpoint(setTransferRoleFarmToken)]
-    fn set_transfer_role_farm_token(&self, opt_address: OptionalValue<ManagedAddress>) {
-        let address = match opt_address {
-            OptionalValue::Some(addr) => addr,
-            OptionalValue::None => self.blockchain().get_sc_address(),
-        };
-
-        self.farm_token()
-            .set_local_roles_for_address(&address, &[EsdtLocalRole::Transfer], None);
-    }
-
     fn require_queried(&self) {
         let caller = self.blockchain().get_caller();
         let sc_address = self.blockchain().get_sc_address();
