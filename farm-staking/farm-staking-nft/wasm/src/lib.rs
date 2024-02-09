@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           69
+// Endpoints:                           71
 // Async Callback:                       1
-// Total number of exported functions:  71
+// Total number of exported functions:  73
 
 #![no_std]
 #![allow(internal_features)]
@@ -89,6 +89,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeBannedAddress => remove_banned_address
         addHook => add_hook
         removeHook => remove_hook
+        registerUnbondToken => register_unbond_token
+        getUnbondTokenId => unbond_token
     )
 }
 

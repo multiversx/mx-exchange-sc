@@ -6,9 +6,11 @@ use contexts::{
 };
 
 use crate::{
+    common::result_types::CompoundRewardsResultType,
+    common::token_attributes::{
+        PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes,
+    },
     farm_hooks::hook_type::FarmHookType,
-    result_types::CompoundRewardsResultType,
-    token_attributes::{PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes},
 };
 
 multiversx_sc::imports!();
@@ -51,7 +53,7 @@ pub trait CompoundStakeFarmRewardsModule:
     + banned_addresses::BannedAddressModule
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
-    + crate::token_info::TokenInfoModule
+    + crate::common::token_info::TokenInfoModule
 {
     #[payable("*")]
     #[endpoint(compoundRewards)]

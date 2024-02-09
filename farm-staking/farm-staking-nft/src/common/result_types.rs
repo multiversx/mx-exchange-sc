@@ -1,3 +1,5 @@
+use common_structs::PaymentsVec;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -28,4 +30,9 @@ pub struct CompoundRewardsResultType<M: ManagedTypeApi> {
 pub struct UnstakeRewardsResultType<M: ManagedTypeApi> {
     pub unbond_farm_token: EsdtTokenPayment<M>,
     pub reward_payment: EsdtTokenPayment<M>,
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct UnbondResultType<M: ManagedTypeApi> {
+    pub farming_tokens: PaymentsVec<M>,
 }

@@ -4,7 +4,7 @@ multiversx_sc::derive_imports!();
 use common_structs::{Epoch, Nonce, PaymentsVec};
 use contexts::storage_cache::StorageCache;
 
-use crate::token_attributes::{
+use crate::common::token_attributes::{
     PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes,
 };
 
