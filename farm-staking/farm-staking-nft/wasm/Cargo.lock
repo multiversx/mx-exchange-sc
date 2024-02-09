@@ -180,7 +180,6 @@ dependencies = [
  "contexts",
  "energy-factory",
  "energy-query",
- "events",
  "farm",
  "farm-boosted-yields",
  "farm_base_impl",
