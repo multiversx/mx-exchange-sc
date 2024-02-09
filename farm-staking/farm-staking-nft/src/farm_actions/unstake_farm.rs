@@ -30,7 +30,6 @@ pub trait UnstakeFarmModule:
     + super::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
-    + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
@@ -53,6 +52,7 @@ pub trait UnstakeFarmModule:
     + crate::farm_hooks::call_hook::CallHookModule
     + crate::common::token_info::TokenInfoModule
     + crate::unbond_token::UnbondTokenModule
+    + crate::common::custom_events::CustomEventsModule
 {
     #[payable("*")]
     #[endpoint(unstakeFarm)]

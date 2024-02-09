@@ -16,7 +16,6 @@ pub trait StakeFarmModule:
     + super::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
-    + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
@@ -38,6 +37,7 @@ pub trait StakeFarmModule:
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
     + crate::common::token_info::TokenInfoModule
+    + crate::common::custom_events::CustomEventsModule
 {
     #[payable("*")]
     #[endpoint(stakeFarm)]
@@ -79,14 +79,14 @@ pub trait StakeFarmModule:
         let mut enter_input_payments = PaymentsVec::from_single_item(farming_token_payment);
         enter_input_payments.append_vec(other_farm_tokens);
 
-        let mut enter_result =
+        let enter_result =
             self.enter_farm_base_no_token_create(caller.clone(), enter_input_payments);
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
         let mut attributes = enter_result.new_farm_token.attributes;
         attributes
             .farming_token_parts
-            .append_vec(all_farming_tokens);
+            .append_vec(all_farming_tokens.clone());
         let attr_full = attributes.clone().into_full();
 
         let new_farm_token = farm_token_mapper.nft_create(new_farm_token.amount, &attr_full);
@@ -109,16 +109,16 @@ pub trait StakeFarmModule:
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
         self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
-
         self.update_energy_and_progress(&caller);
 
-        enter_result.new_farm_token.payment = new_farm_token.clone();
-        enter_result.new_farm_token.attributes = attributes;
-
+        let output_token = PaymentAttributesPair {
+            payment: new_farm_token.clone(),
+            attributes: attr_full,
+        };
         self.emit_enter_farm_event(
             &caller,
-            enter_result.context.farming_token_payment,
-            enter_result.new_farm_token,
+            all_farming_tokens,
+            output_token,
             enter_result.created_with_merge,
             enter_result.storage_cache,
         );

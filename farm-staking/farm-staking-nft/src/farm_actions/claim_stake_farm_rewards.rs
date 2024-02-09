@@ -8,10 +8,7 @@ use contexts::{
 
 use crate::{
     common::result_types::ClaimRewardsResultType,
-    common::token_attributes::{
-        PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes,
-    },
-    farm_hooks::hook_type::FarmHookType,
+    common::token_attributes::StakingFarmNftTokenAttributes, farm_hooks::hook_type::FarmHookType,
 };
 
 pub struct InternalClaimRewardsResult<'a, C>
@@ -21,7 +18,7 @@ where
     pub context: ClaimRewardsContext<C::Api, StakingFarmNftTokenAttributes<C::Api>>,
     pub storage_cache: StorageCache<'a, C>,
     pub rewards: EsdtTokenPayment<C::Api>,
-    pub new_farm_token: PaymentAttributesPair<C::Api, PartialStakingFarmNftTokenAttributes<C::Api>>,
+    pub new_farm_token: PaymentAttributesPair<C::Api, StakingFarmNftTokenAttributes<C::Api>>,
     pub created_with_merge: bool,
 }
 
@@ -31,7 +28,6 @@ pub trait ClaimStakeFarmRewardsModule:
     + super::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
-    + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
@@ -53,6 +49,7 @@ pub trait ClaimStakeFarmRewardsModule:
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
     + crate::common::token_info::TokenInfoModule
+    + crate::common::custom_events::CustomEventsModule
 {
     #[payable("*")]
     #[endpoint(claimRewards)]
@@ -72,7 +69,7 @@ pub trait ClaimStakeFarmRewardsModule:
         let reward_nonce = self.reward_nonce().get();
         claim_result.rewards.token_nonce = reward_nonce;
 
-        let mut virtual_farm_token = claim_result.new_farm_token.clone();
+        let mut virtual_farm_token = claim_result.new_farm_token;
 
         self.update_energy_and_progress(&caller);
 
@@ -93,14 +90,14 @@ pub trait ClaimStakeFarmRewardsModule:
         self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
         self.send_payment_non_zero(&caller, &claim_result.rewards);
 
-        // self.emit_claim_rewards_event(
-        //     &caller,
-        //     claim_result.context,
-        //     virtual_farm_token.clone(),
-        //     claim_result.rewards.clone(),
-        //     claim_result.created_with_merge,
-        //     claim_result.storage_cache,
-        // );
+        self.emit_claim_rewards_event(
+            &caller,
+            claim_result.context.first_farm_token,
+            virtual_farm_token.clone(),
+            claim_result.rewards.clone(),
+            claim_result.created_with_merge,
+            claim_result.storage_cache,
+        );
 
         ClaimRewardsResultType {
             new_farm_token: virtual_farm_token.payment,
@@ -175,7 +172,7 @@ pub trait ClaimStakeFarmRewardsModule:
                 0,
                 new_token_attributes.current_farm_amount.clone(),
             ),
-            attributes: new_token_attributes,
+            attributes: new_token_attributes.into_full(),
         };
 
         let first_farm_token = &claim_rewards_context.first_farm_token.payment;

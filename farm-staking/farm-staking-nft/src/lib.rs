@@ -24,7 +24,6 @@ pub trait FarmStaking:
     custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
-    + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
@@ -59,6 +58,7 @@ pub trait FarmStaking:
     + common::token_info::TokenInfoModule
     + unbond_token::UnbondTokenModule
     + rewards_setters::RewardsSettersModule
+    + common::custom_events::CustomEventsModule
 {
     #[init]
     fn init(
