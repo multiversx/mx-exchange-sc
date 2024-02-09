@@ -1,11 +1,11 @@
 [package]
-name = "farm-staking-abi"
+name = "farm-staking-nft-abi"
 version = "0.0.0"
 authors = ["MultiversX <contact@multiversx.com>"]
 edition = "2021"
 publish = false
 
-[dependencies.farm-staking]
+[dependencies.farm-staking-nft]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
