@@ -9,12 +9,13 @@ use common::result_types::MergeResultType;
 use common::token_attributes::PartialStakingFarmNftTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
-use crate::custom_rewards::MAX_MIN_UNBOND_EPOCHS;
+use crate::rewards_setters::MAX_MIN_UNBOND_EPOCHS;
 
 pub mod common;
 pub mod custom_rewards;
 pub mod farm_actions;
 pub mod farm_hooks;
+pub mod rewards_setters;
 pub mod unbond_token;
 
 #[multiversx_sc::contract]
@@ -56,6 +57,7 @@ pub trait FarmStaking:
     + farm_hooks::call_hook::CallHookModule
     + common::token_info::TokenInfoModule
     + unbond_token::UnbondTokenModule
+    + rewards_setters::RewardsSettersModule
 {
     #[init]
     fn init(
