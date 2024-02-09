@@ -95,7 +95,10 @@ pub trait CompoundStakeFarmRewardsModule:
         //     compound_result.storage_cache,
         // );
 
-        CompoundRewardsResultType { new_farm_token }
+        CompoundRewardsResultType {
+            new_farm_token,
+            compounded_rewards: compound_result.compounded_rewards,
+        }
     }
 
     fn compound_rewards_base(

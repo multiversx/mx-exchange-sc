@@ -250,4 +250,8 @@ pub trait CustomRewardsModule:
     #[view(getMinUnbondEpochs)]
     #[storage_mapper("minUnbondEpochs")]
     fn min_unbond_epochs(&self) -> SingleValueMapper<Epoch>;
+
+    #[view(getRewardNonce)]
+    #[storage_mapper("rewardNonce")]
+    fn reward_nonce(&self) -> SingleValueMapper<Nonce>;
 }

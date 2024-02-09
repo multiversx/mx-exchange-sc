@@ -52,8 +52,9 @@ pub trait StakeFarmModule:
         );
 
         let boosted_rewards = self.claim_only_boosted_payment(&caller);
+        let reward_nonce = self.reward_nonce().get();
         let boosted_rewards_payment =
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+            EsdtTokenPayment::new(self.reward_token_id().get(), reward_nonce, boosted_rewards);
 
         let farm_token_mapper = self.farm_token();
         let farming_token_id = self.farming_token_id().get();

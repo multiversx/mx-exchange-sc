@@ -31,11 +31,15 @@ pub trait RewardsSettersModule:
     fn top_up_rewards(&self) {
         self.require_caller_has_admin_permissions();
 
-        let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
+        let payment = self.call_value().single_esdt();
         let reward_token_id = self.reward_token_id().get();
-        require!(payment_token == reward_token_id, "Invalid token");
+        let reward_nonce = self.reward_nonce().get();
+        require!(
+            payment.token_identifier == reward_token_id && payment.token_nonce == reward_nonce,
+            "Invalid token"
+        );
 
-        self.reward_capacity().update(|r| *r += payment_amount);
+        self.reward_capacity().update(|r| *r += payment.amount);
     }
 
     #[payable("*")]
@@ -54,7 +58,8 @@ pub trait RewardsSettersModule:
 
         let caller = self.blockchain().get_caller();
         let reward_token_id = self.reward_token_id().get();
-        self.send_tokens_non_zero(&caller, &reward_token_id, 0, &withdraw_amount);
+        let reward_nonce = self.reward_nonce().get();
+        self.send_tokens_non_zero(&caller, &reward_token_id, reward_nonce, &withdraw_amount);
     }
 
     #[endpoint(endProduceRewards)]

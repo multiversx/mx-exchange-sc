@@ -24,6 +24,7 @@ pub struct ClaimRewardsResultType<M: ManagedTypeApi> {
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct CompoundRewardsResultType<M: ManagedTypeApi> {
     pub new_farm_token: EsdtTokenPayment<M>,
+    pub compounded_rewards: BigUint<M>,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode)]

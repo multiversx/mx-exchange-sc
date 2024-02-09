@@ -69,6 +69,8 @@ pub trait ClaimStakeFarmRewardsModule:
 
         let mut claim_result =
             self.claim_rewards_base(caller.clone(), ManagedVec::from_single_item(payment));
+        let reward_nonce = self.reward_nonce().get();
+        claim_result.rewards.token_nonce = reward_nonce;
 
         let mut virtual_farm_token = claim_result.new_farm_token.clone();
 

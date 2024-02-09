@@ -7,6 +7,7 @@ multiversx_sc::derive_imports!();
 
 use common::result_types::MergeResultType;
 use common::token_attributes::PartialStakingFarmNftTokenAttributes;
+use common_structs::Nonce;
 use contexts::storage_cache::StorageCache;
 
 use crate::rewards_setters::MAX_MIN_UNBOND_EPOCHS;
@@ -67,6 +68,7 @@ pub trait FarmStaking:
         max_apr: BigUint,
         min_unbond_epochs: u64,
         owner: ManagedAddress,
+        reward_nonce: Nonce,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         // farming and reward token are the same
@@ -79,13 +81,14 @@ pub trait FarmStaking:
         );
 
         require!(max_apr > 0u64, "Invalid max APR percentage");
-        self.max_annual_percentage_rewards().set_if_empty(&max_apr);
+        self.max_annual_percentage_rewards().set(&max_apr);
 
         require!(
             min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
             "Invalid min unbond epochs"
         );
-        self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
+        self.min_unbond_epochs().set(min_unbond_epochs);
+        self.reward_nonce().set(reward_nonce);
 
         let sc_address = self.blockchain().get_sc_address();
         self.banned_addresses().add(&sc_address);
