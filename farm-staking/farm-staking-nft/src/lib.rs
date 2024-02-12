@@ -5,16 +5,13 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use base_impl_wrapper::FarmStakingNftWrapper;
 use contexts::storage_cache::StorageCache;
 use farm::base_functions::DoubleMultiPayment;
-use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
-use token_attributes::StakingFarmTokenAttributes;
+use token_attributes::StakingFarmNftTokenAttributes;
 
 use crate::custom_rewards::MAX_MIN_UNBOND_EPOCHS;
 
-pub mod base_impl_wrapper;
 pub mod custom_rewards;
 pub mod farm_actions;
 pub mod farm_hooks;
@@ -104,7 +101,7 @@ pub trait FarmStaking:
 
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
-        let output_attributes: StakingFarmTokenAttributes<Self::Api> =
+        let output_attributes: StakingFarmNftTokenAttributes<Self::Api> =
             self.merge_from_payments_and_burn(payments, &token_mapper);
         let new_token_amount = output_attributes.get_total_supply();
 
@@ -119,15 +116,14 @@ pub trait FarmStaking:
     fn calculate_rewards_for_given_position(
         &self,
         farm_token_amount: BigUint,
-        attributes: StakingFarmTokenAttributes<Self::Api>,
+        attributes: StakingFarmNftTokenAttributes<Self::Api>,
     ) -> BigUint {
         self.require_queried();
 
         let mut storage_cache = StorageCache::new(self);
-        FarmStakingNftWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+        self.generate_aggregated_rewards(&mut storage_cache);
 
-        FarmStakingNftWrapper::<Self>::calculate_rewards(
-            self,
+        self.calculate_rewards(
             &ManagedAddress::zero(),
             &farm_token_amount,
             &attributes,
