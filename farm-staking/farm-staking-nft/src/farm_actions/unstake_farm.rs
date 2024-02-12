@@ -51,7 +51,7 @@ pub trait UnstakeFarmModule:
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
     + crate::common::token_info::TokenInfoModule
-    + crate::unbond_token::UnbondTokenModule
+    + crate::common::unbond_token::UnbondTokenModule
     + crate::common::custom_events::CustomEventsModule
 {
     #[payable("*")]

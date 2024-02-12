@@ -1,10 +1,10 @@
 #![allow(deprecated)]
 
 use common_structs::Nonce;
+use farm_staking_nft::common::unbond_token::UnbondTokenModule;
 use farm_staking_nft::farm_actions::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
 use farm_staking_nft::farm_actions::unbond_farm::UnbondFarmModule;
 use farm_staking_nft::rewards_setters::RewardsSettersModule;
-use farm_staking_nft::unbond_token::UnbondTokenModule;
 use multiversx_sc::api::ManagedTypeApi;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::codec::Empty;

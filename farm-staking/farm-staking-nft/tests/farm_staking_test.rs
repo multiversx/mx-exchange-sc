@@ -384,3 +384,65 @@ fn test_withdraw_rewards() {
     let final_rewards_capacity = 0u64;
     farm_setup.check_rewards_capacity(final_rewards_capacity);
 }
+
+#[test]
+fn claim_twice_test() {
+    DebugApi::dummy();
+    let mut farm_setup =
+        FarmStakingSetup::new(farm_staking_nft::contract_obj, energy_factory::contract_obj);
+
+    let farm_in_amount = 100_000_000;
+    let farming_tokens = [
+        TxTokenTransfer {
+            token_identifier: FARMING_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(25_000_000),
+        },
+        TxTokenTransfer {
+            token_identifier: FARMING_TOKEN_ID.to_vec(),
+            nonce: 2,
+            value: rust_biguint!(75_000_000),
+        },
+    ];
+    let expected_farm_token_nonce = 1;
+    farm_setup.stake_farm(
+        &farming_tokens,
+        &[],
+        expected_farm_token_nonce,
+        0,
+        0,
+        &farming_tokens,
+    );
+    farm_setup.check_farm_token_supply(farm_in_amount);
+
+    farm_setup.set_block_epoch(5);
+    farm_setup.set_block_nonce(10);
+
+    // value taken from the "test_unstake_farm" test
+    let expected_reward_token_out = 40;
+    let expected_reward_per_share = 400_000;
+    farm_setup.claim_rewards(
+        farm_in_amount,
+        expected_farm_token_nonce,
+        expected_reward_token_out,
+        &rust_biguint!(expected_reward_token_out),
+        expected_farm_token_nonce + 1,
+        expected_reward_per_share,
+        &farming_tokens,
+    );
+    farm_setup.check_farm_token_supply(farm_in_amount);
+
+    farm_setup.set_block_epoch(10);
+    farm_setup.set_block_nonce(15);
+
+    farm_setup.claim_rewards(
+        farm_in_amount,
+        expected_farm_token_nonce + 1,
+        expected_reward_token_out,
+        &rust_biguint!(expected_reward_token_out),
+        expected_farm_token_nonce + 2,
+        expected_reward_per_share,
+        &farming_tokens,
+    );
+    farm_setup.check_farm_token_supply(farm_in_amount);
+}

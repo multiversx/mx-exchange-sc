@@ -17,7 +17,6 @@ pub mod custom_rewards;
 pub mod farm_actions;
 pub mod farm_hooks;
 pub mod rewards_setters;
-pub mod unbond_token;
 
 #[multiversx_sc::contract]
 pub trait FarmStaking:
@@ -56,12 +55,10 @@ pub trait FarmStaking:
     + farm_hooks::change_hooks::ChangeHooksModule
     + farm_hooks::call_hook::CallHookModule
     + common::token_info::TokenInfoModule
-    + unbond_token::UnbondTokenModule
+    + common::unbond_token::UnbondTokenModule
     + rewards_setters::RewardsSettersModule
     + common::custom_events::CustomEventsModule
 {
-    // TODO: Fix farm token info in all endpoints
-
     #[init]
     fn init(
         &self,

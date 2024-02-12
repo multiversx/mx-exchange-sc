@@ -31,7 +31,7 @@ pub trait UnbondFarmModule:
     + banned_addresses::BannedAddressModule
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
-    + crate::unbond_token::UnbondTokenModule
+    + crate::common::unbond_token::UnbondTokenModule
 {
     #[payable("*")]
     #[endpoint(unbondFarm)]
