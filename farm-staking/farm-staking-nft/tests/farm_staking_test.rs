@@ -433,15 +433,15 @@ fn claim_twice_test() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 
     farm_setup.set_block_epoch(10);
-    farm_setup.set_block_nonce(15);
+    farm_setup.set_block_nonce(20);
 
     farm_setup.claim_rewards(
         farm_in_amount,
         expected_farm_token_nonce + 1,
         expected_reward_token_out,
-        &rust_biguint!(expected_reward_token_out),
+        &(rust_biguint!(expected_reward_token_out) * 2u32),
         expected_farm_token_nonce + 2,
-        expected_reward_per_share,
+        expected_reward_per_share * 2,
         &farming_tokens,
     );
     farm_setup.check_farm_token_supply(farm_in_amount);

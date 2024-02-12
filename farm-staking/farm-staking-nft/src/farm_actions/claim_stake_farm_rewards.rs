@@ -70,6 +70,12 @@ pub trait ClaimStakeFarmRewardsModule:
         claim_result.rewards.token_nonce = reward_nonce;
 
         let mut new_farm_token = claim_result.new_farm_token;
+        self.total_supply(new_farm_token.payment.token_nonce)
+            .set(&new_farm_token.payment.amount);
+        self.remaining_supply(new_farm_token.payment.token_nonce)
+            .set(&new_farm_token.payment.amount);
+        self.remaining_parts(new_farm_token.payment.token_nonce)
+            .set(&new_farm_token.attributes.farming_token_parts);
 
         self.update_energy_and_progress(&caller);
 
