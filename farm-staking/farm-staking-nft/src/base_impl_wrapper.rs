@@ -9,7 +9,7 @@ use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::token_attributes::StakingFarmTokenAttributes;
 
-pub trait FarmStakingTraits =
+pub trait FarmStakingNftTraits =
     crate::custom_rewards::CustomRewardsModule
         + rewards::RewardsModule
         + config::ConfigModule
@@ -19,16 +19,16 @@ pub trait FarmStakingTraits =
         + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
         + farm_boosted_yields::FarmBoostedYieldsModule;
 
-pub struct FarmStakingWrapper<T>
+pub struct FarmStakingNftWrapper<T>
 where
     T:,
 {
     _phantom: PhantomData<T>,
 }
 
-impl<T> FarmStakingWrapper<T>
+impl<T> FarmStakingNftWrapper<T>
 where
-    T: FarmStakingTraits,
+    T: FarmStakingNftTraits,
 {
     pub fn calculate_base_farm_rewards(
         farm_token_amount: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
@@ -50,19 +50,17 @@ where
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
         let user_total_farm_position = sc.get_user_total_farm_position(caller);
         let user_farm_position = user_total_farm_position.total_farm_position;
-        let mut boosted_rewards = BigUint::zero();
-
-        if user_farm_position > 0 {
-            boosted_rewards = sc.claim_boosted_yields_rewards(caller, user_farm_position);
+        if user_farm_position == 0 {
+            return BigUint::zero();
         }
 
-        boosted_rewards
+        sc.claim_boosted_yields_rewards(caller, user_farm_position)
     }
 }
 
-impl<T> FarmContract for FarmStakingWrapper<T>
+impl<T> FarmContract for FarmStakingNftWrapper<T>
 where
-    T: FarmStakingTraits,
+    T: FarmStakingNftTraits,
 {
     type FarmSc = T;
     type AttributesType = StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
@@ -192,10 +190,6 @@ where
     ) {
         let farm_token_mapper = sc.farm_token();
         for farm_position in farm_positions {
-            if sc.is_old_farm_position(farm_position.token_nonce) {
-                continue;
-            }
-
             farm_token_mapper.require_same_token(&farm_position.token_identifier);
 
             let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
@@ -208,7 +202,6 @@ where
         }
     }
 
-    #[inline]
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
@@ -224,10 +217,6 @@ where
         sc: &Self::FarmSc,
         farm_position: &EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
     ) {
-        if sc.is_old_farm_position(farm_position.token_nonce) {
-            return;
-        }
-
         let farm_token_mapper = sc.farm_token();
         let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);

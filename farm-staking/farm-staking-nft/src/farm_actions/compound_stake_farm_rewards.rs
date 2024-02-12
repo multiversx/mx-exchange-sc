@@ -1,4 +1,4 @@
-use crate::{base_impl_wrapper::FarmStakingWrapper, farm_hooks::hook_type::FarmHookType};
+use crate::{base_impl_wrapper::FarmStakingNftWrapper, farm_hooks::hook_type::FarmHookType};
 
 multiversx_sc::imports!();
 
@@ -11,7 +11,6 @@ pub trait CompoundStakeFarmRewardsModule:
     + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -36,8 +35,6 @@ pub trait CompoundStakeFarmRewardsModule:
     #[endpoint(compoundRewards)]
     fn compound_rewards(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
-        self.migrate_old_farm_positions(&caller);
-
         let payments = self.get_non_empty_payments();
         let payments_after_hook = self.call_hook(
             FarmHookType::BeforeCompoundRewards,
@@ -46,8 +43,10 @@ pub trait CompoundStakeFarmRewardsModule:
             ManagedVec::new(),
         );
 
-        let mut compound_result = self
-            .compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments_after_hook);
+        let mut compound_result = self.compound_rewards_base::<FarmStakingNftWrapper<Self>>(
+            caller.clone(),
+            payments_after_hook,
+        );
 
         let new_farm_token = compound_result.new_farm_token.payment.clone();
         let mut args = ManagedVec::new();

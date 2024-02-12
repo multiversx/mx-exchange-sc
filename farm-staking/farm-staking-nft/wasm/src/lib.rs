@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           75
+// Endpoints:                           69
 // Async Callback:                       1
-// Total number of exported functions:  77
+// Total number of exported functions:  71
 
 #![no_std]
 #![allow(internal_features)]
@@ -48,9 +48,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         registerFarmToken => register_farm_token
         getFarmTokenId => farm_token
         getFarmTokenSupply => farm_token_supply
-        addSCAddressToWhitelist => add_sc_address_to_whitelist
-        removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
-        isSCAddressWhitelisted => is_sc_address_whitelisted
         addToPauseWhitelist => add_to_pause_whitelist
         removeFromPauseWhitelist => remove_from_pause_whitelist
         pause => pause
@@ -61,13 +58,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         updateOwnerOrAdmin => update_owner_or_admin_endpoint
         getPermissions => permissions
         setBurnRoleForAddress => set_burn_role_for_address
-        stakeFarmThroughProxy => stake_farm_through_proxy
         stakeFarm => stake_farm_endpoint
         claimRewards => claim_rewards
-        claimRewardsWithNewValue => claim_rewards_with_new_value
         compoundRewards => compound_rewards
         unstakeFarm => unstake_farm
-        unstakeFarmThroughProxy => unstake_farm_through_proxy
         unbondFarm => unbond_farm
         claimBoostedRewards => claim_boosted_rewards
         setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage

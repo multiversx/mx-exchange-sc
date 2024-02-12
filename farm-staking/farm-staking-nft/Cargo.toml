@@ -53,9 +53,6 @@ path = "../../common/modules/pausable"
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
 
-[dependencies.sc_whitelist_module]
-path = "../../common/modules/sc_whitelist_module"
-
 [dependencies.banned_addresses]
 path = "../../common/modules/banned_addresses"
 
