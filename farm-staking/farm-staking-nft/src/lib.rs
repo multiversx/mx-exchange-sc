@@ -7,7 +7,7 @@ multiversx_sc::derive_imports!();
 
 use common::result_types::MergeResultType;
 use common::token_attributes::PartialStakingFarmNftTokenAttributes;
-use common_structs::Nonce;
+use common_structs::{Epoch, Nonce};
 use contexts::storage_cache::StorageCache;
 
 use crate::rewards_setters::MAX_MIN_UNBOND_EPOCHS;
@@ -69,6 +69,7 @@ pub trait FarmStaking:
         min_unbond_epochs: u64,
         owner: ManagedAddress,
         reward_nonce: Nonce,
+        first_week_start_epoch: Epoch,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         // farming and reward token are the same
@@ -79,6 +80,13 @@ pub trait FarmStaking:
             owner,
             admins,
         );
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            first_week_start_epoch >= current_epoch,
+            "Invalid start epoch"
+        );
+        self.first_week_start_epoch().set(first_week_start_epoch);
 
         require!(max_apr > 0u64, "Invalid max APR percentage");
         self.max_annual_percentage_rewards().set(&max_apr);

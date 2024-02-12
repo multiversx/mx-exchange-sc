@@ -42,6 +42,12 @@ pub trait CustomRewardsModule:
         token_attributes: &PartialStakingFarmNftTokenAttributes<Self::Api>,
         storage_cache: &StorageCache<Self>,
     ) -> BigUint {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        if first_week_start_epoch > current_epoch {
+            return BigUint::zero();
+        }
+
         let token_rps = token_attributes.reward_per_share.clone();
         if storage_cache.reward_per_share > token_rps {
             let rps_diff = &storage_cache.reward_per_share - &token_rps;
@@ -52,6 +58,12 @@ pub trait CustomRewardsModule:
     }
 
     fn calculate_boosted_rewards(&self, caller: &ManagedAddress) -> BigUint {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        if first_week_start_epoch > current_epoch {
+            return BigUint::zero();
+        }
+
         let user_total_farm_position = self.get_user_total_farm_position(caller);
         let user_farm_position = user_total_farm_position.total_farm_position;
         if user_farm_position == 0 {
