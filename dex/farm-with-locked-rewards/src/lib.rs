@@ -8,6 +8,7 @@ multiversx_sc::derive_imports!();
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
+use week_timekeeping::Epoch;
 
 use farm::{
     base_functions::{BaseFunctionsModule, ClaimRewardsResultType, DoubleMultiPayment, Wrapper},
@@ -57,6 +58,7 @@ pub trait Farm:
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
         owner: ManagedAddress,
+        first_week_start_epoch: Epoch,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         self.base_farm_init(
@@ -67,18 +69,18 @@ pub trait Farm:
             admins,
         );
 
-        self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
-        self.minimum_farming_epochs()
-            .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
-        self.pair_contract_address().set(&pair_contract_address);
-
         let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
+        require!(
+            first_week_start_epoch >= current_epoch,
+            "Invalid start epoch"
+        );
+        self.first_week_start_epoch().set(first_week_start_epoch);
 
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+        self.penalty_percent().set(DEFAULT_PENALTY_PERCENT);
+        self.minimum_farming_epochs()
+            .set(DEFAULT_MINUMUM_FARMING_EPOCHS);
+        self.burn_gas_limit().set(DEFAULT_BURN_GAS_LIMIT);
+        self.pair_contract_address().set(&pair_contract_address);
     }
 
     #[endpoint]
@@ -120,6 +122,13 @@ pub trait Farm:
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsResultType<Self::Api> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            first_week_start_epoch <= current_epoch,
+            "Cannot claim rewards yet"
+        );
+
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
@@ -209,10 +218,14 @@ pub trait Farm:
     }
 
     #[endpoint(claimBoostedRewards)]
-    fn claim_boosted_rewards(
-        &self,
-        opt_user: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            first_week_start_epoch <= current_epoch,
+            "Cannot claim rewards yet"
+        );
+
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
             OptionalValue::Some(user) => user,
@@ -313,15 +326,17 @@ where
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
         let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
-        if total_reward > 0u64 {
-            storage_cache.reward_reserve += &total_reward;
-            let split_rewards = sc.take_reward_slice(total_reward);
+        if total_reward == 0u64 {
+            return;
+        }
 
-            if storage_cache.farm_token_supply != 0u64 {
-                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
-                    / &storage_cache.farm_token_supply;
-                storage_cache.reward_per_share += &increase;
-            }
+        storage_cache.reward_reserve += &total_reward;
+        let split_rewards = sc.take_reward_slice(total_reward);
+
+        if storage_cache.farm_token_supply != 0u64 {
+            let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+                / &storage_cache.farm_token_supply;
+            storage_cache.reward_per_share += &increase;
         }
     }
 

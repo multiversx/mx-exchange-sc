@@ -63,19 +63,18 @@ pub trait FarmContract {
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let current_block_nonce = sc.blockchain().get_block_nonce();
         let last_reward_nonce = sc.last_reward_block_nonce().get();
-        if current_block_nonce > last_reward_nonce {
-            let to_mint =
-                Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
-            if to_mint != 0 {
-                Self::mint_rewards(sc, token_id, &to_mint);
-            }
-
-            sc.last_reward_block_nonce().set(current_block_nonce);
-
-            to_mint
-        } else {
-            BigUint::zero()
+        if current_block_nonce <= last_reward_nonce {
+            return BigUint::zero();
         }
+
+        let to_mint = Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
+        if to_mint != 0 {
+            Self::mint_rewards(sc, token_id, &to_mint);
+        }
+
+        sc.last_reward_block_nonce().set(current_block_nonce);
+
+        to_mint
     }
 
     fn generate_aggregated_rewards(

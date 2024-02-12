@@ -119,6 +119,13 @@ pub trait Farm:
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsResultType<Self::Api> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            first_week_start_epoch <= current_epoch,
+            "Cannot claim rewards yet"
+        );
+
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
@@ -199,10 +206,14 @@ pub trait Farm:
     }
 
     #[endpoint(claimBoostedRewards)]
-    fn claim_boosted_rewards(
-        &self,
-        opt_user: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            first_week_start_epoch <= current_epoch,
+            "Cannot claim rewards yet"
+        );
+
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
             OptionalValue::Some(user) => user,
