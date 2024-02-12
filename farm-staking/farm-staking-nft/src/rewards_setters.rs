@@ -43,6 +43,33 @@ pub trait RewardsSettersModule:
     }
 
     #[payable("*")]
+    #[endpoint(topUpAndSetRewardNonce)]
+    fn top_up_and_set_reward_nonce(&self) {
+        self.require_caller_has_admin_permissions();
+
+        let payment = self.call_value().single_esdt();
+        let reward_token_id = self.reward_token_id().get();
+        require!(payment.token_identifier == reward_token_id, "Invalid token");
+
+        let current_reward_nonce = self.reward_nonce().get();
+        require!(
+            payment.token_nonce != current_reward_nonce,
+            "Same nonce deposited"
+        );
+
+        let caller = self.blockchain().get_caller();
+        let accumulated_rewards = self.accumulated_rewards().take();
+        let reward_capacity = self.reward_capacity().get();
+        let remaining_rewards = reward_capacity - accumulated_rewards;
+        let remaining_rewards_payment =
+            EsdtTokenPayment::new(reward_token_id, current_reward_nonce, remaining_rewards);
+        self.send_payment_non_zero(&caller, &remaining_rewards_payment);
+
+        self.reward_capacity().set(payment.amount);
+        self.reward_nonce().set(payment.token_nonce);
+    }
+
+    #[payable("*")]
     #[endpoint(withdrawRewards)]
     fn withdraw_rewards(&self, withdraw_amount: BigUint) {
         self.require_caller_has_admin_permissions();

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           72
+// Endpoints:                           73
 // Async Callback:                       1
-// Total number of exported functions:  74
+// Total number of exported functions:  75
 
 #![no_std]
 #![allow(internal_features)]
@@ -87,6 +87,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         registerUnbondToken => register_unbond_token
         getUnbondTokenId => unbond_token
         topUpRewards => top_up_rewards
+        topUpAndSetRewardNonce => top_up_and_set_reward_nonce
         withdrawRewards => withdraw_rewards
         endProduceRewards => end_produce_rewards
         setPerBlockRewardAmount => set_per_block_rewards
