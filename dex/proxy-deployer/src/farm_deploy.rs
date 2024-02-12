@@ -12,6 +12,7 @@ pub trait FarmDeployModule {
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
         pair_contract_address: ManagedAddress,
+        first_week_start_epoch: u64,
     ) -> ManagedAddress {
         let owner = self.blockchain().get_owner_address();
         let caller = self.blockchain().get_caller();
@@ -29,6 +30,7 @@ pub trait FarmDeployModule {
                 DIVISION_SAFETY_CONST,
                 pair_contract_address,
                 owner,
+                first_week_start_epoch,
                 admins_list,
             )
             .deploy_from_source(&farm_template, code_metadata);

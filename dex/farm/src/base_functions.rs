@@ -283,6 +283,12 @@ where
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
+        let current_epoch = sc.blockchain().get_block_epoch();
+        let first_week_start_epoch = sc.first_week_start_epoch().get();
+        if first_week_start_epoch > current_epoch {
+            return BigUint::zero();
+        }
+
         let user_total_farm_position = sc.get_user_total_farm_position(caller);
         let user_farm_position = user_total_farm_position.total_farm_position;
 
@@ -304,15 +310,17 @@ where
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
         let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
-        if total_reward > 0u64 {
-            storage_cache.reward_reserve += &total_reward;
-            let split_rewards = sc.take_reward_slice(total_reward);
+        if total_reward == 0u64 {
+            return;
+        }
 
-            if storage_cache.farm_token_supply != 0u64 {
-                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
-                    / &storage_cache.farm_token_supply;
-                storage_cache.reward_per_share += &increase;
-            }
+        storage_cache.reward_reserve += &total_reward;
+        let split_rewards = sc.take_reward_slice(total_reward);
+
+        if storage_cache.farm_token_supply != 0u64 {
+            let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+                / &storage_cache.farm_token_supply;
+            storage_cache.reward_per_share += &increase;
         }
     }
 
@@ -330,6 +338,12 @@ where
             token_attributes,
             storage_cache,
         );
+        let current_epoch = sc.blockchain().get_block_epoch();
+        let first_week_start_epoch = sc.first_week_start_epoch().get();
+        if first_week_start_epoch > current_epoch {
+            return base_farm_reward;
+        }
+
         let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller);
 
         base_farm_reward + boosted_yield_rewards

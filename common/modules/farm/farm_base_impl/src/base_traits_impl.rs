@@ -83,14 +83,16 @@ pub trait FarmContract {
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
         let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
-        if total_reward > 0u64 {
-            storage_cache.reward_reserve += &total_reward;
+        if total_reward == 0u64 {
+            return;
+        }
 
-            if storage_cache.farm_token_supply != 0u64 {
-                let increase = (&total_reward * &storage_cache.division_safety_constant)
-                    / &storage_cache.farm_token_supply;
-                storage_cache.reward_per_share += &increase;
-            }
+        storage_cache.reward_reserve += &total_reward;
+
+        if storage_cache.farm_token_supply != 0u64 {
+            let increase = (&total_reward * &storage_cache.division_safety_constant)
+                / &storage_cache.farm_token_supply;
+            storage_cache.reward_per_share += &increase;
         }
     }
 
@@ -102,12 +104,12 @@ pub trait FarmContract {
         storage_cache: &StorageCache<Self::FarmSc>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let token_rps = token_attributes.get_reward_per_share();
-        if storage_cache.reward_per_share > token_rps {
-            let rps_diff = &storage_cache.reward_per_share - &token_rps;
-            farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
-        } else {
-            BigUint::zero()
+        if storage_cache.reward_per_share <= token_rps {
+            return BigUint::zero();
         }
+
+        let rps_diff = &storage_cache.reward_per_share - &token_rps;
+        farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
     }
 
     fn create_enter_farm_initial_attributes(
@@ -212,7 +214,6 @@ pub trait FarmContract {
         }
     }
 
-    #[inline]
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
