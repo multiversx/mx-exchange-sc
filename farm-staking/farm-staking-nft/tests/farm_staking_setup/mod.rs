@@ -2,10 +2,16 @@
 
 use common_structs::Nonce;
 use farm_staking_nft::farm_actions::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
+use farm_staking_nft::farm_actions::unbond_farm::UnbondFarmModule;
 use farm_staking_nft::rewards_setters::RewardsSettersModule;
+use farm_staking_nft::unbond_token::UnbondTokenModule;
+use multiversx_sc::api::ManagedTypeApi;
 use multiversx_sc::codec::multi_types::OptionalValue;
+use multiversx_sc::codec::Empty;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
-use multiversx_sc::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc::types::{
+    Address, BigInt, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, ManagedVec, MultiValueEncoded,
+};
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
@@ -100,7 +106,9 @@ where
                 );
 
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
+                let unbond_token_id = managed_token_id!(UNBOND_TOKEN_ID);
                 sc.farm_token().set_token_id(farm_token_id);
+                sc.unbond_token().set_token_id(unbond_token_id);
 
                 sc.per_block_reward_amount()
                     .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
@@ -113,13 +121,19 @@ where
             })
             .assert_ok();
 
-        b_mock.set_esdt_balance(&owner_addr, REWARD_TOKEN_ID, &TOTAL_REWARDS_AMOUNT.into());
+        b_mock.set_nft_balance(
+            &owner_addr,
+            REWARD_TOKEN_ID,
+            REWARD_NONCE,
+            &TOTAL_REWARDS_AMOUNT.into(),
+            &Empty,
+        );
         b_mock
             .execute_esdt_transfer(
                 &owner_addr,
                 &farm_wrapper,
                 REWARD_TOKEN_ID,
-                0,
+                REWARD_NONCE,
                 &TOTAL_REWARDS_AMOUNT.into(),
                 |sc| {
                     sc.top_up_rewards();
@@ -138,6 +152,13 @@ where
             &farm_token_roles[..],
         );
 
+        let unbond_token_roles = [EsdtLocalRole::NftCreate, EsdtLocalRole::NftBurn];
+        b_mock.set_esdt_local_roles(
+            farm_wrapper.address_ref(),
+            UNBOND_TOKEN_ID,
+            &unbond_token_roles[..],
+        );
+
         let farming_token_roles = [EsdtLocalRole::Burn];
         b_mock.set_esdt_local_roles(
             farm_wrapper.address_ref(),
@@ -146,10 +167,19 @@ where
         );
 
         let user_addr = b_mock.create_user_account(&rust_biguint!(100_000_000));
-        b_mock.set_esdt_balance(
+        b_mock.set_nft_balance(
             &user_addr,
             FARMING_TOKEN_ID,
+            1,
             &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
+            &Empty,
+        );
+        b_mock.set_nft_balance(
+            &user_addr,
+            FARMING_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
+            &Empty,
         );
 
         FarmStakingSetup {
@@ -163,18 +193,15 @@ where
 
     pub fn stake_farm(
         &mut self,
-        farm_in_amount: u64,
+        farming_tokens: &[TxTokenTransfer],
         additional_farm_tokens: &[TxTokenTransfer],
         expected_farm_token_nonce: u64,
         expected_reward_per_share: u64,
         expected_compounded_reward: u64,
+        expected_farming_token_parts: &[TxTokenTransfer],
     ) {
         let mut payments = Vec::with_capacity(1 + additional_farm_tokens.len());
-        payments.push(TxTokenTransfer {
-            token_identifier: FARMING_TOKEN_ID.to_vec(),
-            nonce: 0,
-            value: rust_biguint!(farm_in_amount),
-        });
+        payments.extend_from_slice(farming_tokens);
         payments.extend_from_slice(additional_farm_tokens);
 
         let mut expected_total_out_amount = 0;
@@ -204,8 +231,9 @@ where
             reward_per_share: managed_biguint!(expected_reward_per_share),
             compounded_reward: managed_biguint!(expected_compounded_reward),
             original_owner: managed_address!(&self.user_address),
-            farming_token_parts: todo!(),
+            farming_token_parts: to_managed_vec(expected_farming_token_parts),
         };
+
         self.b_mock.check_nft_balance(
             &self.user_address,
             FARM_TOKEN_ID,
@@ -222,9 +250,9 @@ where
         farm_token_nonce: u64,
         expected_reward_token_out: u64,
         expected_user_reward_token_balance: &RustBigUint,
-        expected_user_farming_token_balance: &RustBigUint,
         expected_farm_token_nonce_out: u64,
         expected_reward_per_share: u64,
+        expected_new_farming_token_parts: &[TxTokenTransfer],
     ) {
         self.b_mock
             .execute_esdt_transfer(
@@ -249,7 +277,7 @@ where
                         second_result.token_identifier,
                         managed_token_id!(REWARD_TOKEN_ID)
                     );
-                    assert_eq!(second_result.token_nonce, 0);
+                    assert_eq!(second_result.token_nonce, REWARD_NONCE);
                     assert_eq!(
                         second_result.amount,
                         managed_biguint!(expected_reward_token_out)
@@ -262,7 +290,7 @@ where
             reward_per_share: managed_biguint!(expected_reward_per_share),
             compounded_reward: managed_biguint!(0),
             original_owner: managed_address!(&self.user_address),
-            farming_token_parts: todo!(),
+            farming_token_parts: to_managed_vec(expected_new_farming_token_parts),
         };
 
         self.b_mock.check_nft_balance(
@@ -272,15 +300,12 @@ where
             &rust_biguint!(farm_token_amount),
             Some(&expected_attributes),
         );
-        self.b_mock.check_esdt_balance(
+        self.b_mock.check_nft_balance::<Empty>(
             &self.user_address,
             REWARD_TOKEN_ID,
+            REWARD_NONCE,
             expected_user_reward_token_balance,
-        );
-        self.b_mock.check_esdt_balance(
-            &self.user_address,
-            FARMING_TOKEN_ID,
-            expected_user_farming_token_balance,
+            None,
         );
     }
 
@@ -322,7 +347,6 @@ where
         farm_token_nonce: u64,
         expected_rewards_out: u64,
         expected_user_reward_token_balance: &RustBigUint,
-        expected_user_farming_token_balance: &RustBigUint,
         expected_new_farm_token_nonce: u64,
         expected_new_farm_token_amount: u64,
         expected_new_farm_token_attributes: &UnbondSftAttributes<DebugApi>,
@@ -356,7 +380,7 @@ where
                         second_result.token_identifier,
                         managed_token_id!(REWARD_TOKEN_ID)
                     );
-                    assert_eq!(second_result.token_nonce, 0);
+                    assert_eq!(second_result.token_nonce, REWARD_NONCE);
                     assert_eq!(second_result.amount, managed_biguint!(expected_rewards_out));
                 },
             )
@@ -364,56 +388,38 @@ where
 
         self.b_mock.check_nft_balance(
             &self.user_address,
-            FARM_TOKEN_ID,
+            UNBOND_TOKEN_ID,
             expected_new_farm_token_nonce,
             &rust_biguint!(expected_new_farm_token_amount),
             Some(expected_new_farm_token_attributes),
         );
-        self.b_mock.check_esdt_balance(
+        self.b_mock.check_nft_balance::<Empty>(
             &self.user_address,
             REWARD_TOKEN_ID,
+            REWARD_NONCE,
             expected_user_reward_token_balance,
-        );
-        self.b_mock.check_esdt_balance(
-            &self.user_address,
-            FARMING_TOKEN_ID,
-            expected_user_farming_token_balance,
+            None,
         );
     }
 
     pub fn unbond_farm(
         &mut self,
-        farm_token_nonce: u64,
-        farm_tokem_amount: u64,
-        expected_farming_token_out: u64,
-        expected_user_farming_token_balance: u64,
+        unbond_token_nonce: u64,
+        expected_farming_tokens: &[TxTokenTransfer],
     ) {
         self.b_mock
             .execute_esdt_transfer(
                 &self.user_address,
                 &self.farm_wrapper,
                 UNBOND_TOKEN_ID,
-                farm_token_nonce,
-                &rust_biguint!(farm_tokem_amount),
+                unbond_token_nonce,
+                &rust_biguint!(1),
                 |sc| {
-                    // TODO: FIX!!!
-
-                    // let payment = sc.unbond_farm();
-                    // assert_eq!(
-                    //     payment.token_identifier,
-                    //     managed_token_id!(FARMING_TOKEN_ID)
-                    // );
-                    // assert_eq!(payment.token_nonce, 0);
-                    // assert_eq!(payment.amount, managed_biguint!(expected_farming_token_out));
+                    let farming_tokens = sc.unbond_farm().farming_tokens;
+                    assert_eq!(to_managed_vec(expected_farming_tokens), farming_tokens);
                 },
             )
             .assert_ok();
-
-        self.b_mock.check_esdt_balance(
-            &self.user_address,
-            FARMING_TOKEN_ID,
-            &rust_biguint!(expected_user_farming_token_balance),
-        );
     }
 
     pub fn check_farm_token_supply(&mut self, expected_farm_token_supply: u64) {
@@ -527,4 +533,19 @@ where
             )
             .assert_ok();
     }
+}
+
+pub fn to_managed_vec<M: ManagedTypeApi>(
+    token_parts: &[TxTokenTransfer],
+) -> ManagedVec<M, EsdtTokenPayment<M>> {
+    let mut farming_token_parts = ManagedVec::new();
+    for farming_token in token_parts {
+        farming_token_parts.push(EsdtTokenPayment::new(
+            managed_token_id!(farming_token.token_identifier.as_slice()),
+            farming_token.nonce,
+            managed_biguint!(farming_token.value.to_u64_digits()[0]),
+        ));
+    }
+
+    farming_token_parts
 }

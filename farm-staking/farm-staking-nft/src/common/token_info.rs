@@ -14,10 +14,12 @@ pub trait TokenInfoModule: utils::UtilsModule {
         attributes: StakingFarmNftTokenAttributes<Self::Api>,
         payment: &EsdtTokenPayment,
     ) -> PartialStakingFarmNftTokenAttributes<Self::Api> {
-        let total_supply = self.total_supply(payment.token_nonce).get();
+        let total_supply_mapper = self.total_supply(payment.token_nonce);
+        let total_supply = total_supply_mapper.get();
         if payment.amount == total_supply {
             self.remaining_supply(payment.token_nonce).clear();
             self.remaining_parts(payment.token_nonce).clear();
+            total_supply_mapper.clear();
 
             return PartialStakingFarmNftTokenAttributes {
                 reward_per_share: attributes.reward_per_share,
@@ -95,6 +97,7 @@ pub trait TokenInfoModule: utils::UtilsModule {
                 token_parts
             })
         } else {
+            self.total_supply(payment.token_nonce).clear();
             remaining_parts_mapper.take()
         };
 

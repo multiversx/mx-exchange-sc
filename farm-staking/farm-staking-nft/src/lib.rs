@@ -60,6 +60,8 @@ pub trait FarmStaking:
     + rewards_setters::RewardsSettersModule
     + common::custom_events::CustomEventsModule
 {
+    // TODO: Fix farm token info in all endpoints
+
     #[init]
     fn init(
         &self,

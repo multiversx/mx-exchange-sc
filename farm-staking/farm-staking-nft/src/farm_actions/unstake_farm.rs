@@ -168,7 +168,7 @@ pub trait UnstakeFarmModule:
             &farm_token_payment.amount,
         );
 
-        storage_cache.farm_token_supply -= &token_attributes.current_farm_amount;
+        storage_cache.farm_token_supply -= &payment.amount;
 
         InternalExitFarmResult {
             context: exit_farm_context,
