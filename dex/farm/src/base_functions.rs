@@ -331,6 +331,12 @@ where
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        let current_epoch = sc.blockchain().get_block_epoch();
+        let first_week_start_epoch = sc.first_week_start_epoch().get();
+        if first_week_start_epoch > current_epoch {
+            return BigUint::zero();
+        }
+
         let base_farm_reward = DefaultFarmWrapper::<T>::calculate_rewards(
             sc,
             caller,
@@ -338,12 +344,6 @@ where
             token_attributes,
             storage_cache,
         );
-        let current_epoch = sc.blockchain().get_block_epoch();
-        let first_week_start_epoch = sc.first_week_start_epoch().get();
-        if first_week_start_epoch > current_epoch {
-            return base_farm_reward;
-        }
-
         let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller);
 
         base_farm_reward + boosted_yield_rewards
