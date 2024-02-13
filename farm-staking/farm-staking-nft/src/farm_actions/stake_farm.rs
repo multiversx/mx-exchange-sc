@@ -5,8 +5,9 @@ use contexts::{enter_farm_context::EnterFarmContext, storage_cache::StorageCache
 use farm_base_impl::enter_farm::InternalEnterFarmResult;
 
 use crate::{
-    farm_hooks::hook_type::FarmHookType, result_types::EnterFarmResultType,
-    token_attributes::PartialStakingFarmNftTokenAttributes,
+    common::result_types::EnterFarmResultType,
+    common::token_attributes::PartialStakingFarmNftTokenAttributes,
+    farm_hooks::hook_type::FarmHookType,
 };
 
 #[multiversx_sc::module]
@@ -36,7 +37,7 @@ pub trait StakeFarmModule:
     + banned_addresses::BannedAddressModule
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
-    + crate::token_info::TokenInfoModule
+    + crate::common::token_info::TokenInfoModule
 {
     #[payable("*")]
     #[endpoint(stakeFarm)]

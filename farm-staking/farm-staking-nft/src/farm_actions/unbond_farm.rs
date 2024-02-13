@@ -2,7 +2,10 @@ multiversx_sc::imports!();
 
 use contexts::storage_cache::StorageCache;
 
-use crate::{farm_hooks::hook_type::FarmHookType, token_attributes::UnbondSftAttributes};
+use crate::{
+    common::{result_types::UnbondResultType, token_attributes::UnbondSftAttributes},
+    farm_hooks::hook_type::FarmHookType,
+};
 
 #[multiversx_sc::module]
 pub trait UnbondFarmModule:
@@ -29,17 +32,17 @@ pub trait UnbondFarmModule:
     + banned_addresses::BannedAddressModule
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
+    + crate::unbond_token::UnbondTokenModule
 {
-    // TODO: Fix to actually send the required token parts
     #[payable("*")]
     #[endpoint(unbondFarm)]
-    fn unbond_farm(&self) -> EsdtTokenPayment {
+    fn unbond_farm(&self) -> UnbondResultType<Self::Api> {
         let storage_cache = StorageCache::new(self);
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
-        let farm_token_mapper = self.farm_token();
+        let unbond_token_mapper = self.unbond_token();
         let payment = self.call_value().single_esdt();
-        farm_token_mapper.require_same_token(&payment.token_identifier);
+        unbond_token_mapper.require_same_token(&payment.token_identifier);
 
         let caller = self.blockchain().get_caller();
         let payments_after_hook = self.call_hook(
@@ -50,8 +53,8 @@ pub trait UnbondFarmModule:
         );
         let payment = payments_after_hook.get(0);
 
-        let attributes: UnbondSftAttributes =
-            farm_token_mapper.get_token_attributes(payment.token_nonce);
+        let attributes: UnbondSftAttributes<Self::Api> =
+            unbond_token_mapper.get_token_attributes(payment.token_nonce);
 
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
@@ -59,20 +62,20 @@ pub trait UnbondFarmModule:
             "Unbond period not over"
         );
 
-        farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+        unbond_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
-        let farming_tokens =
-            EsdtTokenPayment::new(storage_cache.farming_token_id.clone(), 0, payment.amount);
+        let farming_tokens = attributes.farming_token_parts;
         let output_payments_after_hook = self.call_hook(
             FarmHookType::AfterUnbond,
             caller.clone(),
-            ManagedVec::from_single_item(farming_tokens),
+            farming_tokens,
             ManagedVec::new(),
         );
-        let farming_tokens = output_payments_after_hook.get(0);
 
-        self.send_payment_non_zero(&caller, &farming_tokens);
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments_after_hook);
 
-        farming_tokens
+        UnbondResultType {
+            farming_tokens: output_payments_after_hook,
+        }
     }
 }

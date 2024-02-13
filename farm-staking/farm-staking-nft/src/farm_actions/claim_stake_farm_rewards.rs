@@ -7,9 +7,11 @@ use contexts::{
 };
 
 use crate::{
+    common::result_types::ClaimRewardsResultType,
+    common::token_attributes::{
+        PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes,
+    },
     farm_hooks::hook_type::FarmHookType,
-    result_types::ClaimRewardsResultType,
-    token_attributes::{PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes},
 };
 
 pub struct InternalClaimRewardsResult<'a, C>
@@ -50,7 +52,7 @@ pub trait ClaimStakeFarmRewardsModule:
     + banned_addresses::BannedAddressModule
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
-    + crate::token_info::TokenInfoModule
+    + crate::common::token_info::TokenInfoModule
 {
     #[payable("*")]
     #[endpoint(claimRewards)]

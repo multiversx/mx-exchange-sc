@@ -1,7 +1,7 @@
 use common_structs::{Nonce, PaymentAttributesPair, PaymentsVec};
 use mergeable::Mergeable;
 
-use crate::token_attributes::{
+use super::token_attributes::{
     PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes,
 };
 

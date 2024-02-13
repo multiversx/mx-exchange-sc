@@ -5,19 +5,17 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use common::result_types::MergeResultType;
+use common::token_attributes::PartialStakingFarmNftTokenAttributes;
 use contexts::storage_cache::StorageCache;
-use result_types::MergeResultType;
-use token_attributes::PartialStakingFarmNftTokenAttributes;
 
 use crate::custom_rewards::MAX_MIN_UNBOND_EPOCHS;
 
+pub mod common;
 pub mod custom_rewards;
 pub mod farm_actions;
 pub mod farm_hooks;
-pub mod farm_token_roles;
-pub mod result_types;
-pub mod token_attributes;
-pub mod token_info;
+pub mod unbond_token;
 
 #[multiversx_sc::contract]
 pub trait FarmStaking:
@@ -37,7 +35,7 @@ pub trait FarmStaking:
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
     + utils::UtilsModule
-    + farm_token_roles::FarmTokenRolesModule
+    + common::farm_token_roles::FarmTokenRolesModule
     + farm_actions::stake_farm::StakeFarmModule
     + farm_actions::claim_stake_farm_rewards::ClaimStakeFarmRewardsModule
     + farm_actions::compound_stake_farm_rewards::CompoundStakeFarmRewardsModule
@@ -56,7 +54,8 @@ pub trait FarmStaking:
     + banned_addresses::BannedAddressModule
     + farm_hooks::change_hooks::ChangeHooksModule
     + farm_hooks::call_hook::CallHookModule
-    + token_info::TokenInfoModule
+    + common::token_info::TokenInfoModule
+    + unbond_token::UnbondTokenModule
 {
     #[init]
     fn init(
