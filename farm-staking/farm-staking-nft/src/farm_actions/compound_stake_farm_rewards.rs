@@ -1,12 +1,28 @@
 use common_errors::ERROR_DIFFERENT_TOKEN_IDS;
-use common_structs::PaymentsVec;
-use contexts::{claim_rewards_context::CompoundRewardsContext, storage_cache::StorageCache};
-use farm_base_impl::compound_rewards::InternalCompoundRewardsResult;
-use fixed_supply_token::FixedSupplyToken;
+use common_structs::{PaymentAttributesPair, PaymentsVec};
+use contexts::{
+    claim_rewards_context::CompoundRewardsContext,
+    storage_cache::{FarmContracTraitBounds, StorageCache},
+};
 
-use crate::{farm_hooks::hook_type::FarmHookType, token_attributes::StakingFarmNftTokenAttributes};
+use crate::{
+    farm_hooks::hook_type::FarmHookType,
+    result_types::CompoundRewardsResultType,
+    token_attributes::{PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes},
+};
 
 multiversx_sc::imports!();
+
+pub struct InternalCompoundRewardsResult<'a, C>
+where
+    C: FarmContracTraitBounds,
+{
+    pub context: CompoundRewardsContext<C::Api, StakingFarmNftTokenAttributes<C::Api>>,
+    pub storage_cache: StorageCache<'a, C>,
+    pub new_farm_token: PaymentAttributesPair<C::Api, PartialStakingFarmNftTokenAttributes<C::Api>>,
+    pub compounded_rewards: BigUint<C::Api>,
+    pub created_with_merge: bool,
+}
 
 #[multiversx_sc::module]
 pub trait CompoundStakeFarmRewardsModule:
@@ -35,10 +51,11 @@ pub trait CompoundStakeFarmRewardsModule:
     + banned_addresses::BannedAddressModule
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
+    + crate::token_info::TokenInfoModule
 {
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards(&self) -> EsdtTokenPayment {
+    fn compound_rewards(&self) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payments = self.get_non_empty_payments();
         let payments_after_hook = self.call_hook(
@@ -67,23 +84,23 @@ pub trait CompoundStakeFarmRewardsModule:
 
         self.set_farm_supply_for_current_week(&compound_result.storage_cache.farm_token_supply);
 
-        self.emit_compound_rewards_event(
-            &caller,
-            compound_result.context,
-            compound_result.new_farm_token,
-            compound_result.compounded_rewards,
-            compound_result.created_with_merge,
-            compound_result.storage_cache,
-        );
+        // self.emit_compound_rewards_event(
+        //     &caller,
+        //     compound_result.context,
+        //     compound_result.new_farm_token,
+        //     compound_result.compounded_rewards,
+        //     compound_result.created_with_merge,
+        //     compound_result.storage_cache,
+        // );
 
-        new_farm_token
+        CompoundRewardsResultType { new_farm_token }
     }
 
     fn compound_rewards_base(
         &self,
         caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
-    ) -> InternalCompoundRewardsResult<Self, StakingFarmNftTokenAttributes<Self::Api>> {
+    ) -> InternalCompoundRewardsResult<Self> {
         let mut storage_cache = StorageCache::new(self);
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         require!(
@@ -101,11 +118,10 @@ pub trait CompoundStakeFarmRewardsModule:
         self.generate_aggregated_rewards(&mut storage_cache);
 
         let farm_token_amount = &compound_rewards_context.first_farm_token.payment.amount;
-        let token_attributes = compound_rewards_context
-            .first_farm_token
-            .attributes
-            .clone()
-            .into_part(farm_token_amount);
+        let token_attributes = self.into_part(
+            compound_rewards_context.first_farm_token.attributes.clone(),
+            &compound_rewards_context.first_farm_token.payment,
+        );
 
         let reward = self.calculate_rewards(
             &caller,
@@ -125,7 +141,7 @@ pub trait CompoundStakeFarmRewardsModule:
             storage_cache.reward_per_share.clone(),
             &reward,
         );
-        let new_farm_token = self.merge_and_create_token(
+        let new_farm_token = self.merge_and_create_token_nft(
             base_attributes,
             &compound_rewards_context.additional_payments,
             &farm_token_mapper,

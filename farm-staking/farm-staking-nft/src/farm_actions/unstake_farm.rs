@@ -1,12 +1,11 @@
 multiversx_sc::imports!();
 
 use contexts::{exit_farm_context::ExitFarmContext, storage_cache::StorageCache};
-use farm::ExitFarmWithPartialPosResultType;
 use farm_base_impl::exit_farm::InternalExitFarmResult;
-use fixed_supply_token::FixedSupplyToken;
 
 use crate::{
     farm_hooks::hook_type::FarmHookType,
+    result_types::UnstakeRewardsResultType,
     token_attributes::{StakingFarmNftTokenAttributes, UnbondSftAttributes},
 };
 
@@ -37,10 +36,11 @@ pub trait UnstakeFarmModule:
     + banned_addresses::BannedAddressModule
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
+    + crate::token_info::TokenInfoModule
 {
     #[payable("*")]
     #[endpoint(unstakeFarm)]
-    fn unstake_farm(&self) -> ExitFarmWithPartialPosResultType<Self::Api> {
+    fn unstake_farm(&self) -> UnstakeRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
 
@@ -87,7 +87,10 @@ pub trait UnstakeFarmModule:
             exit_result.storage_cache,
         );
 
-        (unbond_farm_token, exit_result.reward_payment).into()
+        UnstakeRewardsResultType {
+            unbond_farm_token,
+            reward_payment: exit_result.reward_payment,
+        }
     }
 
     fn create_unbond_tokens(
@@ -126,11 +129,10 @@ pub trait UnstakeFarmModule:
         self.generate_aggregated_rewards(&mut storage_cache);
 
         let farm_token_amount = &exit_farm_context.farm_token.payment.amount;
-        let token_attributes = exit_farm_context
-            .farm_token
-            .attributes
-            .clone()
-            .into_part(farm_token_amount);
+        let token_attributes = self.into_part(
+            exit_farm_context.farm_token.attributes.clone(),
+            &exit_farm_context.farm_token.payment,
+        );
 
         let reward = self.calculate_rewards(
             &caller,
@@ -142,7 +144,7 @@ pub trait UnstakeFarmModule:
 
         self.decrease_user_farm_position(&payment);
 
-        let farming_token_amount = token_attributes.get_total_supply();
+        let farming_token_amount = token_attributes.current_farm_amount;
         let farming_token_payment = EsdtTokenPayment::new(
             storage_cache.farming_token_id.clone(),
             0,

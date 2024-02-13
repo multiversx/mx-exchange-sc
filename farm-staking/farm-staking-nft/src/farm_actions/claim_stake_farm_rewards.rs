@@ -1,12 +1,27 @@
 multiversx_sc::imports!();
 
 use common_structs::{PaymentAttributesPair, PaymentsVec};
-use contexts::{claim_rewards_context::ClaimRewardsContext, storage_cache::StorageCache};
-use farm::base_functions::ClaimRewardsResultType;
-use farm_base_impl::claim_rewards::InternalClaimRewardsResult;
-use fixed_supply_token::FixedSupplyToken;
+use contexts::{
+    claim_rewards_context::ClaimRewardsContext,
+    storage_cache::{FarmContracTraitBounds, StorageCache},
+};
 
-use crate::{farm_hooks::hook_type::FarmHookType, token_attributes::StakingFarmNftTokenAttributes};
+use crate::{
+    farm_hooks::hook_type::FarmHookType,
+    result_types::ClaimRewardsResultType,
+    token_attributes::{PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes},
+};
+
+pub struct InternalClaimRewardsResult<'a, C>
+where
+    C: FarmContracTraitBounds,
+{
+    pub context: ClaimRewardsContext<C::Api, StakingFarmNftTokenAttributes<C::Api>>,
+    pub storage_cache: StorageCache<'a, C>,
+    pub rewards: EsdtTokenPayment<C::Api>,
+    pub new_farm_token: PaymentAttributesPair<C::Api, PartialStakingFarmNftTokenAttributes<C::Api>>,
+    pub created_with_merge: bool,
+}
 
 #[multiversx_sc::module]
 pub trait ClaimStakeFarmRewardsModule:
@@ -35,6 +50,7 @@ pub trait ClaimStakeFarmRewardsModule:
     + banned_addresses::BannedAddressModule
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
+    + crate::token_info::TokenInfoModule
 {
     #[payable("*")]
     #[endpoint(claimRewards)]
@@ -60,7 +76,6 @@ pub trait ClaimStakeFarmRewardsModule:
         output_payments.push(virtual_farm_token.payment);
         self.push_if_non_zero_payment(&mut output_payments, claim_result.rewards.clone());
 
-        // TODO: Fix attributes
         let mut output_payments_after_hook = self.call_hook(
             FarmHookType::AfterClaimRewards,
             caller.clone(),
@@ -74,23 +89,26 @@ pub trait ClaimStakeFarmRewardsModule:
         self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
         self.send_payment_non_zero(&caller, &claim_result.rewards);
 
-        self.emit_claim_rewards_event(
-            &caller,
-            claim_result.context,
-            virtual_farm_token.clone(),
-            claim_result.rewards.clone(),
-            claim_result.created_with_merge,
-            claim_result.storage_cache,
-        );
+        // self.emit_claim_rewards_event(
+        //     &caller,
+        //     claim_result.context,
+        //     virtual_farm_token.clone(),
+        //     claim_result.rewards.clone(),
+        //     claim_result.created_with_merge,
+        //     claim_result.storage_cache,
+        // );
 
-        (virtual_farm_token.payment, claim_result.rewards).into()
+        ClaimRewardsResultType {
+            new_farm_token: virtual_farm_token.payment,
+            rewards: claim_result.rewards,
+        }
     }
 
     fn claim_rewards_base(
         &self,
         caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
-    ) -> InternalClaimRewardsResult<Self, StakingFarmNftTokenAttributes<Self::Api>> {
+    ) -> InternalClaimRewardsResult<Self> {
         let mut claim_result = self.claim_rewards_base_no_farm_token_mint(caller, payments);
         let virtual_farm_token_payment = &claim_result.new_farm_token.payment;
         let minted_farm_token_nonce = self.send().esdt_nft_create_compact(
@@ -107,7 +125,7 @@ pub trait ClaimStakeFarmRewardsModule:
         &self,
         caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
-    ) -> InternalClaimRewardsResult<Self, StakingFarmNftTokenAttributes<Self::Api>> {
+    ) -> InternalClaimRewardsResult<Self> {
         let mut storage_cache = StorageCache::new(self);
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
@@ -121,11 +139,10 @@ pub trait ClaimStakeFarmRewardsModule:
         self.generate_aggregated_rewards(&mut storage_cache);
 
         let farm_token_amount = &claim_rewards_context.first_farm_token.payment.amount;
-        let token_attributes = claim_rewards_context
-            .first_farm_token
-            .attributes
-            .clone()
-            .into_part(farm_token_amount);
+        let token_attributes = self.into_part(
+            claim_rewards_context.first_farm_token.attributes.clone(),
+            &claim_rewards_context.first_farm_token.payment,
+        );
 
         let reward = self.calculate_rewards(
             &caller,
@@ -143,7 +160,7 @@ pub trait ClaimStakeFarmRewardsModule:
             token_attributes,
             storage_cache.reward_per_share.clone(),
         );
-        let new_token_attributes = self.merge_attributes_from_payments(
+        let new_token_attributes = self.merge_attributes_from_payments_nft(
             base_attributes,
             &claim_rewards_context.additional_payments,
             &farm_token_mapper,
@@ -152,7 +169,7 @@ pub trait ClaimStakeFarmRewardsModule:
             payment: EsdtTokenPayment::new(
                 storage_cache.farm_token_id.clone(),
                 0,
-                new_token_attributes.get_total_supply(),
+                new_token_attributes.current_farm_amount.clone(),
             ),
             attributes: new_token_attributes,
         };

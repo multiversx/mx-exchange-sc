@@ -2,11 +2,12 @@ multiversx_sc::imports!();
 
 use common_structs::{PaymentAttributesPair, PaymentsVec};
 use contexts::{enter_farm_context::EnterFarmContext, storage_cache::StorageCache};
-use farm::EnterFarmResultType;
 use farm_base_impl::enter_farm::InternalEnterFarmResult;
-use fixed_supply_token::FixedSupplyToken;
 
-use crate::{farm_hooks::hook_type::FarmHookType, token_attributes::StakingFarmNftTokenAttributes};
+use crate::{
+    farm_hooks::hook_type::FarmHookType, result_types::EnterFarmResultType,
+    token_attributes::PartialStakingFarmNftTokenAttributes,
+};
 
 #[multiversx_sc::module]
 pub trait StakeFarmModule:
@@ -35,6 +36,7 @@ pub trait StakeFarmModule:
     + banned_addresses::BannedAddressModule
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
+    + crate::token_info::TokenInfoModule
 {
     #[payable("*")]
     #[endpoint(stakeFarm)]
@@ -83,8 +85,9 @@ pub trait StakeFarmModule:
         attributes
             .farming_token_parts
             .append_vec(all_farming_tokens);
+        let attr_full = attributes.clone().into_full();
 
-        let new_farm_token = farm_token_mapper.nft_create(new_farm_token.amount, &attributes);
+        let new_farm_token = farm_token_mapper.nft_create(new_farm_token.amount, &attr_full);
 
         let mut output_payments = ManagedVec::new();
         output_payments.push(new_farm_token);
@@ -118,14 +121,17 @@ pub trait StakeFarmModule:
             enter_result.storage_cache,
         );
 
-        (new_farm_token, boosted_rewards_payment).into()
+        EnterFarmResultType {
+            new_farm_token,
+            boosted_rewards_payment,
+        }
     }
 
     fn enter_farm_base_no_token_create(
         &self,
         caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
-    ) -> InternalEnterFarmResult<Self, StakingFarmNftTokenAttributes<Self::Api>> {
+    ) -> InternalEnterFarmResult<Self, PartialStakingFarmNftTokenAttributes<Self::Api>> {
         let mut storage_cache = StorageCache::new(self);
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
@@ -152,7 +158,7 @@ pub trait StakeFarmModule:
             enter_farm_context.farming_token_payment.amount.clone(),
             storage_cache.reward_per_share.clone(),
         );
-        let new_token_attributes = self.merge_attributes_from_payments(
+        let new_token_attributes = self.merge_attributes_from_payments_nft(
             base_attributes,
             &enter_farm_context.additional_farm_tokens,
             &farm_token_mapper,
@@ -161,7 +167,7 @@ pub trait StakeFarmModule:
             payment: EsdtTokenPayment::new(
                 storage_cache.farm_token_id.clone(),
                 0,
-                new_token_attributes.get_total_supply(),
+                new_token_attributes.current_farm_amount.clone(),
             ),
             attributes: new_token_attributes,
         };

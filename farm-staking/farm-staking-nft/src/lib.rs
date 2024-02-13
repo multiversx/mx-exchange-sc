@@ -6,9 +6,8 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use contexts::storage_cache::StorageCache;
-use farm::base_functions::DoubleMultiPayment;
-use fixed_supply_token::FixedSupplyToken;
-use token_attributes::StakingFarmNftTokenAttributes;
+use result_types::MergeResultType;
+use token_attributes::PartialStakingFarmNftTokenAttributes;
 
 use crate::custom_rewards::MAX_MIN_UNBOND_EPOCHS;
 
@@ -16,7 +15,9 @@ pub mod custom_rewards;
 pub mod farm_actions;
 pub mod farm_hooks;
 pub mod farm_token_roles;
+pub mod result_types;
 pub mod token_attributes;
+pub mod token_info;
 
 #[multiversx_sc::contract]
 pub trait FarmStaking:
@@ -55,6 +56,7 @@ pub trait FarmStaking:
     + banned_addresses::BannedAddressModule
     + farm_hooks::change_hooks::ChangeHooksModule
     + farm_hooks::call_hook::CallHookModule
+    + token_info::TokenInfoModule
 {
     #[init]
     fn init(
@@ -93,7 +95,7 @@ pub trait FarmStaking:
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens_endpoint(&self) -> DoubleMultiPayment<Self::Api> {
+    fn merge_farm_tokens_endpoint(&self) -> MergeResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let boosted_rewards = self.claim_only_boosted_payment(&caller);
         let boosted_rewards_payment =
@@ -101,22 +103,25 @@ pub trait FarmStaking:
 
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
-        let output_attributes: StakingFarmNftTokenAttributes<Self::Api> =
-            self.merge_from_payments_and_burn(payments, &token_mapper);
-        let new_token_amount = output_attributes.get_total_supply();
+        let output_attributes = self.merge_from_payments_and_burn_nft(payments, &token_mapper);
+        let new_token_amount = output_attributes.current_farm_amount.clone();
+        let full_attr = output_attributes.into_full();
 
-        let merged_farm_token = token_mapper.nft_create(new_token_amount, &output_attributes);
+        let merged_farm_token = token_mapper.nft_create(new_token_amount, &full_attr);
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
-        (merged_farm_token, boosted_rewards_payment).into()
+        MergeResultType {
+            merged_farm_token,
+            boosted_rewards_payment,
+        }
     }
 
     #[view(calculateRewardsForGivenPosition)]
     fn calculate_rewards_for_given_position(
         &self,
         farm_token_amount: BigUint,
-        attributes: StakingFarmNftTokenAttributes<Self::Api>,
+        attributes: PartialStakingFarmNftTokenAttributes<Self::Api>,
     ) -> BigUint {
         self.require_queried();
 
