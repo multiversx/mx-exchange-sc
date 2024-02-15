@@ -11,7 +11,6 @@ use crate::{
 pub trait UnbondFarmModule:
     rewards::RewardsModule
     + config::ConfigModule
-    + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule

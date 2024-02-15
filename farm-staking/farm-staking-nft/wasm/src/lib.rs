@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           71
+// Endpoints:                           73
 // Async Callback:                       1
-// Total number of exported functions:  73
+// Total number of exported functions:  75
 
 #![no_std]
 #![allow(internal_features)]
@@ -23,17 +23,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         mergeFarmTokens => merge_farm_tokens_endpoint
         calculateRewardsForGivenPosition => calculate_rewards_for_given_position
-        topUpRewards => top_up_rewards
-        withdrawRewards => withdraw_rewards
-        endProduceRewards => end_produce_rewards
-        setPerBlockRewardAmount => set_per_block_rewards
-        setMaxApr => set_max_apr
-        setMinUnbondEpochs => set_min_unbond_epochs_endpoint
         startProduceRewards => start_produce_rewards_endpoint
         getAccumulatedRewards => accumulated_rewards
         getRewardCapacity => reward_capacity
         getAnnualPercentageRewards => max_annual_percentage_rewards
         getMinUnbondEpochs => min_unbond_epochs
+        getRewardNonce => reward_nonce
         getRewardPerShare => reward_per_share
         getRewardReserve => reward_reserve
         allowExternalClaimBoostedRewards => allow_external_claim_boosted_rewards
@@ -91,6 +86,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeHook => remove_hook
         registerUnbondToken => register_unbond_token
         getUnbondTokenId => unbond_token
+        topUpRewards => top_up_rewards
+        topUpAndSetRewardNonce => top_up_and_set_reward_nonce
+        withdrawRewards => withdraw_rewards
+        endProduceRewards => end_produce_rewards
+        setPerBlockRewardAmount => set_per_block_rewards
+        setMaxApr => set_max_apr
+        setMinUnbondEpochs => set_min_unbond_epochs_endpoint
     )
 }
 

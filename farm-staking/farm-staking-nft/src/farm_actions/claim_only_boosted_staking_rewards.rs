@@ -16,7 +16,6 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
     + token_send::TokenSendModule
-    + events::EventsModule
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
@@ -39,8 +38,9 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
         }
 
         let boosted_rewards = self.claim_only_boosted_payment(user);
+        let reward_nonce = self.reward_nonce().get();
         let boosted_rewards_payment =
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+            EsdtTokenPayment::new(self.reward_token_id().get(), reward_nonce, boosted_rewards);
 
         self.send_payment_non_zero(user, &boosted_rewards_payment);
 

@@ -35,9 +35,6 @@ path = "../../common/modules/farm/farm_token"
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
 
-[dependencies.events]
-path = "../../common/modules/farm/events"
-
 [dependencies.contexts]
 path = "../../common/modules/farm/contexts"
 

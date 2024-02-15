@@ -7,14 +7,16 @@ multiversx_sc::derive_imports!();
 
 use common::result_types::MergeResultType;
 use common::token_attributes::PartialStakingFarmNftTokenAttributes;
+use common_structs::{Epoch, Nonce};
 use contexts::storage_cache::StorageCache;
 
-use crate::custom_rewards::MAX_MIN_UNBOND_EPOCHS;
+use crate::rewards_setters::MAX_MIN_UNBOND_EPOCHS;
 
 pub mod common;
 pub mod custom_rewards;
 pub mod farm_actions;
 pub mod farm_hooks;
+pub mod rewards_setters;
 pub mod unbond_token;
 
 #[multiversx_sc::contract]
@@ -22,7 +24,6 @@ pub trait FarmStaking:
     custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
-    + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
@@ -56,6 +57,8 @@ pub trait FarmStaking:
     + farm_hooks::call_hook::CallHookModule
     + common::token_info::TokenInfoModule
     + unbond_token::UnbondTokenModule
+    + rewards_setters::RewardsSettersModule
+    + common::custom_events::CustomEventsModule
 {
     #[init]
     fn init(
@@ -65,6 +68,8 @@ pub trait FarmStaking:
         max_apr: BigUint,
         min_unbond_epochs: u64,
         owner: ManagedAddress,
+        reward_nonce: Nonce,
+        first_week_start_epoch: Epoch,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         // farming and reward token are the same
@@ -76,14 +81,22 @@ pub trait FarmStaking:
             admins,
         );
 
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            first_week_start_epoch >= current_epoch,
+            "Invalid start epoch"
+        );
+        self.first_week_start_epoch().set(first_week_start_epoch);
+
         require!(max_apr > 0u64, "Invalid max APR percentage");
-        self.max_annual_percentage_rewards().set_if_empty(&max_apr);
+        self.max_annual_percentage_rewards().set(&max_apr);
 
         require!(
             min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
             "Invalid min unbond epochs"
         );
-        self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
+        self.min_unbond_epochs().set(min_unbond_epochs);
+        self.reward_nonce().set(reward_nonce);
 
         let sc_address = self.blockchain().get_sc_address();
         self.banned_addresses().add(&sc_address);

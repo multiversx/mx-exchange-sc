@@ -158,15 +158,16 @@ pub trait TokenInfoModule: utils::UtilsModule {
         base_attributes: PartialStakingFarmNftTokenAttributes<Self::Api>,
         payments: &PaymentsVec<Self::Api>,
         mapper: &NonFungibleTokenMapper,
-    ) -> PaymentAttributesPair<Self::Api, PartialStakingFarmNftTokenAttributes<Self::Api>> {
+    ) -> PaymentAttributesPair<Self::Api, StakingFarmNftTokenAttributes<Self::Api>> {
         let output_attributes =
             self.merge_attributes_from_payments_nft(base_attributes, payments, mapper);
         let new_token_amount = output_attributes.current_farm_amount.clone();
-        let new_token_payment = mapper.nft_create(new_token_amount, &output_attributes);
+        let full_attr = output_attributes.into_full();
+        let new_token_payment = mapper.nft_create(new_token_amount, &full_attr);
 
         PaymentAttributesPair {
             payment: new_token_payment,
-            attributes: output_attributes,
+            attributes: full_attr,
         }
     }
 

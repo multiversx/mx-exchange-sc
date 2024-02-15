@@ -10,7 +10,6 @@ use crate::common::token_attributes::{
 
 pub const MAX_PERCENT: u64 = 10_000;
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
-pub const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 
 #[multiversx_sc::module]
 pub trait CustomRewardsModule:
@@ -32,81 +31,6 @@ pub trait CustomRewardsModule:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
 {
-    #[payable("*")]
-    #[endpoint(topUpRewards)]
-    fn top_up_rewards(&self) {
-        self.require_caller_has_admin_permissions();
-
-        let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
-        let reward_token_id = self.reward_token_id().get();
-        require!(payment_token == reward_token_id, "Invalid token");
-
-        self.reward_capacity().update(|r| *r += payment_amount);
-    }
-
-    #[payable("*")]
-    #[endpoint(withdrawRewards)]
-    fn withdraw_rewards(&self, withdraw_amount: BigUint) {
-        self.require_caller_has_admin_permissions();
-
-        self.reward_capacity().update(|rewards| {
-            require!(
-                *rewards >= withdraw_amount,
-                "Not enough rewards to withdraw"
-            );
-
-            *rewards -= withdraw_amount.clone()
-        });
-
-        let caller = self.blockchain().get_caller();
-        let reward_token_id = self.reward_token_id().get();
-        self.send_tokens_non_zero(&caller, &reward_token_id, 0, &withdraw_amount);
-    }
-
-    #[endpoint(endProduceRewards)]
-    fn end_produce_rewards(&self) {
-        self.require_caller_has_admin_permissions();
-
-        let mut storage_cache = StorageCache::new(self);
-        self.generate_aggregated_rewards(&mut storage_cache);
-        self.produce_rewards_enabled().set(false);
-    }
-
-    #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_rewards(&self, per_block_amount: BigUint) {
-        self.require_caller_has_admin_permissions();
-        require!(per_block_amount != 0, "Amount cannot be zero");
-
-        let mut storage_cache = StorageCache::new(self);
-        self.generate_aggregated_rewards(&mut storage_cache);
-        self.per_block_reward_amount().set(&per_block_amount);
-    }
-
-    #[endpoint(setMaxApr)]
-    fn set_max_apr(&self, max_apr: BigUint) {
-        self.require_caller_has_admin_permissions();
-        require!(max_apr != 0, "Max APR cannot be zero");
-
-        let mut storage_cache = StorageCache::new(self);
-        self.generate_aggregated_rewards(&mut storage_cache);
-        self.max_annual_percentage_rewards().set(&max_apr);
-    }
-
-    #[endpoint(setMinUnbondEpochs)]
-    fn set_min_unbond_epochs_endpoint(&self, min_unbond_epochs: Epoch) {
-        self.require_caller_has_admin_permissions();
-        self.try_set_min_unbond_epochs(min_unbond_epochs);
-    }
-
-    fn try_set_min_unbond_epochs(&self, min_unbond_epochs: Epoch) {
-        require!(
-            min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
-            "Invalid min unbond epochs"
-        );
-
-        self.min_unbond_epochs().set(min_unbond_epochs);
-    }
-
     fn get_amount_apr_bounded(&self, amount: &BigUint) -> BigUint {
         let max_apr = self.max_annual_percentage_rewards().get();
         amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR
@@ -118,6 +42,12 @@ pub trait CustomRewardsModule:
         token_attributes: &PartialStakingFarmNftTokenAttributes<Self::Api>,
         storage_cache: &StorageCache<Self>,
     ) -> BigUint {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        if first_week_start_epoch > current_epoch {
+            return BigUint::zero();
+        }
+
         let token_rps = token_attributes.reward_per_share.clone();
         if storage_cache.reward_per_share > token_rps {
             let rps_diff = &storage_cache.reward_per_share - &token_rps;
@@ -128,6 +58,12 @@ pub trait CustomRewardsModule:
     }
 
     fn calculate_boosted_rewards(&self, caller: &ManagedAddress) -> BigUint {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        if first_week_start_epoch > current_epoch {
+            return BigUint::zero();
+        }
+
         let user_total_farm_position = self.get_user_total_farm_position(caller);
         let user_farm_position = user_total_farm_position.total_farm_position;
         if user_farm_position == 0 {
@@ -326,4 +262,8 @@ pub trait CustomRewardsModule:
     #[view(getMinUnbondEpochs)]
     #[storage_mapper("minUnbondEpochs")]
     fn min_unbond_epochs(&self) -> SingleValueMapper<Epoch>;
+
+    #[view(getRewardNonce)]
+    #[storage_mapper("rewardNonce")]
+    fn reward_nonce(&self) -> SingleValueMapper<Nonce>;
 }

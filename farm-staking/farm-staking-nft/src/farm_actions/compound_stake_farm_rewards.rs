@@ -7,10 +7,7 @@ use contexts::{
 
 use crate::{
     common::result_types::CompoundRewardsResultType,
-    common::token_attributes::{
-        PartialStakingFarmNftTokenAttributes, StakingFarmNftTokenAttributes,
-    },
-    farm_hooks::hook_type::FarmHookType,
+    common::token_attributes::StakingFarmNftTokenAttributes, farm_hooks::hook_type::FarmHookType,
 };
 
 multiversx_sc::imports!();
@@ -21,7 +18,7 @@ where
 {
     pub context: CompoundRewardsContext<C::Api, StakingFarmNftTokenAttributes<C::Api>>,
     pub storage_cache: StorageCache<'a, C>,
-    pub new_farm_token: PaymentAttributesPair<C::Api, PartialStakingFarmNftTokenAttributes<C::Api>>,
+    pub new_farm_token: PaymentAttributesPair<C::Api, StakingFarmNftTokenAttributes<C::Api>>,
     pub compounded_rewards: BigUint<C::Api>,
     pub created_with_merge: bool,
 }
@@ -32,7 +29,6 @@ pub trait CompoundStakeFarmRewardsModule:
     + super::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
-    + events::EventsModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
@@ -54,6 +50,7 @@ pub trait CompoundStakeFarmRewardsModule:
     + crate::farm_hooks::change_hooks::ChangeHooksModule
     + crate::farm_hooks::call_hook::CallHookModule
     + crate::common::token_info::TokenInfoModule
+    + crate::common::custom_events::CustomEventsModule
 {
     #[payable("*")]
     #[endpoint(compoundRewards)]
@@ -86,16 +83,19 @@ pub trait CompoundStakeFarmRewardsModule:
 
         self.set_farm_supply_for_current_week(&compound_result.storage_cache.farm_token_supply);
 
-        // self.emit_compound_rewards_event(
-        //     &caller,
-        //     compound_result.context,
-        //     compound_result.new_farm_token,
-        //     compound_result.compounded_rewards,
-        //     compound_result.created_with_merge,
-        //     compound_result.storage_cache,
-        // );
+        self.emit_compound_rewards_event(
+            &caller,
+            compound_result.context,
+            compound_result.new_farm_token,
+            compound_result.compounded_rewards.clone(),
+            compound_result.created_with_merge,
+            compound_result.storage_cache,
+        );
 
-        CompoundRewardsResultType { new_farm_token }
+        CompoundRewardsResultType {
+            new_farm_token,
+            compounded_rewards: compound_result.compounded_rewards,
+        }
     }
 
     fn compound_rewards_base(
