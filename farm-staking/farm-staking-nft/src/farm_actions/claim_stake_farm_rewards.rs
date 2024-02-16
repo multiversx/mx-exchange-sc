@@ -69,12 +69,18 @@ pub trait ClaimStakeFarmRewardsModule:
         let reward_nonce = self.reward_nonce().get();
         claim_result.rewards.token_nonce = reward_nonce;
 
-        let mut virtual_farm_token = claim_result.new_farm_token;
+        let mut new_farm_token = claim_result.new_farm_token;
+        self.total_supply(new_farm_token.payment.token_nonce)
+            .set(&new_farm_token.payment.amount);
+        self.remaining_supply(new_farm_token.payment.token_nonce)
+            .set(&new_farm_token.payment.amount);
+        self.remaining_parts(new_farm_token.payment.token_nonce)
+            .set(&new_farm_token.attributes.farming_token_parts);
 
         self.update_energy_and_progress(&caller);
 
         let mut output_payments = ManagedVec::new();
-        output_payments.push(virtual_farm_token.payment);
+        output_payments.push(new_farm_token.payment);
         self.push_if_non_zero_payment(&mut output_payments, claim_result.rewards.clone());
 
         let mut output_payments_after_hook = self.call_hook(
@@ -83,24 +89,24 @@ pub trait ClaimStakeFarmRewardsModule:
             output_payments,
             ManagedVec::new(),
         );
-        virtual_farm_token.payment = self.pop_first_payment(&mut output_payments_after_hook);
+        new_farm_token.payment = self.pop_first_payment(&mut output_payments_after_hook);
         claim_result.rewards =
             self.pop_or_return_payment(&mut output_payments_after_hook, claim_result.rewards);
 
-        self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
+        self.send_payment_non_zero(&caller, &new_farm_token.payment);
         self.send_payment_non_zero(&caller, &claim_result.rewards);
 
         self.emit_claim_rewards_event(
             &caller,
             claim_result.context.first_farm_token,
-            virtual_farm_token.clone(),
+            new_farm_token.clone(),
             claim_result.rewards.clone(),
             claim_result.created_with_merge,
             claim_result.storage_cache,
         );
 
         ClaimRewardsResultType {
-            new_farm_token: virtual_farm_token.payment,
+            new_farm_token: new_farm_token.payment,
             rewards: claim_result.rewards,
         }
     }

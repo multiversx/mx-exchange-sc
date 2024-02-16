@@ -90,6 +90,12 @@ pub trait StakeFarmModule:
         let attr_full = attributes.clone().into_full();
 
         let new_farm_token = farm_token_mapper.nft_create(new_farm_token.amount, &attr_full);
+        self.total_supply(new_farm_token.token_nonce)
+            .set(&new_farm_token.amount);
+        self.remaining_supply(new_farm_token.token_nonce)
+            .set(&new_farm_token.amount);
+        self.remaining_parts(new_farm_token.token_nonce)
+            .set(&attr_full.farming_token_parts);
 
         let mut output_payments = ManagedVec::new();
         output_payments.push(new_farm_token);

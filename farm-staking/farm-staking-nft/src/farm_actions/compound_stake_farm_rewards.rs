@@ -67,6 +67,17 @@ pub trait CompoundStakeFarmRewardsModule:
         let mut compound_result = self.compound_rewards_base(caller.clone(), payments_after_hook);
 
         let new_farm_token = compound_result.new_farm_token.payment.clone();
+        self.total_supply(new_farm_token.token_nonce)
+            .set(&new_farm_token.amount);
+        self.remaining_supply(new_farm_token.token_nonce)
+            .set(&new_farm_token.amount);
+        self.remaining_parts(new_farm_token.token_nonce).set(
+            &compound_result
+                .new_farm_token
+                .attributes
+                .farming_token_parts,
+        );
+
         let mut args = ManagedVec::new();
         self.encode_arg_to_vec(&compound_result.compounded_rewards, &mut args);
 
