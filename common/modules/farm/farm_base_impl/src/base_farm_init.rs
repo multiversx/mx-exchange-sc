@@ -32,10 +32,10 @@ pub trait BaseFarmInitModule:
 
         self.state().set(State::Inactive);
         self.division_safety_constant()
-            .set_if_empty(&division_safety_constant);
+            .set(&division_safety_constant);
 
-        self.reward_token_id().set_if_empty(&reward_token_id);
-        self.farming_token_id().set_if_empty(&farming_token_id);
+        self.reward_token_id().set(&reward_token_id);
+        self.farming_token_id().set(&farming_token_id);
 
         if !owner.is_zero() {
             self.add_permissions(owner, Permissions::OWNER | Permissions::PAUSE);

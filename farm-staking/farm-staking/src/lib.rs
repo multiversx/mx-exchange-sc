@@ -105,8 +105,6 @@ pub trait FarmStaking:
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(&self) -> DoubleMultiPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.migrate_old_farm_positions(&caller);
-
         let boosted_rewards = self.claim_only_boosted_payment(&caller);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);

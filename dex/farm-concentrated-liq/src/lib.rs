@@ -68,18 +68,14 @@ pub trait Farm:
             admins,
         );
 
-        self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
+        self.penalty_percent().set(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
-            .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
+            .set(DEFAULT_MINUMUM_FARMING_EPOCHS);
+        self.burn_gas_limit().set(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
-
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+        self.first_week_start_epoch().set(current_epoch);
     }
 
     #[endpoint]
@@ -97,8 +93,6 @@ pub trait Farm:
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-
-        self.migrate_old_farm_positions(&orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
@@ -120,9 +114,6 @@ pub trait Farm:
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-
-        self.migrate_old_farm_positions(&orig_caller);
-
         let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
 
         self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
@@ -139,9 +130,6 @@ pub trait Farm:
     ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-
-        self.migrate_old_farm_positions(&orig_caller);
-
         let output_farm_token_payment = self.compound_rewards::<Wrapper<Self>>(orig_caller.clone());
 
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
@@ -161,12 +149,7 @@ pub trait Farm:
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let payment = self.call_value().single_esdt();
-
-        let migrated_amount = self.migrate_old_farm_positions(&orig_caller);
-
         let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller.clone(), payment);
-
-        self.decrease_old_farm_positions(migrated_amount, &orig_caller);
 
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
@@ -184,8 +167,6 @@ pub trait Farm:
     ) -> DoubleMultiPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-        self.migrate_old_farm_positions(&orig_caller);
-
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);

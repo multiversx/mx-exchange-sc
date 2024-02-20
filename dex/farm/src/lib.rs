@@ -97,8 +97,6 @@ pub trait Farm:
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-
-        self.migrate_old_farm_positions(&orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
@@ -120,9 +118,6 @@ pub trait Farm:
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-
-        self.migrate_old_farm_positions(&orig_caller);
-
         let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
 
         self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
@@ -139,9 +134,6 @@ pub trait Farm:
     ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-
-        self.migrate_old_farm_positions(&orig_caller);
-
         let output_farm_token_payment = self.compound_rewards::<Wrapper<Self>>(orig_caller.clone());
 
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
@@ -161,12 +153,7 @@ pub trait Farm:
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let payment = self.call_value().single_esdt();
-
-        let migrated_amount = self.migrate_old_farm_positions(&orig_caller);
-
         let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller.clone(), payment);
-
-        self.decrease_old_farm_positions(migrated_amount, &orig_caller);
 
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
@@ -184,8 +171,6 @@ pub trait Farm:
     ) -> DoubleMultiPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-        self.migrate_old_farm_positions(&orig_caller);
-
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
