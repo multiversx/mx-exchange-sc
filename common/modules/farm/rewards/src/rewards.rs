@@ -6,7 +6,7 @@ multiversx_sc::imports!();
 pub trait RewardsModule:
     config::ConfigModule + pausable::PausableModule + permissions_module::PermissionsModule
 {
-    fn start_produce_rewards(&self) {
+    fn start_produce_rewards(&self, start_block_nonce_opt: OptionalValue<u64>) {
         require!(
             self.per_block_reward_amount().get() != 0u64,
             "Cannot produce zero reward amount"
@@ -15,9 +15,20 @@ pub trait RewardsModule:
             !self.produce_rewards_enabled().get(),
             "Producing rewards is already enabled"
         );
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_block_nonce = self.blockchain().get_block_nonce();
+        let next_reward_block_nonce = match start_block_nonce_opt {
+            OptionalValue::Some(start_block_nonce) => {
+                require!(
+                    start_block_nonce >= current_block_nonce,
+                    "The starting block nonce needs to be greater than the current nonce"
+                );
+                start_block_nonce
+            }
+            OptionalValue::None => current_block_nonce,
+        };
+
         self.produce_rewards_enabled().set(true);
-        self.last_reward_block_nonce().set(current_nonce);
+        self.last_reward_block_nonce().set(next_reward_block_nonce);
     }
 
     #[inline]
