@@ -94,6 +94,12 @@ pub trait ViewsModule:
         self.is_valid_proposal_id(proposal_id) && !self.proposals().item_is_empty(proposal_id)
     }
 
+    #[only_owner]
+    #[endpoint(changeFeesCollectorAddress)]
+    fn change_fees_collector_address(&self, new_value: ManagedAddress) {
+        self.fees_collector_address().set(new_value);
+    }
+
     #[proxy]
     fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
 
