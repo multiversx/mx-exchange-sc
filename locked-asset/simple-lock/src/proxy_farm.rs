@@ -1,9 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
-
-use crate::{error_messages::*, proxy_lp::LpProxyTokenAttributes};
+use crate::{error_messages::*, locked_token::PreviousStatusFlag, proxy_lp::LpProxyTokenAttributes};
 
 #[derive(
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy,
@@ -287,30 +285,54 @@ pub trait ProxyFarmModule:
             INVALID_PAYMENTS_RECEIVED_FROM_FARM_ERR_MSG
         );
 
-        let mut output_payments = PaymentsVec::new();
         if exit_farm_result.reward_tokens.amount > 0 {
-            output_payments.push(exit_farm_result.reward_tokens);
+            self.send().direct_esdt(
+                &caller,
+                &exit_farm_result.reward_tokens.token_identifier,
+                exit_farm_result.reward_tokens.token_nonce,
+                &exit_farm_result.reward_tokens.amount,
+            );
         }
 
         let initial_farming_tokens = exit_farm_result.initial_farming_tokens;
 
-        let (first_token_payment_out, second_token_payment_out) = self.remove_liquidity_locked_token_common(
-            initial_farming_tokens,
+        // get LOCKED_LP nonce
+        let locked_lp_nonce = farm_proxy_token_attributes.farming_token_locked_nonce;
+        let lp_proxy_token_mapper = self.lp_proxy_token();
+        let lp_proxy_token_attributes: LpProxyTokenAttributes<Self::Api> =
+            lp_proxy_token_mapper.get_token_attributes(locked_lp_nonce);
+
+        // get LP address
+        let lp_address = self
+            .lp_address_for_token_pair(
+                &lp_proxy_token_attributes.first_token_id,
+                &lp_proxy_token_attributes.second_token_id,
+            )
+            .get();
+
+        let remove_liq_result = self.call_pair_remove_liquidity(
+            lp_address,
+            lp_proxy_token_attributes.lp_token_id,
+            initial_farming_tokens.amount,
             first_token_min_amount_out,
             second_token_min_amount_out,
-        ).into_tuple();
-
-        output_payments.push(first_token_payment_out.clone());
-        output_payments.push(second_token_payment_out.clone());
+            &lp_proxy_token_attributes.first_token_id,
+            &lp_proxy_token_attributes.second_token_id,
+        );
 
         let caller = self.blockchain().get_caller();
-        self.send().direct_multi(&caller, &output_payments);
+        let first_token_result_payment = self.send_tokens_optimal_status(
+            &caller,
+            remove_liq_result.first_token_payment_out,
+            PreviousStatusFlag::new(lp_proxy_token_attributes.first_token_locked_nonce),
+        );
+        let second_token_result_payment = self.send_tokens_optimal_status(
+            &caller,
+            remove_liq_result.second_token_payment_out,
+            PreviousStatusFlag::new(lp_proxy_token_attributes.second_token_locked_nonce),
+        );
 
-        (
-            first_token_payment_out,
-            second_token_payment_out,
-        )
-            .into()
+        (first_token_result_payment, second_token_result_payment).into()
     }
 
     /// Claim rewards from a previously entered farm.

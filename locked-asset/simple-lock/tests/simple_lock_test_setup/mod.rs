@@ -2,7 +2,7 @@
 #![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
-use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
+use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::whitebox_legacy::{TxContextStack, TxTokenTransfer};
@@ -17,96 +17,66 @@ use farm::exit_penalty::ExitPenaltyModule;
 use farm::*;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
-use pair::pair_actions::add_liq::AddLiquidityModule as _;
-use pair::{config::ConfigModule as OtherConfigModule, Pair};
 use pausable::{PausableModule, State};
 
-pub const FARM_WASM_PATH: &str = "farm/output/farm.wasm";
-pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
+// General
+pub static MEX_TOKEN_ID: &[u8] = b"MEX-123456";
+pub static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
+pub const EPOCHS_IN_YEAR: u64 = 360;
+pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
-pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
-pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
-pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
-pub const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
-pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-pub const MIN_FARMING_EPOCHS: u64 = 2;
-pub const PENALTY_PERCENT: u64 = 10;
-pub const MAX_PERCENT: u64 = 10_000;
+// Pair
+pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
+
+// Farm
+pub static FARM_LOCKED_TOKEN_ID: &[u8] = b"FARML-123456";
+pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
-pub const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
-pub const MAX_REWARDS_FACTOR: u64 = 10;
+pub const USER_REWARDS_BASE_CONST: u64 = 10;
 pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
-pub const LOCKED_TOKEN_ID: &[u8] = b"XMEX-123456";
-pub const LOCKED_LP_TOKEN_ID: &[u8] = b"LKLP-123456";
-pub const FARM_PROXY_TOKEN_ID: &[u8] = b"PROXY-123456";
 
-pub struct SingleUserFarmSetup<FarmObjBuilder, PairObjBuilder>
+// Simple Lock
+pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
+pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
+pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 5 * EPOCHS_IN_YEAR, 10 * EPOCHS_IN_YEAR]; // 1, 5 or 10 years
+pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
+
+// Proxy
+pub static WRAPPED_LP_TOKEN_ID: &[u8] = b"WPLP-123456";
+pub static WRAPPED_FARM_TOKEN_ID: &[u8] = b"WPFARM-123456";
+
+
+pub struct SimpleLockSetup<SimpleLockObjBuilder, PairObjBuilder, FarmLockedObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    SimpleLockObjBuilder: 'static + Copy + Fn() -> simple_lock::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
 {
-    pub blockchain_wrapper: BlockchainStateWrapper,
-    pub owner_address: Address,
-    pub user_address: Address,
-    pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
+    pub b_mock: BlockchainStateWrapper,
+    pub owner: Address,
+    pub first_user: Address,
+    pub second_user: Address,
+    pub simple_lock_wrapper:
+        ContractObjWrapper<simple_lock::ContractObj<DebugApi>, SimpleLockObjBuilder>,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    pub farm_locked_wrapper:
+        ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmLockedObjBuilder>,
 }
 
-impl<FarmObjBuilder, PairObjBuilder> SingleUserFarmSetup<FarmObjBuilder, PairObjBuilder>
+impl<SimpleLockObjBuilder, PairObjBuilder, FarmLockedObjBuilder>
+    SimpleLockSetup<SimpleLockObjBuilder, PairObjBuilder, FarmLockedObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    SimpleLockObjBuilder: 'static + Copy + Fn() -> simple_lock::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
 {
-    pub fn new(farm_builder: FarmObjBuilder, pair_builder: PairObjBuilder) -> Self {
+    pub fn new(farm_builder: SimpleLockObjBuilder) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let mut blockchain_wrapper = BlockchainStateWrapper::new();
         let owner_addr = blockchain_wrapper.create_user_account(&rust_zero);
-
-        let pair_wrapper = blockchain_wrapper.create_sc_account(
-            &rust_zero,
-            Some(&owner_addr),
-            pair_builder,
-            PAIR_WASM_PATH,
-        );
-
-        // init pair contract
-        blockchain_wrapper
-            .execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
-                let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
-                let second_token_id = managed_token_id!(MEX_TOKEN_ID);
-                let router_address = managed_address!(&owner_addr);
-                let router_owner_address = managed_address!(&owner_addr);
-                let total_fee_percent = 300u64;
-                let special_fee_percent = 50u64;
-
-                sc.init(
-                    first_token_id,
-                    second_token_id,
-                    router_address,
-                    router_owner_address,
-                    total_fee_percent,
-                    special_fee_percent,
-                    ManagedAddress::<DebugApi>::zero(),
-                    MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
-                );
-
-                let lp_token_id = managed_token_id!(LP_TOKEN_ID);
-                sc.lp_token_identifier().set(&lp_token_id);
-
-                sc.state().set(State::Active);
-            })
-            .assert_ok();
-
-        let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
-        blockchain_wrapper.set_esdt_local_roles(
-            pair_wrapper.address_ref(),
-            LP_TOKEN_ID,
-            &lp_token_roles[..],
-        );
-
         let farm_wrapper = blockchain_wrapper.create_sc_account(
             &rust_zero,
             Some(&owner_addr),
@@ -194,50 +164,7 @@ where
             owner_address: owner_addr,
             user_address: user_addr,
             farm_wrapper,
-            pair_wrapper,
         }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn add_liquidity(
-        &mut self,
-        first_token_amount: u64,
-        first_token_min: u64,
-        second_token_amount: u64,
-        second_token_min: u64,
-    ) {
-        let payments = vec![
-            TxTokenTransfer {
-                token_identifier: WEGLD_TOKEN_ID.to_vec(),
-                nonce: 0,
-                value: rust_biguint!(first_token_amount),
-            },
-            TxTokenTransfer {
-                token_identifier: LOCKED_TOKEN_ID.to_vec(),
-                nonce: 0,
-                value: rust_biguint!(second_token_amount),
-            },
-        ];
-
-        self.blockchain_wrapper
-            .execute_esdt_multi_transfer(&self.user_address, &self.pair_wrapper, &payments, |sc| {
-                let MultiValue3 { 0: payments } = sc.add_liquidity(
-                    managed_biguint!(first_token_min),
-                    managed_biguint!(second_token_min),
-                );
-
-                assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
-
-                assert_eq!(
-                    payments.1.token_identifier,
-                    managed_token_id!(WEGLD_TOKEN_ID)
-                );
-                assert_eq!(
-                    payments.2.token_identifier,
-                    managed_token_id!(LOCKED_TOKEN_ID)
-                );
-            })
-            .assert_ok();
     }
 
     pub fn enter_farm(
