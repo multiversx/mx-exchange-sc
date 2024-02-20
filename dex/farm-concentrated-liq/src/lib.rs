@@ -79,11 +79,7 @@ pub trait Farm:
     }
 
     #[endpoint]
-    fn upgrade(&self) {
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
-    }
+    fn upgrade(&self) {}
 
     #[payable("*")]
     #[endpoint(enterFarm)]

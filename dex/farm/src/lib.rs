@@ -68,26 +68,18 @@ pub trait Farm:
             admins,
         );
 
-        self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
+        self.penalty_percent().set(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
-            .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
+            .set(DEFAULT_MINUMUM_FARMING_EPOCHS);
+        self.burn_gas_limit().set(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
-
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+        self.first_week_start_epoch().set(current_epoch);
     }
 
     #[endpoint]
-    fn upgrade(&self) {
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
-    }
+    fn upgrade(&self) {}
 
     #[payable("*")]
     #[endpoint(enterFarm)]
