@@ -12,7 +12,6 @@ pub mod fee;
 mod liquidity_pool;
 pub mod locking_wrapper;
 pub mod pair_actions;
-pub mod pair_hooks;
 pub mod safe_price;
 pub mod safe_price_view;
 
@@ -46,9 +45,6 @@ pub trait Pair<ContractReader>:
     + pair_actions::swap::SwapModule
     + pair_actions::views::ViewsModule
     + pair_actions::common_methods::CommonMethodsModule
-    + pair_hooks::banned_address::BannedAddressModule
-    + pair_hooks::change_hooks::ChangeHooksModule
-    + pair_hooks::call_hook::CallHookModule
     + utils::UtilsModule
 {
     #[init]
@@ -101,9 +97,6 @@ pub trait Pair<ContractReader>:
             );
             self.add_permissions_for_all(admins, Permissions::ADMIN);
         };
-
-        let sc_address = self.blockchain().get_sc_address();
-        self.banned_addresses().add(&sc_address);
     }
 
     #[endpoint]
