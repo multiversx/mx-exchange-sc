@@ -778,6 +778,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "farm-concentrated-liq"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "energy-factory-mock",
+ "energy-query",
+ "energy-update",
+ "events",
+ "farm-boosted-yields",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "pair",
+ "pausable",
+ "permissions_module",
+ "rewards",
+ "sc_whitelist_module",
+ "simple-lock",
+ "token_send",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
+name = "farm-concentrated-liq-abi"
+version = "0.0.0"
+dependencies = [
+ "farm-concentrated-liq",
+ "multiversx-sc-meta",
+]
+
+[[package]]
 name = "farm-staking"
 version = "0.0.0"
 dependencies = [
