@@ -7,7 +7,7 @@ use governance_v2::{
     configurable::ConfigurablePropertiesModule, proposal::GovernanceProposalStatus,
     proposal_storage::ProposalStorageModule, views::ViewsModule,
 };
-use multiversx_sc::{types::ManagedVec};
+use multiversx_sc::types::ManagedVec;
 use multiversx_sc_scenario::{managed_buffer, rust_biguint};
 
 #[test]

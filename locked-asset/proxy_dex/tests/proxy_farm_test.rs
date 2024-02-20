@@ -1594,7 +1594,7 @@ fn destroy_farm_locked_tokens_test() {
     setup.b_mock.set_block_nonce(100);
 
     ////////////////////////////////////////////// DESTROY FARM /////////////////////////////////////
-    
+
     // should be 500_000_000, but ends up so due to approximations
     let removed_locked_token_amount = rust_biguint!(499_999_000);
     // should be 250_000_000, but ends up so due to approximations

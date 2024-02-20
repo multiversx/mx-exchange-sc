@@ -1,7 +1,9 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{error_messages::*, locked_token::PreviousStatusFlag, proxy_lp::LpProxyTokenAttributes};
+use crate::{
+    error_messages::*, locked_token::PreviousStatusFlag, proxy_lp::LpProxyTokenAttributes,
+};
 
 #[derive(
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy,

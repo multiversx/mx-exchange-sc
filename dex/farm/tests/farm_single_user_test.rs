@@ -4,10 +4,7 @@ mod farm_setup;
 
 use config::ConfigModule;
 use farm_setup::single_user_farm_setup::*;
-use multiversx_sc::{
-    codec::multi_types::OptionalValue,
-    types::EsdtLocalRole,
-};
+use multiversx_sc::{codec::multi_types::OptionalValue, types::EsdtLocalRole};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     whitebox_legacy::TxTokenTransfer, DebugApi,
@@ -858,19 +855,13 @@ fn test_destroy_farm_through_simple_lock() {
                     first_token_payment_out.token_identifier,
                     managed_token_id!(WEGLD_TOKEN_ID)
                 );
-                assert_eq!(
-                    first_token_payment_out.amount,
-                    managed_biguint!(9_999_000)
-                );
+                assert_eq!(first_token_payment_out.amount, managed_biguint!(9_999_000));
 
                 assert_eq!(
                     second_token_payment_out.token_identifier,
                     managed_token_id!(LOCKED_TOKEN_ID)
                 );
-                assert_eq!(
-                    second_token_payment_out.amount,
-                    managed_biguint!(9_999_000)
-                );
+                assert_eq!(second_token_payment_out.amount, managed_biguint!(9_999_000));
             },
         )
         .assert_ok();

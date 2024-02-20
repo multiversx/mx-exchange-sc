@@ -85,7 +85,8 @@ fn exit_mex_farm_proxy_after_compound_rewards_go() {
 #[test]
 #[ignore]
 fn exit_mex_farm_proxy_after_compound_rewards_and_epoch_increase_go() {
-    world().run("scenarios/exit_mex_farm_proxy_after_compound_rewards_and_epoch_increase.scen.json");
+    world()
+        .run("scenarios/exit_mex_farm_proxy_after_compound_rewards_and_epoch_increase.scen.json");
 }
 
 #[test]

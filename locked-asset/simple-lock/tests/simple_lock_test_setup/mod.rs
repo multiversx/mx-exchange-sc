@@ -48,7 +48,6 @@ pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 pub static WRAPPED_LP_TOKEN_ID: &[u8] = b"WPLP-123456";
 pub static WRAPPED_FARM_TOKEN_ID: &[u8] = b"WPFARM-123456";
 
-
 pub struct SimpleLockSetup<SimpleLockObjBuilder, PairObjBuilder, FarmLockedObjBuilder>
 where
     SimpleLockObjBuilder: 'static + Copy + Fn() -> simple_lock::ContractObj<DebugApi>,
