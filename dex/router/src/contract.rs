@@ -414,6 +414,30 @@ pub trait Router:
         }
     }
 
+    #[only_owner]
+    #[endpoint(claimDeveloperRewards)]
+    fn claim_developer_rewards(&self) {
+        self.blockchain().check_caller_is_owner();
+        let sc_balance_before = self
+            .blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
+
+        for pair_address in self.address_pair_map().keys() {
+            let () = self
+                .send()
+                .claim_developer_rewards(pair_address)
+                .execute_on_dest_context();
+        }
+
+        let sc_balance_after = self
+            .blockchain()
+            .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
+
+        let total_rewards = sc_balance_after - sc_balance_before;
+        let caller = self.blockchain().get_caller();
+        self.send().direct_egld(&caller, &total_rewards);
+    }
+
     #[view(getPairCreationEnabled)]
     #[storage_mapper("pair_creation_enabled")]
     fn pair_creation_enabled(&self) -> SingleValueMapper<bool>;
