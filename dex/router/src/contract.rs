@@ -416,24 +416,18 @@ pub trait Router:
 
     #[only_owner]
     #[endpoint(claimDeveloperRewards)]
-    fn claim_developer_rewards(&self) {
+    fn claim_developer_rewards(&self, child_addresses: MultiValueEncoded<ManagedAddress>) {
         self.blockchain().check_caller_is_owner();
-        let sc_balance_before = self
-            .blockchain()
-            .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
+        let mut total_rewards = BigUint::zero();
 
-        for pair_address in self.address_pair_map().keys() {
-            let () = self
+        for child_address in child_addresses {
+            let ((), back_transfers) = self
                 .send()
-                .claim_developer_rewards(pair_address)
-                .execute_on_dest_context();
+                .claim_developer_rewards(child_address)
+                .execute_on_dest_context_with_back_transfers();
+            total_rewards += back_transfers.total_egld_amount;
         }
 
-        let sc_balance_after = self
-            .blockchain()
-            .get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0);
-
-        let total_rewards = sc_balance_after - sc_balance_before;
         let caller = self.blockchain().get_caller();
         self.send().direct_egld(&caller, &total_rewards);
     }
