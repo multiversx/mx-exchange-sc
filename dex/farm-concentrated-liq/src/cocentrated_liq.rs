@@ -3,6 +3,7 @@ multiversx_sc::derive_imports!();
 
 pub type Tick = i32;
 
+// TODO: Import from pair
 pub const PRICE_DECIMALS: u64 = 1_000_000_000_000_000_000;
 pub const PRICE_INCREASE_PER_TICK: i32 = 10_001;
 pub const PRICE_SCALING_FACTOR: i32 = 10_000;
@@ -17,6 +18,11 @@ pub struct LpTokenAttributes<M: ManagedTypeApi> {
     pub second_token_accumulated_fee: BigUint<M>,
 }
 
+pub struct PriceBounds<M: ManagedTypeApi> {
+    pub lower: BigUint<M>,
+    pub upper: BigUint<M>,
+}
+
 #[multiversx_sc::module]
 pub trait ConcentratedLiqModule:
     farm_token::FarmTokenModule
@@ -28,10 +34,8 @@ pub trait ConcentratedLiqModule:
         payment_amount: &BigUint,
         attributes: &LpTokenAttributes<Self::Api>,
     ) {
-        let price_min = self.tick_to_price(attributes.tick_min);
-        let price_max = self.tick_to_price(attributes.tick_max);
-        let price_min_adjusted = self.price_to_closest_min_ticker_multiply(&price_min);
-        let price_max_adjusted = self.price_to_closest_min_ticker_multiply(&price_max);
+        let price_min_adjusted = self.tick_to_closest_min_ticker_multiply(attributes.tick_min);
+        let price_max_adjusted = self.tick_to_closest_min_ticker_multiply(attributes.tick_max);
 
         self.tokens_with_min(&price_min_adjusted)
             .update(|value| *value += payment_amount);
@@ -39,13 +43,79 @@ pub trait ConcentratedLiqModule:
             .update(|value| *value += payment_amount);
     }
 
-    fn get_price(&self, _lp_token: EsdtTokenPayment) -> BigUint {
+    fn update_token_amounts_after_exit(
+        &self,
+        farming_token_amount: &BigUint,
+        attributes: &LpTokenAttributes<Self::Api>,
+    ) {
+        let price_min_adjusted = self.tick_to_closest_min_ticker_multiply(attributes.tick_min);
+        let price_max_adjusted = self.tick_to_closest_min_ticker_multiply(attributes.tick_max);
+
+        self.tokens_with_min(&price_min_adjusted)
+            .update(|value| *value -= farming_token_amount);
+        self.tokens_with_max(&price_max_adjusted)
+            .update(|value| *value -= farming_token_amount);
+    }
+
+    #[inline(always)]
+    fn update_token_amounts_after_compound(
+        &self,
+        compounded_amount: &BigUint,
+        attributes: &LpTokenAttributes<Self::Api>,
+    ) {
+        self.update_token_amounts_after_enter(compounded_amount, attributes);
+    }
+
+    // TODO: Query price!
+    fn get_price_and_update_farm_token_supply(&self, _lp_token: EsdtTokenPayment) -> BigUint {
+        let queried_price = BigUint::zero();
+
         let last_queried_price = self.last_queried_price().get();
         if last_queried_price == 0 {
-            todo!();
+            self.last_queried_price().set(&queried_price);
+
+            return queried_price;
         }
 
-        todo!()
+        if queried_price == last_queried_price {
+            return queried_price;
+        }
+
+        let price_bounds = self.get_price_bounds(&last_queried_price);
+        let mut current_price = if queried_price > last_queried_price {
+            price_bounds.upper
+        } else {
+            price_bounds.lower
+        };
+
+        let min_ticker = self.min_ticker().get();
+        self.farm_token_supply().update(|farm_token_supply| {
+            if queried_price > last_queried_price {
+                while current_price <= queried_price {
+                    let tokens_with_min = self.tokens_with_min(&current_price).get();
+                    let tokens_with_max = self.tokens_with_max(&current_price).get();
+
+                    *farm_token_supply += tokens_with_min;
+                    *farm_token_supply -= tokens_with_max;
+
+                    current_price += &min_ticker;
+                }
+            } else {
+                while current_price >= queried_price {
+                    let tokens_with_min = self.tokens_with_min(&current_price).get();
+                    let tokens_with_max = self.tokens_with_max(&current_price).get();
+
+                    *farm_token_supply -= tokens_with_min;
+                    *farm_token_supply += tokens_with_max;
+
+                    current_price -= &min_ticker;
+                }
+            }
+        });
+
+        self.last_queried_price().set(&queried_price);
+
+        queried_price
     }
 
     fn tick_to_price(&self, tick: Tick) -> BigUint {
@@ -60,17 +130,30 @@ pub trait ConcentratedLiqModule:
     }
 
     fn price_to_closest_min_ticker_multiply(&self, price: &BigUint) -> BigUint {
+        let price_bounds = self.get_price_bounds(price);
+        let lower_diff = price - &price_bounds.lower;
+        let upper_diff = &price_bounds.upper - price;
+        if lower_diff < upper_diff {
+            price_bounds.lower
+        } else {
+            price_bounds.upper
+        }
+    }
+
+    fn get_price_bounds(&self, price: &BigUint) -> PriceBounds<Self::Api> {
         let min_ticker = self.min_ticker().get();
-        let lower_bound = price / &min_ticker * &min_ticker; 
+        let lower_bound = price / &min_ticker * &min_ticker;
         let upper_bound = &lower_bound + &min_ticker;
 
-        let lower_diff = price - &lower_bound;
-        let upper_diff = &upper_bound - price;
-        if lower_diff < upper_diff {
-            lower_bound
-        } else {
-            upper_bound
+        PriceBounds {
+            lower: lower_bound,
+            upper: upper_bound,
         }
+    }
+
+    fn tick_to_closest_min_ticker_multiply(&self, tick: Tick) -> BigUint {
+        let price = self.tick_to_price(tick);
+        self.price_to_closest_min_ticker_multiply(&price)
     }
 
     fn price_to_tick(&self, price: BigUint) -> Tick {
