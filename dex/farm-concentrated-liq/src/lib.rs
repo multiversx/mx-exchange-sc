@@ -71,6 +71,8 @@ pub trait Farm:
         division_safety_constant: BigUint,
         min_ticker: BigUint,
         pair_contract_address: ManagedAddress,
+        pair_for_query: ManagedAddress,
+        price_token: TokenIdentifier,
         owner: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
@@ -82,7 +84,20 @@ pub trait Farm:
             admins,
         );
 
+        self.require_sc_address(&pair_contract_address);
+        self.require_sc_address(&pair_for_query);
         require!(min_ticker > 0, "Invalid min ticker value");
+
+        let first_token_id = self
+            .first_token_id()
+            .get_from_address(&pair_contract_address);
+        let second_token_id = self
+            .second_token_id()
+            .get_from_address(&pair_contract_address);
+        require!(
+            price_token == first_token_id || price_token == second_token_id,
+            "Invalid price token"
+        );
 
         self.penalty_percent().set(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
@@ -91,6 +106,8 @@ pub trait Farm:
 
         self.min_ticker().set(min_ticker);
         self.pair_contract_address().set(pair_contract_address);
+        self.pair_for_query().set(pair_for_query);
+        self.price_token().set(price_token);
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set(current_epoch);
@@ -264,4 +281,12 @@ pub trait Farm:
             &storage_cache,
         )
     }
+
+    // Pair storage - used for validation
+
+    #[storage_mapper("first_token_id")]
+    fn first_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[storage_mapper("second_token_id")]
+    fn second_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

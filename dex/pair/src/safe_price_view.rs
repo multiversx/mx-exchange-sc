@@ -1,4 +1,5 @@
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_errors::{ERROR_BAD_INPUT_TOKEN, ERROR_PARAMETERS};
 use core::cmp::Ordering;
@@ -11,6 +12,12 @@ use crate::{
 
 pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
 pub const SECONDS_PER_ROUND: u64 = 6;
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct SafePriceLpToken<M: ManagedTypeApi> {
+    pub first_token_payment: EsdtTokenPayment<M>,
+    pub second_token_payment: EsdtTokenPayment<M>,
+}
 
 #[multiversx_sc::module]
 pub trait SafePriceViewModule:
@@ -27,7 +34,7 @@ pub trait SafePriceViewModule:
         &self,
         pair_address: ManagedAddress,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
+    ) -> SafePriceLpToken<Self::Api> {
         let current_round = self.blockchain().get_block_round();
         let default_offset_rounds = self.get_default_offset_rounds(&pair_address, current_round);
         let start_round = current_round - default_offset_rounds;
@@ -42,7 +49,7 @@ pub trait SafePriceViewModule:
         pair_address: ManagedAddress,
         round_offset: Round,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
+    ) -> SafePriceLpToken<Self::Api> {
         let current_round = self.blockchain().get_block_round();
         require!(
             round_offset > 0 && round_offset < current_round,
@@ -60,7 +67,7 @@ pub trait SafePriceViewModule:
         pair_address: ManagedAddress,
         timestamp_offset: u64,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
+    ) -> SafePriceLpToken<Self::Api> {
         let current_round = self.blockchain().get_block_round();
         let round_offset = timestamp_offset / SECONDS_PER_ROUND;
         require!(
@@ -80,18 +87,17 @@ pub trait SafePriceViewModule:
         start_round: Round,
         end_round: Round,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
+    ) -> SafePriceLpToken<Self::Api> {
         require!(end_round > start_round, ERROR_PARAMETERS);
 
         let lp_total_supply = self.lp_token_supply().get_from_address(&pair_address);
         let first_token_id = self.first_token_id().get_from_address(&pair_address);
         let second_token_id = self.second_token_id().get_from_address(&pair_address);
         if lp_total_supply == 0 {
-            return (
-                EsdtTokenPayment::new(first_token_id, 0, BigUint::zero()),
-                EsdtTokenPayment::new(second_token_id, 0, BigUint::zero()),
-            )
-                .into();
+            return SafePriceLpToken {
+                first_token_payment: EsdtTokenPayment::new(first_token_id, 0, BigUint::zero()),
+                second_token_payment: EsdtTokenPayment::new(second_token_id, 0, BigUint::zero()),
+            };
         }
 
         let safe_price_current_index = self
@@ -136,7 +142,10 @@ pub trait SafePriceViewModule:
         let first_token_payment = EsdtTokenPayment::new(first_token_id, 0, first_token_worth);
         let second_token_payment = EsdtTokenPayment::new(second_token_id, 0, second_token_worth);
 
-        (first_token_payment, second_token_payment).into()
+        SafePriceLpToken {
+            first_token_payment,
+            second_token_payment,
+        }
     }
 
     #[label("safe-price-view")]
@@ -522,16 +531,13 @@ pub trait SafePriceViewModule:
     fn update_and_get_tokens_for_given_position_with_safe_price(
         &self,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+    ) -> SafePriceLpToken<Self::Api> {
         let pair_address = self.blockchain().get_sc_address();
         self.get_lp_tokens_safe_price_by_default_offset(pair_address, liquidity)
     }
 
     #[endpoint(updateAndGetSafePrice)]
-    fn update_and_get_safe_price(
-        &self,
-        input: EsdtTokenPayment<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    fn update_and_get_safe_price(&self, input: EsdtTokenPayment) -> EsdtTokenPayment {
         let pair_address = self.blockchain().get_sc_address();
         self.get_safe_price_by_default_offset(pair_address, input)
     }

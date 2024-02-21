@@ -1,3 +1,5 @@
+use pair::safe_price_view::{ProxyTrait as _, SafePriceLpToken};
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -28,6 +30,7 @@ pub trait ConcentratedLiqModule:
     farm_token::FarmTokenModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + crate::exit_penalty::ExitPenaltyModule
 {
     fn update_token_amounts_after_enter(
         &self,
@@ -66,9 +69,8 @@ pub trait ConcentratedLiqModule:
         self.update_token_amounts_after_enter(compounded_amount, attributes);
     }
 
-    // TODO: Query price!
-    fn get_price_and_update_farm_token_supply(&self, _lp_token: EsdtTokenPayment) -> BigUint {
-        let queried_price = BigUint::zero();
+    fn get_price_and_update_farm_token_supply(&self, lp_token_amount: BigUint) -> BigUint {
+        let queried_price = self.get_price(lp_token_amount);
 
         let last_queried_price = self.last_queried_price().get();
         if last_queried_price == 0 {
@@ -176,6 +178,27 @@ pub trait ConcentratedLiqModule:
         result
     }
 
+    fn get_price(&self, lp_token_amount: BigUint) -> BigUint {
+        let pair_for_query = self.pair_for_query().get();
+        let pair_for_price = self.pair_contract_address().get();
+        let safe_price_lp_token: SafePriceLpToken<Self::Api> = self
+            .pair_proxy(pair_for_query)
+            .get_lp_tokens_safe_price_by_default_offset(pair_for_price, lp_token_amount)
+            .execute_on_dest_context();
+
+        let price_token = self.price_token().get();
+        if safe_price_lp_token.first_token_payment.token_identifier == price_token {
+            safe_price_lp_token.first_token_payment.amount
+        } else if safe_price_lp_token.second_token_payment.token_identifier == price_token {
+            safe_price_lp_token.second_token_payment.amount
+        } else {
+            sc_panic!("Invalid tokens in pair")
+        }
+    }
+
+    #[proxy]
+    fn pair_proxy(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;
+
     #[storage_mapper("minTicker")]
     fn min_ticker(&self) -> SingleValueMapper<BigUint>;
 
@@ -187,4 +210,10 @@ pub trait ConcentratedLiqModule:
 
     #[storage_mapper("lastQueriedPrice")]
     fn last_queried_price(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("pairForQueery")]
+    fn pair_for_query(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[storage_mapper("priceToken")]
+    fn price_token(&self) -> SingleValueMapper<TokenIdentifier>;
 }
