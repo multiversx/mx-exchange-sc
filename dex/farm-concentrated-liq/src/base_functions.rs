@@ -193,7 +193,7 @@ pub trait BaseFunctionsModule:
     }
 
     fn claim_only_boosted_payment(&self, caller: &ManagedAddress) -> BigUint {
-        let reward = Wrapper::<Self>::calculate_boosted_rewards(self, caller);
+        let reward = FarmConcentratedLiqWrapper::<Self>::calculate_boosted_rewards(self, caller);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }
@@ -227,7 +227,7 @@ pub trait BaseFunctionsModule:
     }
 }
 
-pub struct Wrapper<
+pub struct FarmConcentratedLiqWrapper<
     T: BaseFunctionsModule
         + farm_boosted_yields::FarmBoostedYieldsModule
         + crate::exit_penalty::ExitPenaltyModule,
@@ -235,7 +235,7 @@ pub struct Wrapper<
     _phantom: PhantomData<T>,
 }
 
-impl<T> Wrapper<T>
+impl<T> FarmConcentratedLiqWrapper<T>
 where
     T: BaseFunctionsModule
         + farm_boosted_yields::FarmBoostedYieldsModule
@@ -252,7 +252,7 @@ where
     }
 }
 
-impl<T> FarmContract for Wrapper<T>
+impl<T> FarmContract for FarmConcentratedLiqWrapper<T>
 where
     T: BaseFunctionsModule
         + farm_boosted_yields::FarmBoostedYieldsModule
