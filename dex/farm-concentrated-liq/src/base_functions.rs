@@ -15,32 +15,24 @@ use fixed_supply_token::FixedSupplyToken;
 
 use crate::exit_penalty;
 
-pub type DoubleMultiPayment<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
-pub type ClaimRewardsResultType<M> = DoubleMultiPayment<M>;
-pub type ExitFarmResultType<M> = DoubleMultiPayment<M>;
-
 pub const DEFAULT_FARM_POSITION_MIGRATION_NONCE: u64 = 1;
 
-pub struct ClaimRewardsResultWrapper<M: ManagedTypeApi> {
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct CompoundRewardsResultType<M: ManagedTypeApi> {
+    pub new_farm_token: EsdtTokenPayment<M>,
+    pub compounded_rewards: BigUint<M>,
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct ClaimRewardsResultType<M: ManagedTypeApi> {
     pub new_farm_token: EsdtTokenPayment<M>,
     pub rewards: EsdtTokenPayment<M>,
 }
 
-pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct ExitFarmResultType<M: ManagedTypeApi> {
     pub farming_tokens: EsdtTokenPayment<M>,
     pub rewards: EsdtTokenPayment<M>,
-}
-
-impl<M: ManagedTypeApi> Into<ClaimRewardsResultType<M>> for ClaimRewardsResultWrapper<M> {
-    fn into(self) -> ClaimRewardsResultType<M> {
-        (self.new_farm_token, self.rewards).into()
-    }
-}
-
-impl<M: ManagedTypeApi> Into<ExitFarmResultType<M>> for ExitFarmResultWrapper<M> {
-    fn into(self) -> ExitFarmResultType<M> {
-        (self.farming_tokens, self.rewards).into()
-    }
 }
 
 #[multiversx_sc::module]
@@ -96,7 +88,7 @@ pub trait BaseFunctionsModule:
     fn claim_rewards<FC: FarmContract<FarmSc = Self>>(
         &self,
         caller: ManagedAddress,
-    ) -> ClaimRewardsResultWrapper<Self::Api> {
+    ) -> ClaimRewardsResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_claim_rewards_result = self.claim_rewards_base::<FC>(caller.clone(), payments);
 
@@ -116,7 +108,7 @@ pub trait BaseFunctionsModule:
             base_claim_rewards_result.storage_cache,
         );
 
-        ClaimRewardsResultWrapper {
+        ClaimRewardsResultType {
             new_farm_token: output_farm_token_payment,
             rewards: rewards_payment,
         }
@@ -125,7 +117,7 @@ pub trait BaseFunctionsModule:
     fn compound_rewards<FC: FarmContract<FarmSc = Self>>(
         &self,
         caller: ManagedAddress,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> CompoundRewardsResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_compound_rewards_result =
             self.compound_rewards_base::<FC>(caller.clone(), payments);
@@ -140,19 +132,22 @@ pub trait BaseFunctionsModule:
             &caller,
             base_compound_rewards_result.context,
             base_compound_rewards_result.new_farm_token,
-            base_compound_rewards_result.compounded_rewards,
+            base_compound_rewards_result.compounded_rewards.clone(),
             base_compound_rewards_result.created_with_merge,
             base_compound_rewards_result.storage_cache,
         );
 
-        output_farm_token_payment
+        CompoundRewardsResultType {
+            new_farm_token: output_farm_token_payment,
+            compounded_rewards: base_compound_rewards_result.compounded_rewards,
+        }
     }
 
     fn exit_farm<FC: FarmContract<FarmSc = Self>>(
         &self,
         caller: ManagedAddress,
         payment: EsdtTokenPayment,
-    ) -> ExitFarmResultWrapper<Self::Api> {
+    ) -> ExitFarmResultType<Self::Api> {
         let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment);
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
@@ -177,7 +172,7 @@ pub trait BaseFunctionsModule:
             base_exit_farm_result.storage_cache,
         );
 
-        ExitFarmResultWrapper {
+        ExitFarmResultType {
             farming_tokens: farming_token_payment,
             rewards: reward_payment,
         }
@@ -271,16 +266,20 @@ where
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
         let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
-        if total_reward > 0u64 {
-            storage_cache.reward_reserve += &total_reward;
-            let split_rewards = sc.take_reward_slice(total_reward);
-
-            if storage_cache.farm_token_supply != 0u64 {
-                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
-                    / &storage_cache.farm_token_supply;
-                storage_cache.reward_per_share += &increase;
-            }
+        if total_reward == 0u64 {
+            return;
         }
+
+        storage_cache.reward_reserve += &total_reward;
+        let split_rewards = sc.take_reward_slice(total_reward);
+
+        if storage_cache.farm_token_supply == 0u64 {
+            return;
+        }
+
+        let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+            / &storage_cache.farm_token_supply;
+        storage_cache.reward_per_share += &increase;
     }
 
     fn calculate_rewards(
@@ -311,10 +310,10 @@ where
         let user_farming_epochs = current_epoch - token_attributes.entering_epoch;
         let min_farming_epochs = sc.minimum_farming_epochs().get();
         if user_farming_epochs >= min_farming_epochs {
-            BigUint::zero()
-        } else {
-            total_exit_amount * sc.penalty_percent().get() / exit_penalty::MAX_PERCENT
+            return BigUint::zero();
         }
+
+        total_exit_amount * sc.penalty_percent().get() / exit_penalty::MAX_PERCENT
     }
 
     fn apply_penalty(
@@ -324,14 +323,16 @@ where
         storage_cache: &StorageCache<Self::FarmSc>,
     ) {
         let penalty_amount = Self::get_exit_penalty(sc, total_exit_amount, token_attributes);
-        if penalty_amount > 0 {
-            *total_exit_amount -= &penalty_amount;
-
-            sc.burn_farming_tokens(
-                &penalty_amount,
-                &storage_cache.farming_token_id,
-                &storage_cache.reward_token_id,
-            );
+        if penalty_amount == 0 {
+            return;
         }
+
+        *total_exit_amount -= &penalty_amount;
+
+        sc.burn_farming_tokens(
+            &penalty_amount,
+            &storage_cache.farming_token_id,
+            &storage_cache.reward_token_id,
+        );
     }
 }

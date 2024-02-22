@@ -14,13 +14,13 @@ pub const MAX_MINIMUM_FARMING_EPOCHS: u64 = 30;
 #[multiversx_sc::module]
 pub trait ExitPenaltyModule: permissions_module::PermissionsModule {
     #[only_owner]
-    #[endpoint]
+    #[endpoint(setPenaltyPercent)]
     fn set_penalty_percent(&self, percent: u64) {
         require!(percent < MAX_PERCENT, ERROR_PARAMETERS);
         self.penalty_percent().set(percent);
     }
 
-    #[endpoint]
+    #[endpoint(setMinimumFarmingEpochs)]
     fn set_minimum_farming_epochs(&self, epochs: Epoch) {
         self.require_caller_has_admin_permissions();
         require!(epochs <= MAX_MINIMUM_FARMING_EPOCHS, ERROR_PARAMETERS);
@@ -29,7 +29,7 @@ pub trait ExitPenaltyModule: permissions_module::PermissionsModule {
     }
 
     #[only_owner]
-    #[endpoint]
+    #[endpoint(setBurnGasLimit)]
     fn set_burn_gas_limit(&self, gas_limit: u64) {
         self.burn_gas_limit().set(gas_limit);
     }
@@ -44,32 +44,34 @@ pub trait ExitPenaltyModule: permissions_module::PermissionsModule {
         if pair_contract_address.is_zero() {
             self.send()
                 .esdt_local_burn(farming_token_id, 0, farming_amount);
-        } else {
-            let gas_limit = self.burn_gas_limit().get();
-            self.pair_contract_proxy(pair_contract_address)
-                .remove_liquidity_and_burn_token(reward_token_id.clone())
-                .with_esdt_transfer((farming_token_id.clone(), 0, farming_amount.clone()))
-                .with_gas_limit(gas_limit)
-                .transfer_execute();
+
+            return;
         }
+
+        let gas_limit = self.burn_gas_limit().get();
+        self.pair_contract_proxy(pair_contract_address)
+            .remove_liquidity_and_burn_token(reward_token_id.clone())
+            .with_esdt_transfer((farming_token_id.clone(), 0, farming_amount.clone()))
+            .with_gas_limit(gas_limit)
+            .transfer_execute();
     }
 
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[view(getPenaltyPercent)]
-    #[storage_mapper("penalty_percent")]
+    #[storage_mapper("penaltyPercent")]
     fn penalty_percent(&self) -> SingleValueMapper<u64>;
 
     #[view(getMinimumFarmingEpoch)]
-    #[storage_mapper("minimum_farming_epochs")]
+    #[storage_mapper("minimumFarmingEpochs")]
     fn minimum_farming_epochs(&self) -> SingleValueMapper<Epoch>;
 
     #[view(getBurnGasLimit)]
-    #[storage_mapper("burn_gas_limit")]
+    #[storage_mapper("burnGasLimit")]
     fn burn_gas_limit(&self) -> SingleValueMapper<u64>;
 
     #[view(getPairContractManagedAddress)]
-    #[storage_mapper("pair_contract_address")]
+    #[storage_mapper("pairContractAddress")]
     fn pair_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

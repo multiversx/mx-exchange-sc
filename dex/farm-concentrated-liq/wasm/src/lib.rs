@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           65
+// Endpoints:                           64
 // Async Callback:                       1
-// Total number of exported functions:  67
+// Total number of exported functions:  66
 
 #![no_std]
 #![allow(internal_features)]
@@ -41,7 +41,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getLastRewardBlockNonce => last_reward_block_nonce
         getDivisionSafetyConstant => division_safety_constant
         getUserTotalFarmPosition => user_total_farm_position
-        getFarmPositionMigrationNonce => farm_position_migration_nonce
         registerFarmToken => register_farm_token
         getFarmTokenId => farm_token
         getFarmTokenSupply => farm_token_supply
@@ -57,9 +56,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
-        set_penalty_percent => set_penalty_percent
-        set_minimum_farming_epochs => set_minimum_farming_epochs
-        set_burn_gas_limit => set_burn_gas_limit
+        setPenaltyPercent => set_penalty_percent
+        setMinimumFarmingEpochs => set_minimum_farming_epochs
+        setBurnGasLimit => set_burn_gas_limit
         getPenaltyPercent => penalty_percent
         getMinimumFarmingEpoch => minimum_farming_epochs
         getBurnGasLimit => burn_gas_limit
