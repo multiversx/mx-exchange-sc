@@ -642,7 +642,7 @@ fn test_custom_start_rewards_block() {
         .execute_esdt_multi_transfer(
             &farm_setup.user_address,
             &farm_setup.farm_wrapper,
-            &vec![],
+            &[],
             |sc| {
                 let _ = sc.enter_farm_endpoint(OptionalValue::None);
             },
