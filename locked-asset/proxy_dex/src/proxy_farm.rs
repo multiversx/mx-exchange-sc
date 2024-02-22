@@ -252,7 +252,7 @@ pub trait ProxyFarmModule:
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> DestroyFarmResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
-        self.require_is_intermediated_pair(&farm_address);
+        self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
