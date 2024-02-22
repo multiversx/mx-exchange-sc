@@ -301,17 +301,20 @@ pub trait ProxyFarmModule:
             );
         }
 
+        let locked_lp_nonce = farm_proxy_token_attributes.farming_token_locked_nonce;
+        let lp_proxy_token_mapper = self.lp_proxy_token();
+
         let (first_payment, second_payment) = self
             .remove_liquidity_locked_token_common(
-                exit_farm_result.initial_farming_tokens,
+                EsdtTokenPayment::new(
+                    lp_proxy_token_mapper.get_token_id(),
+                    locked_lp_nonce,
+                    exit_farm_result.initial_farming_tokens.amount,
+                ),
                 first_token_min_amount_out,
                 second_token_min_amount_out,
             )
             .into_tuple();
-
-        // Burn farm token
-        let farm_proxy_token_mapper = self.farm_proxy_token();
-        farm_proxy_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         DestroyFarmResultType {
             first_payment,
@@ -356,10 +359,6 @@ pub trait ProxyFarmModule:
 
         farm_proxy_token_attributes.farm_token_nonce =
             claim_rewards_result.new_farm_tokens.token_nonce;
-
-        // Burn farm token
-        let farm_proxy_token_mapper = self.farm_proxy_token();
-        farm_proxy_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         let new_proxy_token_payment = self.farm_proxy_token().nft_create_and_send(
             &caller,
