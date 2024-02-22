@@ -15,7 +15,7 @@ pub const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 pub trait MultiPairSwap: factory::FactoryModule + token_send::TokenSendModule {
     #[payable("*")]
     #[endpoint(multiPairSwap)]
-    fn multi_pair_swap(&self, swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>) {
+    fn multi_pair_swap(&self, swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>) -> ManagedVec<EsdtTokenPayment> {
         let (token_id, nonce, amount) = self.call_value().single_esdt().into_tuple();
         require!(nonce == 0, "Invalid nonce. Should be zero");
         require!(amount > 0u64, "Invalid amount. Should not be zero");
@@ -61,6 +61,8 @@ pub trait MultiPairSwap: factory::FactoryModule + token_send::TokenSendModule {
 
         payments.push(last_payment);
         self.send().direct_multi(&caller, &payments);
+
+        payments
     }
 
     fn actual_swap_fixed_input(
