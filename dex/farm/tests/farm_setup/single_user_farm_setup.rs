@@ -51,7 +51,7 @@ impl<FarmObjBuilder> SingleUserFarmSetup<FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
-    pub fn new(farm_builder: FarmObjBuilder) -> Self {
+    pub fn new(farm_builder: FarmObjBuilder, first_week_start_boosted_rewards_epoch: u64) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let mut blockchain_wrapper = BlockchainStateWrapper::new();
         let owner_addr = blockchain_wrapper.create_user_account(&rust_zero);
@@ -77,7 +77,7 @@ where
                     division_safety_constant,
                     pair_address,
                     ManagedAddress::<DebugApi>::zero(),
-                    0,
+                    first_week_start_boosted_rewards_epoch,
                     MultiValueEncoded::new(),
                 );
 
@@ -265,6 +265,7 @@ where
         expected_user_lp_token_balance: &RustBigUint,
         expected_farm_token_nonce_out: u64,
         expected_reward_per_share: u64,
+        expected_entering_epoch: u64,
     ) {
         let b_mock = &mut self.blockchain_wrapper;
         b_mock
@@ -299,7 +300,7 @@ where
         DebugApi::dummy();
         let expected_attributes = FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(expected_reward_per_share),
-            entering_epoch: 0,
+            entering_epoch: expected_entering_epoch,
             compounded_reward: managed_biguint!(0),
             current_farm_amount: managed_biguint!(farm_token_amount),
             original_owner: managed_address!(&self.user_address),

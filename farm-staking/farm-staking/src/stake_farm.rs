@@ -71,6 +71,12 @@ pub trait StakeFarmModule:
         original_caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
     ) -> EnterFarmResultType<Self::Api> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            current_epoch >= first_week_start_epoch,
+            "Cannot enter staking yet"
+        );
         let caller = self.blockchain().get_caller();
         self.migrate_old_farm_positions(&original_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&original_caller);

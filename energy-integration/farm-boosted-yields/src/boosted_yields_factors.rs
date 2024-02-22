@@ -123,7 +123,10 @@ pub trait BoostedYieldsFactorsModule:
             min_farm_amount,
         };
 
-        let current_week = self.get_current_week();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        let epoch_for_current_week = core::cmp::max(current_epoch, first_week_start_epoch);
+        let current_week = self.get_week_for_epoch(epoch_for_current_week);
         let config_mapper = self.boosted_yields_config();
         if !config_mapper.is_empty() {
             config_mapper.update(|config| {

@@ -96,6 +96,13 @@ pub trait Farm:
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> EnterFarmResultType<Self::Api> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            current_epoch >= first_week_start_epoch,
+            "Cannot enter farm yet"
+        );
+
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
@@ -119,13 +126,6 @@ pub trait Farm:
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsResultType<Self::Api> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let first_week_start_epoch = self.first_week_start_epoch().get();
-        require!(
-            first_week_start_epoch <= current_epoch,
-            "Cannot claim rewards yet"
-        );
-
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
@@ -207,13 +207,6 @@ pub trait Farm:
 
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let first_week_start_epoch = self.first_week_start_epoch().get();
-        require!(
-            first_week_start_epoch <= current_epoch,
-            "Cannot claim rewards yet"
-        );
-
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
             OptionalValue::Some(user) => user,
@@ -237,9 +230,19 @@ pub trait Farm:
     }
 
     #[endpoint(startProduceRewards)]
-    fn start_produce_rewards_endpoint(&self) {
+    fn start_produce_rewards_endpoint(&self, start_block_nonce_opt: OptionalValue<u64>) {
         self.require_caller_has_admin_permissions();
-        self.start_produce_rewards();
+
+        if start_block_nonce_opt.is_none() {
+            let current_epoch = self.blockchain().get_block_epoch();
+            let first_week_start_epoch = self.first_week_start_epoch().get();
+            require!(
+                current_epoch >= first_week_start_epoch,
+                "Cannot start the rewards yet"
+            );
+        };
+
+        self.start_produce_rewards(start_block_nonce_opt);
     }
 
     #[endpoint(endProduceRewards)]
