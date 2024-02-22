@@ -1,9 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{
-    error_messages::*, locked_token::PreviousStatusFlag, proxy_lp::LpProxyTokenAttributes,
-};
+use crate::{error_messages::*, proxy_lp::LpProxyTokenAttributes};
 
 #[derive(
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy,
@@ -27,6 +25,13 @@ pub type ExitFarmThroughProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, Es
 pub type FarmClaimRewardsThroughProxyResultType<M> =
     MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type FarmCompoundRewardsThroughProxyResultType<M> = EsdtTokenPayment<M>;
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct DestroyFarmResultType<M: ManagedTypeApi> {
+    pub first_payment: EsdtTokenPayment<M>,
+    pub second_payment: EsdtTokenPayment<M>,
+    pub farm_rewards: EsdtTokenPayment<M>,
+}
 
 #[multiversx_sc::module]
 pub trait ProxyFarmModule:
@@ -263,7 +268,7 @@ pub trait ProxyFarmModule:
         &self,
         first_token_min_amount_out: BigUint,
         second_token_min_amount_out: BigUint,
-    ) -> ExitFarmThroughProxyResultType<Self::Api> {
+    ) -> DestroyFarmResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
 
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
@@ -278,7 +283,7 @@ pub trait ProxyFarmModule:
             farm_address,
             farm_proxy_token_attributes.farm_token_id,
             farm_proxy_token_attributes.farm_token_nonce,
-            payment.amount,
+            payment.amount.clone(),
             caller.clone(),
         );
         require!(
@@ -296,45 +301,23 @@ pub trait ProxyFarmModule:
             );
         }
 
-        let initial_farming_tokens = exit_farm_result.initial_farming_tokens;
-
-        // get LOCKED_LP nonce
-        let locked_lp_nonce = farm_proxy_token_attributes.farming_token_locked_nonce;
-        let lp_proxy_token_mapper = self.lp_proxy_token();
-        let lp_proxy_token_attributes: LpProxyTokenAttributes<Self::Api> =
-            lp_proxy_token_mapper.get_token_attributes(locked_lp_nonce);
-
-        // get LP address
-        let lp_address = self
-            .lp_address_for_token_pair(
-                &lp_proxy_token_attributes.first_token_id,
-                &lp_proxy_token_attributes.second_token_id,
+        let (first_payment, second_payment) = self
+            .remove_liquidity_locked_token_common(
+                exit_farm_result.initial_farming_tokens,
+                first_token_min_amount_out,
+                second_token_min_amount_out,
             )
-            .get();
+            .into_tuple();
 
-        let remove_liq_result = self.call_pair_remove_liquidity(
-            lp_address,
-            lp_proxy_token_attributes.lp_token_id,
-            initial_farming_tokens.amount,
-            first_token_min_amount_out,
-            second_token_min_amount_out,
-            &lp_proxy_token_attributes.first_token_id,
-            &lp_proxy_token_attributes.second_token_id,
-        );
+        // Burn farm token
+        let farm_proxy_token_mapper = self.farm_proxy_token();
+        farm_proxy_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
-        let caller = self.blockchain().get_caller();
-        let first_token_result_payment = self.send_tokens_optimal_status(
-            &caller,
-            remove_liq_result.first_token_payment_out,
-            PreviousStatusFlag::new(lp_proxy_token_attributes.first_token_locked_nonce),
-        );
-        let second_token_result_payment = self.send_tokens_optimal_status(
-            &caller,
-            remove_liq_result.second_token_payment_out,
-            PreviousStatusFlag::new(lp_proxy_token_attributes.second_token_locked_nonce),
-        );
-
-        (first_token_result_payment, second_token_result_payment).into()
+        DestroyFarmResultType {
+            first_payment,
+            second_payment,
+            farm_rewards: exit_farm_result.reward_tokens,
+        }
     }
 
     /// Claim rewards from a previously entered farm.

@@ -849,19 +849,24 @@ fn test_destroy_farm_through_simple_lock() {
                 let claim_result =
                     sc.destroy_farm_locked_tokens(managed_biguint!(1), managed_biguint!(1));
 
-                let (first_token_payment_out, second_token_payment_out) = claim_result.into_tuple();
-
                 assert_eq!(
-                    first_token_payment_out.token_identifier,
+                    claim_result.first_payment.token_identifier,
                     managed_token_id!(WEGLD_TOKEN_ID)
                 );
-                assert_eq!(first_token_payment_out.amount, managed_biguint!(9_999_000));
+                assert_eq!(claim_result.first_payment.amount, managed_biguint!(9_999_000));
 
                 assert_eq!(
-                    second_token_payment_out.token_identifier,
+                    claim_result.second_payment.token_identifier,
                     managed_token_id!(LOCKED_TOKEN_ID)
                 );
-                assert_eq!(second_token_payment_out.amount, managed_biguint!(9_999_000));
+                assert_eq!(claim_result.second_payment.amount, managed_biguint!(9_999_000));
+
+
+                assert_eq!(
+                    claim_result.farm_rewards.token_identifier,
+                    managed_token_id!(MEX_TOKEN_ID)
+                );
+                assert_eq!(claim_result.farm_rewards.amount, managed_biguint!(0));
             },
         )
         .assert_ok();

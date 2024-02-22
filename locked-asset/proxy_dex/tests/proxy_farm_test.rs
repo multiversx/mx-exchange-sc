@@ -1617,18 +1617,15 @@ fn destroy_farm_locked_tokens_test() {
                     OptionalValue::None,
                 );
 
-                let output_vec = output_payments.to_vec();
-
-                assert_eq!(output_payments.len(), 3);
                 assert_eq!(
-                    output_vec.get(0).amount.to_u64().unwrap(),
+                    output_payments.first_payment.amount.to_u64().unwrap(),
                     removed_locked_token_amount.to_u64().unwrap()
                 );
                 assert_eq!(
-                    output_vec.get(1).amount.to_u64().unwrap(),
+                    output_payments.second_payment.amount.to_u64().unwrap(),
                     removed_other_token_amount.to_u64().unwrap()
                 );
-                assert_eq!(output_vec.get(2).amount.to_u64().unwrap(), 0u64);
+                assert_eq!(output_payments.farm_rewards.amount.to_u64().unwrap(), 0u64);
             },
         )
         .assert_ok();

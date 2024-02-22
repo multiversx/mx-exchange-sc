@@ -22,6 +22,14 @@ pub type EnterFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtToke
 pub type ExitFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct DestroyFarmResultType<M: ManagedTypeApi> {
+    pub first_payment: EsdtTokenPayment<M>,
+    pub second_payment: EsdtTokenPayment<M>,
+    pub farm_rewards: EsdtTokenPayment<M>,
+}
+
+
 #[multiversx_sc::module]
 pub trait ProxyFarmModule:
     crate::proxy_common::ProxyCommonModule
@@ -243,7 +251,8 @@ pub trait ProxyFarmModule:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
         opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> MultiValueEncoded<EsdtTokenPayment> {
+    ) -> DestroyFarmResultType<Self::Api> {
+
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -282,7 +291,7 @@ pub trait ProxyFarmModule:
                 exit_result.farming_tokens.amount,
             );
 
-        let mut output_payments = self.remove_liquidity_proxy_common(
+        let mut remove_liquidity_result = self.remove_liquidity_proxy_common(
             initial_proxy_farming_tokens.clone(),
             pair_address,
             first_token_amount_min,
@@ -293,9 +302,9 @@ pub trait ProxyFarmModule:
         wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         // Push farm rewards
-        output_payments.push(exit_result.reward_tokens.clone());
+        remove_liquidity_result.push(exit_result.reward_tokens.clone());
 
-        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+        self.send_multiple_tokens_if_not_zero(&caller, &remove_liquidity_result);
 
         self.emit_exit_farm_proxy_event(
             &original_caller,
@@ -305,7 +314,11 @@ pub trait ProxyFarmModule:
             exit_result.reward_tokens.clone(),
         );
 
-        output_payments.into()
+        DestroyFarmResultType{
+            first_payment: remove_liquidity_result.get(0),
+            second_payment: remove_liquidity_result.get(1),
+            farm_rewards: exit_result.reward_tokens
+        }
     }
 
     fn handle_farm_penalty_and_get_output_proxy_farming_token(
