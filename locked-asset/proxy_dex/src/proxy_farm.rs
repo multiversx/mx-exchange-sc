@@ -29,7 +29,6 @@ pub struct DestroyFarmResultType<M: ManagedTypeApi> {
     pub farm_rewards: EsdtTokenPayment<M>,
 }
 
-
 #[multiversx_sc::module]
 pub trait ProxyFarmModule:
     crate::proxy_common::ProxyCommonModule
@@ -252,7 +251,6 @@ pub trait ProxyFarmModule:
         second_token_amount_min: BigUint,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> DestroyFarmResultType<Self::Api> {
-
         self.require_is_intermediated_farm(&farm_address);
         self.require_is_intermediated_pair(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
@@ -315,10 +313,10 @@ pub trait ProxyFarmModule:
             exit_result.reward_tokens.clone(),
         );
 
-        DestroyFarmResultType{
+        DestroyFarmResultType {
             first_payment: remove_liquidity_result.get(0),
             second_payment: remove_liquidity_result.get(1),
-            farm_rewards: exit_result.reward_tokens
+            farm_rewards: exit_result.reward_tokens,
         }
     }
 

@@ -853,14 +853,19 @@ fn test_destroy_farm_through_simple_lock() {
                     claim_result.first_payment.token_identifier,
                     managed_token_id!(WEGLD_TOKEN_ID)
                 );
-                assert_eq!(claim_result.first_payment.amount, managed_biguint!(9_999_000));
+                assert_eq!(
+                    claim_result.first_payment.amount,
+                    managed_biguint!(9_999_000)
+                );
 
                 assert_eq!(
                     claim_result.second_payment.token_identifier,
                     managed_token_id!(LOCKED_TOKEN_ID)
                 );
-                assert_eq!(claim_result.second_payment.amount, managed_biguint!(9_999_000));
-
+                assert_eq!(
+                    claim_result.second_payment.amount,
+                    managed_biguint!(9_999_000)
+                );
 
                 assert_eq!(
                     claim_result.farm_rewards.token_identifier,
