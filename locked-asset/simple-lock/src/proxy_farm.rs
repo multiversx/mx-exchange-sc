@@ -345,7 +345,7 @@ pub trait ProxyFarmModule:
             farm_address,
             farm_proxy_token_attributes.farm_token_id.clone(),
             farm_proxy_token_attributes.farm_token_nonce,
-            payment.amount,
+            payment.amount.clone(),
             caller.clone(),
         );
         require!(
@@ -356,6 +356,10 @@ pub trait ProxyFarmModule:
 
         farm_proxy_token_attributes.farm_token_nonce =
             claim_rewards_result.new_farm_tokens.token_nonce;
+
+        // Burn farm token
+        let farm_proxy_token_mapper = self.farm_proxy_token();
+        farm_proxy_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         let new_proxy_token_payment = self.farm_proxy_token().nft_create_and_send(
             &caller,
