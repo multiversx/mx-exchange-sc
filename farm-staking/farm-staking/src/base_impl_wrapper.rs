@@ -31,17 +31,10 @@ where
     T: FarmStakingTraits,
 {
     pub fn calculate_base_farm_rewards(
-        sc: &<Self as FarmContract>::FarmSc,
         farm_token_amount: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         token_attributes: &<Self as FarmContract>::AttributesType,
         storage_cache: &StorageCache<<Self as FarmContract>::FarmSc>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
-        let current_epoch = sc.blockchain().get_block_epoch();
-        let first_week_start_epoch = sc.first_week_start_epoch().get();
-        if first_week_start_epoch > current_epoch {
-            return BigUint::zero();
-        }
-
         let token_rps = token_attributes.get_reward_per_share();
         if storage_cache.reward_per_share > token_rps {
             let rps_diff = &storage_cache.reward_per_share - &token_rps;
@@ -147,7 +140,6 @@ where
         storage_cache: &StorageCache<Self::FarmSc>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let base_farm_reward = Self::calculate_base_farm_rewards(
-            sc,
             farm_token_amount,
             token_attributes,
             storage_cache,

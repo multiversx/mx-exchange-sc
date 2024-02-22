@@ -127,12 +127,15 @@ pub trait CustomRewardsModule:
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards_endpoint(&self, start_block_nonce_opt: OptionalValue<u64>) {
         self.require_caller_has_admin_permissions();
-        let current_epoch = self.blockchain().get_block_epoch();
-        let first_week_start_epoch = self.first_week_start_epoch().get();
-        require!(
-            current_epoch >= first_week_start_epoch,
-            "Cannot start the rewards yet"
-        );
+
+        if start_block_nonce_opt.is_none() {
+            let current_epoch = self.blockchain().get_block_epoch();
+            let first_week_start_epoch = self.first_week_start_epoch().get();
+            require!(
+                current_epoch >= first_week_start_epoch,
+                "Cannot start the rewards yet"
+            );
+        }
 
         self.start_produce_rewards(start_block_nonce_opt);
     }

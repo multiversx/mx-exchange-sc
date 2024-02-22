@@ -20,7 +20,7 @@ pub trait RewardsModule:
             OptionalValue::Some(start_block_nonce) => {
                 require!(
                     start_block_nonce >= current_block_nonce,
-                    "The starting block nonce needs to be greater than the current nonce"
+                    "The starting block nonce needs to be equal or greater than the current nonce"
                 );
                 start_block_nonce
             }

@@ -3,8 +3,9 @@
 mod farm_setup;
 
 use config::ConfigModule;
+use farm::Farm;
 use farm_setup::single_user_farm_setup::*;
-use multiversx_sc::types::EsdtLocalRole;
+use multiversx_sc::{codec::multi_types::OptionalValue, types::EsdtLocalRole};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     whitebox_legacy::TxTokenTransfer, DebugApi,
@@ -13,12 +14,12 @@ use sc_whitelist_module::SCWhitelistModule;
 
 #[test]
 fn test_farm_setup() {
-    let _ = SingleUserFarmSetup::new(farm::contract_obj);
+    let _ = SingleUserFarmSetup::new(farm::contract_obj, 0);
 }
 
 #[test]
 fn test_enter_farm() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, 0);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -28,7 +29,7 @@ fn test_enter_farm() {
 
 #[test]
 fn test_exit_farm() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, 0);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -53,7 +54,7 @@ fn test_exit_farm() {
 
 #[test]
 fn test_exit_farm_with_penalty() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, 0);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -81,7 +82,7 @@ fn test_exit_farm_with_penalty() {
 
 #[test]
 fn test_claim_rewards() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, 0);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -102,6 +103,7 @@ fn test_claim_rewards() {
         &expected_lp_token_balance,
         expected_farm_token_nonce + 1,
         expected_reward_per_share,
+        0,
     );
     farm_setup.check_farm_token_supply(farm_in_amount);
 }
@@ -112,7 +114,7 @@ fn steps_enter_farm_twice<FarmObjBuilder>(
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
-    let mut farm_setup = SingleUserFarmSetup::new(farm_builder);
+    let mut farm_setup = SingleUserFarmSetup::new(farm_builder, 0);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -211,7 +213,7 @@ fn test_farm_through_simple_lock() {
 
     DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, 0);
     let b_mock = &mut farm_setup.blockchain_wrapper;
 
     // setup simple lock SC
@@ -614,4 +616,73 @@ fn test_farm_through_simple_lock() {
         &rust_biguint!(1_000_000_000),
         Some(&lp_proxy_token_attributes),
     );
+}
+
+#[test]
+fn test_custom_start_rewards_block() {
+    let rust_zero = rust_biguint!(0u64);
+
+    let first_week_start_boosted_rewards_epoch = 7u64;
+    let start_rewards_block = 20u64;
+    let mut farm_setup =
+        SingleUserFarmSetup::new(farm::contract_obj, first_week_start_boosted_rewards_epoch);
+    let _ = farm_setup.blockchain_wrapper.execute_tx(
+        &farm_setup.owner_address,
+        &farm_setup.farm_wrapper,
+        &rust_zero,
+        |sc| {
+            sc.end_produce_rewards_endpoint();
+            sc.start_produce_rewards_endpoint(OptionalValue::Some(start_rewards_block));
+        },
+    );
+
+    // Check that enter farm is blocked until first_week_start_epoch is reached
+    farm_setup
+        .blockchain_wrapper
+        .execute_esdt_multi_transfer(
+            &farm_setup.user_address,
+            &farm_setup.farm_wrapper,
+            &vec![],
+            |sc| {
+                let _ = sc.enter_farm_endpoint(OptionalValue::None);
+            },
+        )
+        .assert_error(4, "Cannot enter farm yet");
+
+    // Rewards should be generated starting from
+    let current_epoch = 7;
+    let mut current_block_nonce = 10;
+    let farm_in_amount = 100_000_000;
+    let expected_farm_token_nonce = 1;
+
+    farm_setup.set_block_epoch(current_epoch);
+    farm_setup.set_block_nonce(current_block_nonce);
+
+    farm_setup.enter_farm(
+        farm_in_amount,
+        &[],
+        expected_farm_token_nonce,
+        0,
+        current_epoch,
+        0,
+    );
+
+    current_block_nonce = 30;
+    farm_setup.set_block_nonce(current_block_nonce);
+
+    // Expected rewards should be generated between block 20 and 30
+    let expected_mex_out = (current_block_nonce - start_rewards_block) * PER_BLOCK_REWARD_AMOUNT;
+    let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS - farm_in_amount);
+    let expected_reward_per_share = 500_000_000;
+    farm_setup.claim_rewards(
+        farm_in_amount,
+        expected_farm_token_nonce,
+        expected_mex_out,
+        &rust_biguint!(expected_mex_out),
+        &expected_lp_token_balance,
+        expected_farm_token_nonce + 1,
+        expected_reward_per_share,
+        current_epoch,
+    );
+    farm_setup.check_farm_token_supply(farm_in_amount);
 }
