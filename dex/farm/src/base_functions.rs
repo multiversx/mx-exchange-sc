@@ -206,39 +206,6 @@ pub trait BaseFunctionsModule:
         reward
     }
 
-    fn migrate_old_farm_positions(&self, caller: &ManagedAddress) -> BigUint {
-        let payments = self.get_non_empty_payments();
-        let farm_token_mapper = self.farm_token();
-        let farm_token_id = farm_token_mapper.get_token_id();
-        let mut migrated_amount = BigUint::zero();
-        for farm_position in &payments {
-            if farm_position.token_identifier == farm_token_id
-                && self.is_old_farm_position(farm_position.token_nonce)
-            {
-                migrated_amount += farm_position.amount;
-            }
-        }
-
-        if migrated_amount > 0 {
-            let mut user_total_farm_position = self.get_user_total_farm_position(caller);
-            user_total_farm_position.total_farm_position += &migrated_amount;
-            self.user_total_farm_position(caller)
-                .set(user_total_farm_position);
-        }
-
-        migrated_amount
-    }
-
-    fn decrease_old_farm_positions(&self, migrated_amount: BigUint, caller: &ManagedAddress) {
-        if migrated_amount == BigUint::zero() {
-            return;
-        }
-        self.user_total_farm_position(caller)
-            .update(|user_total_farm_position| {
-                user_total_farm_position.total_farm_position -= migrated_amount;
-            });
-    }
-
     fn end_produce_rewards<FC: FarmContract<FarmSc = Self>>(&self) {
         let mut storage = StorageCache::new(self);
         FC::generate_aggregated_rewards(self, &mut storage);

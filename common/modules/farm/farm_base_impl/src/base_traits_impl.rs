@@ -198,10 +198,6 @@ pub trait FarmContract {
         for farm_position in farm_positions {
             farm_token_mapper.require_same_token(&farm_position.token_identifier);
 
-            if sc.is_old_farm_position(farm_position.token_nonce) {
-                continue;
-            }
-
             let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
                 farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
@@ -212,7 +208,6 @@ pub trait FarmContract {
         }
     }
 
-    #[inline]
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
@@ -228,10 +223,6 @@ pub trait FarmContract {
         sc: &Self::FarmSc,
         farm_position: &EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
     ) {
-        if sc.is_old_farm_position(farm_position.token_nonce) {
-            return;
-        }
-
         let farm_token_mapper = sc.farm_token();
         let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);

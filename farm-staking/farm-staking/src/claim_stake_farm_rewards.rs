@@ -61,7 +61,6 @@ pub trait ClaimStakeFarmRewardsModule:
         original_caller: ManagedAddress,
         opt_new_farming_amount: Option<BigUint>,
     ) -> ClaimRewardsResultType<Self::Api> {
-        self.migrate_old_farm_positions(&original_caller);
         let payment = self.call_value().single_esdt();
         let mut claim_result = self
             .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(

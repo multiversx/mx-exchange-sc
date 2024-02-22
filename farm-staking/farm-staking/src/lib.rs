@@ -81,32 +81,22 @@ pub trait FarmStaking:
         );
 
         require!(max_apr > 0u64, "Invalid max APR percentage");
-        self.max_annual_percentage_rewards().set_if_empty(&max_apr);
+        self.max_annual_percentage_rewards().set(&max_apr);
 
         require!(
             min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
             "Invalid min unbond epochs"
         );
-        self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
-
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+        self.min_unbond_epochs().set(min_unbond_epochs);
     }
 
     #[endpoint]
-    fn upgrade(&self) {
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
-    }
+    fn upgrade(&self) {}
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(&self) -> DoubleMultiPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.migrate_old_farm_positions(&caller);
-
         let boosted_rewards = self.claim_only_boosted_payment(&caller);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
@@ -123,7 +113,7 @@ pub trait FarmStaking:
 
         (merged_farm_token, boosted_rewards_payment).into()
     }
-    
+
     #[view(calculateRewardsForGivenPosition)]
     fn calculate_rewards_for_given_position(
         &self,
