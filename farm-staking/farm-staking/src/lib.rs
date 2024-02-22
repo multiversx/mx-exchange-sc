@@ -6,6 +6,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use base_impl_wrapper::FarmStakingWrapper;
+use common_structs::Epoch;
 use contexts::storage_cache::StorageCache;
 use farm::base_functions::DoubleMultiPayment;
 use farm_base_impl::base_traits_impl::FarmContract;
@@ -69,6 +70,7 @@ pub trait FarmStaking:
         max_apr: BigUint,
         min_unbond_epochs: u64,
         owner: ManagedAddress,
+        first_week_start_epoch: Epoch,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         // farming and reward token are the same
@@ -80,18 +82,21 @@ pub trait FarmStaking:
             admins,
         );
 
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            first_week_start_epoch >= current_epoch,
+            "Invalid start epoch"
+        );
+        self.first_week_start_epoch().set(first_week_start_epoch);
+
         require!(max_apr > 0u64, "Invalid max APR percentage");
-        self.max_annual_percentage_rewards().set_if_empty(&max_apr);
+        self.max_annual_percentage_rewards().set(&max_apr);
 
         require!(
             min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
             "Invalid min unbond epochs"
         );
-        self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
-
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+        self.min_unbond_epochs().set(min_unbond_epochs);
     }
 
     #[endpoint]
@@ -123,7 +128,7 @@ pub trait FarmStaking:
 
         (merged_farm_token, boosted_rewards_payment).into()
     }
-    
+
     #[view(calculateRewardsForGivenPosition)]
     fn calculate_rewards_for_given_position(
         &self,

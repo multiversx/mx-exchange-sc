@@ -61,6 +61,13 @@ pub trait ClaimStakeFarmRewardsModule:
         original_caller: ManagedAddress,
         opt_new_farming_amount: Option<BigUint>,
     ) -> ClaimRewardsResultType<Self::Api> {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            first_week_start_epoch <= current_epoch,
+            "Cannot claim rewards yet"
+        );
+
         self.migrate_old_farm_positions(&original_caller);
         let payment = self.call_value().single_esdt();
         let mut claim_result = self
