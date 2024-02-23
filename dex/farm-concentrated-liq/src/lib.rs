@@ -12,9 +12,9 @@ use base_functions::{
     ClaimRewardsResultType, CompoundRewardsResultType, ExitFarmResultType,
     FarmConcentratedLiqWrapper,
 };
-use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
+use custom_token_attributes::FarmTokenConcentratedLiqAttributes;
 use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
@@ -266,7 +266,7 @@ pub trait Farm:
         &self,
         user: ManagedAddress,
         farm_token_amount: BigUint,
-        attributes: FarmTokenAttributes<Self::Api>,
+        attributes: FarmTokenConcentratedLiqAttributes<Self::Api>,
     ) -> BigUint {
         self.require_queried();
 

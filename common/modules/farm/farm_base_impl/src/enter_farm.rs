@@ -64,7 +64,7 @@ pub trait BaseEnterFarmModule:
         let base_attributes = FC::create_enter_farm_initial_attributes(
             self,
             caller,
-            enter_farm_context.farming_token_payment.amount.clone(),
+            enter_farm_context.farming_token_payment.clone(),
             storage_cache.reward_per_share.clone(),
         );
         let new_farm_token = self.merge_and_create_token(

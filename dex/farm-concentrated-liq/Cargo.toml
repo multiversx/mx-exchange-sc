@@ -68,6 +68,9 @@ path = "../../energy-integration/common-modules/weekly-rewards-splitting"
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
 
+[dependencies.math]
+path = "../../common/modules/math"
+
 [dependencies.multiversx-sc]
 version = "=0.46.1"
 features = ["esdt-token-payment-legacy-decode"]
