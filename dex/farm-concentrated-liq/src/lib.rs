@@ -4,7 +4,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub mod base_functions;
-pub mod cocentrated_liq;
+pub mod concentrated_liq;
 pub mod custom_token_attributes;
 pub mod exit_penalty;
 
@@ -61,7 +61,7 @@ pub trait Farm:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
-    + cocentrated_liq::ConcentratedLiqModule
+    + concentrated_liq::ConcentratedLiqModule
 {
     #[init]
     fn init(
