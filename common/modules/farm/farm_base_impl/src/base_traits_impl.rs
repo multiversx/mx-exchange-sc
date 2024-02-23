@@ -116,7 +116,7 @@ pub trait FarmContract {
     fn create_enter_farm_initial_attributes(
         sc: &Self::FarmSc,
         caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        farming_token_amount: BigUint<<Self::FarmSc as ContractBase>::Api>,
+        farming_token_payment: EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
         let current_epoch = sc.blockchain().get_block_epoch();
@@ -124,7 +124,7 @@ pub trait FarmContract {
             reward_per_share: current_reward_per_share,
             entering_epoch: current_epoch,
             compounded_reward: BigUint::zero(),
-            current_farm_amount: farming_token_amount,
+            current_farm_amount: farming_token_payment.amount,
             original_owner: caller,
         };
 

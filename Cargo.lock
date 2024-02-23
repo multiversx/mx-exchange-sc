@@ -793,6 +793,7 @@ dependencies = [
  "farm_base_impl",
  "farm_token",
  "fixed-supply-token",
+ "math",
  "mergeable",
  "multiversx-sc",
  "multiversx-sc-modules",

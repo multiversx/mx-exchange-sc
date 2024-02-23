@@ -7,13 +7,13 @@ multiversx_sc::derive_imports!();
 use core::marker::PhantomData;
 
 use common_errors::ERROR_ZERO_AMOUNT;
-use common_structs::FarmTokenAttributes;
+use common_structs::FarmToken;
 use contexts::storage_cache::StorageCache;
 
-use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
+use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
 
-use crate::exit_penalty;
+use crate::{custom_token_attributes::FarmTokenConcentratedLiqAttributes, exit_penalty};
 
 pub const DEFAULT_FARM_POSITION_MIGRATION_NONCE: u64 = 1;
 
@@ -193,7 +193,7 @@ pub trait BaseFunctionsModule:
     }
 
     fn claim_only_boosted_payment(&self, caller: &ManagedAddress) -> BigUint {
-        let reward = Wrapper::<Self>::calculate_boosted_rewards(self, caller);
+        let reward = FarmConcentratedLiqWrapper::<Self>::calculate_boosted_rewards(self, caller);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }
@@ -227,7 +227,7 @@ pub trait BaseFunctionsModule:
     }
 }
 
-pub struct Wrapper<
+pub struct FarmConcentratedLiqWrapper<
     T: BaseFunctionsModule
         + farm_boosted_yields::FarmBoostedYieldsModule
         + crate::exit_penalty::ExitPenaltyModule,
@@ -235,7 +235,7 @@ pub struct Wrapper<
     _phantom: PhantomData<T>,
 }
 
-impl<T> Wrapper<T>
+impl<T> FarmConcentratedLiqWrapper<T>
 where
     T: BaseFunctionsModule
         + farm_boosted_yields::FarmBoostedYieldsModule
@@ -252,14 +252,14 @@ where
     }
 }
 
-impl<T> FarmContract for Wrapper<T>
+impl<T> FarmContract for FarmConcentratedLiqWrapper<T>
 where
     T: BaseFunctionsModule
         + farm_boosted_yields::FarmBoostedYieldsModule
         + crate::exit_penalty::ExitPenaltyModule,
 {
     type FarmSc = T;
-    type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
+    type AttributesType = FarmTokenConcentratedLiqAttributes<<Self::FarmSc as ContractBase>::Api>;
 
     fn generate_aggregated_rewards(
         sc: &Self::FarmSc,
@@ -289,13 +289,14 @@ where
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        let base_farm_reward = DefaultFarmWrapper::<T>::calculate_rewards(
-            sc,
-            caller,
-            farm_token_amount,
-            token_attributes,
-            storage_cache,
-        );
+        let token_rps = token_attributes.get_reward_per_share();
+        let base_farm_reward = if storage_cache.reward_per_share <= token_rps {
+            BigUint::zero()
+        } else {
+            let rps_diff = &storage_cache.reward_per_share - &token_rps;
+            farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
+        };
+
         let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller);
 
         base_farm_reward + boosted_yield_rewards
@@ -334,5 +335,60 @@ where
             &storage_cache.farming_token_id,
             &storage_cache.reward_token_id,
         );
+    }
+
+    fn create_enter_farm_initial_attributes(
+        sc: &Self::FarmSc,
+        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        farming_token_payment: EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
+        current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
+    ) -> Self::AttributesType {
+        let current_epoch = sc.blockchain().get_block_epoch();
+        FarmTokenConcentratedLiqAttributes {
+            reward_per_share: current_reward_per_share,
+            entering_epoch: current_epoch,
+            compounded_reward: BigUint::zero(),
+            current_farm_amount: farming_token_payment.amount,
+            original_owner: caller,
+            lp_token_nonce: farming_token_payment.token_nonce,
+        }
+    }
+
+    fn create_claim_rewards_initial_attributes(
+        _sc: &Self::FarmSc,
+        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        first_token_attributes: Self::AttributesType,
+        current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
+    ) -> Self::AttributesType {
+        let current_farm_amount = first_token_attributes.get_total_supply();
+        FarmTokenConcentratedLiqAttributes {
+            reward_per_share: current_reward_per_share,
+            entering_epoch: first_token_attributes.entering_epoch,
+            compounded_reward: first_token_attributes.compounded_reward,
+            current_farm_amount,
+            original_owner: caller,
+            lp_token_nonce: first_token_attributes.lp_token_nonce,
+        }
+    }
+
+    fn create_compound_rewards_initial_attributes(
+        sc: &Self::FarmSc,
+        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        first_token_attributes: Self::AttributesType,
+        current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
+        reward: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+    ) -> Self::AttributesType {
+        let current_epoch = sc.blockchain().get_block_epoch();
+        let new_pos_compounded_reward = first_token_attributes.compounded_reward + reward;
+        let new_pos_current_farm_amount = first_token_attributes.current_farm_amount + reward;
+
+        FarmTokenConcentratedLiqAttributes {
+            reward_per_share: current_reward_per_share,
+            entering_epoch: current_epoch,
+            compounded_reward: new_pos_compounded_reward,
+            current_farm_amount: new_pos_current_farm_amount,
+            original_owner: caller,
+            lp_token_nonce: first_token_attributes.lp_token_nonce,
+        }
     }
 }

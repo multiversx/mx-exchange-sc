@@ -143,13 +143,13 @@ where
     fn create_enter_farm_initial_attributes(
         _sc: &Self::FarmSc,
         caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        farming_token_amount: BigUint<<Self::FarmSc as ContractBase>::Api>,
+        farming_token_payment: EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
         StakingFarmTokenAttributes {
             reward_per_share: current_reward_per_share,
             compounded_reward: BigUint::zero(),
-            current_farm_amount: farming_token_amount,
+            current_farm_amount: farming_token_payment.amount,
             original_owner: caller,
         }
     }

@@ -4,14 +4,17 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub mod base_functions;
+pub mod concentrated_liq;
+pub mod custom_token_attributes;
 pub mod exit_penalty;
 
 use base_functions::{
-    ClaimRewardsResultType, CompoundRewardsResultType, ExitFarmResultType, Wrapper,
+    ClaimRewardsResultType, CompoundRewardsResultType, ExitFarmResultType,
+    FarmConcentratedLiqWrapper,
 };
-use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
+use custom_token_attributes::FarmTokenConcentratedLiqAttributes;
 use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
@@ -58,6 +61,7 @@ pub trait Farm:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + concentrated_liq::ConcentratedLiqModule
 {
     #[init]
     fn init(
@@ -65,7 +69,10 @@ pub trait Farm:
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
+        min_ticker: BigUint,
         pair_contract_address: ManagedAddress,
+        pair_for_query: ManagedAddress,
+        price_token: TokenIdentifier,
         owner: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
@@ -77,11 +84,30 @@ pub trait Farm:
             admins,
         );
 
+        self.require_sc_address(&pair_contract_address);
+        self.require_sc_address(&pair_for_query);
+        require!(min_ticker > 0, "Invalid min ticker value");
+
+        let first_token_id = self
+            .first_token_id()
+            .get_from_address(&pair_contract_address);
+        let second_token_id = self
+            .second_token_id()
+            .get_from_address(&pair_contract_address);
+        require!(
+            price_token == first_token_id || price_token == second_token_id,
+            "Invalid price token"
+        );
+
         self.penalty_percent().set(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
             .set(DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.burn_gas_limit().set(DEFAULT_BURN_GAS_LIMIT);
-        self.pair_contract_address().set(&pair_contract_address);
+
+        self.min_ticker().set(min_ticker);
+        self.pair_contract_address().set(pair_contract_address);
+        self.pair_for_query().set(pair_for_query);
+        self.price_token().set(price_token);
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set(current_epoch);
@@ -102,7 +128,8 @@ pub trait Farm:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let new_farm_token = self.enter_farm::<Wrapper<Self>>(orig_caller.clone());
+        let new_farm_token =
+            self.enter_farm::<FarmConcentratedLiqWrapper<Self>>(orig_caller.clone());
         self.send_payment_non_zero(&caller, &new_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
@@ -122,7 +149,8 @@ pub trait Farm:
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
+        let claim_rewards_result =
+            self.claim_rewards::<FarmConcentratedLiqWrapper<Self>>(orig_caller);
 
         self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
         self.send_payment_non_zero(&caller, &claim_rewards_result.rewards);
@@ -138,7 +166,8 @@ pub trait Farm:
     ) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-        let compund_result = self.compound_rewards::<Wrapper<Self>>(orig_caller.clone());
+        let compund_result =
+            self.compound_rewards::<FarmConcentratedLiqWrapper<Self>>(orig_caller.clone());
 
         self.send_payment_non_zero(&caller, &compund_result.new_farm_token);
 
@@ -157,7 +186,8 @@ pub trait Farm:
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let payment = self.call_value().single_esdt();
-        let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller.clone(), payment);
+        let exit_farm_result =
+            self.exit_farm::<FarmConcentratedLiqWrapper<Self>>(orig_caller.clone(), payment);
 
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
@@ -179,7 +209,7 @@ pub trait Farm:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let merged_farm_token = self.merge_farm_tokens::<Wrapper<Self>>();
+        let merged_farm_token = self.merge_farm_tokens::<FarmConcentratedLiqWrapper<Self>>();
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
@@ -222,13 +252,13 @@ pub trait Farm:
     #[endpoint(endProduceRewards)]
     fn end_produce_rewards_endpoint(&self) {
         self.require_caller_has_admin_permissions();
-        self.end_produce_rewards::<Wrapper<Self>>();
+        self.end_produce_rewards::<FarmConcentratedLiqWrapper<Self>>();
     }
 
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
-        self.set_per_block_rewards::<Wrapper<Self>>(per_block_amount);
+        self.set_per_block_rewards::<FarmConcentratedLiqWrapper<Self>>(per_block_amount);
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -236,14 +266,14 @@ pub trait Farm:
         &self,
         user: ManagedAddress,
         farm_token_amount: BigUint,
-        attributes: FarmTokenAttributes<Self::Api>,
+        attributes: FarmTokenConcentratedLiqAttributes<Self::Api>,
     ) -> BigUint {
         self.require_queried();
 
         let mut storage_cache = StorageCache::new(self);
-        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+        FarmConcentratedLiqWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        Wrapper::<Self>::calculate_rewards(
+        FarmConcentratedLiqWrapper::<Self>::calculate_rewards(
             self,
             &user,
             &farm_token_amount,
@@ -251,4 +281,12 @@ pub trait Farm:
             &storage_cache,
         )
     }
+
+    // Pair storage - used for validation
+
+    #[storage_mapper("first_token_id")]
+    fn first_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[storage_mapper("second_token_id")]
+    fn second_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }
