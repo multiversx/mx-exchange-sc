@@ -167,11 +167,10 @@ pub trait ConcentratedLiqModule:
     }
 
     // TODO: Find a better solution
-    fn log_base_n(&self, numerator: BigFloat, base: BigFloat) -> i32 {
+    fn log_base_n(&self, mut numerator: BigFloat, base: BigFloat) -> i32 {
         let mut result = 0;
-        let mut num = numerator;
-        while num >= base {
-            num /= &base;
+        while numerator >= base {
+            numerator /= &base;
             result += 1;
         }
 
