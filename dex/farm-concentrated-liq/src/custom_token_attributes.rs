@@ -34,6 +34,7 @@ impl<M: ManagedTypeApi> From<FarmTokenAttributes<M>> for FarmTokenConcentratedLi
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl<M: ManagedTypeApi> Into<FarmTokenAttributes<M>> for FarmTokenConcentratedLiqAttributes<M> {
     fn into(self) -> FarmTokenAttributes<M> {
         M::error_api_impl().signal_error(NOT_IMPLEMENTED_ERR_MSG);
