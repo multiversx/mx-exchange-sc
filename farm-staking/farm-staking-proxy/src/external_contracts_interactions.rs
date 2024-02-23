@@ -11,12 +11,10 @@ use farm_staking::{
 use farm_with_locked_rewards::ProxyTrait as _;
 use pair::{
     pair_actions::{common_result_types::RemoveLiquidityResultType, remove_liq::ProxyTrait as _},
-    safe_price_view::ProxyTrait as _,
+    safe_price_view::{ProxyTrait as _, SafePriceLpToken},
 };
 
 use crate::result_types::*;
-
-pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
 
 #[multiversx_sc::module]
 pub trait ExternalContractsInteractionsModule:
@@ -199,17 +197,16 @@ pub trait ExternalContractsInteractionsModule:
 
     fn get_lp_tokens_safe_price(&self, lp_tokens_amount: BigUint) -> BigUint {
         let pair_address = self.pair_address().get();
-        let result: SafePriceResult<Self::Api> = self
+        let result: SafePriceLpToken<Self::Api> = self
             .pair_proxy_obj(pair_address)
             .update_and_get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
             .execute_on_dest_context();
-        let (first_token_info, second_token_info) = result.into_tuple();
         let staking_token_id = self.staking_token_id().get();
 
-        if first_token_info.token_identifier == staking_token_id {
-            first_token_info.amount
-        } else if second_token_info.token_identifier == staking_token_id {
-            second_token_info.amount
+        if result.first_token_payment.token_identifier == staking_token_id {
+            result.first_token_payment.amount
+        } else if result.second_token_payment.token_identifier == staking_token_id {
+            result.second_token_payment.amount
         } else {
             sc_panic!("Invalid Pair contract called");
         }
