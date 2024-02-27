@@ -9,14 +9,6 @@ use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
 use common_structs::Epoch;
 use fixed_supply_token::FixedSupplyToken;
 
-
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
-pub struct RemoveLiquidityProxyCommon<M: ManagedTypeApi> {
-    pub first_payment: EsdtTokenPayment<M>,
-    pub second_payment: EsdtTokenPayment<M>,
-    pub farm_rewards: EsdtTokenPayment<M>,
-}
-
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
     crate::proxy_common::ProxyCommonModule
