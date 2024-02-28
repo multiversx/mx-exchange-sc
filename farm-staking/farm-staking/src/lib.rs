@@ -123,7 +123,7 @@ pub trait FarmStaking:
 
         (merged_farm_token, boosted_rewards_payment).into()
     }
-    
+
     #[view(calculateRewardsForGivenPosition)]
     fn calculate_rewards_for_given_position(
         &self,

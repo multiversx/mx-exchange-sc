@@ -165,7 +165,7 @@ pub trait ProxyLpModule:
         );
 
         let add_liq_result = self.call_pair_add_liquidity(
-            lp_address,
+            lp_address.clone(),
             ref_first_payment_unlocked,
             ref_second_payment_unlocked,
             first_token_amount_min,
@@ -236,12 +236,26 @@ pub trait ProxyLpModule:
         second_token_amount_min: BigUint,
     ) -> RemoveLiquidityThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
+
+        self.remove_liquidity_locked_token_common(
+            payment,
+            first_token_amount_min,
+            second_token_amount_min,
+        )
+    }
+
+    fn remove_liquidity_locked_token_common(
+        &self,
+        input_payment: EsdtTokenPayment,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    ) -> RemoveLiquidityThroughProxyResultType<Self::Api> {
         let lp_proxy_token_mapper = self.lp_proxy_token();
-        lp_proxy_token_mapper.require_same_token(&payment.token_identifier);
+        lp_proxy_token_mapper.require_same_token(&input_payment.token_identifier);
 
         let lp_proxy_token_attributes: LpProxyTokenAttributes<Self::Api> =
-            lp_proxy_token_mapper.get_token_attributes(payment.token_nonce);
-        lp_proxy_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+            lp_proxy_token_mapper.get_token_attributes(input_payment.token_nonce);
+        lp_proxy_token_mapper.nft_burn(input_payment.token_nonce, &input_payment.amount);
 
         let lp_address = self
             .lp_address_for_token_pair(
@@ -249,7 +263,7 @@ pub trait ProxyLpModule:
                 &lp_proxy_token_attributes.second_token_id,
             )
             .get();
-        let lp_token_amount = payment.amount;
+        let lp_token_amount = input_payment.amount;
         let remove_liq_result = self.call_pair_remove_liquidity(
             lp_address,
             lp_proxy_token_attributes.lp_token_id,
