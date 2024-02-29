@@ -462,8 +462,11 @@ pub trait ProxyFarmModule:
             == wrapped_lp_token_id
         {
             let wrapped_lp_mapper = self.wrapped_lp_token();
-            let wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> =
-                self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_lp_mapper);
+            let wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> = self
+                .get_attributes_as_part_of_fixed_supply(
+                    &wrapped_farm_attributes.proxy_farming_token,
+                    &wrapped_lp_mapper,
+                );
             let new_locked_tokens = self.increase_proxy_pair_token_energy(
                 caller.clone(),
                 lock_epochs,
