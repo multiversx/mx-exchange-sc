@@ -480,11 +480,8 @@ pub trait ProxyFarmModule:
             };
 
             let new_token_amount = new_wrapped_lp_attributes.get_total_supply();
-            let new_wrapped_lp = wrapped_lp_mapper.nft_create_and_send(
-                &caller,
-                new_token_amount,
-                &new_wrapped_lp_attributes,
-            );
+            let new_wrapped_lp =
+                wrapped_lp_mapper.nft_create(new_token_amount, &new_wrapped_lp_attributes);
 
             self.send().esdt_local_burn(
                 &wrapped_farm_attributes.proxy_farming_token.token_identifier,
