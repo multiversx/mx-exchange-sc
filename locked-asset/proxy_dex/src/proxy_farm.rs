@@ -22,6 +22,13 @@ pub type EnterFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtToke
 pub type ExitFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct DestroyFarmResultType<M: ManagedTypeApi> {
+    pub first_payment: EsdtTokenPayment<M>,
+    pub second_payment: EsdtTokenPayment<M>,
+    pub farm_rewards: EsdtTokenPayment<M>,
+}
+
 #[multiversx_sc::module]
 pub trait ProxyFarmModule:
     crate::proxy_common::ProxyCommonModule
@@ -234,6 +241,85 @@ pub trait ProxyFarmModule:
         (initial_proxy_farming_tokens, exit_result.reward_tokens).into()
     }
 
+    #[payable("*")]
+    #[endpoint(destroyFarmProxy)]
+    fn destroy_farm_proxy(
+        &self,
+        farm_address: ManagedAddress,
+        pair_address: ManagedAddress,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+        opt_original_caller: OptionalValue<ManagedAddress>,
+    ) -> DestroyFarmResultType<Self::Api> {
+        self.require_is_intermediated_farm(&farm_address);
+        self.require_is_intermediated_pair(&pair_address);
+        self.require_wrapped_farm_token_id_not_empty();
+        self.require_wrapped_lp_token_id_not_empty();
+
+        let wrapped_farm_token_mapper = self.wrapped_farm_token();
+        let payment = self.call_value().single_esdt();
+        wrapped_farm_token_mapper.require_same_token(&payment.token_identifier);
+
+        let full_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api> = self
+            .blockchain()
+            .get_token_attributes(&payment.token_identifier, payment.token_nonce);
+
+        let wrapped_farm_attributes_for_exit: WrappedFarmTokenAttributes<Self::Api> =
+            full_wrapped_farm_attributes.into_part(&payment.amount);
+
+        let caller = self.blockchain().get_caller();
+        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
+
+        let exit_result = self.call_exit_farm(
+            original_caller.clone(),
+            farm_address.clone(),
+            wrapped_farm_attributes_for_exit.farm_token.clone(),
+        );
+
+        self.burn_if_base_asset(&exit_result.farming_tokens);
+
+        let wrapped_farm_tokens_for_initial_tokens = WrappedFarmToken {
+            payment: payment.clone(),
+            attributes: wrapped_farm_attributes_for_exit.clone(),
+        };
+
+        let initial_proxy_farming_tokens = self
+            .handle_farm_penalty_and_get_output_proxy_farming_token(
+                &original_caller,
+                wrapped_farm_tokens_for_initial_tokens,
+                exit_result.farming_tokens.amount,
+            );
+
+        let mut remove_liquidity_result = self.remove_liquidity_proxy_common(
+            initial_proxy_farming_tokens.clone(),
+            pair_address,
+            first_token_amount_min,
+            second_token_amount_min,
+        );
+
+        // Burn farm token
+        wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
+        // Push farm rewards
+        remove_liquidity_result.push(exit_result.reward_tokens.clone());
+
+        self.send_multiple_tokens_if_not_zero(&caller, &remove_liquidity_result);
+
+        self.emit_exit_farm_proxy_event(
+            &original_caller,
+            &farm_address,
+            payment,
+            wrapped_farm_attributes_for_exit,
+            exit_result.reward_tokens.clone(),
+        );
+
+        DestroyFarmResultType {
+            first_payment: remove_liquidity_result.get(0),
+            second_payment: remove_liquidity_result.get(1),
+            farm_rewards: exit_result.reward_tokens,
+        }
+    }
+
     fn handle_farm_penalty_and_get_output_proxy_farming_token(
         &self,
         caller: &ManagedAddress,
@@ -324,6 +410,9 @@ pub trait ProxyFarmModule:
         self.send_payment_non_zero(&caller, &new_wrapped_token);
         self.send_payment_non_zero(&caller, &claim_result.rewards);
 
+        // Burn farm token
+        wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
         self.emit_claim_rewards_farm_proxy_event(
             &original_caller,
             &farm_address,
@@ -373,8 +462,11 @@ pub trait ProxyFarmModule:
             == wrapped_lp_token_id
         {
             let wrapped_lp_mapper = self.wrapped_lp_token();
-            let wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> =
-                self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_lp_mapper);
+            let wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> = self
+                .get_attributes_as_part_of_fixed_supply(
+                    &wrapped_farm_attributes.proxy_farming_token,
+                    &wrapped_lp_mapper,
+                );
             let new_locked_tokens = self.increase_proxy_pair_token_energy(
                 caller.clone(),
                 lock_epochs,
@@ -388,11 +480,8 @@ pub trait ProxyFarmModule:
             };
 
             let new_token_amount = new_wrapped_lp_attributes.get_total_supply();
-            let new_wrapped_lp = wrapped_lp_mapper.nft_create_and_send(
-                &caller,
-                new_token_amount,
-                &new_wrapped_lp_attributes,
-            );
+            let new_wrapped_lp =
+                wrapped_lp_mapper.nft_create(new_token_amount, &new_wrapped_lp_attributes);
 
             self.send().esdt_local_burn(
                 &wrapped_farm_attributes.proxy_farming_token.token_identifier,
