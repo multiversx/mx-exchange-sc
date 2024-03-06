@@ -9,7 +9,7 @@ pub type Round = u64;
 
 pub const MAX_OBSERVATIONS: usize = 65_536; // 2^{16} records, to optimise binary search
 
-#[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, TypeAbi)]
+#[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, TypeAbi, Debug)]
 pub struct PriceObservation<M: ManagedTypeApi> {
     pub first_token_reserve_accumulated: BigUint<M>,
     pub second_token_reserve_accumulated: BigUint<M>,
@@ -126,7 +126,7 @@ pub trait SafePriceModule:
         new_round: Round,
         new_first_reserve: &BigUint,
         new_second_reserve: &BigUint,
-        lp_supply: &BigUint,
+        new_lp_supply: &BigUint,
         current_price_observation: &PriceObservation<Self::Api>,
     ) -> PriceObservation<Self::Api> {
         let new_weight = if current_price_observation.recording_round == 0 {
@@ -140,7 +140,7 @@ pub trait SafePriceModule:
             BigUint::from(new_weight) * new_first_reserve;
         new_price_observation.second_token_reserve_accumulated +=
             BigUint::from(new_weight) * new_second_reserve;
-        new_price_observation.lp_supply_accumulated += BigUint::from(new_weight) * lp_supply;
+        new_price_observation.lp_supply_accumulated += BigUint::from(new_weight) * new_lp_supply;
         new_price_observation.weight_accumulated += new_weight;
         new_price_observation.recording_round = new_round;
 
