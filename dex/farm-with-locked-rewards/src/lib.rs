@@ -142,7 +142,7 @@ pub trait Farm:
                 require!(get_rewards_unlocked, "Invalid value");
 
                 rewards_payment.amount = self.apply_unlock_early_penalty(rewards_payment.amount);
-                self.send_payment_non_zero(&caller, &rewards_payment);
+                self.mint_and_send(&caller, &rewards_payment);
 
                 rewards_payment
             }
@@ -191,7 +191,7 @@ pub trait Farm:
                 require!(get_rewards_unlocked, "Invalid value");
 
                 rewards.amount = self.apply_unlock_early_penalty(rewards.amount);
-                self.send_payment_non_zero(&caller, &rewards);
+                self.mint_and_send(&caller, &rewards);
 
                 rewards
             }
@@ -268,7 +268,7 @@ pub trait Farm:
 
                 total_rewards_payment.amount =
                     self.apply_unlock_early_penalty(total_rewards_payment.amount);
-                self.send_payment_non_zero(&caller, &total_rewards_payment);
+                self.mint_and_send(&caller, &total_rewards_payment);
 
                 total_rewards_payment
             }
@@ -333,6 +333,17 @@ pub trait Farm:
         }
 
         self.lock_virtual(token_id, amount, destination_address, energy_address)
+    }
+
+    fn mint_and_send(&self, user: &ManagedAddress, payment: &EsdtTokenPayment) {
+        if payment.amount == 0 {
+            return;
+        }
+
+        self.send()
+            .esdt_local_mint(&payment.token_identifier, 0, &payment.amount);
+        self.send()
+            .direct_esdt(user, &payment.token_identifier, 0, &payment.amount);
     }
 }
 

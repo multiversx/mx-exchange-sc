@@ -176,6 +176,11 @@ where
             FARM_TOKEN_ID,
             &farm_token_roles[..],
         );
+        b_mock.set_esdt_local_roles(
+            farm_wrapper.address_ref(),
+            REWARD_TOKEN_ID,
+            &[EsdtLocalRole::Mint],
+        );
 
         let farming_token_roles = [EsdtLocalRole::Burn];
         b_mock.set_esdt_local_roles(
