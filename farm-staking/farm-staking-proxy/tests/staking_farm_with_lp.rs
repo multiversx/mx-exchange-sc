@@ -251,6 +251,7 @@ fn unstake_partial_position_test() {
                     managed_biguint!(1),
                     managed_biguint!(1),
                     OptionalValue::None,
+                    OptionalValue::None,
                 );
 
                 let wegld_payment = results.other_token_payment;
@@ -297,6 +298,7 @@ fn unstake_partial_position_test() {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
+                    OptionalValue::None,
                     OptionalValue::None,
                 );
 

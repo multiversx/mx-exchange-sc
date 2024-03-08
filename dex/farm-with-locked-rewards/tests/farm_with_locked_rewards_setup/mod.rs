@@ -382,7 +382,10 @@ where
                 &rust_biguint!(farm_token_amount),
                 |sc| {
                     let (out_farm_token, out_reward_token) = sc
-                        .claim_rewards_endpoint(OptionalValue::Some(managed_address!(user)))
+                        .claim_rewards_endpoint(
+                            OptionalValue::Some(managed_address!(user)),
+                            OptionalValue::None,
+                        )
                         .into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
@@ -418,7 +421,10 @@ where
                 farm_token_nonce,
                 &rust_biguint!(exit_farm_amount),
                 |sc| {
-                    let _ = sc.exit_farm_endpoint(OptionalValue::Some(managed_address!(user)));
+                    let _ = sc.exit_farm_endpoint(
+                        OptionalValue::Some(managed_address!(user)),
+                        OptionalValue::None,
+                    );
                 },
             )
             .assert_ok();

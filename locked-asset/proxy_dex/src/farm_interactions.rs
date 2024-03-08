@@ -40,10 +40,11 @@ pub trait FarmInteractionsModule {
         user: ManagedAddress,
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
+        opt_get_rewards_unlocked: OptionalValue<bool>,
     ) -> ExitFarmResultWrapper<Self::Api> {
         let raw_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
-            .exit_farm_endpoint(user)
+            .exit_farm_endpoint(user, opt_get_rewards_unlocked)
             .with_esdt_transfer(farm_token)
             .execute_on_dest_context();
         let (farming_tokens, reward_tokens) = raw_result.into_tuple();
@@ -59,10 +60,11 @@ pub trait FarmInteractionsModule {
         user: ManagedAddress,
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
+        opt_get_rewards_unlocked: OptionalValue<bool>,
     ) -> ClaimRewardsResultWrapper<Self::Api> {
         let raw_result: ClaimRewardsResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
-            .claim_rewards_endpoint(user)
+            .claim_rewards_endpoint(user, opt_get_rewards_unlocked)
             .with_esdt_transfer(farm_token)
             .execute_on_dest_context();
         let (new_farm_token, rewards) = raw_result.into_tuple();
