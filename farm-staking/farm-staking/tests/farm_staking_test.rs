@@ -3,10 +3,7 @@
 use multiversx_sc_scenario::{rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi};
 
 pub mod farm_staking_setup;
-use farm_staking::{
-    custom_rewards::{BLOCKS_IN_YEAR, MAX_PERCENT},
-    token_attributes::UnbondSftAttributes,
-};
+use farm_staking::custom_rewards::{BLOCKS_IN_YEAR, MAX_PERCENT};
 use farm_staking_setup::*;
 
 #[test]
@@ -61,9 +58,6 @@ fn test_unstake_farm() {
         &expected_ride_token_balance,
         expected_farm_token_nonce + 1,
         farm_in_amount,
-        &UnbondSftAttributes {
-            unlock_epoch: current_epoch + MIN_UNBOND_EPOCHS,
-        },
     );
     farm_setup.check_farm_token_supply(0);
 }
@@ -174,9 +168,6 @@ fn test_exit_farm_after_enter_twice() {
         &expected_ride_token_balance,
         3,
         farm_in_amount,
-        &UnbondSftAttributes {
-            unlock_epoch: 8 + MIN_UNBOND_EPOCHS,
-        },
     );
     farm_setup.check_farm_token_supply(second_farm_in_amount);
 }
@@ -216,9 +207,6 @@ fn test_unbond() {
         &expected_ride_token_balance,
         expected_farm_token_nonce + 1,
         farm_in_amount,
-        &UnbondSftAttributes {
-            unlock_epoch: current_epoch + MIN_UNBOND_EPOCHS,
-        },
     );
     farm_setup.check_farm_token_supply(0);
 

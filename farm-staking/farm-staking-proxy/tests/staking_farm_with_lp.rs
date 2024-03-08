@@ -171,7 +171,6 @@ fn test_unstake_through_proxy_no_claim() {
         99_999,
         1_899,
         1_001_000_000,
-        30,
     );
 }
 
@@ -211,7 +210,6 @@ fn unstake_through_proxy_after_claim() {
         0,
         0,
         1_001_000_000,
-        30,
     );
 }
 
@@ -370,7 +368,6 @@ fn unbond_test() {
         0,
         0,
         1_001_000_000,
-        30,
     );
 
     setup.b_mock.set_block_epoch(30);

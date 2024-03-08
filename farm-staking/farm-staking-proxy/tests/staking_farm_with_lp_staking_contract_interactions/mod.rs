@@ -5,7 +5,7 @@ use energy_query::Energy;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_with_locked_rewards::Farm;
 use multiversx_sc::{
-    codec::multi_types::OptionalValue,
+    codec::{multi_types::OptionalValue, Empty},
     types::{Address, BigInt},
 };
 use multiversx_sc_scenario::{
@@ -17,8 +17,7 @@ use multiversx_sc_scenario::{
 
 use farm_staking::{
     compound_stake_farm_rewards::CompoundStakeFarmRewardsModule, stake_farm::StakeFarmModule,
-    token_attributes::UnbondSftAttributes, unbond_farm::UnbondFarmModule,
-    unstake_farm::UnstakeFarmModule,
+    unbond_farm::UnbondFarmModule, unstake_farm::UnstakeFarmModule,
 };
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::proxy_actions::claim::ProxyClaimModule;
@@ -287,7 +286,6 @@ where
         expected_lp_farm_rewards: u64,
         expected_staking_rewards: u64,
         expected_unbond_token_amount: u64,
-        expected_unbond_token_unlock_epoch: u64,
     ) -> u64 {
         let mut unbond_token_nonce = 0;
 
@@ -322,16 +320,12 @@ where
             .assert_ok();
 
         self.b_mock.execute_in_managed_environment(|| {
-            let expected_attributes = UnbondSftAttributes {
-                unlock_epoch: expected_unbond_token_unlock_epoch,
-            };
-
-            self.b_mock.check_nft_balance(
+            self.b_mock.check_nft_balance::<Empty>(
                 &self.user_addr,
                 STAKING_FARM_TOKEN_ID,
                 unbond_token_nonce,
                 &rust_biguint!(expected_unbond_token_amount),
-                Some(&expected_attributes),
+                None,
             );
         });
 
