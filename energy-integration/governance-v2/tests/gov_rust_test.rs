@@ -7,7 +7,7 @@ use governance_v2::{
     configurable::ConfigurablePropertiesModule, proposal::GovernanceProposalStatus,
     proposal_storage::ProposalStorageModule, views::ViewsModule,
 };
-use multiversx_sc::{types::ManagedVec};
+use multiversx_sc::types::ManagedVec;
 use multiversx_sc_scenario::{managed_buffer, rust_biguint};
 
 #[test]
@@ -71,7 +71,7 @@ fn gov_propose_test() {
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
             let proposal = sc.proposals().get(1);
-            let action = proposal.actions.get(0).unwrap();
+            let action = proposal.actions.first().unwrap();
             let mut args_managed = ManagedVec::new();
             args_managed.push(managed_buffer!(&1_000u64.to_be_bytes()));
 

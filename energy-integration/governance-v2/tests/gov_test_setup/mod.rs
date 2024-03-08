@@ -182,15 +182,8 @@ where
             })
             .assert_ok();
 
-        let vote_nft_roles = [
-            EsdtLocalRole::Mint,
-            EsdtLocalRole::Burn,
-        ];
-        b_mock.set_esdt_local_roles(
-            gov_wrapper.address_ref(),
-            MEX_TOKEN_ID,
-            &vote_nft_roles[..],
-        );
+        let vote_nft_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
+        b_mock.set_esdt_local_roles(gov_wrapper.address_ref(), MEX_TOKEN_ID, &vote_nft_roles[..]);
 
         Self {
             b_mock,
@@ -288,7 +281,8 @@ where
     pub fn change_min_energy(&mut self, min_energy_for_propose: usize) -> TxResult {
         self.b_mock
             .execute_tx(&self.owner, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.min_energy_for_propose().set(&managed_biguint!(min_energy_for_propose));
+                sc.min_energy_for_propose()
+                    .set(&managed_biguint!(min_energy_for_propose));
             })
     }
 

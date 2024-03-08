@@ -6,7 +6,7 @@ multiversx_sc::derive_imports!();
 type EnterFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
-    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 

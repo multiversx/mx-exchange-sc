@@ -270,7 +270,8 @@ fn test_withdraw_after_produced_rewards() {
 
     let expected_reward_token_out = 40;
 
-    let withdraw_amount = rust_biguint!(TOTAL_REWARDS_AMOUNT) - rust_biguint!(expected_reward_token_out);
+    let withdraw_amount =
+        rust_biguint!(TOTAL_REWARDS_AMOUNT) - rust_biguint!(expected_reward_token_out);
     farm_setup.withdraw_rewards(&withdraw_amount);
 
     // Only the user's rewards will remain
