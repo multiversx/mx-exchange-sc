@@ -15,10 +15,8 @@ use crate::{
 pub struct EnterFarmResult<M: ManagedTypeApi> {
     pub farming_token: EsdtTokenPayment<M>,
     pub farm_token: EsdtTokenPayment<M>,
-    pub rewards: EsdtTokenPayment<M>,
 }
 
-pub type EnterFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ExitFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
@@ -53,7 +51,7 @@ pub trait ProxyFarmModule:
         &self,
         farm_address: ManagedAddress,
         opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> EnterFarmProxyResultType<Self::Api> {
+    ) -> EsdtTokenPayment {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -112,7 +110,6 @@ pub trait ProxyFarmModule:
         };
 
         self.send_payment_non_zero(&caller, &new_wrapped_farm_token.payment);
-        self.send_payment_non_zero(&caller, &enter_result.rewards);
 
         self.emit_enter_farm_proxy_event(
             &original_caller,
@@ -123,7 +120,7 @@ pub trait ProxyFarmModule:
             token_merge_requested,
         );
 
-        (new_wrapped_farm_token.payment, enter_result.rewards).into()
+        new_wrapped_farm_token.payment
     }
 
     fn enter_farm_locked_token(
@@ -147,7 +144,6 @@ pub trait ProxyFarmModule:
         EnterFarmResult {
             farming_token: minted_asset_tokens,
             farm_token: enter_result.farm_token,
-            rewards: enter_result.reward_token,
         }
     }
 
@@ -176,7 +172,6 @@ pub trait ProxyFarmModule:
         EnterFarmResult {
             farming_token,
             farm_token: enter_result.farm_token,
-            rewards: enter_result.reward_token,
         }
     }
 

@@ -180,8 +180,7 @@ where
 
         self.b_mock
             .execute_esdt_multi_transfer(&self.user_address, &self.farm_wrapper, &payments, |sc| {
-                let (new_farm_token_payment, _) =
-                    sc.stake_farm_endpoint(OptionalValue::None).into_tuple();
+                let new_farm_token_payment = sc.stake_farm_endpoint(OptionalValue::None);
                 assert_eq!(
                     new_farm_token_payment.token_identifier,
                     managed_token_id!(FARM_TOKEN_ID)

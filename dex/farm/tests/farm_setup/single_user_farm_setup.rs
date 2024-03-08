@@ -266,8 +266,7 @@ where
         let b_mock = &mut self.blockchain_wrapper;
         b_mock
             .execute_esdt_multi_transfer(&self.user_address, &self.farm_wrapper, &payments, |sc| {
-                let enter_farm_result = sc.enter_farm_endpoint(OptionalValue::None);
-                let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+                let out_farm_token = sc.enter_farm_endpoint(OptionalValue::None);
                 assert_eq!(
                     out_farm_token.token_identifier,
                     managed_token_id!(FARM_TOKEN_ID)

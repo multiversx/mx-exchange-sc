@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
+use farm_boosted_yields::FarmBoostedYieldsModule;
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 
 pub mod farm_setup;
@@ -828,14 +829,22 @@ fn farm_enter_with_multiple_farm_token() {
     // (6000 + 1666) / (5) = 1533
     let second_boosted_amt = 1533; // 4000 energy & 50_000_000 farm tokens
     let second_farm_token_amount2 = 50_000_000;
-    let second_user_enter_farm_reward = farm_setup.enter_farm_with_additional_payment(
+    farm_setup.enter_farm_with_additional_payment(
         &second_user,
         second_farm_token_amount2,
         4,
         second_farm_token_amount,
     );
 
-    assert_eq!(second_user_enter_farm_reward, second_boosted_amt);
+    farm_setup
+        .b_mock
+        .execute_query(&farm_setup.farm_wrapper, |sc| {
+            let boosted_rewards = sc
+                .accumulated_rewards_per_user(&managed_address!(&second_user))
+                .get();
+            assert_eq!(boosted_rewards, managed_biguint!(second_boosted_amt));
+        })
+        .assert_ok();
 
     farm_setup
         .b_mock
@@ -846,12 +855,6 @@ fn farm_enter_with_multiple_farm_token() {
             &rust_biguint!(second_farm_token_amount + second_farm_token_amount2),
             None,
         );
-
-    farm_setup.b_mock.check_esdt_balance(
-        &second_user,
-        REWARD_TOKEN_ID,
-        &rust_biguint!(second_boosted_amt),
-    );
 }
 
 #[test]

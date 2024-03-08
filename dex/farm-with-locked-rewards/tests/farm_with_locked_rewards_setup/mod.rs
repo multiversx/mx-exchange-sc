@@ -288,9 +288,8 @@ where
                 0,
                 &rust_biguint!(farming_token_amount),
                 |sc| {
-                    let enter_farm_result =
+                    let out_farm_token =
                         sc.enter_farm_endpoint(OptionalValue::Some(managed_address!(user)));
-                    let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)

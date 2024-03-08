@@ -2,13 +2,12 @@ multiversx_sc::imports!();
 
 use farm::{
     base_functions::{ClaimRewardsResultType, ClaimRewardsResultWrapper},
-    EnterFarmResultType, ExitFarmWithPartialPosResultType,
+    ExitFarmWithPartialPosResultType,
 };
 use farm_with_locked_rewards::ProxyTrait as _;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
-    pub reward_token: EsdtTokenPayment<M>,
 }
 
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
@@ -25,17 +24,14 @@ pub trait FarmInteractionsModule {
         farming_token_id: TokenIdentifier,
         farming_token_amount: BigUint,
     ) -> EnterFarmResultWrapper<Self::Api> {
-        let enter_farm_result: EnterFarmResultType<Self::Api> = self
+        let output_farm_token_payment: EsdtTokenPayment = self
             .farm_contract_proxy(farm_address)
             .enter_farm_endpoint(user)
             .with_esdt_transfer((farming_token_id, 0, farming_token_amount))
             .execute_on_dest_context();
 
-        let (output_farm_token_payment, rewards_payment) = enter_farm_result.into_tuple();
-
         EnterFarmResultWrapper {
             farm_token: output_farm_token_payment,
-            reward_token: rewards_payment,
         }
     }
 

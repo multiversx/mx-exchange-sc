@@ -46,9 +46,13 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
             );
         }
 
+        let accumulated_boosted_rewards = self.accumulated_rewards_per_user(user).take();
         let boosted_rewards = self.claim_only_boosted_payment(user);
-        let boosted_rewards_payment =
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+        let boosted_rewards_payment = EsdtTokenPayment::new(
+            self.reward_token_id().get(),
+            0,
+            accumulated_boosted_rewards + boosted_rewards,
+        );
 
         self.send_payment_non_zero(user, &boosted_rewards_payment);
 

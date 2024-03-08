@@ -119,10 +119,7 @@ pub trait ProxyFarmModule:
     /// - FARM_PROXY token, which can later be used to further interact with the specific farm
     #[payable("*")]
     #[endpoint(enterFarmLockedToken)]
-    fn enter_farm_locked_token(
-        &self,
-        farm_type: FarmType,
-    ) -> EnterFarmThroughProxyResultType<Self::Api> {
+    fn enter_farm_locked_token(&self, farm_type: FarmType) -> EsdtTokenPayment {
         let payments: ManagedVec<EsdtTokenPayment<Self::Api>> =
             self.call_value().all_esdt_transfers().clone_value();
         require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
@@ -185,16 +182,7 @@ pub trait ProxyFarmModule:
             &proxy_farm_token_attributes,
         );
 
-        if enter_farm_result.reward_tokens.amount > 0 {
-            self.send().direct_esdt(
-                &caller,
-                &enter_farm_result.reward_tokens.token_identifier,
-                enter_farm_result.reward_tokens.token_nonce,
-                &enter_farm_result.reward_tokens.amount,
-            );
-        }
-
-        (farm_tokens, enter_farm_result.reward_tokens).into()
+        farm_tokens
     }
 
     /// Exit a farm previously entered through `enterFarmLockedToken`.
