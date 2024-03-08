@@ -33,7 +33,6 @@ pub trait CompoundStakeFarmRewardsModule:
     #[endpoint(compoundRewards)]
     fn compound_rewards(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
-        self.migrate_old_farm_positions(&caller);
         let payments = self.get_non_empty_payments();
         let compound_result =
             self.compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments);

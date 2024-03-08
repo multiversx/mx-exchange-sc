@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(clippy::too_many_arguments)]
-#![feature(exact_size_is_empty)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -8,7 +6,9 @@ multiversx_sc::derive_imports!();
 pub mod base_functions;
 pub mod exit_penalty;
 
-use base_functions::{ClaimRewardsResultType, DoubleMultiPayment, Wrapper};
+use base_functions::{
+    ClaimRewardsResultType, CompoundRewardsResultType, ExitFarmResultType, Wrapper,
+};
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
@@ -17,8 +17,17 @@ use exit_penalty::{
 };
 use farm_base_impl::base_traits_impl::FarmContract;
 
-pub type EnterFarmResultType<M> = DoubleMultiPayment<M>;
-pub type ExitFarmWithPartialPosResultType<M> = DoubleMultiPayment<M>;
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct EnterFarmResultType<M: ManagedTypeApi> {
+    pub new_farm_token: EsdtTokenPayment<M>,
+    pub boosted_rewards: EsdtTokenPayment<M>,
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct MergeTokensResultType<M: ManagedTypeApi> {
+    pub new_farm_token: EsdtTokenPayment<M>,
+    pub boosted_rewards: EsdtTokenPayment<M>,
+}
 
 #[multiversx_sc::contract]
 pub trait Farm:
@@ -99,7 +108,10 @@ pub trait Farm:
 
         self.update_energy_and_progress(&orig_caller);
 
-        (new_farm_token, boosted_rewards_payment).into()
+        EnterFarmResultType {
+            new_farm_token,
+            boosted_rewards: boosted_rewards_payment,
+        }
     }
 
     #[payable("*")]
@@ -115,7 +127,7 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
         self.send_payment_non_zero(&caller, &claim_rewards_result.rewards);
 
-        claim_rewards_result.into()
+        claim_rewards_result
     }
 
     #[payable("*")]
@@ -123,16 +135,16 @@ pub trait Farm:
     fn compound_rewards_endpoint(
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment {
+    ) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-        let output_farm_token_payment = self.compound_rewards::<Wrapper<Self>>(orig_caller.clone());
+        let compund_result = self.compound_rewards::<Wrapper<Self>>(orig_caller.clone());
 
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
+        self.send_payment_non_zero(&caller, &compund_result.new_farm_token);
 
         self.update_energy_and_progress(&orig_caller);
 
-        output_farm_token_payment
+        compund_result
     }
 
     #[payable("*")]
@@ -140,7 +152,7 @@ pub trait Farm:
     fn exit_farm_endpoint(
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> ExitFarmWithPartialPosResultType<Self::Api> {
+    ) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
@@ -152,7 +164,7 @@ pub trait Farm:
 
         self.clear_user_energy_if_needed(&orig_caller);
 
-        (exit_farm_result.farming_tokens, exit_farm_result.rewards).into()
+        exit_farm_result
     }
 
     #[payable("*")]
@@ -160,7 +172,7 @@ pub trait Farm:
     fn merge_farm_tokens_endpoint(
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> DoubleMultiPayment<Self::Api> {
+    ) -> MergeTokensResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
@@ -171,14 +183,14 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
-        (merged_farm_token, boosted_rewards_payment).into()
+        MergeTokensResultType {
+            new_farm_token: merged_farm_token,
+            boosted_rewards: boosted_rewards_payment,
+        }
     }
 
     #[endpoint(claimBoostedRewards)]
-    fn claim_boosted_rewards(
-        &self,
-        opt_user: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
             OptionalValue::Some(user) => user,
