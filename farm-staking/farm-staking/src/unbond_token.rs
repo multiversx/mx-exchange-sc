@@ -18,7 +18,7 @@ pub trait UnbondTokenModule:
 
         let payment_amount = self.call_value().egld_value().clone_value();
         self.unbond_token().issue_and_set_all_roles(
-            EsdtTokenType::NonFungible,
+            EsdtTokenType::Meta,
             payment_amount,
             token_display_name,
             token_ticker,
