@@ -141,8 +141,12 @@ pub trait Farm:
             OptionalValue::Some(get_rewards_unlocked) => {
                 require!(get_rewards_unlocked, "Invalid value");
 
-                rewards_payment.amount = self.apply_unlock_early_penalty(rewards_payment.amount);
-                self.mint_and_send(&caller, &rewards_payment);
+                let unlocked_rewards_payment = self.claim_unlocked_rewards(
+                    orig_caller.clone(),
+                    rewards_payment.token_identifier.clone(),
+                    rewards_payment.amount,
+                );
+                rewards_payment.amount = unlocked_rewards_payment.amount;
 
                 rewards_payment
             }
@@ -190,8 +194,12 @@ pub trait Farm:
             OptionalValue::Some(get_rewards_unlocked) => {
                 require!(get_rewards_unlocked, "Invalid value");
 
-                rewards.amount = self.apply_unlock_early_penalty(rewards.amount);
-                self.mint_and_send(&caller, &rewards);
+                let unlocked_rewards_payment = self.claim_unlocked_rewards(
+                    orig_caller.clone(),
+                    rewards.token_identifier.clone(),
+                    rewards.amount,
+                );
+                rewards.amount = unlocked_rewards_payment.amount;
 
                 rewards
             }
@@ -266,9 +274,12 @@ pub trait Farm:
             OptionalValue::Some(get_rewards_unlocked) => {
                 require!(get_rewards_unlocked, "Invalid value");
 
-                total_rewards_payment.amount =
-                    self.apply_unlock_early_penalty(total_rewards_payment.amount);
-                self.mint_and_send(&caller, &total_rewards_payment);
+                let unlocked_rewards_payment = self.claim_unlocked_rewards(
+                    user.clone(),
+                    total_rewards_payment.token_identifier.clone(),
+                    total_rewards_payment.amount,
+                );
+                total_rewards_payment.amount = unlocked_rewards_payment.amount;
 
                 total_rewards_payment
             }
@@ -335,15 +346,21 @@ pub trait Farm:
         self.lock_virtual(token_id, amount, destination_address, energy_address)
     }
 
-    fn mint_and_send(&self, user: &ManagedAddress, payment: &EsdtTokenPayment) {
-        if payment.amount == 0 {
-            return;
-        }
+    fn claim_unlocked_rewards(
+        &self,
+        user: ManagedAddress,
+        rewards_token: TokenIdentifier,
+        amount: BigUint,
+    ) -> EsdtTokenPayment {
+        let own_sc_address = self.blockchain().get_sc_address();
+        let locked_tokens = self.send_to_lock_contract_non_zero(
+            rewards_token,
+            amount,
+            own_sc_address,
+            user.clone(),
+        );
 
-        self.send()
-            .esdt_local_mint(&payment.token_identifier, 0, &payment.amount);
-        self.send()
-            .direct_esdt(user, &payment.token_identifier, 0, &payment.amount);
+        self.unlock_early(user, locked_tokens)
     }
 }
 

@@ -1,9 +1,6 @@
 multiversx_sc::imports!();
 
-use energy_factory::{
-    lock_options::{AllLockOptions, MAX_PENALTY_PERCENTAGE},
-    virtual_lock::ProxyTrait as _,
-};
+use energy_factory::{unlock_with_penalty::ProxyTrait as _, virtual_lock::ProxyTrait as _};
 
 #[multiversx_sc::module]
 pub trait LockWithEnergyModule {
@@ -39,38 +36,18 @@ pub trait LockWithEnergyModule {
             .execute_on_dest_context()
     }
 
+    fn unlock_early(&self, user: ManagedAddress, payment: EsdtTokenPayment) -> EsdtTokenPayment {
+        let mut proxy_instance = self.get_locking_sc_proxy_instance();
+
+        proxy_instance
+            .unlock_early(OptionalValue::Some(user))
+            .with_esdt_transfer(payment)
+            .execute_on_dest_context()
+    }
+
     fn get_locking_sc_proxy_instance(&self) -> energy_factory::Proxy<Self::Api> {
         let locking_sc_address = self.locking_sc_address().get();
         self.locking_sc_proxy_obj(locking_sc_address)
-    }
-
-    fn apply_unlock_early_penalty(&self, amount: BigUint) -> BigUint {
-        if amount == 0 {
-            return amount;
-        }
-
-        let energy_factory_address = self.locking_sc_address().get();
-        let lock_options = self
-            .lock_options()
-            .get_from_address(&energy_factory_address);
-
-        let lock_epochs = self.lock_epochs().get();
-        let mut opt_lock_option = None;
-        for lock_option in lock_options {
-            if lock_option.lock_epochs == lock_epochs {
-                opt_lock_option = Some(lock_option);
-
-                break;
-            }
-        }
-
-        require!(opt_lock_option.is_some(), "Lock option not found");
-
-        let lock_option = unsafe { opt_lock_option.unwrap_unchecked() };
-        let penalty_amount =
-            &amount * lock_option.penalty_start_percentage / MAX_PENALTY_PERCENTAGE;
-
-        amount - penalty_amount
     }
 
     #[proxy]
@@ -83,9 +60,4 @@ pub trait LockWithEnergyModule {
     #[view(getLockEpochs)]
     #[storage_mapper("lockEpochs")]
     fn lock_epochs(&self) -> SingleValueMapper<u64>;
-
-    // energy factory storage
-
-    #[storage_mapper("lockOptions")]
-    fn lock_options(&self) -> SingleValueMapper<AllLockOptions>;
 }
