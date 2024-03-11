@@ -2542,11 +2542,13 @@ version = "0.0.0"
 dependencies = [
  "common_structs",
  "hex",
+ "mergeable",
  "multiversx-sc",
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
  "num-traits",
+ "utils",
 ]
 
 [[package]]

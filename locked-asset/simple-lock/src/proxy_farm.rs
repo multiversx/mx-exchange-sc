@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use common_structs::Nonce;
+
 use crate::{error_messages::*, proxy_lp::LpProxyTokenAttributes};
 
 #[derive(
@@ -15,9 +17,9 @@ pub enum FarmType {
 pub struct FarmProxyTokenAttributes<M: ManagedTypeApi> {
     pub farm_type: FarmType,
     pub farm_token_id: TokenIdentifier<M>,
-    pub farm_token_nonce: u64,
+    pub farm_token_nonce: Nonce,
     pub farming_token_id: TokenIdentifier<M>,
-    pub farming_token_locked_nonce: u64,
+    pub farming_token_locked_nonce: Nonce,
 }
 
 pub type EnterFarmThroughProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
@@ -41,6 +43,7 @@ pub trait ProxyFarmModule:
     + crate::proxy_lp::ProxyLpModule
     + crate::token_attributes::TokenAttributesModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + utils::UtilsModule
 {
     #[only_owner]
     #[payable("EGLD")]
