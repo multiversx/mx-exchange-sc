@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           32
+// Endpoints:                           33
 // Async Callback:                       1
-// Total number of exported functions:  34
+// Total number of exported functions:  35
 
 #![no_std]
 #![allow(internal_features)]
@@ -33,6 +33,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setFeeOff => set_fee_off
         setPairCreationEnabled => set_pair_creation_enabled
         migratePairMap => migrate_pair_map
+        claimDeveloperRewardsPairs => claim_developer_rewards_pairs
         getPairCreationEnabled => pair_creation_enabled
         getState => state
         getOwner => owner
