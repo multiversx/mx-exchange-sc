@@ -43,7 +43,7 @@ pub trait UnbondFarmModule:
         unbond_token_mapper.require_same_token(&payment.token_identifier);
 
         let attributes: UnbondSftAttributes<Self::Api> =
-            unbond_token_mapper.get_token_attributes(payment.token_nonce);
+            self.get_attributes_as_part_of_fixed_supply(&payment, &unbond_token_mapper);
 
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
