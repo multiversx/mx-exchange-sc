@@ -5,6 +5,7 @@ pub trait UnbondTokenModule:
     permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
+    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(registerUnbondToken)]
     fn register_unbond_token(
@@ -24,6 +25,18 @@ pub trait UnbondTokenModule:
             num_decimals,
             None,
         );
+    }
+
+    #[only_owner]
+    #[endpoint(setTransferRoleUnbondToken)]
+    fn set_transfer_role_unbond_token(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        };
+
+        self.unbond_token()
+            .set_local_roles_for_address(&address, &[EsdtLocalRole::Transfer], None);
     }
 
     #[view(getUnbondTokenId)]
