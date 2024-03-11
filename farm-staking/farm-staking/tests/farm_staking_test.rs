@@ -56,7 +56,7 @@ fn test_unstake_farm() {
         expected_rewards,
         &expected_ride_token_balance,
         &expected_ride_token_balance,
-        expected_farm_token_nonce + 1,
+        1,
         farm_in_amount,
     );
     farm_setup.check_farm_token_supply(0);
@@ -166,7 +166,7 @@ fn test_exit_farm_after_enter_twice() {
         expected_rewards,
         &expected_ride_token_balance,
         &expected_ride_token_balance,
-        3,
+        1,
         farm_in_amount,
     );
     farm_setup.check_farm_token_supply(second_farm_in_amount);
@@ -205,7 +205,7 @@ fn test_unbond() {
         expected_rewards,
         &expected_ride_token_balance,
         &expected_ride_token_balance,
-        expected_farm_token_nonce + 1,
+        1,
         farm_in_amount,
     );
     farm_setup.check_farm_token_supply(0);
@@ -213,7 +213,7 @@ fn test_unbond() {
     farm_setup.set_block_epoch(current_epoch + MIN_UNBOND_EPOCHS);
 
     farm_setup.unbond_farm(
-        expected_farm_token_nonce + 1,
+        1,
         farm_in_amount,
         farm_in_amount,
         USER_TOTAL_RIDE_TOKENS + expected_rewards,

@@ -145,7 +145,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
         expected_reward_token_out,
         &expected_farming_token_balance,
         &expected_farming_token_balance,
-        5,
+        4,
         expected_reward_per_share,
     );
     fs_setup.check_farm_token_supply(farm_in_amount);
@@ -339,7 +339,7 @@ fn farm_staking_full_position_boosted_rewards_test() {
         expected_base_rewards + expected_boosted_rewards,
         &expected_farming_token_balance,
         &expected_farming_token_balance,
-        6,
+        5,
         expected_reward_per_share,
     );
 
@@ -351,7 +351,7 @@ fn farm_staking_full_position_boosted_rewards_test() {
         expected_base_rewards,
         &expected_farming_token_balance,
         &expected_farming_token_balance,
-        7,
+        6,
         expected_reward_per_share,
     );
     fs_setup.check_farm_token_supply(farm_in_amount * 2);

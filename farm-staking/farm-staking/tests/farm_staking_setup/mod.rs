@@ -367,7 +367,7 @@ where
 
         self.b_mock.check_nft_balance::<Empty>(
             &self.user_address,
-            FARM_TOKEN_ID,
+            UNBOND_TOKEN_ID,
             expected_unbond_token_nonce,
             &rust_biguint!(expected_unbond_token_amount),
             None,
@@ -395,7 +395,7 @@ where
             .execute_esdt_transfer(
                 &self.user_address,
                 &self.farm_wrapper,
-                FARM_TOKEN_ID,
+                UNBOND_TOKEN_ID,
                 farm_token_nonce,
                 &rust_biguint!(farm_tokem_amount),
                 |sc| {
