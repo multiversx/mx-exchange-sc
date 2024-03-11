@@ -12,7 +12,6 @@ pub trait BasicLockUnlock:
     crate::locked_token::LockedTokenModule
     + crate::token_attributes::TokenAttributesModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + utils::UtilsModule
 {
     fn lock_tokens(
         &self,
