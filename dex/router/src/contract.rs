@@ -19,8 +19,8 @@ use crate::factory::CreatePairArgs;
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
-const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
-const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
+pub const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
+pub const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
 
 #[multiversx_sc::contract]
@@ -158,9 +158,10 @@ pub trait Router:
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
     ) {
-        let issue_cost = self.call_value().egld_value().clone_value();
-
         require!(self.is_active(), "Not active");
+        self.check_is_pair_sc(&pair_address);
+
+        let issue_cost = self.call_value().egld_value().clone_value();
         let caller = self.blockchain().get_caller();
         if caller != self.owner().get() {
             require!(
@@ -168,22 +169,18 @@ pub trait Router:
                 "Pair creation is disabled"
             );
         }
-        self.check_is_pair_sc(&pair_address);
-        let result = self.get_pair_temporary_owner(&pair_address);
 
-        match result {
-            None => {}
-            Some(temporary_owner) => {
-                require!(caller == temporary_owner, "Temporary owner differs");
-            }
-        };
+        let opt_temp_owner = self.get_pair_temporary_owner(&pair_address);
+        if let Some(temporary_owner) = opt_temp_owner {
+            require!(caller == temporary_owner, "Temporary owner differs");
+        }
 
-        let result: TokenIdentifier = self
+        let lp_token_id: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
             .execute_on_dest_context();
         require!(
-            !result.is_valid_esdt_identifier(),
+            !lp_token_id.is_valid_esdt_identifier(),
             "LP Token already issued"
         );
 
@@ -211,7 +208,7 @@ pub trait Router:
                 self.callbacks()
                     .lp_token_issue_callback(&caller, &pair_address),
             )
-            .call_and_exit()
+            .call_and_exit();
     }
 
     #[endpoint(setLocalRoles)]
@@ -231,7 +228,7 @@ pub trait Router:
             .esdt_system_sc_proxy()
             .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
             .async_call()
-            .call_and_exit()
+            .call_and_exit();
     }
 
     #[only_owner]

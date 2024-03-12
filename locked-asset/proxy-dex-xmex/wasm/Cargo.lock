@@ -448,6 +448,7 @@ dependencies = [
  "multiversx-sc",
  "multiversx-sc-modules",
  "pair",
+ "router",
  "sc_whitelist_module",
  "simple-lock",
  "token_merge_helper",
@@ -494,6 +495,18 @@ dependencies = [
  "multiversx-sc-modules",
  "pausable",
  "permissions_module",
+ "token_send",
+]
+
+[[package]]
+name = "router"
+version = "0.0.0"
+dependencies = [
+ "locking_module",
+ "multiversx-sc",
+ "pair",
+ "pausable",
+ "simple-lock",
  "token_send",
 ]
 

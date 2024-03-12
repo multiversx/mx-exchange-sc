@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           32
+// Endpoints:                           38
 // Async Callback:                       1
-// Total number of exported functions:  34
+// Total number of exported functions:  40
 
 #![no_std]
 #![allow(internal_features)]
@@ -49,6 +49,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         mergeWrappedLpTokens => merge_wrapped_lp_tokens_endpoint
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
+        clearTokenInfo => clear_token_info
+        depositProjectToken => deposit_project_token
+        createXmexTokenPair => create_xmex_token_pair
+        setPairLocalRoles => set_pair_local_roles
+        getRequestedPrice => requested_price
+        getPairForToken => pair_for_token
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
