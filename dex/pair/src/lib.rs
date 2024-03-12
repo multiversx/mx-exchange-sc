@@ -66,23 +66,19 @@ pub trait Pair<ContractReader>:
         );
         require!(first_token_id != second_token_id, ERROR_SAME_TOKENS);
 
-        let lp_token_id = self.lp_token_identifier().get();
-        require!(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-        require!(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-
         self.set_fee_percents(total_fee_percent, special_fee_percent);
         self.state().set(State::Inactive);
 
         self.router_address().set(&router_address);
-        self.first_token_id().set_if_empty(&first_token_id);
-        self.second_token_id().set_if_empty(&second_token_id);
+        self.first_token_id().set(&first_token_id);
+        self.second_token_id().set(&second_token_id);
         let initial_liquidity_adder_opt = if !initial_liquidity_adder.is_zero() {
             Some(initial_liquidity_adder)
         } else {
             None
         };
         self.initial_liquidity_adder()
-            .set_if_empty(&initial_liquidity_adder_opt);
+            .set(&initial_liquidity_adder_opt);
 
         if admins.is_empty() {
             // backwards compatibility
