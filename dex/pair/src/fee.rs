@@ -9,6 +9,7 @@ use crate::config::MAX_PERCENTAGE;
 use crate::contexts::base::StorageCache;
 use crate::contexts::base::SwapTokensOrder;
 
+use common_structs::Percent;
 use common_structs::TokenPair;
 use fees_collector::fees_accumulation::ProxyTrait as _;
 
@@ -47,7 +48,7 @@ pub trait FeeModule:
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) {
         self.require_caller_has_owner_permissions();
-        let is_removed = self.whitelist().remove(&address);
+        let is_removed = self.whitelist().swap_remove(&address);
         require!(is_removed, ERROR_NOT_WHITELISTED);
     }
 
@@ -105,7 +106,7 @@ pub trait FeeModule:
     fn setup_fees_collector(
         &self,
         fees_collector_address: ManagedAddress,
-        fees_collector_cut_percentage: u64,
+        fees_collector_cut_percentage: Percent,
     ) {
         self.require_caller_has_owner_permissions();
         require!(
@@ -304,7 +305,6 @@ pub trait FeeModule:
             .execute_on_dest_context();
     }
 
-    #[inline]
     fn burn(&self, token: &TokenIdentifier, amount: &BigUint) {
         if amount > &0 {
             self.send().esdt_local_burn(token, 0, amount);
@@ -409,7 +409,7 @@ pub trait FeeModule:
 
     #[view(getFeesCollectorCutPercentage)]
     #[storage_mapper("feesCollectorCutPercentage")]
-    fn fees_collector_cut_percentage(&self) -> SingleValueMapper<u64>;
+    fn fees_collector_cut_percentage(&self) -> SingleValueMapper<Percent>;
 
     #[storage_mapper("fee_destination")]
     fn destination_map(&self) -> MapMapper<ManagedAddress, TokenIdentifier>;
@@ -418,5 +418,5 @@ pub trait FeeModule:
     fn trusted_swap_pair(&self) -> MapMapper<TokenPair<Self::Api>, ManagedAddress>;
 
     #[storage_mapper("whitelist")]
-    fn whitelist(&self) -> SetMapper<ManagedAddress>;
+    fn whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
 }
