@@ -137,13 +137,15 @@ pub trait FarmStaking:
         let mut storage_cache = StorageCache::new(self);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        FarmStakingWrapper::<Self>::calculate_rewards(
+        let rewards = FarmStakingWrapper::<Self>::calculate_rewards(
             self,
             &ManagedAddress::zero(),
             &farm_token_amount,
             &attributes,
             &storage_cache,
-        )
+        );
+
+        rewards.base
     }
 
     fn require_queried(&self) {

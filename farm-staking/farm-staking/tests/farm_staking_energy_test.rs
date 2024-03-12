@@ -1,13 +1,14 @@
 #![allow(deprecated)]
 
 pub mod farm_staking_setup;
+use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_staking::{
     claim_stake_farm_rewards::ClaimStakeFarmRewardsModule, stake_farm::StakeFarmModule,
     unstake_farm::UnstakeFarmModule,
 };
 use farm_staking_setup::*;
 use multiversx_sc::codec::multi_types::OptionalValue;
-use multiversx_sc_scenario::{rust_biguint, DebugApi};
+use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 
 #[test]
 fn farm_staking_with_energy_setup_test() {
@@ -134,8 +135,8 @@ fn farm_staking_boosted_rewards_with_energy_test() {
     // originally, it was 40, but since 25% of the rewards go to boosted yields
     // rewards are now only 3/4 * 40 = 30
     //
-    // 10 reserved for boosted yields -> 30 + 10
-    let expected_reward_token_out = 40;
+    // 10 reserved for boosted yields
+    let expected_reward_token_out = 30;
     let expected_farming_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_token_out);
     let expected_reward_per_share = 300_000; // from 400_000 -> 300_000
@@ -149,6 +150,17 @@ fn farm_staking_boosted_rewards_with_energy_test() {
         expected_reward_per_share,
     );
     fs_setup.check_farm_token_supply(farm_in_amount);
+
+    let user = fs_setup.user_address.clone();
+    fs_setup
+        .b_mock
+        .execute_query(&fs_setup.farm_wrapper, |sc| {
+            let user_boosted_rewards = sc
+                .accumulated_rewards_per_user(&managed_address!(&user))
+                .get();
+            assert_eq!(user_boosted_rewards, managed_biguint!(10));
+        })
+        .assert_ok();
 }
 
 #[test]
@@ -324,19 +336,15 @@ fn farm_staking_full_position_boosted_rewards_test() {
     fs_setup.set_user_energy(&fs_setup.user_address.clone(), 10_000, 8, 10);
 
     let expected_base_rewards = 15;
-    let expected_boosted_rewards = 10;
-    let mut expected_farming_token_balance = rust_biguint!(
-        USER_TOTAL_RIDE_TOKENS - (farm_in_amount * 2)
-            + expected_base_rewards
-            + expected_boosted_rewards
-    );
+    let mut expected_farming_token_balance =
+        rust_biguint!(USER_TOTAL_RIDE_TOKENS - (farm_in_amount * 2) + expected_base_rewards);
     let expected_reward_per_share = 300_000; // from 400_000 -> 300_000
 
     // Should receive half base rewards and full boosted rewards
     fs_setup.claim_rewards(
         farm_in_amount,
         2,
-        expected_base_rewards + expected_boosted_rewards,
+        expected_base_rewards,
         &expected_farming_token_balance,
         &expected_farming_token_balance,
         6,
