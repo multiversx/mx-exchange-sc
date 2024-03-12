@@ -22,7 +22,8 @@ use multiversx_sc_scenario::{
 use pair::{config::ConfigModule as OtherConfigModule, Pair};
 use pausable::{PausableModule, State};
 use proxy_dex_xmex::{
-    other_sc_whitelist::OtherScWhitelistModule, proxy_common::ProxyCommonModule, ProxyDexImpl,
+    other_sc_whitelist::OtherScWhitelistModule,
+    proxy_interactions::proxy_common::ProxyCommonModule, ProxyDexImpl,
 };
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};

@@ -9,7 +9,7 @@ use simple_lock::locked_token::LockedTokenAttributes;
 pub trait EnergyUpdateModule:
     energy_query::EnergyQueryModule
     + utils::UtilsModule
-    + crate::proxy_common::ProxyCommonModule
+    + crate::proxy_interactions::proxy_common::ProxyCommonModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     fn burn_locked_tokens_and_update_energy(

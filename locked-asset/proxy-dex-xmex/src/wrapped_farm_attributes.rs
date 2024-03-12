@@ -7,7 +7,9 @@ use mergeable::ExternallyMergeable;
 use multiversx_sc::api::{CallTypeApi, StorageMapperApi};
 
 use crate::{
-    external_merging::{merge_farm_tokens_through_farm, merge_locked_tokens_through_factory},
+    merge_tokens::external_merging::{
+        merge_farm_tokens_through_farm, merge_locked_tokens_through_factory,
+    },
     wrapped_lp_attributes::{merge_wrapped_lp_tokens, WrappedLpToken},
 };
 
