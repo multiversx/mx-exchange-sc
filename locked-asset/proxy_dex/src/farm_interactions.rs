@@ -1,9 +1,6 @@
 multiversx_sc::imports!();
 
-use farm::{
-    base_functions::{ClaimRewardsResultType, ClaimRewardsResultWrapper},
-    ExitFarmWithPartialPosResultType,
-};
+use farm::{base_functions::ClaimRewardsResultType, ExitFarmWithPartialPosResultType};
 use farm_with_locked_rewards::ProxyTrait as _;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
@@ -13,6 +10,11 @@ pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub farming_tokens: EsdtTokenPayment<M>,
     pub reward_tokens: EsdtTokenPayment<M>,
+}
+
+pub struct ClaimRewardsResultWrapper<M: ManagedTypeApi> {
+    pub new_farm_token: EsdtTokenPayment<M>,
+    pub rewards: EsdtTokenPayment<M>,
 }
 
 #[multiversx_sc::module]
