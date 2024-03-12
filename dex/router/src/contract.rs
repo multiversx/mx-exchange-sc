@@ -21,7 +21,6 @@ const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
 const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
 const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
-const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
 
 #[multiversx_sc::contract]
@@ -83,9 +82,9 @@ pub trait Router:
         mut admins: MultiValueEncoded<ManagedAddress>,
     ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
+
         let owner = self.owner().get();
         let caller = self.blockchain().get_caller();
-
         if caller != owner {
             require!(
                 self.pair_creation_enabled().get(),
@@ -93,15 +92,6 @@ pub trait Router:
             );
         }
 
-        require!(first_token_id != second_token_id, "Identical tokens");
-        require!(
-            first_token_id.is_valid_esdt_identifier(),
-            "First Token ID is not a valid esdt token ID"
-        );
-        require!(
-            second_token_id.is_valid_esdt_identifier(),
-            "Second Token ID is not a valid esdt token ID"
-        );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(pair_address.is_zero(), "Pair already exists");
 
@@ -109,19 +99,14 @@ pub trait Router:
         let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
 
         if caller == owner {
-            if let Some(fee_percents_multi_arg) = opt_fee_percents.into_option() {
-                let fee_percents_tuple = fee_percents_multi_arg.into_tuple();
-                total_fee_percent_requested = fee_percents_tuple.0;
-                special_fee_percent_requested = fee_percents_tuple.1;
-
-                require!(
-                    total_fee_percent_requested >= special_fee_percent_requested
-                        && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
-                    "Bad percents"
-                );
-            } else {
-                sc_panic!("Bad percents length");
-            }
+            match opt_fee_percents {
+                OptionalValue::Some(fee_percents_multi_arg) => {
+                    let (total_fee, special_fee) = fee_percents_multi_arg.into_tuple();
+                    total_fee_percent_requested = total_fee;
+                    special_fee_percent_requested = special_fee;
+                }
+                OptionalValue::None => sc_panic!("Bad percents length"),
+            };
         }
 
         admins.push(caller.clone());
@@ -145,6 +130,7 @@ pub trait Router:
             special_fee_percent_requested,
             address.clone(),
         );
+
         address
     }
 

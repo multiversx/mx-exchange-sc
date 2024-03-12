@@ -3,6 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub mod create_pair;
 pub mod energy_update;
 pub mod events;
 pub mod merge_tokens;
@@ -26,6 +27,7 @@ pub trait ProxyDexImpl:
     + energy_update::EnergyUpdateModule
     + energy_query::EnergyQueryModule
     + events::EventsModule
+    + create_pair::CreatePairModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
@@ -37,17 +39,17 @@ pub trait ProxyDexImpl:
         old_locked_token_id: TokenIdentifier,
         old_factory_address: ManagedAddress,
         energy_factory_address: ManagedAddress,
+        router_address: ManagedAddress,
     ) {
         self.require_valid_token_id(&old_locked_token_id);
         self.require_sc_address(&old_factory_address);
         self.require_sc_address(&energy_factory_address);
+        self.require_sc_address(&router_address);
 
-        self.old_locked_token_id()
-            .set_if_empty(&old_locked_token_id);
-        self.old_factory_address()
-            .set_if_empty(&old_factory_address);
-        self.energy_factory_address()
-            .set_if_empty(&energy_factory_address);
+        self.old_locked_token_id().set(old_locked_token_id);
+        self.old_factory_address().set(old_factory_address);
+        self.energy_factory_address().set(energy_factory_address);
+        self.router_address().set(router_address);
     }
 
     #[endpoint]

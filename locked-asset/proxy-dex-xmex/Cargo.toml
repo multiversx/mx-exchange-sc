@@ -20,6 +20,9 @@ path = "../../dex/pair"
 [dependencies.farm]
 path = "../../dex/farm"
 
+[dependencies.router]
+path = "../../dex/router"
+
 [dependencies.farm-with-locked-rewards]
 path = "../../dex/farm-with-locked-rewards"
 
