@@ -83,11 +83,20 @@ pub trait UnstakeFarmModule:
             opt_unbond_amount.unwrap_or(exit_result.farming_token_payment.amount);
         let farm_token_id = exit_result.storage_cache.farm_token_id.clone();
 
+        let accumulated_boosted_rewards =
+            self.accumulated_rewards_per_user(&original_caller).take();
+        let total_rewards = exit_result.reward_payment.amount + accumulated_boosted_rewards;
+        let rewards_payment = EsdtTokenPayment::new(
+            exit_result.reward_payment.token_identifier,
+            0,
+            total_rewards,
+        );
+
         let caller = self.blockchain().get_caller();
         let unbond_farm_token =
             self.create_and_send_unbond_tokens(&caller, farm_token_id, unbond_token_amount);
 
-        self.send_payment_non_zero(&caller, &exit_result.reward_payment);
+        self.send_payment_non_zero(&caller, &rewards_payment);
 
         self.clear_user_energy_if_needed(&original_caller);
         self.set_farm_supply_for_current_week(&exit_result.storage_cache.farm_token_supply);
@@ -96,11 +105,11 @@ pub trait UnstakeFarmModule:
             &caller,
             exit_result.context,
             unbond_farm_token.clone(),
-            exit_result.reward_payment.clone(),
+            rewards_payment.clone(),
             exit_result.storage_cache,
         );
 
-        (unbond_farm_token, exit_result.reward_payment).into()
+        (unbond_farm_token, rewards_payment).into()
     }
 
     fn create_and_send_unbond_tokens(

@@ -97,6 +97,14 @@ pub trait ClaimStakeFarmRewardsModule:
         );
         virtual_farm_token.payment.token_nonce = new_farm_token_nonce;
 
+        let accumulated_boosted_rewards =
+            self.accumulated_rewards_per_user(&original_caller).take();
+        let total_rewards = claim_result.rewards.amount + accumulated_boosted_rewards;
+        let rewards_payment =
+            EsdtTokenPayment::new(claim_result.rewards.token_identifier, 0, total_rewards);
+
+        claim_result.rewards = rewards_payment;
+
         let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
         self.send_payment_non_zero(&caller, &claim_result.rewards);

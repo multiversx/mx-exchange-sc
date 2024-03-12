@@ -134,7 +134,13 @@ pub trait Farm:
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
-        let rewards_payment = base_claim_rewards_result.rewards;
+        let accumulated_boosted_rewards = self.accumulated_rewards_per_user(&orig_caller).take();
+        let total_rewards = base_claim_rewards_result.rewards.amount + accumulated_boosted_rewards;
+        let rewards_payment = EsdtTokenPayment::new(
+            base_claim_rewards_result.rewards.token_identifier,
+            0,
+            total_rewards,
+        );
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             rewards_payment.token_identifier,
             rewards_payment.amount,
@@ -169,12 +175,13 @@ pub trait Farm:
 
         self.decrease_old_farm_positions(migrated_amount, &orig_caller);
 
-        let rewards = exit_farm_result.rewards;
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
 
+        let accumulated_boosted_rewards = self.accumulated_rewards_per_user(&orig_caller).take();
+        let total_rewards = exit_farm_result.rewards.amount + accumulated_boosted_rewards;
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            rewards.token_identifier.clone(),
-            rewards.amount,
+            exit_farm_result.rewards.token_identifier,
+            total_rewards,
             caller,
             orig_caller.clone(),
         );

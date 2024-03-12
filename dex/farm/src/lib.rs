@@ -127,7 +127,16 @@ pub trait Farm:
 
         self.migrate_old_farm_positions(&orig_caller);
 
-        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
+        let accumulated_boosted_rewards = self.accumulated_rewards_per_user(&orig_caller).take();
+        let mut claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
+        let total_rewards = claim_rewards_result.rewards.amount + accumulated_boosted_rewards;
+        let rewards_payment = EsdtTokenPayment::new(
+            claim_rewards_result.rewards.token_identifier,
+            0,
+            total_rewards,
+        );
+
+        claim_rewards_result.rewards = rewards_payment;
 
         self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
         self.send_payment_non_zero(&caller, &claim_rewards_result.rewards);
@@ -169,12 +178,17 @@ pub trait Farm:
 
         self.decrease_old_farm_positions(migrated_amount, &orig_caller);
 
+        let accumulated_boosted_rewards = self.accumulated_rewards_per_user(&orig_caller).take();
+        let total_rewards = exit_farm_result.rewards.amount + accumulated_boosted_rewards;
+        let rewards_payment =
+            EsdtTokenPayment::new(exit_farm_result.rewards.token_identifier, 0, total_rewards);
+
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
-        self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
+        self.send_payment_non_zero(&caller, &rewards_payment);
 
         self.clear_user_energy_if_needed(&orig_caller);
 
-        (exit_farm_result.farming_tokens, exit_farm_result.rewards).into()
+        (exit_farm_result.farming_tokens, rewards_payment).into()
     }
 
     #[payable("*")]
