@@ -3,7 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-pub mod create_pair;
+pub mod create_pair_user;
 pub mod energy_update;
 pub mod events;
 pub mod merge_tokens;
@@ -27,7 +27,7 @@ pub trait ProxyDexImpl:
     + energy_update::EnergyUpdateModule
     + energy_query::EnergyQueryModule
     + events::EventsModule
-    + create_pair::CreatePairModule
+    + create_pair_user::CreatePairUserModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule

@@ -8,7 +8,7 @@ const ISSUE_COST: u64 = 50_000_000_000_000_000; // 0.05 EGLD
 pub type GasLimit = u64;
 
 #[multiversx_sc::module]
-pub trait CreatePairModule:
+pub trait CreatePairUserModule:
     crate::other_sc_whitelist::OtherScWhitelistModule + energy_query::EnergyQueryModule
 {
     #[only_owner]
