@@ -43,8 +43,8 @@ pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
-pub const WITHDRAW_AMOUNT_TOO_HIGH: &str = "Withdraw amount is higher than the remaining uncollected rewards!";
-
+pub const WITHDRAW_AMOUNT_TOO_HIGH: &str =
+    "Withdraw amount is higher than the remaining uncollected rewards!";
 
 pub struct FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
@@ -518,7 +518,12 @@ where
             .assert_ok();
     }
 
-    pub fn withdraw_rewards_with_error(&mut self, withdraw_amount: &RustBigUint, expected_status: u64, expected_message: &str) {
+    pub fn withdraw_rewards_with_error(
+        &mut self,
+        withdraw_amount: &RustBigUint,
+        expected_status: u64,
+        expected_message: &str,
+    ) {
         self.b_mock
             .execute_tx(
                 &self.owner_address,

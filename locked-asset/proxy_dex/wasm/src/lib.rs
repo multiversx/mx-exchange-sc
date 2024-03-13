@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           31
+// Endpoints:                           32
 // Async Callback:                       1
-// Total number of exported functions:  33
+// Total number of exported functions:  34
 
 #![no_std]
 #![allow(internal_features)]
@@ -42,6 +42,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         increaseProxyPairTokenEnergy => increase_proxy_pair_token_energy_endpoint
         enterFarmProxy => enter_farm_proxy_endpoint
         exitFarmProxy => exit_farm_proxy
+        destroyFarmProxy => destroy_farm_proxy
         claimRewardsProxy => claim_rewards_proxy
         increaseProxyFarmTokenEnergy => increase_proxy_farm_token_energy_endpoint
         mergeWrappedFarmTokens => merge_wrapped_farm_tokens_endpoint

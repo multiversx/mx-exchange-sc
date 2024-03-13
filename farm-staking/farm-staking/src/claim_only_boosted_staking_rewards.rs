@@ -24,7 +24,6 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
     + crate::custom_rewards::CustomRewardsModule
 {
-    #[payable("*")]
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
