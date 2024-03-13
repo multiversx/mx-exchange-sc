@@ -3,7 +3,7 @@ use pausable::ProxyTrait as _;
 
 use crate::{
     create_pair_user::TOKENS_NOT_DEPOSITED_ERR_MSG,
-    proxy_interactions::proxy_pair::AddLiqResultType,
+    proxy_interactions::proxy_pair::{AddLiqResultType, RemoveLiqResultType},
 };
 
 multiversx_sc::imports!();
@@ -15,9 +15,10 @@ pub static XMEX_NOT_DEPOSITED_ERR_MSG: &[u8] = b"xMex not deposited";
 pub static PAIR_NOT_CREATED_ERR_MSG: &[u8] = b"Pair not created";
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
-pub struct UnlockEpochAmountPair<M: ManagedTypeApi> {
+pub struct UnlockInfo<M: ManagedTypeApi> {
     pub unlock_epoch: Epoch,
     pub amount: BigUint<M>,
+    pub original_depositor_address: ManagedAddress<M>,
 }
 
 #[multiversx_sc::module]
@@ -125,11 +126,58 @@ pub trait CreatePairFoundationModule:
 
         let current_epoch = self.blockchain().get_block_epoch();
         let lock_epochs = self.lp_lock_epochs().get();
-        self.lp_unlock_epoch(add_liq_result.new_wrapped_token.token_nonce)
-            .set(UnlockEpochAmountPair {
+        self.lp_unlock_info(add_liq_result.new_wrapped_token.token_nonce)
+            .set(UnlockInfo {
                 unlock_epoch: current_epoch + lock_epochs,
                 amount: add_liq_result.new_wrapped_token.amount,
+                original_depositor_address: token_info.depositor,
             });
+    }
+
+    #[endpoint(removeLiqCreatedPair)]
+    fn remove_liq_created_pair(
+        &self,
+        pair_address: ManagedAddress,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+        wrapped_token_nonce: Nonce,
+    ) -> RemoveLiqResultType<Self::Api> {
+        self.require_foundation_caller();
+        self.require_is_intermediated_pair(&pair_address);
+        self.require_wrapped_lp_token_id_not_empty();
+
+        let lp_unlock_info_mapper = self.lp_unlock_info(wrapped_token_nonce);
+        require!(!lp_unlock_info_mapper.is_empty(), "Token does not exist");
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        let unlock_info = lp_unlock_info_mapper.take();
+        require!(
+            current_epoch >= unlock_info.unlock_epoch,
+            "May not unlock yet"
+        );
+
+        let wrapped_lp_token_id = self.wrapped_lp_token().get_token_id();
+        let wrapped_lp_payment =
+            EsdtTokenPayment::new(wrapped_lp_token_id, wrapped_token_nonce, unlock_info.amount);
+        let remove_liq_result = self.remove_liquidity_proxy_common(
+            wrapped_lp_payment,
+            pair_address,
+            first_token_amount_min,
+            second_token_amount_min,
+        );
+
+        let caller = self.blockchain().get_caller();
+        self.send_payment_non_zero(&caller, &remove_liq_result.locked_tokens);
+        self.send_payment_non_zero(
+            &unlock_info.original_depositor_address,
+            &remove_liq_result.other_tokens,
+        );
+
+        if let Some(unlocked_tokens) = &remove_liq_result.opt_unlocked_tokens {
+            self.send_payment_non_zero(&caller, unlocked_tokens);
+        }
+
+        remove_liq_result
     }
 
     fn add_initial_liq(
@@ -176,10 +224,10 @@ pub trait CreatePairFoundationModule:
     #[storage_mapper("lpLockEpochs")]
     fn lp_lock_epochs(&self) -> SingleValueMapper<Epoch>;
 
-    #[view(getLpUnlockEpoch)]
-    #[storage_mapper("lpUnlockEpoch")]
-    fn lp_unlock_epoch(
+    #[view(getLpUnlockInfo)]
+    #[storage_mapper("lpUnlockInfo")]
+    fn lp_unlock_info(
         &self,
         wrapped_token_nonce: Nonce,
-    ) -> SingleValueMapper<UnlockEpochAmountPair<Self::Api>>;
+    ) -> SingleValueMapper<UnlockInfo<Self::Api>>;
 }

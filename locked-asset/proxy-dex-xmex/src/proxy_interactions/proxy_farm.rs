@@ -292,7 +292,7 @@ pub trait ProxyFarmModule:
                 exit_result.farming_tokens.amount,
             );
 
-        let mut remove_liquidity_result = self.remove_liquidity_proxy_common(
+        let remove_liq_result = self.remove_liquidity_proxy_common(
             initial_proxy_farming_tokens.clone(),
             pair_address,
             first_token_amount_min,
@@ -302,10 +302,17 @@ pub trait ProxyFarmModule:
         // Burn farm token
         wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
-        // Push farm rewards
-        remove_liquidity_result.push(exit_result.reward_tokens.clone());
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(remove_liq_result.locked_tokens.clone());
+        output_payments.push(remove_liq_result.other_tokens.clone());
+        if let Some(unlocked_tokens) = remove_liq_result.opt_unlocked_tokens {
+            output_payments.push(unlocked_tokens);
+        }
 
-        self.send_multiple_tokens_if_not_zero(&caller, &remove_liquidity_result);
+        // Push farm rewards
+        output_payments.push(exit_result.reward_tokens.clone());
+
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
         self.emit_exit_farm_proxy_event(
             &original_caller,
@@ -316,8 +323,8 @@ pub trait ProxyFarmModule:
         );
 
         DestroyFarmResultType {
-            first_payment: remove_liquidity_result.get(0),
-            second_payment: remove_liquidity_result.get(1),
+            first_payment: remove_liq_result.other_tokens,
+            second_payment: remove_liq_result.locked_tokens,
             farm_rewards: exit_result.reward_tokens,
         }
     }

@@ -12,6 +12,13 @@ pub struct AddLiqResultType<M: ManagedTypeApi> {
     pub other_token_leftover: EsdtTokenPayment<M>,
 }
 
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct RemoveLiqResultType<M: ManagedTypeApi> {
+    pub locked_tokens: EsdtTokenPayment<M>,
+    pub other_tokens: EsdtTokenPayment<M>,
+    pub opt_unlocked_tokens: Option<EsdtTokenPayment<M>>,
+}
+
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
     super::proxy_common::ProxyCommonModule
@@ -160,22 +167,29 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> MultiValueEncoded<EsdtTokenPayment> {
+    ) -> RemoveLiqResultType<Self::Api> {
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
         let payment = self.call_value().single_esdt();
-
-        let output_payments = self.remove_liquidity_proxy_common(
+        let remove_liq_result = self.remove_liquidity_proxy_common(
             payment,
             pair_address,
             first_token_amount_min,
             second_token_amount_min,
         );
+
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(remove_liq_result.locked_tokens.clone());
+        output_payments.push(remove_liq_result.other_tokens.clone());
+        if let Some(unlocked_tokens) = &remove_liq_result.opt_unlocked_tokens {
+            output_payments.push(unlocked_tokens.clone());
+        }
+
         let caller = self.blockchain().get_caller();
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
-        output_payments.into()
+        remove_liq_result
     }
 
     fn remove_liquidity_proxy_common(
@@ -184,7 +198,7 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> ManagedVec<EsdtTokenPayment> {
+    ) -> RemoveLiqResultType<Self::Api> {
         let wrapped_lp_mapper = self.wrapped_lp_token();
         wrapped_lp_mapper.require_same_token(&input_payment.token_identifier);
 
@@ -204,11 +218,11 @@ pub trait ProxyPairModule:
             &remove_liq_result.second_token_received,
         );
 
-        let mut output_payments = ManagedVec::new();
-
         let base_asset_amount_received = &received_token_refs.base_asset_token_ref.amount.clone();
         let locked_token_amount_available = &attributes.locked_tokens.amount;
-        if base_asset_amount_received > locked_token_amount_available {
+        let (opt_unlocked_tokens, locked_tokens) = if base_asset_amount_received
+            > locked_token_amount_available
+        {
             let asset_token_id = received_token_refs
                 .base_asset_token_ref
                 .token_identifier
@@ -220,8 +234,7 @@ pub trait ProxyPairModule:
             self.send()
                 .esdt_local_burn(&asset_token_id, 0, &attributes.locked_tokens.amount);
 
-            output_payments.push(unlocked_tokens);
-            output_payments.push(attributes.locked_tokens.clone());
+            (Some(unlocked_tokens), attributes.locked_tokens.clone())
         } else {
             let extra_locked_tokens = locked_token_amount_available - base_asset_amount_received;
             self.burn_locked_tokens_and_update_energy(
@@ -242,12 +255,10 @@ pub trait ProxyPairModule:
             self.send()
                 .esdt_local_burn(&asset_token_id, 0, &locked_tokens_out.amount);
 
-            output_payments.push(locked_tokens_out);
-        }
+            (None, locked_tokens_out)
+        };
 
         let other_tokens = received_token_refs.other_token_ref.clone();
-        output_payments.push(other_tokens);
-
         wrapped_lp_mapper.nft_burn(input_payment.token_nonce, &input_payment.amount);
 
         self.emit_remove_liquidity_proxy_event(
@@ -259,7 +270,11 @@ pub trait ProxyPairModule:
             remove_liq_result.second_token_received,
         );
 
-        output_payments
+        RemoveLiqResultType {
+            locked_tokens,
+            other_tokens,
+            opt_unlocked_tokens,
+        }
     }
 
     #[payable("*")]

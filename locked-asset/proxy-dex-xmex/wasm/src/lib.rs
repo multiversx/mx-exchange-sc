@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           44
+// Endpoints:                           45
 // Async Callback:                       1
-// Total number of exported functions:  46
+// Total number of exported functions:  47
 
 #![no_std]
 #![allow(internal_features)]
@@ -59,8 +59,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         depositXmex => deposit_xmex
         withdrawXmex => withdraw_xmex
         addInitialLiquidityFromDeposits => add_initial_liq_from_deposits
+        removeLiqCreatedPair => remove_liq_created_pair
         getFoundationAddress => foundation_address
-        getLpUnlockEpoch => lp_unlock_epoch
+        getLpUnlockInfo => lp_unlock_info
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
