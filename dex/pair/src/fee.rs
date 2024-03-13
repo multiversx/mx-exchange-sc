@@ -48,7 +48,7 @@ pub trait FeeModule:
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) {
         self.require_caller_has_owner_permissions();
-        let is_removed = self.whitelist().swap_remove(&address);
+        let is_removed = self.whitelist().remove(&address);
         require!(is_removed, ERROR_NOT_WHITELISTED);
     }
 
@@ -418,5 +418,5 @@ pub trait FeeModule:
     fn trusted_swap_pair(&self) -> MapMapper<TokenPair<Self::Api>, ManagedAddress>;
 
     #[storage_mapper("whitelist")]
-    fn whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
+    fn whitelist(&self) -> SetMapper<ManagedAddress>;
 }
