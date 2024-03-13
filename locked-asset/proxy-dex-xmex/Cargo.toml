@@ -23,6 +23,9 @@ path = "../../dex/farm"
 [dependencies.router]
 path = "../../dex/router"
 
+[dependencies.proxy_dex]
+path = "../proxy_dex"
+
 [dependencies.farm-with-locked-rewards]
 path = "../../dex/farm-with-locked-rewards"
 

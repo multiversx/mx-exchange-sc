@@ -20,7 +20,7 @@ pub struct TokenInfo<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait CreatePairUserModule:
-    crate::other_sc_whitelist::OtherScWhitelistModule
+    proxy_dex::other_sc_whitelist::OtherScWhitelistModule
     + energy_query::EnergyQueryModule
     + token_send::TokenSendModule
 {

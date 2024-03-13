@@ -24,14 +24,14 @@ pub struct UnlockInfo<M: ManagedTypeApi> {
 #[multiversx_sc::module]
 pub trait CreatePairFoundationModule:
     crate::create_pair_user::CreatePairUserModule
-    + crate::other_sc_whitelist::OtherScWhitelistModule
+    + proxy_dex::other_sc_whitelist::OtherScWhitelistModule
     + energy_query::EnergyQueryModule
     + crate::proxy_interactions::proxy_pair::ProxyPairModule
-    + crate::proxy_interactions::proxy_common::ProxyCommonModule
-    + crate::proxy_interactions::pair_interactions::PairInteractionsModule
-    + crate::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
-    + crate::energy_update::EnergyUpdateModule
-    + crate::events::EventsModule
+    + proxy_dex::proxy_interactions::proxy_common::ProxyCommonModule
+    + proxy_dex::proxy_interactions::pair_interactions::PairInteractionsModule
+    + proxy_dex::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + proxy_dex::energy_update::EnergyUpdateModule
+    + proxy_dex::events::EventsModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + utils::UtilsModule

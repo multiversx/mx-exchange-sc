@@ -7,29 +7,23 @@ multiversx_sc::derive_imports!();
 
 pub mod create_pair_foundation;
 pub mod create_pair_user;
-pub mod energy_update;
-pub mod events;
-pub mod merge_tokens;
-pub mod other_sc_whitelist;
 pub mod proxy_interactions;
-pub mod wrapped_farm_attributes;
-pub mod wrapped_lp_attributes;
 
 #[multiversx_sc::contract]
 pub trait ProxyDexImpl:
-    proxy_interactions::proxy_common::ProxyCommonModule
-    + crate::other_sc_whitelist::OtherScWhitelistModule
+proxy_dex::proxy_interactions::proxy_common::ProxyCommonModule
+    + proxy_dex::other_sc_whitelist::OtherScWhitelistModule
     + proxy_interactions::proxy_pair::ProxyPairModule
-    + proxy_interactions::pair_interactions::PairInteractionsModule
+    + proxy_dex::proxy_interactions::pair_interactions::PairInteractionsModule
     + proxy_interactions::proxy_farm::ProxyFarmModule
-    + proxy_interactions::farm_interactions::FarmInteractionsModule
+    + proxy_dex::proxy_interactions::farm_interactions::FarmInteractionsModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge
-    + merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
-    + energy_update::EnergyUpdateModule
+    + proxy_dex::merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge
+    + proxy_dex::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + proxy_dex::energy_update::EnergyUpdateModule
     + energy_query::EnergyQueryModule
-    + events::EventsModule
+    + proxy_dex::events::EventsModule
     + create_pair_user::CreatePairUserModule
     + create_pair_foundation::CreatePairFoundationModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule

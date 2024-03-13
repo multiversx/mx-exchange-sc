@@ -1,9 +1,9 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
 use common_structs::{Epoch, PaymentsVec};
 use fixed_supply_token::FixedSupplyToken;
+use proxy_dex::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
 pub struct AddLiqResultType<M: ManagedTypeApi> {
@@ -21,12 +21,12 @@ pub struct RemoveLiqResultType<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
-    super::proxy_common::ProxyCommonModule
-    + crate::other_sc_whitelist::OtherScWhitelistModule
-    + super::pair_interactions::PairInteractionsModule
-    + crate::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
-    + crate::energy_update::EnergyUpdateModule
-    + crate::events::EventsModule
+    proxy_dex::proxy_interactions::proxy_common::ProxyCommonModule
+    + proxy_dex::other_sc_whitelist::OtherScWhitelistModule
+    + proxy_dex::proxy_interactions::pair_interactions::PairInteractionsModule
+    + proxy_dex::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + proxy_dex::energy_update::EnergyUpdateModule
+    + proxy_dex::events::EventsModule
     + energy_query::EnergyQueryModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule

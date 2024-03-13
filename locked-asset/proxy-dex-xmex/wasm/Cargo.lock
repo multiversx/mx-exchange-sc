@@ -449,6 +449,7 @@ dependencies = [
  "multiversx-sc-modules",
  "pair",
  "pausable",
+ "proxy_dex",
  "router",
  "sc_whitelist_module",
  "simple-lock",
@@ -463,6 +464,30 @@ version = "0.0.0"
 dependencies = [
  "multiversx-sc-wasm-adapter",
  "proxy-dex-xmex",
+]
+
+[[package]]
+name = "proxy_dex"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "energy-factory",
+ "energy-query",
+ "farm",
+ "farm-with-locked-rewards",
+ "fixed-supply-token",
+ "itertools",
+ "legacy_token_decode_module",
+ "locking_module",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "pair",
+ "sc_whitelist_module",
+ "simple-lock",
+ "token_merge_helper",
+ "token_send",
+ "utils",
 ]
 
 [[package]]

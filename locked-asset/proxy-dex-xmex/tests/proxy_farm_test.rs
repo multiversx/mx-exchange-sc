@@ -16,13 +16,15 @@ use multiversx_sc_scenario::{
     whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 use num_traits::ToPrimitive;
-use proxy_dex_test_setup::*;
-use proxy_dex_xmex::{
+use proxy_dex::{
     merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge,
-    proxy_interactions::proxy_farm::ProxyFarmModule,
-    proxy_interactions::proxy_pair::ProxyPairModule,
     wrapped_farm_attributes::WrappedFarmTokenAttributes,
     wrapped_lp_attributes::WrappedLpTokenAttributes,
+};
+use proxy_dex_test_setup::*;
+use proxy_dex_xmex::{
+    proxy_interactions::proxy_farm::ProxyFarmModule,
+    proxy_interactions::proxy_pair::ProxyPairModule,
 };
 use simple_lock::locked_token::LockedTokenAttributes;
 

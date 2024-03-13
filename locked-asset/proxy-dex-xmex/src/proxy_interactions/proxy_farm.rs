@@ -6,9 +6,9 @@ multiversx_sc::derive_imports!();
 use common_structs::Epoch;
 use fixed_supply_token::FixedSupplyToken;
 
-use super::proxy_common::INVALID_PAYMENTS_ERR_MSG;
+use proxy_dex::proxy_interactions::proxy_common::INVALID_PAYMENTS_ERR_MSG;
 
-use crate::{
+use proxy_dex::{
     wrapped_farm_attributes::{WrappedFarmToken, WrappedFarmTokenAttributes},
     wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
@@ -30,18 +30,18 @@ pub struct DestroyFarmResultType<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait ProxyFarmModule:
-    super::proxy_common::ProxyCommonModule
-    + crate::other_sc_whitelist::OtherScWhitelistModule
+    proxy_dex::proxy_interactions::proxy_common::ProxyCommonModule
+    + proxy_dex::other_sc_whitelist::OtherScWhitelistModule
     + super::proxy_pair::ProxyPairModule
-    + super::pair_interactions::PairInteractionsModule
-    + super::farm_interactions::FarmInteractionsModule
-    + crate::energy_update::EnergyUpdateModule
+    + proxy_dex::proxy_interactions::pair_interactions::PairInteractionsModule
+    + proxy_dex::proxy_interactions::farm_interactions::FarmInteractionsModule
+    + proxy_dex::energy_update::EnergyUpdateModule
     + energy_query::EnergyQueryModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + crate::merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge
-    + crate::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
-    + crate::events::EventsModule
+    + proxy_dex::merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge
+    + proxy_dex::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + proxy_dex::events::EventsModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
     + sc_whitelist_module::SCWhitelistModule
