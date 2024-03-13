@@ -323,8 +323,8 @@ pub trait ProxyFarmModule:
         );
 
         DestroyFarmResultType {
-            first_payment: remove_liq_result.other_tokens,
-            second_payment: remove_liq_result.locked_tokens,
+            first_payment: remove_liq_result.locked_tokens,
+            second_payment: remove_liq_result.other_tokens,
             farm_rewards: exit_result.reward_tokens,
         }
     }

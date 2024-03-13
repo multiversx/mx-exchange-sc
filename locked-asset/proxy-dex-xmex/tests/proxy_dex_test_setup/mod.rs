@@ -1,5 +1,6 @@
 #![allow(deprecated)]
 
+use common_structs::{Epoch, Percent};
 use config::ConfigModule;
 use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
@@ -25,6 +26,7 @@ use proxy_dex_xmex::{
     other_sc_whitelist::OtherScWhitelistModule,
     proxy_interactions::proxy_common::ProxyCommonModule, ProxyDexImpl,
 };
+use router::Router;
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 
@@ -50,19 +52,26 @@ pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 // Simple Lock
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
-pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 5 * EPOCHS_IN_YEAR, 10 * EPOCHS_IN_YEAR]; // 1, 5 or 10 years
-pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
+pub static LOCK_OPTIONS: &[Epoch] = &[EPOCHS_IN_YEAR, 5 * EPOCHS_IN_YEAR, 10 * EPOCHS_IN_YEAR]; // 1, 5 or 10 years
+pub static PENALTY_PERCENTAGES: &[Percent] = &[4_000, 6_000, 8_000];
 
 // Proxy
 pub static WRAPPED_LP_TOKEN_ID: &[u8] = b"WPLP-123456";
 pub static WRAPPED_FARM_TOKEN_ID: &[u8] = b"WPFARM-123456";
+pub const LP_LOCK_EPOCHS: Epoch = 10;
 
-pub struct ProxySetup<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
-where
+pub struct ProxySetup<
+    ProxyObjBuilder,
+    PairObjBuilder,
+    FarmLockedObjBuilder,
+    SimpleLockObjBuilder,
+    RouterBuilder,
+> where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex_xmex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    RouterBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
@@ -74,21 +83,36 @@ where
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmLockedObjBuilder>,
     pub simple_lock_wrapper:
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, SimpleLockObjBuilder>,
+    pub router_wrapper: ContractObjWrapper<router::ContractObj<DebugApi>, RouterBuilder>,
 }
 
-impl<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
-    ProxySetup<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
+impl<
+        ProxyObjBuilder,
+        PairObjBuilder,
+        FarmLockedObjBuilder,
+        SimpleLockObjBuilder,
+        RouterBuilder,
+    >
+    ProxySetup<
+        ProxyObjBuilder,
+        PairObjBuilder,
+        FarmLockedObjBuilder,
+        SimpleLockObjBuilder,
+        RouterBuilder,
+    >
 where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex_xmex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    RouterBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
 {
     pub fn new(
         proxy_builder: ProxyObjBuilder,
         pair_builder: PairObjBuilder,
         farm_locked_builder: FarmLockedObjBuilder,
         simple_lock_builder: SimpleLockObjBuilder,
+        router_builder: RouterBuilder,
     ) -> Self {
         DebugApi::dummy();
 
@@ -108,6 +132,12 @@ where
             farm_locked_builder,
             simple_lock_wrapper.address_ref(),
         );
+        let router_wrapper = setup_router(
+            &mut b_mock,
+            &owner,
+            router_builder,
+            pair_wrapper.address_ref(),
+        );
         let proxy_wrapper = setup_proxy(
             &mut b_mock,
             &owner,
@@ -115,6 +145,7 @@ where
             pair_wrapper.address_ref(),
             farm_locked_wrapper.address_ref(),
             simple_lock_wrapper.address_ref(),
+            router_wrapper.address_ref(),
         );
 
         b_mock
@@ -212,6 +243,7 @@ where
             pair_wrapper,
             farm_locked_wrapper,
             simple_lock_wrapper,
+            router_wrapper,
         }
     }
 }
@@ -415,6 +447,28 @@ where
     simple_lock_wrapper
 }
 
+fn setup_router<RouterBuilder>(
+    b_mock: &mut BlockchainStateWrapper,
+    owner: &Address,
+    router_builder: RouterBuilder,
+    pair_template_addr: &Address,
+) -> ContractObjWrapper<router::ContractObj<DebugApi>, RouterBuilder>
+where
+    RouterBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
+{
+    let rust_zero = rust_biguint!(0u64);
+    let router_wrapper =
+        b_mock.create_sc_account(&rust_zero, Some(owner), router_builder, "Router");
+
+    b_mock
+        .execute_tx(owner, &router_wrapper, &rust_zero, |sc| {
+            sc.init(OptionalValue::Some(managed_address!(pair_template_addr)));
+        })
+        .assert_ok();
+
+    router_wrapper
+}
+
 fn setup_proxy<ProxyObjBuilder>(
     b_mock: &mut BlockchainStateWrapper,
     owner: &Address,
@@ -422,6 +476,7 @@ fn setup_proxy<ProxyObjBuilder>(
     pair_addr: &Address,
     farm_locked_addr: &Address,
     simple_lock_addr: &Address,
+    router_address: &Address,
 ) -> ContractObjWrapper<proxy_dex_xmex::ContractObj<DebugApi>, ProxyObjBuilder>
 where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex_xmex::ContractObj<DebugApi>,
@@ -435,6 +490,9 @@ where
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                 managed_address!(simple_lock_addr),
                 managed_address!(simple_lock_addr),
+                managed_address!(router_address),
+                managed_address!(owner),
+                LP_LOCK_EPOCHS,
             );
 
             sc.wrapped_lp_token()

@@ -28,6 +28,7 @@ fn setup_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 }
 
@@ -38,6 +39,7 @@ fn add_remove_liquidity_proxy_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -159,20 +161,19 @@ fn add_remove_liquidity_proxy_test() {
             1,
             &half_lp_tokens,
             |sc| {
-                let output_payments = sc.remove_liquidity_proxy(
+                let remove_liq_result = sc.remove_liquidity_proxy(
                     managed_address!(&pair_addr),
                     managed_biguint!(1),
                     managed_biguint!(1),
                 );
-                let output_vec = output_payments.to_vec();
 
-                assert_eq!(output_payments.len(), 2);
+                assert!(remove_liq_result.opt_unlocked_tokens.is_none());
                 assert_eq!(
-                    output_vec.get(0).amount.to_u64().unwrap(),
+                    remove_liq_result.locked_tokens.amount.to_u64().unwrap(),
                     removed_locked_token_amount.to_u64().unwrap()
                 );
                 assert_eq!(
-                    output_vec.get(1).amount.to_u64().unwrap(),
+                    remove_liq_result.other_tokens.amount.to_u64().unwrap(),
                     removed_other_token_amount.to_u64().unwrap()
                 );
             },
@@ -233,6 +234,7 @@ fn tripple_add_liquidity_proxy_endpoint_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -504,6 +506,7 @@ fn wrapped_same_nonce_lp_token_merge_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let locked_token_amount = rust_biguint!(1_000_000_000);
@@ -630,6 +633,7 @@ fn wrapped_different_nonce_lp_token_merge_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let user = setup.first_user.clone();
     let user_balance = rust_biguint!(USER_BALANCE);
@@ -807,6 +811,7 @@ fn increase_proxy_lp_token_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);

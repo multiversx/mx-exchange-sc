@@ -33,6 +33,7 @@ fn farm_proxy_setup_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 }
 
@@ -43,6 +44,7 @@ fn farm_proxy_actions_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -278,6 +280,7 @@ fn farm_with_wrapped_lp_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 
     setup
@@ -533,6 +536,7 @@ fn farm_proxy_claim_energy_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -675,6 +679,7 @@ fn farm_proxy_partial_exit_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -857,6 +862,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1043,6 +1049,7 @@ fn different_farm_locked_token_nonce_merging_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1216,6 +1223,7 @@ fn increase_proxy_farm_lkmex_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1295,6 +1303,7 @@ fn increase_proxy_farm_proxy_lp_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 
     setup
@@ -1522,6 +1531,7 @@ fn destroy_farm_locked_tokens_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 
     setup
