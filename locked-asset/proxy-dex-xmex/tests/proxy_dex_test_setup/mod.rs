@@ -463,6 +463,7 @@ where
     b_mock
         .execute_tx(owner, &router_wrapper, &rust_zero, |sc| {
             sc.init(OptionalValue::Some(managed_address!(pair_template_addr)));
+            sc.set_pair_creation_enabled(true);
         })
         .assert_ok();
 

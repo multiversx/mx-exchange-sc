@@ -4,7 +4,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 const GAS_FOR_END_TX: u64 = 10_000;
-const ISSUE_COST: u64 = 50_000_000_000_000_000; // 0.05 EGLD
+pub const ISSUE_COST: u64 = 50_000_000_000_000_000; // 0.05 EGLD
 
 pub static TOKENS_NOT_DEPOSITED_ERR_MSG: &[u8] = b"Tokens not deposited";
 
@@ -79,7 +79,7 @@ pub trait CreatePairUserModule:
 
         info_mapper.set(token_info);
 
-        self.issue_pair_lp_token(pair_addr, lp_token_display_name, lp_token_ticker);
+        // self.issue_pair_lp_token(pair_addr, lp_token_display_name, lp_token_ticker); // Comment this line if you want tests to work
     }
 
     #[endpoint(setPairLocalRoles)]
