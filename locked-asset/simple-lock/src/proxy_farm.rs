@@ -178,13 +178,11 @@ pub trait ProxyFarmModule:
             farming_token_locked_nonce: proxy_lp_payment.token_nonce,
         };
 
-        let farm_tokens = farm_proxy_token_mapper.nft_create_and_send(
+        farm_proxy_token_mapper.nft_create_and_send(
             &caller,
             farm_tokens.amount,
             &proxy_farm_token_attributes,
-        );
-
-        farm_tokens
+        )
     }
 
     /// Exit a farm previously entered through `enterFarmLockedToken`.
