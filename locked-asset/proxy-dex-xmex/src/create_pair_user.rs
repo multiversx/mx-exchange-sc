@@ -1,32 +1,56 @@
 use router::{ProxyTrait as _, DEFAULT_SPECIAL_FEE_PERCENT, DEFAULT_TOTAL_FEE_PERCENT};
 
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 const GAS_FOR_END_TX: u64 = 10_000;
 const ISSUE_COST: u64 = 50_000_000_000_000_000; // 0.05 EGLD
 
+pub static TOKENS_NOT_DEPOSITED_ERR_MSG: &[u8] = b"Tokens not deposited";
+
 pub type GasLimit = u64;
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct TokenInfo<M: ManagedTypeApi> {
+    pub depositor: ManagedAddress<M>,
+    pub deposited_tokens: BigUint<M>,
+    pub requested_price: BigUint<M>,
+    pub opt_pair: Option<ManagedAddress<M>>,
+}
 
 #[multiversx_sc::module]
 pub trait CreatePairUserModule:
-    crate::other_sc_whitelist::OtherScWhitelistModule + energy_query::EnergyQueryModule
+    crate::other_sc_whitelist::OtherScWhitelistModule
+    + energy_query::EnergyQueryModule
+    + token_send::TokenSendModule
 {
     #[only_owner]
     #[endpoint(clearTokenInfo)]
     fn clear_token_info(&self, token_id: TokenIdentifier) {
-        self.requested_price(&token_id).clear();
-        self.pair_for_token(&token_id).clear();
+        let token_info = self.token_info(&token_id).take();
+        self.send_tokens_non_zero(
+            &token_info.depositor,
+            &token_id,
+            0,
+            &token_info.deposited_tokens,
+        );
     }
 
     #[payable("*")]
     #[endpoint(depositProjectToken)]
     fn deposit_project_token(&self, requested_mex_price: BigUint) {
-        let (token_id, _) = self.call_value().single_fungible_esdt();
-        self.requested_price(&token_id).update(|price| {
-            require!(*price == 0, "Price already set");
+        let (token_id, amount) = self.call_value().single_fungible_esdt();
+        let info_mapper = self.token_info(&token_id);
+        require!(info_mapper.is_empty(), "Price already set");
 
-            *price = requested_mex_price;
-        });
+        let caller = self.blockchain().get_caller();
+        let token_info = TokenInfo {
+            depositor: caller,
+            deposited_tokens: amount,
+            requested_price: requested_mex_price,
+            opt_pair: None,
+        };
+        info_mapper.set(token_info);
     }
 
     #[payable("EGLD")]
@@ -37,21 +61,23 @@ pub trait CreatePairUserModule:
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
     ) {
-        require!(
-            !self.requested_price(&token_id).is_empty(),
-            "Tokens not deposited"
-        );
-        require!(
-            self.pair_for_token(&token_id).is_empty(),
-            "Pair already created"
-        );
+        let info_mapper = self.token_info(&token_id);
+        require!(!info_mapper.is_empty(), TOKENS_NOT_DEPOSITED_ERR_MSG);
+
+        let mut token_info = info_mapper.get();
+        require!(token_info.opt_pair.is_none(), "Pair already created");
 
         let payment_amount = self.call_value().egld_value().clone_value();
         require!(payment_amount == ISSUE_COST, "Invalid payment amount");
 
         let caller = self.blockchain().get_caller();
         let pair_addr = self.create_pair(token_id, caller);
-        let _ = self.intermediated_pairs().insert(pair_addr.clone());
+        let added = self.intermediated_pairs().insert(pair_addr.clone());
+        require!(added, "Pair already exists");
+
+        token_info.opt_pair = Some(pair_addr.clone());
+
+        info_mapper.set(token_info);
 
         self.issue_pair_lp_token(pair_addr, lp_token_display_name, lp_token_ticker);
     }
@@ -119,11 +145,7 @@ pub trait CreatePairUserModule:
     #[storage_mapper("routerAddr")]
     fn router_address(&self) -> SingleValueMapper<ManagedAddress>;
 
-    #[view(getRequestedPrice)]
-    #[storage_mapper("reqPrice")]
-    fn requested_price(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
-
-    #[view(getPairForToken)]
-    #[storage_mapper("pairForToken")]
-    fn pair_for_token(&self, token_id: &TokenIdentifier) -> SingleValueMapper<ManagedAddress>;
+    #[view(getTokenInfo)]
+    #[storage_mapper("tokenInfo")]
+    fn token_info(&self, token_id: &TokenIdentifier) -> SingleValueMapper<TokenInfo<Self::Api>>;
 }

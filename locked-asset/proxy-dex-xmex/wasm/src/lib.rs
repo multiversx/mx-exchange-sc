@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           38
+// Endpoints:                           44
 // Async Callback:                       1
-// Total number of exported functions:  40
+// Total number of exported functions:  46
 
 #![no_std]
 #![allow(internal_features)]
@@ -37,7 +37,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeIntermediatedFarm => remove_intermediated_farm
         getIntermediatedPairs => intermediated_pairs
         getIntermediatedFarms => intermediated_farms
-        addLiquidityProxy => add_liquidity_proxy
+        addLiquidityProxy => add_liquidity_proxy_endpoint
         removeLiquidityProxy => remove_liquidity_proxy
         increaseProxyPairTokenEnergy => increase_proxy_pair_token_energy_endpoint
         enterFarmProxy => enter_farm_proxy_endpoint
@@ -53,8 +53,14 @@ multiversx_sc_wasm_adapter::endpoints! {
         depositProjectToken => deposit_project_token
         createXmexTokenPair => create_xmex_token_pair
         setPairLocalRoles => set_pair_local_roles
-        getRequestedPrice => requested_price
-        getPairForToken => pair_for_token
+        getTokenInfo => token_info
+        setFoundationAddress => set_foundation_address
+        setLpLockEpochs => set_lp_lock_epochs
+        depositXmex => deposit_xmex
+        withdrawXmex => withdraw_xmex
+        addInitialLiquidityFromDeposits => add_initial_liq_from_deposits
+        getFoundationAddress => foundation_address
+        getLpUnlockEpoch => lp_unlock_epoch
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted

@@ -1,8 +1,11 @@
 #![no_std]
 
+use common_structs::Epoch;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub mod create_pair_foundation;
 pub mod create_pair_user;
 pub mod energy_update;
 pub mod events;
@@ -28,6 +31,7 @@ pub trait ProxyDexImpl:
     + energy_query::EnergyQueryModule
     + events::EventsModule
     + create_pair_user::CreatePairUserModule
+    + create_pair_foundation::CreatePairFoundationModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
@@ -40,6 +44,8 @@ pub trait ProxyDexImpl:
         old_factory_address: ManagedAddress,
         energy_factory_address: ManagedAddress,
         router_address: ManagedAddress,
+        foundation_address: ManagedAddress,
+        lp_lock_epochs: Epoch,
     ) {
         self.require_valid_token_id(&old_locked_token_id);
         self.require_sc_address(&old_factory_address);
@@ -50,6 +56,8 @@ pub trait ProxyDexImpl:
         self.old_factory_address().set(old_factory_address);
         self.energy_factory_address().set(energy_factory_address);
         self.router_address().set(router_address);
+        self.set_foundation_address(foundation_address);
+        self.set_lp_lock_epochs(lp_lock_epochs);
     }
 
     #[endpoint]

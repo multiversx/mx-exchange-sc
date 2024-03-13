@@ -41,6 +41,9 @@ path = "../../common/modules/token_send"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
 [dependencies.mergeable]
 path = "../../common/traits/mergeable"
 

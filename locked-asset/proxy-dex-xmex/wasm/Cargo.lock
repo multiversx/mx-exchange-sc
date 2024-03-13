@@ -448,6 +448,7 @@ dependencies = [
  "multiversx-sc",
  "multiversx-sc-modules",
  "pair",
+ "pausable",
  "router",
  "sc_whitelist_module",
  "simple-lock",

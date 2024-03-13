@@ -2,8 +2,15 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
-use common_structs::Epoch;
+use common_structs::{Epoch, PaymentsVec};
 use fixed_supply_token::FixedSupplyToken;
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct AddLiqResultType<M: ManagedTypeApi> {
+    pub new_wrapped_token: EsdtTokenPayment<M>,
+    pub locked_token_leftover: EsdtTokenPayment<M>,
+    pub other_token_leftover: EsdtTokenPayment<M>,
+}
 
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
@@ -21,17 +28,32 @@ pub trait ProxyPairModule:
 {
     #[payable("*")]
     #[endpoint(addLiquidityProxy)]
+    fn add_liquidity_proxy_endpoint(
+        &self,
+        pair_address: ManagedAddress,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    ) -> AddLiqResultType<Self::Api> {
+        let payments = self.get_non_empty_payments();
+        self.add_liquidity_proxy(
+            pair_address,
+            first_token_amount_min,
+            second_token_amount_min,
+            payments,
+        )
+    }
+
     fn add_liquidity_proxy(
         &self,
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> MultiValueEncoded<EsdtTokenPayment> {
+        mut payments: PaymentsVec<Self::Api>,
+    ) -> AddLiqResultType<Self::Api> {
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
         let caller = self.blockchain().get_caller();
-        let mut payments = self.get_non_empty_payments();
         let first_payment = self.pop_first_payment(&mut payments);
         let second_payment = self.pop_first_payment(&mut payments);
 
@@ -109,8 +131,8 @@ pub trait ProxyPairModule:
 
         let mut output_payments = ManagedVec::new();
         output_payments.push(new_wrapped_token.payment.clone());
-        output_payments.push(locked_token_leftover);
-        output_payments.push(other_token_leftover);
+        output_payments.push(locked_token_leftover.clone());
+        output_payments.push(other_token_leftover.clone());
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
@@ -124,7 +146,11 @@ pub trait ProxyPairModule:
             token_merge_requested,
         );
 
-        output_payments.into()
+        AddLiqResultType {
+            new_wrapped_token: new_wrapped_token.payment,
+            locked_token_leftover,
+            other_token_leftover,
+        }
     }
 
     #[payable("*")]

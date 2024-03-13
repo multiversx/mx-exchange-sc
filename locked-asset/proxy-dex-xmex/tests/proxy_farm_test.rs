@@ -325,7 +325,7 @@ fn farm_with_wrapped_lp_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
@@ -1342,7 +1342,7 @@ fn increase_proxy_farm_proxy_lp_energy() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap() / 2),
                 managed_biguint!(other_token_amount.to_u64().unwrap() / 2),
@@ -1354,7 +1354,7 @@ fn increase_proxy_farm_proxy_lp_energy() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap() / 2),
                 managed_biguint!(other_token_amount.to_u64().unwrap() / 2),
@@ -1569,7 +1569,7 @@ fn destroy_farm_locked_tokens_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
