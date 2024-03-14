@@ -2127,6 +2127,7 @@ dependencies = [
  "num-traits",
  "pair",
  "pausable",
+ "proxy_dex",
  "rewards",
  "router",
  "sc_whitelist_module",
