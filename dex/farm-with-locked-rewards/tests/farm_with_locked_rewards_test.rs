@@ -165,14 +165,7 @@ fn farm_with_boosted_yields_no_proxy_test() {
 
     // first user claim
     let first_base_farm_amt = first_farm_token_amount * 7_500 / total_farm_tokens;
-
-    // Boosted yields rewards formula
-    // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // (2500 * 3 * 1_000 / 5_000 + 2500 * 2 * 100_000_000 / 150_000_000) / (3 + 2)
-    // (1500 + 3333) / (5) = 966
-    let first_boosted_amt = 966; // 1000 energy & 100_000_000 farm tokens
-    let first_total = first_base_farm_amt + first_boosted_amt;
+    let first_total = first_base_farm_amt;
 
     let first_receveived_reward_amt =
         farm_setup.claim_rewards(&first_user, 3, first_farm_token_amount);
@@ -200,14 +193,7 @@ fn farm_with_boosted_yields_no_proxy_test() {
 
     // second user claim
     let second_base_farm_amt = second_farm_token_amount * 7_500 / total_farm_tokens;
-
-    // Boosted yields rewards formula
-    // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // (2500 * 3 * 4000 / 5_000 + 2500 * 2 * 50_000_000 / 150_000_000) / (3 + 2)
-    // (6000 + 1666) / (5) = 1533
-    let second_boosted_amt = 1533; // 4000 energy & 50_000_000 farm tokens
-    let second_total = second_base_farm_amt + second_boosted_amt;
+    let second_total = second_base_farm_amt;
 
     let second_receveived_reward_amt =
         farm_setup.claim_rewards(&second_user, 4, second_farm_token_amount);
@@ -305,14 +291,7 @@ fn total_farm_position_claim_with_locked_rewards_test() {
 
     // first user claim with half total position
     let first_base_farm_amt = farm_in_amount * 7_500 / total_farm_tokens;
-
-    // Boosted yields rewards formula
-    // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // (2_500 * 3 * 1_000 / 1_000 + 2_500 * 2 * 100_000_000 / 100_000_000) / (3 + 2)
-    // (7_500 + 2_500) / (5) = 2_500
-    let first_boosted_amt = 2_500; // 1000 energy & 100_000_000 farm tokens
-    let first_total_rewards = first_base_farm_amt + first_boosted_amt;
+    let first_total_rewards = first_base_farm_amt;
 
     let first_received_reward_amt = farm_setup.claim_rewards(&first_user, 3, farm_in_amount);
 

@@ -144,8 +144,11 @@ pub trait FarmBoostedYieldsModule:
         }
     }
 
-    #[inline]
     fn add_boosted_rewards(&self, user: &ManagedAddress, amount: &BigUint) {
+        if amount == &0 {
+            return;
+        }
+
         self.accumulated_rewards_per_user(user)
             .update(|amt| *amt += amount);
     }
