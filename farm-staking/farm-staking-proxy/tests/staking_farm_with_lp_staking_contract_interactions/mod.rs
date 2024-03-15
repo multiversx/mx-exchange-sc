@@ -372,8 +372,7 @@ where
                 0,
                 &rust_biguint!(ride_token_stake_amount),
                 |sc| {
-                    let (staking_farm_tokens, _) =
-                        sc.stake_farm_endpoint(OptionalValue::None).into_tuple();
+                    let staking_farm_tokens = sc.stake_farm_endpoint(OptionalValue::None);
                     staking_farm_token_nonce = staking_farm_tokens.token_nonce;
 
                     assert_eq!(
@@ -460,8 +459,7 @@ where
                 0,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (new_farm_token, _boosted_rewards_payment) =
-                        sc.enter_farm_endpoint(OptionalValue::None).into_tuple();
+                    let new_farm_token = sc.enter_farm_endpoint(OptionalValue::None);
                     assert_eq!(
                         new_farm_token.token_identifier,
                         managed_token_id!(LP_FARM_TOKEN_ID)

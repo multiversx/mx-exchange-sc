@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 
 use common_structs::FarmToken;
 use contexts::storage_cache::StorageCache;
-use farm_base_impl::base_traits_impl::FarmContract;
+use farm_base_impl::base_traits_impl::{FarmContract, RewardPair};
 use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::token_attributes::StakingFarmTokenAttributes;
@@ -145,7 +145,7 @@ where
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+    ) -> RewardPair<<Self::FarmSc as ContractBase>::Api> {
         let base_farm_reward = Self::calculate_base_farm_rewards(
             sc,
             farm_token_amount,
@@ -154,7 +154,7 @@ where
         );
         let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller);
 
-        base_farm_reward + boosted_yield_rewards
+        RewardPair::new(base_farm_reward, boosted_yield_rewards)
     }
 
     fn create_enter_farm_initial_attributes(

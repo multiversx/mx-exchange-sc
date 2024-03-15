@@ -69,6 +69,7 @@ pub trait ClaimStakeFarmRewardsModule:
         );
 
         self.migrate_old_farm_positions(&original_caller);
+
         let payment = self.call_value().single_esdt();
         let mut claim_result = self
             .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
@@ -96,19 +97,25 @@ pub trait ClaimStakeFarmRewardsModule:
         );
         virtual_farm_token.payment.token_nonce = new_farm_token_nonce;
 
+        self.add_boosted_rewards(&original_caller, &claim_result.rewards.boosted);
+
+        let reward_token_id = self.reward_token_id().get();
+        let base_rewards_payment =
+            EsdtTokenPayment::new(reward_token_id, 0, claim_result.rewards.base);
+
         let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
-        self.send_payment_non_zero(&caller, &claim_result.rewards);
+        self.send_payment_non_zero(&caller, &base_rewards_payment);
 
         self.emit_claim_rewards_event(
             &caller,
             claim_result.context,
             virtual_farm_token.clone(),
-            claim_result.rewards.clone(),
+            base_rewards_payment.clone(),
             claim_result.created_with_merge,
             claim_result.storage_cache,
         );
 
-        (virtual_farm_token.payment, claim_result.rewards).into()
+        (virtual_farm_token.payment, base_rewards_payment).into()
     }
 }

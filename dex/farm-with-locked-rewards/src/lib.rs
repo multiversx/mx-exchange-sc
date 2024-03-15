@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(clippy::too_many_arguments)]
-#![feature(exact_size_is_empty)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -11,13 +9,13 @@ use core::marker::PhantomData;
 use week_timekeeping::Epoch;
 
 use farm::{
-    base_functions::{BaseFunctionsModule, ClaimRewardsResultType, DoubleMultiPayment, Wrapper},
+    base_functions::{BaseFunctionsModule, ClaimRewardsResultType, Wrapper},
     exit_penalty::{
         DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     },
-    EnterFarmResultType, ExitFarmWithPartialPosResultType,
+    ExitFarmWithPartialPosResultType,
 };
-use farm_base_impl::base_traits_impl::FarmContract;
+use farm_base_impl::base_traits_impl::{FarmContract, RewardPair};
 
 #[multiversx_sc::contract]
 pub trait Farm:
@@ -95,25 +93,21 @@ pub trait Farm:
     fn enter_farm_endpoint(
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> EnterFarmResultType<Self::Api> {
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         self.migrate_old_farm_positions(&orig_caller);
+
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
-        let boosted_rewards_payment = self.send_to_lock_contract_non_zero(
-            self.reward_token_id().get(),
-            boosted_rewards,
-            caller.clone(),
-            orig_caller.clone(),
-        );
+        self.add_boosted_rewards(&orig_caller, &boosted_rewards);
 
         let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(orig_caller.clone());
         self.send_payment_non_zero(&caller, &new_farm_token);
 
         self.update_energy_and_progress(&orig_caller);
 
-        (new_farm_token, boosted_rewards_payment).into()
+        new_farm_token
     }
 
     #[payable("*")]
@@ -122,12 +116,7 @@ pub trait Farm:
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsResultType<Self::Api> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let first_week_start_epoch = self.first_week_start_epoch().get();
-        require!(
-            first_week_start_epoch <= current_epoch,
-            "Cannot claim rewards yet"
-        );
+        self.require_first_epoch_passed();
 
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
@@ -137,13 +126,15 @@ pub trait Farm:
         let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_claim_rewards_result =
             self.claim_rewards_base::<NoMintWrapper<Self>>(orig_caller.clone(), payments);
+        self.add_boosted_rewards(&orig_caller, &base_claim_rewards_result.rewards.boosted);
+
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
-        let rewards_payment = base_claim_rewards_result.rewards;
+        let reward_token_id = self.reward_token_id().get();
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            rewards_payment.token_identifier,
-            rewards_payment.amount,
+            reward_token_id,
+            base_claim_rewards_result.rewards.base,
             caller,
             orig_caller.clone(),
         );
@@ -170,19 +161,18 @@ pub trait Farm:
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let payment = self.call_value().single_esdt();
-
         let migrated_amount = self.migrate_old_farm_positions(&orig_caller);
-
         let exit_farm_result = self.exit_farm::<NoMintWrapper<Self>>(orig_caller.clone(), payment);
+        self.add_boosted_rewards(&orig_caller, &exit_farm_result.rewards.boosted);
 
         self.decrease_old_farm_positions(migrated_amount, &orig_caller);
 
-        let rewards = exit_farm_result.rewards;
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
 
+        let reward_token_id = self.reward_token_id().get();
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            rewards.token_identifier.clone(),
-            rewards.amount,
+            reward_token_id,
+            exit_farm_result.rewards.base,
             caller,
             orig_caller.clone(),
         );
@@ -197,34 +187,25 @@ pub trait Farm:
     fn merge_farm_tokens_endpoint(
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> DoubleMultiPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         self.migrate_old_farm_positions(&orig_caller);
+
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
+        self.add_boosted_rewards(&orig_caller, &boosted_rewards);
 
         let merged_farm_token = self.merge_farm_tokens::<NoMintWrapper<Self>>();
 
         self.send_payment_non_zero(&caller, &merged_farm_token);
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            self.reward_token_id().get(),
-            boosted_rewards,
-            caller,
-            orig_caller,
-        );
 
-        (merged_farm_token, locked_rewards_payment).into()
+        merged_farm_token
     }
 
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let first_week_start_epoch = self.first_week_start_epoch().get();
-        require!(
-            first_week_start_epoch <= current_epoch,
-            "Cannot claim rewards yet"
-        );
+        self.require_first_epoch_passed();
 
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
@@ -239,10 +220,11 @@ pub trait Farm:
             );
         }
 
+        let accumulated_boosted_rewards = self.accumulated_rewards_per_user(user).take();
         let boosted_rewards = self.claim_only_boosted_payment(user);
         self.send_to_lock_contract_non_zero(
             self.reward_token_id().get(),
-            boosted_rewards,
+            accumulated_boosted_rewards + boosted_rewards,
             user.clone(),
             user.clone(),
         )
@@ -278,13 +260,15 @@ pub trait Farm:
         let mut storage_cache = StorageCache::new(self);
         NoMintWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        NoMintWrapper::<Self>::calculate_rewards(
+        let rewards = NoMintWrapper::<Self>::calculate_rewards(
             self,
             &user,
             &farm_token_amount,
             &attributes,
             &storage_cache,
-        )
+        );
+
+        rewards.base
     }
 
     fn send_to_lock_contract_non_zero(
@@ -346,7 +330,7 @@ where
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+    ) -> RewardPair<<Self::FarmSc as ContractBase>::Api> {
         Wrapper::<T>::calculate_rewards(
             sc,
             caller,
