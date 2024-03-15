@@ -58,15 +58,10 @@ pub trait AddLiquidityModule:
             ERROR_LP_TOKEN_NOT_ISSUED
         );
 
-        let opt_initial_liq_adder = self.initial_liquidity_adder().get();
-        if let Some(initial_liq_adder) = opt_initial_liq_adder {
-            require!(
-                caller == initial_liq_adder,
-                ERROR_INITIAL_LIQUIDITY_NOT_ADDED
-            );
-
-            self.initial_liquidity_adder().clear();
-        }
+        require!(
+            self.initial_liquidity_adder().get().is_none() || storage_cache.lp_token_supply != 0,
+            ERROR_INITIAL_LIQUIDITY_NOT_ADDED
+        );
 
         self.update_safe_price(
             &storage_cache.first_token_reserve,

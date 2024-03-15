@@ -243,14 +243,6 @@ fn create_pair_test() {
         })
         .assert_user_error("Tokens not deposited");
 
-    // owner needs to manually resume pair
-    setup
-        .b_mock
-        .execute_tx(&owner, &setup.router_wrapper, &rust_biguint!(0), |sc| {
-            sc.resume(managed_address!(pair_wrapper.address_ref()));
-        })
-        .assert_ok();
-
     // simulate issue of LP token
     setup
         .b_mock

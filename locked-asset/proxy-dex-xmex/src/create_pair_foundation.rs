@@ -8,8 +8,6 @@ use crate::{
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-const INITIAL_LIQ_MIN_VALUE: u32 = 1;
-
 pub static XMEX_NOT_DEPOSITED_ERR_MSG: &[u8] = b"xMex not deposited";
 pub static PAIR_NOT_CREATED_ERR_MSG: &[u8] = b"Pair not created";
 
@@ -190,12 +188,7 @@ pub trait CreatePairFoundationModule:
         let mut payments = PaymentsVec::from_single_item(user_custom_tokens);
         payments.push(xmex_tokens);
 
-        self.add_liquidity_proxy(
-            pair_address,
-            BigUint::from(INITIAL_LIQ_MIN_VALUE),
-            BigUint::from(INITIAL_LIQ_MIN_VALUE),
-            payments,
-        )
+        self.add_initial_liq_proxy(pair_address, payments)
     }
 
     fn require_foundation_caller(&self) {
