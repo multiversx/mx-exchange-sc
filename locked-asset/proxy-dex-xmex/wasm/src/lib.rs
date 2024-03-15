@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           45
+// Endpoints:                           46
 // Async Callback:                       1
-// Total number of exported functions:  47
+// Total number of exported functions:  48
 
 #![no_std]
 #![allow(internal_features)]
@@ -53,6 +53,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         depositProjectToken => deposit_project_token
         createXmexTokenPair => create_xmex_token_pair
         setPairLocalRoles => set_pair_local_roles
+        getPairAddress => get_pair_address
         getTokenInfo => token_info
         setFoundationAddress => set_foundation_address
         setLpLockEpochs => set_lp_lock_epochs
