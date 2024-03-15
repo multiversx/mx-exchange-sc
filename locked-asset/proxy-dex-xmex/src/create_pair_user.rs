@@ -24,6 +24,7 @@ pub trait CreatePairUserModule:
     + energy_query::EnergyQueryModule
     + token_send::TokenSendModule
 {
+    /// note: If you ever clear a token that already created the pair, you need to manually remove it from router
     #[only_owner]
     #[endpoint(clearTokenInfo)]
     fn clear_token_info(&self, token_id: TokenIdentifier) {
@@ -34,6 +35,11 @@ pub trait CreatePairUserModule:
             0,
             &token_info.deposited_tokens,
         );
+
+        if token_info.opt_pair.is_some() {
+            self.send()
+                .direct_egld(&token_info.depositor, &BigUint::from(ISSUE_COST));
+        }
     }
 
     #[payable("*")]
@@ -79,7 +85,8 @@ pub trait CreatePairUserModule:
 
         info_mapper.set(token_info);
 
-        // self.issue_pair_lp_token(pair_addr, lp_token_display_name, lp_token_ticker); // Comment this line if you want tests to work
+        // Comment this line if you want tests to work
+        self.issue_pair_lp_token(pair_addr, lp_token_display_name, lp_token_ticker);
     }
 
     #[endpoint(setPairLocalRoles)]
@@ -91,6 +98,17 @@ pub trait CreatePairUserModule:
             .set_local_roles(pair_address)
             .with_gas_limit(gas_for_call)
             .execute_on_dest_context();
+    }
+
+    #[view(getPairAddress)]
+    fn get_pair_address(&self, token_id: TokenIdentifier) -> OptionalValue<ManagedAddress> {
+        let info_mapper = self.token_info(&token_id);
+        if info_mapper.is_empty() {
+            return OptionalValue::None;
+        }
+
+        let token_info = info_mapper.get();
+        token_info.opt_pair.into()
     }
 
     fn create_pair(&self, token_id: TokenIdentifier, caller: ManagedAddress) -> ManagedAddress {

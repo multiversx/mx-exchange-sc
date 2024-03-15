@@ -183,6 +183,8 @@ where
         b_mock.set_esdt_balance(&second_user, MEX_TOKEN_ID, &user_balance);
         b_mock.set_esdt_balance(&second_user, WEGLD_TOKEN_ID, &user_balance);
 
+        b_mock.set_esdt_balance(&owner, MEX_TOKEN_ID, &user_balance);
+
         // users lock tokens
         b_mock
             .execute_esdt_transfer(
@@ -210,6 +212,19 @@ where
             )
             .assert_ok();
 
+        b_mock
+            .execute_esdt_transfer(
+                &owner,
+                &simple_lock_wrapper,
+                MEX_TOKEN_ID,
+                0,
+                &user_balance,
+                |sc| {
+                    sc.lock_tokens_endpoint(LOCK_OPTIONS[0], OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
         b_mock.check_nft_balance(
             &first_user,
             LOCKED_TOKEN_ID,
@@ -231,6 +246,18 @@ where
                 original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
                 original_token_nonce: 0,
                 unlock_epoch: 1_800,
+            }),
+        );
+
+        b_mock.check_nft_balance(
+            &owner,
+            LOCKED_TOKEN_ID,
+            1,
+            &user_balance,
+            Some(&LockedTokenAttributes::<DebugApi> {
+                original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
+                original_token_nonce: 0,
+                unlock_epoch: 360,
             }),
         );
 

@@ -1,5 +1,4 @@
 use common_structs::{Epoch, Nonce, NonceAmountPair, PaymentsVec};
-use pausable::ProxyTrait as _;
 
 use crate::{
     create_pair_user::TOKENS_NOT_DEPOSITED_ERR_MSG,
@@ -14,7 +13,7 @@ const INITIAL_LIQ_MIN_VALUE: u32 = 1;
 pub static XMEX_NOT_DEPOSITED_ERR_MSG: &[u8] = b"xMex not deposited";
 pub static PAIR_NOT_CREATED_ERR_MSG: &[u8] = b"Pair not created";
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Debug, PartialEq)]
 pub struct UnlockInfo<M: ManagedTypeApi> {
     pub unlock_epoch: Epoch,
     pub amount: BigUint<M>,
@@ -96,7 +95,7 @@ pub trait CreatePairFoundationModule:
     }
 
     #[endpoint(addInitialLiquidityFromDeposits)]
-    fn add_initial_liq_from_deposits(&self, token_id: TokenIdentifier) {
+    fn add_initial_liq_from_deposits(&self, token_id: TokenIdentifier) -> Nonce {
         self.require_foundation_caller();
 
         let info_mapper = self.token_info(&token_id);
@@ -132,6 +131,8 @@ pub trait CreatePairFoundationModule:
                 amount: add_liq_result.new_wrapped_token.amount,
                 original_depositor_address: token_info.depositor,
             });
+
+        add_liq_result.new_wrapped_token.token_nonce
     }
 
     #[endpoint(removeLiqCreatedPair)]
@@ -186,11 +187,6 @@ pub trait CreatePairFoundationModule:
         user_custom_tokens: EsdtTokenPayment,
         xmex_tokens: EsdtTokenPayment,
     ) -> AddLiqResultType<Self::Api> {
-        let _: IgnoreValue = self
-            .pair_proxy(pair_address.clone())
-            .resume()
-            .execute_on_dest_context();
-
         let mut payments = PaymentsVec::from_single_item(user_custom_tokens);
         payments.push(xmex_tokens);
 

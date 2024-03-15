@@ -42,12 +42,22 @@ pub trait ProxyPairModule:
         second_token_amount_min: BigUint,
     ) -> AddLiqResultType<Self::Api> {
         let payments = self.get_non_empty_payments();
-        self.add_liquidity_proxy(
+        let add_result = self.add_liquidity_proxy(
             pair_address,
             first_token_amount_min,
             second_token_amount_min,
             payments,
-        )
+        );
+
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(add_result.new_wrapped_token.clone());
+        output_payments.push(add_result.locked_token_leftover.clone());
+        output_payments.push(add_result.other_token_leftover.clone());
+
+        let caller = self.blockchain().get_caller();
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+
+        add_result
     }
 
     fn add_liquidity_proxy(
@@ -135,13 +145,6 @@ pub trait ProxyPairModule:
             self.send()
                 .esdt_local_burn(&asset_token_id, 0, &locked_token_leftover.amount);
         }
-
-        let mut output_payments = ManagedVec::new();
-        output_payments.push(new_wrapped_token.payment.clone());
-        output_payments.push(locked_token_leftover.clone());
-        output_payments.push(other_token_leftover.clone());
-
-        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
         self.emit_add_liquidity_proxy_event(
             &caller,

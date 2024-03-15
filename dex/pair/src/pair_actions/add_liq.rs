@@ -57,10 +57,16 @@ pub trait AddLiquidityModule:
             storage_cache.lp_token_id.is_valid_esdt_identifier(),
             ERROR_LP_TOKEN_NOT_ISSUED
         );
-        require!(
-            self.initial_liquidity_adder().get().is_none() || storage_cache.lp_token_supply != 0,
-            ERROR_INITIAL_LIQUIDITY_NOT_ADDED
-        );
+
+        let opt_initial_liq_adder = self.initial_liquidity_adder().get();
+        if let Some(initial_liq_adder) = opt_initial_liq_adder {
+            require!(
+                caller == initial_liq_adder,
+                ERROR_INITIAL_LIQUIDITY_NOT_ADDED
+            );
+
+            self.initial_liquidity_adder().clear();
+        }
 
         self.update_safe_price(
             &storage_cache.first_token_reserve,
