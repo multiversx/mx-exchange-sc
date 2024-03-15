@@ -321,7 +321,7 @@ where
         self.b_mock.execute_in_managed_environment(|| {
             self.b_mock.check_nft_balance::<Empty>(
                 &self.user_addr,
-                STAKING_FARM_TOKEN_ID,
+                UNBOND_TOKEN_ID,
                 unbond_token_nonce,
                 &rust_biguint!(expected_unbond_token_amount),
                 None,
@@ -341,7 +341,7 @@ where
             .execute_esdt_transfer(
                 &self.user_addr,
                 &self.staking_farm_wrapper,
-                STAKING_FARM_TOKEN_ID,
+                UNBOND_TOKEN_ID,
                 unbond_token_nonce,
                 &rust_biguint!(unbond_token_amount),
                 |sc| {
