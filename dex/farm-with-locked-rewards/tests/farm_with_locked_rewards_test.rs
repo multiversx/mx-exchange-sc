@@ -367,7 +367,7 @@ fn user_claim_unlocked_rewards_test() {
             &rust_biguint!(first_farm_token_amount),
             |sc| {
                 let (_new_farm_token, received_payment) = sc
-                    .claim_rewards_endpoint(OptionalValue::None, OptionalValue::Some(true))
+                    .claim_rewards_endpoint(true, OptionalValue::None)
                     .into_tuple();
 
                 assert_eq!(

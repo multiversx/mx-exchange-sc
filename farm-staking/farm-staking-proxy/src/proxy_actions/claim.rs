@@ -13,7 +13,7 @@ pub struct ClaimDualYieldArguments<'a, M: ManagedTypeApi> {
     pub opt_orig_caller: OptionalValue<ManagedAddress<M>>,
     pub staking_claim_amount: BigUint<M>,
     pub attributes: DualYieldTokenAttributes<M>,
-    pub opt_get_rewards_unlocked: OptionalValue<bool>,
+    pub get_rewards_unlocked: bool,
 }
 
 #[multiversx_sc::module]
@@ -27,13 +27,12 @@ pub trait ProxyClaimModule:
     + energy_query::EnergyQueryModule
     + sc_whitelist_module::SCWhitelistModule
 {
-    #[allow_multiple_var_args]
     #[payable("*")]
     #[endpoint(claimDualYield)]
     fn claim_dual_yield_endpoint(
         &self,
+        get_rewards_unlocked: bool,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-        opt_get_rewards_unlocked: OptionalValue<bool>,
     ) -> ClaimDualYieldResult<Self::Api> {
         let payment = self.call_value().single_esdt();
         let dual_yield_token_mapper = self.dual_yield_token();
@@ -48,7 +47,7 @@ pub trait ProxyClaimModule:
             opt_orig_caller,
             staking_claim_amount: attributes.staking_farm_token_amount.clone(),
             attributes,
-            opt_get_rewards_unlocked,
+            get_rewards_unlocked,
         };
         let internal_claim_result = self.claim_dual_yield(claim_args);
 
@@ -89,7 +88,7 @@ pub trait ProxyClaimModule:
         let lp_farm_claim_rewards_result = self.lp_farm_claim_rewards(
             orig_caller.clone(),
             lp_farm_payment,
-            args.opt_get_rewards_unlocked,
+            args.get_rewards_unlocked,
         );
         let staking_farm_claim_rewards_result = self.staking_farm_claim_rewards(
             orig_caller,

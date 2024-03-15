@@ -248,7 +248,7 @@ fn unstake_partial_position_test() {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
 
@@ -296,7 +296,7 @@ fn unstake_partial_position_test() {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
 

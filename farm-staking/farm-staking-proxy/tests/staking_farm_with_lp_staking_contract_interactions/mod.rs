@@ -253,8 +253,7 @@ where
                 dual_yield_token_nonce,
                 &rust_biguint!(dual_yield_token_amount),
                 |sc| {
-                    let received_tokens =
-                        sc.claim_dual_yield_endpoint(OptionalValue::None, OptionalValue::None);
+                    let received_tokens = sc.claim_dual_yield_endpoint(false, OptionalValue::None);
                     let lp_farm_rewards = received_tokens.lp_farm_rewards;
                     let staking_farm_rewards = received_tokens.staking_farm_rewards;
                     let new_dual_yield_tokens = received_tokens.new_dual_yield_tokens;
@@ -300,7 +299,7 @@ where
                     let received_tokens = sc.unstake_farm_tokens(
                         managed_biguint!(1),
                         managed_biguint!(1),
-                        OptionalValue::None,
+                        false,
                         OptionalValue::None,
                     );
 
@@ -479,7 +478,7 @@ where
                 &rust_biguint!(farm_token_amount),
                 |sc| {
                     let (_lp_tokens, _boosted_rewards_payment) = sc
-                        .exit_farm_endpoint(OptionalValue::None, OptionalValue::None)
+                        .exit_farm_endpoint(false, OptionalValue::None)
                         .into_tuple();
                 },
             )
@@ -503,7 +502,7 @@ where
                 &rust_biguint!(farm_token_amount),
                 |sc| {
                     let (output_farm_token, boosted_rewards_payment) = sc
-                        .claim_rewards_endpoint(OptionalValue::None, OptionalValue::None)
+                        .claim_rewards_endpoint(false, OptionalValue::None)
                         .into_tuple();
                     assert_eq!(output_farm_token.amount, farm_token_amount);
                     assert_eq!(boosted_rewards_payment.amount, expected_lp_farm_rewards);
