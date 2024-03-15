@@ -37,19 +37,16 @@ proxy_dex::proxy_interactions::proxy_common::ProxyCommonModule
         old_locked_token_id: TokenIdentifier,
         old_factory_address: ManagedAddress,
         energy_factory_address: ManagedAddress,
-        router_address: ManagedAddress,
         foundation_address: ManagedAddress,
         lp_lock_epochs: Epoch,
     ) {
         self.require_valid_token_id(&old_locked_token_id);
         self.require_sc_address(&old_factory_address);
         self.require_sc_address(&energy_factory_address);
-        self.require_sc_address(&router_address);
 
         self.old_locked_token_id().set(old_locked_token_id);
         self.old_factory_address().set(old_factory_address);
         self.energy_factory_address().set(energy_factory_address);
-        self.router_address().set(router_address);
         self.set_foundation_address(foundation_address);
         self.set_lp_lock_epochs(lp_lock_epochs);
     }

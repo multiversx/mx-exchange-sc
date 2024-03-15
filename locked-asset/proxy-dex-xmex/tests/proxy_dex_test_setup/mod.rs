@@ -145,7 +145,6 @@ where
             pair_wrapper.address_ref(),
             farm_locked_wrapper.address_ref(),
             simple_lock_wrapper.address_ref(),
-            router_wrapper.address_ref(),
         );
 
         b_mock
@@ -504,7 +503,6 @@ fn setup_proxy<ProxyObjBuilder>(
     pair_addr: &Address,
     farm_locked_addr: &Address,
     simple_lock_addr: &Address,
-    router_address: &Address,
 ) -> ContractObjWrapper<proxy_dex_xmex::ContractObj<DebugApi>, ProxyObjBuilder>
 where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex_xmex::ContractObj<DebugApi>,
@@ -518,7 +516,6 @@ where
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                 managed_address!(simple_lock_addr),
                 managed_address!(simple_lock_addr),
-                managed_address!(router_address),
                 managed_address!(owner),
                 LP_LOCK_EPOCHS,
             );

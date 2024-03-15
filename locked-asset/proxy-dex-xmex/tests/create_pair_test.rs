@@ -2,10 +2,12 @@
 
 mod proxy_dex_test_setup;
 
-use multiversx_sc::{codec::Empty, types::EsdtLocalRole};
-use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
+use multiversx_sc::{
+    codec::Empty,
+    imports::OptionalValue,
+    types::{EsdtLocalRole, MultiValueEncoded},
 };
+use multiversx_sc_scenario::{managed_address, managed_biguint, managed_token_id, rust_biguint};
 use pair::config::ConfigModule;
 use proxy_dex_test_setup::*;
 use proxy_dex_xmex::{
@@ -14,7 +16,6 @@ use proxy_dex_xmex::{
 };
 use router::Router;
 
-#[ignore = "Can't issue token in mock yet"]
 #[test]
 fn create_pair_test() {
     let mut setup = ProxySetup::new(
@@ -50,6 +51,33 @@ fn create_pair_test() {
         )
         .assert_ok();
 
+    // user deploy pair from router
+    let pair_wrapper = setup
+        .b_mock
+        .prepare_deploy_from_sc(setup.router_wrapper.address_ref(), pair::contract_obj);
+
+    let proxy_address = setup.proxy_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_tx(
+            &first_user,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut admins = MultiValueEncoded::new();
+                admins.push(managed_address!(&first_user));
+
+                let _ = sc.create_pair_endpoint(
+                    managed_token_id!(WEGLD_TOKEN_ID),
+                    managed_token_id!(MEX_TOKEN_ID),
+                    managed_address!(&proxy_address),
+                    OptionalValue::Some((0u64, 0u64).into()),
+                    admins,
+                );
+            },
+        )
+        .assert_ok();
+
     // user create pair
     setup
         .b_mock
@@ -59,9 +87,8 @@ fn create_pair_test() {
             &rust_biguint!(ISSUE_COST),
             |sc| {
                 sc.create_xmex_token_pair(
+                    managed_address!(pair_wrapper.address_ref()),
                     managed_token_id!(WEGLD_TOKEN_ID),
-                    managed_buffer!(b"Name"),
-                    managed_buffer!(b"NAME"),
                 );
             },
         )
@@ -149,6 +176,28 @@ fn create_pair_test() {
     let pair_wrapper = setup
         .b_mock
         .prepare_deploy_from_sc(setup.router_wrapper.address_ref(), pair::contract_obj);
+
+    setup
+        .b_mock
+        .execute_tx(
+            &first_user,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut admins = MultiValueEncoded::new();
+                admins.push(managed_address!(&first_user));
+
+                let _ = sc.create_pair_endpoint(
+                    managed_token_id!(WEGLD_TOKEN_ID),
+                    managed_token_id!(MEX_TOKEN_ID),
+                    managed_address!(&proxy_address),
+                    OptionalValue::Some((0u64, 0u64).into()),
+                    admins,
+                );
+            },
+        )
+        .assert_ok();
+
     setup
         .b_mock
         .execute_tx(
@@ -157,9 +206,8 @@ fn create_pair_test() {
             &rust_biguint!(ISSUE_COST),
             |sc| {
                 sc.create_xmex_token_pair(
+                    managed_address!(pair_wrapper.address_ref()),
                     managed_token_id!(WEGLD_TOKEN_ID),
-                    managed_buffer!(b"Name"),
-                    managed_buffer!(b"NAME"),
                 );
                 let stored_pair_addr = sc
                     .get_pair_address(managed_token_id!(WEGLD_TOKEN_ID))

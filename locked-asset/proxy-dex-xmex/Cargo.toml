@@ -20,9 +20,6 @@ path = "../../dex/pair"
 [dependencies.farm]
 path = "../../dex/farm"
 
-[dependencies.router]
-path = "../../dex/router"
-
 [dependencies.proxy_dex]
 path = "../proxy_dex"
 
@@ -97,3 +94,6 @@ path = "../../common/modules/farm/rewards"
 
 [dev-dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"
+
+[dev-dependencies.router]
+path = "../../dex/router"

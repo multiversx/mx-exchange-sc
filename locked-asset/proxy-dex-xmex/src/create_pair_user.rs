@@ -1,9 +1,6 @@
-use router::{ProxyTrait as _, DEFAULT_SPECIAL_FEE_PERCENT, DEFAULT_TOTAL_FEE_PERCENT};
-
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-const GAS_FOR_END_TX: u64 = 10_000;
 pub const ISSUE_COST: u64 = 50_000_000_000_000_000; // 0.05 EGLD
 
 pub static TOKENS_NOT_DEPOSITED_ERR_MSG: &[u8] = b"Tokens not deposited";
@@ -61,12 +58,7 @@ pub trait CreatePairUserModule:
 
     #[payable("EGLD")]
     #[endpoint(createXmexTokenPair)]
-    fn create_xmex_token_pair(
-        &self,
-        token_id: TokenIdentifier,
-        lp_token_display_name: ManagedBuffer,
-        lp_token_ticker: ManagedBuffer,
-    ) {
+    fn create_xmex_token_pair(&self, pair_address: ManagedAddress, token_id: TokenIdentifier) {
         let info_mapper = self.token_info(&token_id);
         require!(!info_mapper.is_empty(), TOKENS_NOT_DEPOSITED_ERR_MSG);
 
@@ -77,27 +69,14 @@ pub trait CreatePairUserModule:
         require!(payment_amount == ISSUE_COST, "Invalid payment amount");
 
         let caller = self.blockchain().get_caller();
-        let pair_addr = self.create_pair(token_id, caller);
-        let added = self.intermediated_pairs().insert(pair_addr.clone());
+        require!(caller == token_info.depositor, "Invalid caller");
+
+        let added = self.intermediated_pairs().insert(pair_address.clone());
         require!(added, "Pair already exists");
 
-        token_info.opt_pair = Some(pair_addr.clone());
+        token_info.opt_pair = Some(pair_address.clone());
 
         info_mapper.set(token_info);
-
-        // Comment this line if you want tests to work
-        self.issue_pair_lp_token(pair_addr, lp_token_display_name, lp_token_ticker);
-    }
-
-    #[endpoint(setPairLocalRoles)]
-    fn set_pair_local_roles(&self, pair_address: ManagedAddress) {
-        let router_address = self.router_address().get();
-        let gas_for_call = self.get_async_call_gas();
-        let _: IgnoreValue = self
-            .router_proxy(router_address)
-            .set_local_roles(pair_address)
-            .with_gas_limit(gas_for_call)
-            .execute_on_dest_context();
     }
 
     #[view(getPairAddress)]
@@ -110,58 +89,6 @@ pub trait CreatePairUserModule:
         let token_info = info_mapper.get();
         token_info.opt_pair.into()
     }
-
-    fn create_pair(&self, token_id: TokenIdentifier, caller: ManagedAddress) -> ManagedAddress {
-        let mex_token_id = self.get_base_token_id();
-        let own_sc_address = self.blockchain().get_sc_address();
-        let router_address = self.router_address().get();
-        let opt_fee_percents = OptionalValue::Some(MultiValue2::from((
-            DEFAULT_TOTAL_FEE_PERCENT,
-            DEFAULT_SPECIAL_FEE_PERCENT,
-        )));
-
-        let mut admins = MultiValueEncoded::new();
-        admins.push(caller);
-
-        // opt_fee_percents is ignored for non-owner callers
-        self.router_proxy(router_address)
-            .create_pair_endpoint(
-                token_id,
-                mex_token_id,
-                own_sc_address,
-                opt_fee_percents,
-                admins,
-            )
-            .execute_on_dest_context()
-    }
-
-    fn issue_pair_lp_token(
-        &self,
-        pair_address: ManagedAddress,
-        lp_token_display_name: ManagedBuffer,
-        lp_token_ticker: ManagedBuffer,
-    ) {
-        let router_address = self.router_address().get();
-        let gas_for_call = self.get_async_call_gas();
-        let _: IgnoreValue = self
-            .router_proxy(router_address)
-            .issue_lp_token(pair_address, lp_token_display_name, lp_token_ticker)
-            .with_gas_limit(gas_for_call)
-            .execute_on_dest_context();
-    }
-
-    fn get_async_call_gas(&self) -> GasLimit {
-        let remaining_gas = self.blockchain().get_gas_left();
-        require!(remaining_gas > GAS_FOR_END_TX, "Not enough gas");
-
-        remaining_gas - GAS_FOR_END_TX
-    }
-
-    #[proxy]
-    fn router_proxy(&self, sc_address: ManagedAddress) -> router::Proxy<Self::Api>;
-
-    #[storage_mapper("routerAddr")]
-    fn router_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getTokenInfo)]
     #[storage_mapper("tokenInfo")]
