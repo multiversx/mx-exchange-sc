@@ -12,6 +12,7 @@ pub mod fee;
 mod liquidity_pool;
 pub mod locking_wrapper;
 pub mod pair_actions;
+pub mod read_pair_storage;
 pub mod safe_price;
 pub mod safe_price_view;
 
@@ -45,6 +46,7 @@ pub trait Pair<ContractReader>:
     + pair_actions::swap::SwapModule
     + pair_actions::views::ViewsModule
     + pair_actions::common_methods::CommonMethodsModule
+    + read_pair_storage::ReadPairStorageModule
     + utils::UtilsModule
 {
     #[init]
