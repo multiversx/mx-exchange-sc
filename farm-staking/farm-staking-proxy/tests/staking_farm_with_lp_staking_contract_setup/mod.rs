@@ -1,5 +1,6 @@
 #![allow(deprecated)]
 
+use farm_staking::unbond_token::UnbondTokenModule;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::{
@@ -52,6 +53,8 @@ where
 
             sc.farm_token()
                 .set_token_id(managed_token_id!(STAKING_FARM_TOKEN_ID));
+            sc.unbond_token()
+                .set_token_id(managed_token_id!(UNBOND_TOKEN_ID));
 
             sc.state().set(State::Active);
             sc.produce_rewards_enabled().set(true);
@@ -78,6 +81,13 @@ where
         farm_staking_wrapper.address_ref(),
         STAKING_FARM_TOKEN_ID,
         &farm_token_roles[..],
+    );
+
+    let unbond_token_roles = [EsdtLocalRole::NftCreate, EsdtLocalRole::NftBurn];
+    b_mock.set_esdt_local_roles(
+        farm_staking_wrapper.address_ref(),
+        UNBOND_TOKEN_ID,
+        &unbond_token_roles[..],
     );
 
     farm_staking_wrapper
