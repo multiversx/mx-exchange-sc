@@ -115,24 +115,23 @@ pub trait Farm:
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsResultType<Self::Api> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let first_week_start_epoch = self.first_week_start_epoch().get();
-        require!(
-            first_week_start_epoch <= current_epoch,
-            "Cannot claim rewards yet"
-        );
+        self.require_first_epoch_passed();
 
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         self.migrate_old_farm_positions(&orig_caller);
 
-        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
+        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller.clone());
+        self.add_boosted_rewards(&orig_caller, &claim_rewards_result.rewards.boosted);
 
+        let reward_token_id = self.reward_token_id().get();
+        let base_rewards_payment =
+            EsdtTokenPayment::new(reward_token_id, 0, claim_rewards_result.rewards.base);
         self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
-        self.send_payment_non_zero(&caller, &claim_rewards_result.rewards);
+        self.send_payment_non_zero(&caller, &base_rewards_payment);
 
-        claim_rewards_result.into()
+        (claim_rewards_result.new_farm_token, base_rewards_payment).into()
     }
 
     #[payable("*")]
@@ -166,15 +165,19 @@ pub trait Farm:
         let payment = self.call_value().single_esdt();
         let migrated_amount = self.migrate_old_farm_positions(&orig_caller);
         let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller.clone(), payment);
+        self.add_boosted_rewards(&orig_caller, &exit_farm_result.rewards.boosted);
 
         self.decrease_old_farm_positions(migrated_amount, &orig_caller);
 
+        let reward_token_id = self.reward_token_id().get();
+        let base_rewards_payment =
+            EsdtTokenPayment::new(reward_token_id, 0, exit_farm_result.rewards.base);
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
-        self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
+        self.send_payment_non_zero(&caller, &base_rewards_payment);
 
         self.clear_user_energy_if_needed(&orig_caller);
 
-        (exit_farm_result.farming_tokens, exit_farm_result.rewards).into()
+        (exit_farm_result.farming_tokens, base_rewards_payment).into()
     }
 
     #[payable("*")]
@@ -198,12 +201,7 @@ pub trait Farm:
 
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let first_week_start_epoch = self.first_week_start_epoch().get();
-        require!(
-            first_week_start_epoch <= current_epoch,
-            "Cannot claim rewards yet"
-        );
+        self.require_first_epoch_passed();
 
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
@@ -261,12 +259,14 @@ pub trait Farm:
         let mut storage_cache = StorageCache::new(self);
         Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        Wrapper::<Self>::calculate_rewards(
+        let rewards = Wrapper::<Self>::calculate_rewards(
             self,
             &user,
             &farm_token_amount,
             &attributes,
             &storage_cache,
-        )
+        );
+
+        rewards.base
     }
 }
