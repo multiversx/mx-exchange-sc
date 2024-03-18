@@ -25,12 +25,12 @@ pub trait ExternalContractsInteractionsModule:
         &self,
         orig_caller: ManagedAddress,
         lp_farm_token: EsdtTokenPayment,
-        opt_get_rewards_unlocked: OptionalValue<bool>,
+        get_rewards_unlocked: bool,
     ) -> LpFarmClaimRewardsResult<Self::Api> {
         let lp_farm_address = self.lp_farm_address().get();
         let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .claim_rewards_endpoint(orig_caller, opt_get_rewards_unlocked)
+            .claim_rewards_endpoint(get_rewards_unlocked, orig_caller)
             .with_esdt_transfer(lp_farm_token)
             .execute_on_dest_context();
         let (new_lp_farm_tokens, lp_farm_rewards) = lp_farm_result.into_tuple();
@@ -46,13 +46,13 @@ pub trait ExternalContractsInteractionsModule:
         orig_caller: ManagedAddress,
         lp_farm_token_nonce: u64,
         lp_farm_token_amount: BigUint,
-        opt_get_rewards_unlocked: OptionalValue<bool>,
+        get_rewards_unlocked: bool,
     ) -> LpFarmExitResult<Self::Api> {
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm_endpoint(orig_caller, opt_get_rewards_unlocked)
+            .exit_farm_endpoint(get_rewards_unlocked, orig_caller)
             .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
             .execute_on_dest_context();
         let (lp_tokens, lp_farm_rewards) = exit_farm_result.into_tuple();
