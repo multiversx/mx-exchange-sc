@@ -9,6 +9,28 @@ use mergeable::Mergeable;
 use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 use rewards::RewardsModule;
 
+pub struct RewardPair<M: ManagedTypeApi> {
+    pub base: BigUint<M>,
+    pub boosted: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> RewardPair<M> {
+    #[inline]
+    pub fn new(base: BigUint<M>, boosted: BigUint<M>) -> Self {
+        Self { base, boosted }
+    }
+
+    #[inline]
+    pub fn new_zero() -> Self {
+        Self::new(BigUint::zero(), BigUint::zero())
+    }
+
+    #[inline]
+    pub fn total_rewards(&self) -> BigUint<M> {
+        &self.base + &self.boosted
+    }
+}
+
 pub trait AllBaseFarmImplTraits =
     rewards::RewardsModule
         + config::ConfigModule
@@ -101,14 +123,16 @@ pub trait FarmContract {
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+    ) -> RewardPair<<Self::FarmSc as ContractBase>::Api> {
         let token_rps = token_attributes.get_reward_per_share();
         if storage_cache.reward_per_share <= token_rps {
-            return BigUint::zero();
+            return RewardPair::new_zero();
         }
 
         let rps_diff = &storage_cache.reward_per_share - &token_rps;
-        farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
+        let base_rewards = farm_token_amount * &rps_diff / &storage_cache.division_safety_constant;
+
+        RewardPair::new(base_rewards, BigUint::zero())
     }
 
     fn create_enter_farm_initial_attributes(

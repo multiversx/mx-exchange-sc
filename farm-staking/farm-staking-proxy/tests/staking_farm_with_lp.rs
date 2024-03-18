@@ -248,7 +248,7 @@ fn unstake_partial_position_test() {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
 
@@ -276,7 +276,7 @@ fn unstake_partial_position_test() {
                 let unbond_tokens = results.unbond_staking_farm_token;
                 assert_eq!(
                     unbond_tokens.token_identifier,
-                    managed_token_id!(STAKING_FARM_TOKEN_ID)
+                    managed_token_id!(UNBOND_TOKEN_ID)
                 );
                 assert_eq!(unbond_tokens.amount, dual_yield_token_amount / 2);
             },
@@ -296,7 +296,7 @@ fn unstake_partial_position_test() {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
 
@@ -324,7 +324,7 @@ fn unstake_partial_position_test() {
                 let unbond_tokens = results.unbond_staking_farm_token;
                 assert_eq!(
                     unbond_tokens.token_identifier,
-                    managed_token_id!(STAKING_FARM_TOKEN_ID)
+                    managed_token_id!(UNBOND_TOKEN_ID)
                 );
                 assert_eq!(unbond_tokens.amount, 1_001_000_000 / 2);
             },
