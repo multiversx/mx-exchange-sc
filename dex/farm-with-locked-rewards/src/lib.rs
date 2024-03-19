@@ -110,7 +110,6 @@ pub trait Farm:
         new_farm_token
     }
 
-    #[allow_multiple_var_args]
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(
@@ -155,7 +154,6 @@ pub trait Farm:
         (output_farm_token_payment, output_rewards_payment).into()
     }
 
-    #[allow_multiple_var_args]
     #[payable("*")]
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(
@@ -211,7 +209,6 @@ pub trait Farm:
         merged_farm_token
     }
 
-    #[allow_multiple_var_args]
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(
         &self,
