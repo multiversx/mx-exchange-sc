@@ -61,6 +61,17 @@ fn test_swap_fixed_output() {
 }
 
 #[test]
+fn test_perfect_swap_fixed_output() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+
+    pair_setup.add_liquidity(
+        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+    );
+
+    pair_setup.swap_fixed_output(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 996, 0);
+}
+
+#[test]
 fn test_safe_price() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
