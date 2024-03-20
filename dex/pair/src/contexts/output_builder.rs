@@ -137,14 +137,12 @@ pub trait OutputBuilderModule:
             ));
         }
 
-        if swap_context.final_input_amount <= swap_context.input_token_amount {
-            let extra_amount = &swap_context.input_token_amount - &swap_context.final_input_amount;
-            payments.push(EsdtTokenPayment::new(
-                swap_context.input_token_id.clone(),
-                0,
-                extra_amount,
-            ));
-        }
+        let extra_amount = &swap_context.input_token_amount - &swap_context.final_input_amount;
+        payments.push(EsdtTokenPayment::new(
+            swap_context.input_token_id.clone(),
+            0,
+            extra_amount,
+        ));
 
         payments
     }

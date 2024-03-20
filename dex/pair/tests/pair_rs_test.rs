@@ -64,11 +64,29 @@ fn test_swap_fixed_output() {
 fn test_perfect_swap_fixed_output() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
 
+    let token_amount = 1_001_000;
+
     pair_setup.add_liquidity(
-        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+        token_amount,
+        1_000_000,
+        token_amount,
+        1_000_000,
+        1_000_000,
+        token_amount,
+        token_amount,
     );
 
     pair_setup.swap_fixed_output(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 996, 0);
+    pair_setup.b_mock.check_esdt_balance(
+        &pair_setup.user_address,
+        WEGLD_TOKEN_ID,
+        &(rust_biguint!(USER_TOTAL_WEGLD_TOKENS - token_amount - 1_000)),
+    );
+    pair_setup.b_mock.check_esdt_balance(
+        &pair_setup.user_address,
+        MEX_TOKEN_ID,
+        &(rust_biguint!(USER_TOTAL_WEGLD_TOKENS - token_amount + 996)),
+    );
 }
 
 #[test]
