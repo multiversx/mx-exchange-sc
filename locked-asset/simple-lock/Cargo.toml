@@ -18,6 +18,12 @@ version = "=0.46.1"
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
+[dependencies.mergeable]
+path = "../../common/traits/mergeable"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"

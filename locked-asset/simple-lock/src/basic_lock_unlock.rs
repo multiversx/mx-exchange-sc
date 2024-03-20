@@ -1,5 +1,7 @@
 multiversx_sc::imports!();
 
+use common_structs::Epoch;
+
 use crate::{
     error_messages::{CANNOT_UNLOCK_YET_ERR_MSG, NO_PAYMENT_ERR_MSG},
     locked_token::LockedTokenAttributes,
@@ -14,7 +16,7 @@ pub trait BasicLockUnlock:
     fn lock_tokens(
         &self,
         payment: EgldOrEsdtTokenPayment<Self::Api>,
-        unlock_epoch: u64,
+        unlock_epoch: Epoch,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
@@ -44,7 +46,7 @@ pub trait BasicLockUnlock:
         &self,
         to: &ManagedAddress,
         payment: EgldOrEsdtTokenPayment<Self::Api>,
-        unlock_epoch: u64,
+        unlock_epoch: Epoch,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let out_payment = self.lock_tokens(payment, unlock_epoch);
         self.send().direct(
