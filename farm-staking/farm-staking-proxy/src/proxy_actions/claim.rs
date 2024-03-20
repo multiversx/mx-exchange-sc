@@ -8,6 +8,14 @@ pub struct InternalClaimResult<M: ManagedTypeApi> {
     pub new_dual_yield_attributes: DualYieldTokenAttributes<M>,
 }
 
+pub struct ClaimDualYieldArguments<'a, M: ManagedTypeApi> {
+    pub caller: &'a ManagedAddress<M>,
+    pub opt_orig_caller: OptionalValue<ManagedAddress<M>>,
+    pub staking_claim_amount: BigUint<M>,
+    pub attributes: DualYieldTokenAttributes<M>,
+    pub get_rewards_unlocked: bool,
+}
+
 #[multiversx_sc::module]
 pub trait ProxyClaimModule:
     crate::dual_yield_token::DualYieldTokenModule
@@ -23,6 +31,7 @@ pub trait ProxyClaimModule:
     #[endpoint(claimDualYield)]
     fn claim_dual_yield_endpoint(
         &self,
+        get_rewards_unlocked: bool,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimDualYieldResult<Self::Api> {
         let payment = self.call_value().single_esdt();
@@ -32,12 +41,15 @@ pub trait ProxyClaimModule:
         let caller = self.blockchain().get_caller();
         let attributes: DualYieldTokenAttributes<Self::Api> =
             self.get_attributes_as_part_of_fixed_supply(&payment, &dual_yield_token_mapper);
-        let internal_claim_result = self.claim_dual_yield(
-            &caller,
+
+        let claim_args = ClaimDualYieldArguments {
+            caller: &caller,
             opt_orig_caller,
-            attributes.staking_farm_token_amount.clone(),
+            staking_claim_amount: attributes.staking_farm_token_amount.clone(),
             attributes,
-        );
+            get_rewards_unlocked,
+        };
+        let internal_claim_result = self.claim_dual_yield(claim_args);
 
         let new_dual_yield_tokens = self.create_dual_yield_tokens(
             &dual_yield_token_mapper,
@@ -56,32 +68,33 @@ pub trait ProxyClaimModule:
 
     fn claim_dual_yield(
         &self,
-        caller: &ManagedAddress,
-        opt_orig_caller: OptionalValue<ManagedAddress>,
-        staking_claim_amount: BigUint,
-        attributes: DualYieldTokenAttributes<Self::Api>,
+        args: ClaimDualYieldArguments<Self::Api>,
     ) -> InternalClaimResult<Self::Api> {
-        let orig_caller = self.get_orig_caller_from_opt(caller, opt_orig_caller);
+        let orig_caller = self.get_orig_caller_from_opt(args.caller, args.opt_orig_caller);
 
         let lp_tokens_in_position = self.get_lp_tokens_in_farm_position(
-            attributes.lp_farm_token_nonce,
-            &attributes.lp_farm_token_amount,
+            args.attributes.lp_farm_token_nonce,
+            &args.attributes.lp_farm_token_amount,
         );
         let new_staking_farm_value = self.get_lp_tokens_safe_price(lp_tokens_in_position);
 
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let lp_farm_token_id = self.lp_farm_token_id().get();
+        let lp_farm_payment = EsdtTokenPayment::new(
+            lp_farm_token_id,
+            args.attributes.lp_farm_token_nonce,
+            args.attributes.lp_farm_token_amount,
+        );
         let lp_farm_claim_rewards_result = self.lp_farm_claim_rewards(
             orig_caller.clone(),
-            lp_farm_token_id,
-            attributes.lp_farm_token_nonce,
-            attributes.lp_farm_token_amount,
+            lp_farm_payment,
+            args.get_rewards_unlocked,
         );
         let staking_farm_claim_rewards_result = self.staking_farm_claim_rewards(
             orig_caller,
             staking_farm_token_id,
-            attributes.staking_farm_token_nonce,
-            staking_claim_amount,
+            args.attributes.staking_farm_token_nonce,
+            args.staking_claim_amount,
             new_staking_farm_value,
         );
 

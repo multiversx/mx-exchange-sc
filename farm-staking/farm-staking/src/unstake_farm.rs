@@ -1,13 +1,18 @@
 multiversx_sc::imports!();
 
 use farm::ExitFarmWithPartialPosResultType;
+use fixed_supply_token::FixedSupplyToken;
 
-use crate::{base_impl_wrapper::FarmStakingWrapper, token_attributes::UnbondSftAttributes};
+use crate::{
+    base_impl_wrapper::FarmStakingWrapper,
+    token_attributes::{StakingFarmTokenAttributes, UnbondSftAttributes},
+};
 
 #[multiversx_sc::module]
 pub trait UnstakeFarmModule:
     crate::custom_rewards::CustomRewardsModule
     + crate::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
+    + crate::unbond_token::UnbondTokenModule
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
@@ -82,11 +87,16 @@ pub trait UnstakeFarmModule:
 
         let unbond_token_amount =
             opt_unbond_amount.unwrap_or(exit_result.farming_token_payment.amount);
-        let farm_token_id = exit_result.storage_cache.farm_token_id.clone();
 
         let caller = self.blockchain().get_caller();
+        let original_attributes = exit_result
+            .context
+            .farm_token
+            .attributes
+            .clone()
+            .into_part(&exit_result.context.farm_token.payment.amount);
         let unbond_farm_token =
-            self.create_and_send_unbond_tokens(&caller, farm_token_id, unbond_token_amount);
+            self.create_and_send_unbond_tokens(&caller, unbond_token_amount, original_attributes);
 
         let reward_token_id = self.reward_token_id().get();
         let base_rewards_payment =
@@ -111,21 +121,20 @@ pub trait UnstakeFarmModule:
     fn create_and_send_unbond_tokens(
         &self,
         to: &ManagedAddress,
-        farm_token_id: TokenIdentifier,
         amount: BigUint,
+        original_attributes: StakingFarmTokenAttributes<Self::Api>,
     ) -> EsdtTokenPayment {
         let min_unbond_epochs = self.min_unbond_epochs().get();
         let current_epoch = self.blockchain().get_block_epoch();
-        let nft_nonce = self.send().esdt_nft_create_compact(
-            &farm_token_id,
-            &amount,
+
+        self.unbond_token().nft_create_and_send(
+            to,
+            amount.clone(),
             &UnbondSftAttributes {
                 unlock_epoch: current_epoch + min_unbond_epochs,
+                original_attributes,
+                supply: amount,
             },
-        );
-        self.send()
-            .direct_esdt(to, &farm_token_id, nft_nonce, &amount);
-
-        EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
+        )
     }
 }

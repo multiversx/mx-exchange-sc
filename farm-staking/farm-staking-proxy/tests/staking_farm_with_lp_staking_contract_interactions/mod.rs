@@ -5,7 +5,7 @@ use energy_query::Energy;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_with_locked_rewards::Farm;
 use multiversx_sc::{
-    codec::multi_types::OptionalValue,
+    codec::{multi_types::OptionalValue, Empty},
     types::{Address, BigInt},
 };
 use multiversx_sc_scenario::{
@@ -17,8 +17,7 @@ use multiversx_sc_scenario::{
 
 use farm_staking::{
     compound_stake_farm_rewards::CompoundStakeFarmRewardsModule, stake_farm::StakeFarmModule,
-    token_attributes::UnbondSftAttributes, unbond_farm::UnbondFarmModule,
-    unstake_farm::UnstakeFarmModule,
+    unbond_farm::UnbondFarmModule, unstake_farm::UnstakeFarmModule,
 };
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::proxy_actions::claim::ProxyClaimModule;
@@ -254,7 +253,7 @@ where
                 dual_yield_token_nonce,
                 &rust_biguint!(dual_yield_token_amount),
                 |sc| {
-                    let received_tokens = sc.claim_dual_yield_endpoint(OptionalValue::None);
+                    let received_tokens = sc.claim_dual_yield_endpoint(false, OptionalValue::None);
                     let lp_farm_rewards = received_tokens.lp_farm_rewards;
                     let staking_farm_rewards = received_tokens.staking_farm_rewards;
                     let new_dual_yield_tokens = received_tokens.new_dual_yield_tokens;
@@ -286,7 +285,6 @@ where
         expected_lp_farm_rewards: u64,
         expected_staking_rewards: u64,
         expected_unbond_token_amount: u64,
-        expected_unbond_token_unlock_epoch: u64,
     ) -> u64 {
         let mut unbond_token_nonce = 0;
 
@@ -301,6 +299,7 @@ where
                     let received_tokens = sc.unstake_farm_tokens(
                         managed_biguint!(1),
                         managed_biguint!(1),
+                        false,
                         OptionalValue::None,
                     );
 
@@ -320,16 +319,12 @@ where
             .assert_ok();
 
         self.b_mock.execute_in_managed_environment(|| {
-            let expected_attributes = UnbondSftAttributes {
-                unlock_epoch: expected_unbond_token_unlock_epoch,
-            };
-
-            self.b_mock.check_nft_balance(
+            self.b_mock.check_nft_balance::<Empty>(
                 &self.user_addr,
-                STAKING_FARM_TOKEN_ID,
+                UNBOND_TOKEN_ID,
                 unbond_token_nonce,
                 &rust_biguint!(expected_unbond_token_amount),
-                Some(&expected_attributes),
+                None,
             );
         });
 
@@ -346,7 +341,7 @@ where
             .execute_esdt_transfer(
                 &self.user_addr,
                 &self.staking_farm_wrapper,
-                STAKING_FARM_TOKEN_ID,
+                UNBOND_TOKEN_ID,
                 unbond_token_nonce,
                 &rust_biguint!(unbond_token_amount),
                 |sc| {
@@ -482,8 +477,9 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (_lp_tokens, _boosted_rewards_payment) =
-                        sc.exit_farm_endpoint(OptionalValue::None).into_tuple();
+                    let (_lp_tokens, _boosted_rewards_payment) = sc
+                        .exit_farm_endpoint(false, OptionalValue::None)
+                        .into_tuple();
                 },
             )
             .assert_ok();
@@ -505,8 +501,9 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (output_farm_token, boosted_rewards_payment) =
-                        sc.claim_rewards_endpoint(OptionalValue::None).into_tuple();
+                    let (output_farm_token, boosted_rewards_payment) = sc
+                        .claim_rewards_endpoint(false, OptionalValue::None)
+                        .into_tuple();
                     assert_eq!(output_farm_token.amount, farm_token_amount);
                     assert_eq!(boosted_rewards_payment.amount, expected_lp_farm_rewards);
                     new_farm_token_nonce = output_farm_token.token_nonce;

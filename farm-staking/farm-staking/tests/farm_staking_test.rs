@@ -1,11 +1,13 @@
 #![allow(deprecated)]
 
-use multiversx_sc_scenario::{rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi};
+use multiversx_sc_scenario::{
+    managed_token_id, rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi,
+};
 
 pub mod farm_staking_setup;
 use farm_staking::{
     custom_rewards::{BLOCKS_IN_YEAR, MAX_PERCENT},
-    token_attributes::UnbondSftAttributes,
+    unbond_farm::UnbondFarmModule,
 };
 use farm_staking_setup::*;
 
@@ -59,11 +61,8 @@ fn test_unstake_farm() {
         expected_rewards,
         &expected_ride_token_balance,
         &expected_ride_token_balance,
-        expected_farm_token_nonce + 1,
+        1,
         farm_in_amount,
-        &UnbondSftAttributes {
-            unlock_epoch: current_epoch + MIN_UNBOND_EPOCHS,
-        },
     );
     farm_setup.check_farm_token_supply(0);
 }
@@ -172,11 +171,8 @@ fn test_exit_farm_after_enter_twice() {
         expected_rewards,
         &expected_ride_token_balance,
         &expected_ride_token_balance,
-        3,
+        1,
         farm_in_amount,
-        &UnbondSftAttributes {
-            unlock_epoch: 8 + MIN_UNBOND_EPOCHS,
-        },
     );
     farm_setup.check_farm_token_supply(second_farm_in_amount);
 }
@@ -214,18 +210,15 @@ fn test_unbond() {
         expected_rewards,
         &expected_ride_token_balance,
         &expected_ride_token_balance,
-        expected_farm_token_nonce + 1,
+        1,
         farm_in_amount,
-        &UnbondSftAttributes {
-            unlock_epoch: current_epoch + MIN_UNBOND_EPOCHS,
-        },
     );
     farm_setup.check_farm_token_supply(0);
 
     farm_setup.set_block_epoch(current_epoch + MIN_UNBOND_EPOCHS);
 
     farm_setup.unbond_farm(
-        expected_farm_token_nonce + 1,
+        1,
         farm_in_amount,
         farm_in_amount,
         USER_TOTAL_RIDE_TOKENS + expected_rewards,
@@ -277,4 +270,63 @@ fn test_withdraw_after_produced_rewards() {
     // Only the user's rewards will remain
     let final_rewards_capacity = expected_reward_token_out;
     farm_setup.check_rewards_capacity(final_rewards_capacity);
+}
+
+#[test]
+fn cancel_unbond_test() {
+    DebugApi::dummy();
+    let mut farm_setup =
+        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let farm_in_amount = 100_000_000;
+    let expected_farm_token_nonce = 1;
+    farm_setup.stake_farm(farm_in_amount, &[], expected_farm_token_nonce, 0, 0);
+    farm_setup.check_farm_token_supply(farm_in_amount);
+
+    let current_block = 10;
+    let current_epoch = 5;
+    farm_setup.set_block_epoch(current_epoch);
+    farm_setup.set_block_nonce(current_block);
+
+    let block_diff = current_block;
+    let expected_rewards_unbounded = block_diff * PER_BLOCK_REWARD_AMOUNT;
+
+    // ~= 4 * 10 = 40
+    let expected_rewards_max_apr =
+        farm_in_amount * MAX_APR / MAX_PERCENT / BLOCKS_IN_YEAR * block_diff;
+    let expected_rewards = core::cmp::min(expected_rewards_unbounded, expected_rewards_max_apr);
+    assert_eq!(expected_rewards, 40);
+
+    let expected_ride_token_balance =
+        rust_biguint!(USER_TOTAL_RIDE_TOKENS) - farm_in_amount + expected_rewards;
+    farm_setup.unstake_farm(
+        farm_in_amount,
+        expected_farm_token_nonce,
+        expected_rewards,
+        &expected_ride_token_balance,
+        &expected_ride_token_balance,
+        1,
+        farm_in_amount,
+    );
+    farm_setup.check_farm_token_supply(0);
+
+    farm_setup.set_block_epoch(current_epoch + MIN_UNBOND_EPOCHS);
+
+    farm_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &farm_setup.user_address,
+            &farm_setup.farm_wrapper,
+            UNBOND_TOKEN_ID,
+            1,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let original_farm_token = sc.cancel_unbond();
+                assert_eq!(
+                    original_farm_token.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+            },
+        )
+        .assert_ok();
 }

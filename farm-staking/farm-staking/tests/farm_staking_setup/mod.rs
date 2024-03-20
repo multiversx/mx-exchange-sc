@@ -1,7 +1,9 @@
 #![allow(deprecated)]
 
 use farm_staking::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
+use farm_staking::unbond_token::UnbondTokenModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
+use multiversx_sc::codec::Empty;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
@@ -19,7 +21,7 @@ use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_staking::claim_stake_farm_rewards::ClaimStakeFarmRewardsModule;
 use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_staking::stake_farm::StakeFarmModule;
-use farm_staking::token_attributes::{StakingFarmTokenAttributes, UnbondSftAttributes};
+use farm_staking::token_attributes::StakingFarmTokenAttributes;
 use farm_staking::unbond_farm::UnbondFarmModule;
 use farm_staking::unstake_farm::UnstakeFarmModule;
 use farm_staking::*;
@@ -29,6 +31,7 @@ use pausable::{PausableModule, State};
 pub static REWARD_TOKEN_ID: &[u8] = b"RIDE-abcdef"; // reward token ID
 pub static FARMING_TOKEN_ID: &[u8] = b"RIDE-abcdef"; // farming token ID
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
+pub static UNBOND_TOKEN_ID: &[u8] = b"UNBOND-abcdef";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 pub const MIN_UNBOND_EPOCHS: u64 = 5;
 pub const MAX_APR: u64 = 2_500; // 25%
@@ -97,6 +100,8 @@ where
 
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
                 sc.farm_token().set_token_id(farm_token_id);
+                sc.unbond_token()
+                    .set_token_id(managed_token_id!(UNBOND_TOKEN_ID));
 
                 sc.per_block_reward_amount()
                     .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
@@ -132,6 +137,13 @@ where
             farm_wrapper.address_ref(),
             FARM_TOKEN_ID,
             &farm_token_roles[..],
+        );
+
+        let unbond_token_roles = [EsdtLocalRole::NftCreate, EsdtLocalRole::NftBurn];
+        b_mock.set_esdt_local_roles(
+            farm_wrapper.address_ref(),
+            UNBOND_TOKEN_ID,
+            &unbond_token_roles[..],
         );
 
         let farming_token_roles = [EsdtLocalRole::Burn];
@@ -318,9 +330,8 @@ where
         expected_rewards_out: u64,
         expected_user_reward_token_balance: &RustBigUint,
         expected_user_farming_token_balance: &RustBigUint,
-        expected_new_farm_token_nonce: u64,
-        expected_new_farm_token_amount: u64,
-        expected_new_farm_token_attributes: &UnbondSftAttributes,
+        expected_unbond_token_nonce: u64,
+        expected_unbond_token_amount: u64,
     ) {
         self.b_mock
             .execute_esdt_transfer(
@@ -336,12 +347,12 @@ where
 
                     assert_eq!(
                         first_result.token_identifier,
-                        managed_token_id!(FARM_TOKEN_ID)
+                        managed_token_id!(UNBOND_TOKEN_ID)
                     );
-                    assert_eq!(first_result.token_nonce, expected_new_farm_token_nonce);
+                    assert_eq!(first_result.token_nonce, expected_unbond_token_nonce);
                     assert_eq!(
                         first_result.amount,
-                        managed_biguint!(expected_new_farm_token_amount)
+                        managed_biguint!(expected_unbond_token_amount)
                     );
 
                     assert_eq!(
@@ -354,12 +365,12 @@ where
             )
             .assert_ok();
 
-        self.b_mock.check_nft_balance(
+        self.b_mock.check_nft_balance::<Empty>(
             &self.user_address,
-            FARM_TOKEN_ID,
-            expected_new_farm_token_nonce,
-            &rust_biguint!(expected_new_farm_token_amount),
-            Some(expected_new_farm_token_attributes),
+            UNBOND_TOKEN_ID,
+            expected_unbond_token_nonce,
+            &rust_biguint!(expected_unbond_token_amount),
+            None,
         );
         self.b_mock.check_esdt_balance(
             &self.user_address,
@@ -384,7 +395,7 @@ where
             .execute_esdt_transfer(
                 &self.user_address,
                 &self.farm_wrapper,
-                FARM_TOKEN_ID,
+                UNBOND_TOKEN_ID,
                 farm_token_nonce,
                 &rust_biguint!(farm_tokem_amount),
                 |sc| {

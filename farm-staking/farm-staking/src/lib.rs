@@ -23,6 +23,7 @@ pub mod farm_token_roles;
 pub mod stake_farm;
 pub mod token_attributes;
 pub mod unbond_farm;
+pub mod unbond_token;
 pub mod unstake_farm;
 
 #[multiversx_sc::contract]
@@ -51,6 +52,7 @@ pub trait FarmStaking:
     + unstake_farm::UnstakeFarmModule
     + unbond_farm::UnbondFarmModule
     + claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
+    + unbond_token::UnbondTokenModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
     + week_timekeeping::WeekTimekeepingModule

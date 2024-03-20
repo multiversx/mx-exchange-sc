@@ -110,10 +110,12 @@ pub trait Farm:
         new_farm_token
     }
 
+    #[allow_multiple_var_args]
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(
         &self,
+        get_rewards_unlocked: bool,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsResultType<Self::Api> {
         self.require_first_epoch_passed();
@@ -131,30 +133,34 @@ pub trait Farm:
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
-        let reward_token_id = self.reward_token_id().get();
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            reward_token_id,
-            base_claim_rewards_result.rewards.base,
+        let rewards_token_id = self.reward_token_id().get();
+        let rewards_amount = base_claim_rewards_result.rewards.base;
+        let rewards_payment = EsdtTokenPayment::new(rewards_token_id, 0, rewards_amount);
+        let output_rewards_payment = self.claim_base_farm_rewards(
+            get_rewards_unlocked,
             caller,
             orig_caller.clone(),
+            rewards_payment,
         );
 
         self.emit_claim_rewards_event::<_, FarmTokenAttributes<Self::Api>>(
             &orig_caller,
             base_claim_rewards_result.context,
             base_claim_rewards_result.new_farm_token,
-            locked_rewards_payment.clone(),
+            output_rewards_payment.clone(),
             base_claim_rewards_result.created_with_merge,
             base_claim_rewards_result.storage_cache,
         );
 
-        (output_farm_token_payment, locked_rewards_payment).into()
+        (output_farm_token_payment, output_rewards_payment).into()
     }
 
+    #[allow_multiple_var_args]
     #[payable("*")]
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(
         &self,
+        get_rewards_unlocked: bool,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
@@ -169,17 +175,19 @@ pub trait Farm:
 
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
 
-        let reward_token_id = self.reward_token_id().get();
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            reward_token_id,
-            exit_farm_result.rewards.base,
+        let rewards_token_id = self.reward_token_id().get();
+        let rewards_amount = exit_farm_result.rewards.base;
+        let rewards_payment = EsdtTokenPayment::new(rewards_token_id, 0, rewards_amount);
+        let output_rewards_payment = self.claim_base_farm_rewards(
+            get_rewards_unlocked,
             caller,
             orig_caller.clone(),
+            rewards_payment,
         );
 
         self.clear_user_energy_if_needed(&orig_caller);
 
-        (exit_farm_result.farming_tokens, locked_rewards_payment).into()
+        (exit_farm_result.farming_tokens, output_rewards_payment).into()
     }
 
     #[payable("*")]
@@ -203,9 +211,19 @@ pub trait Farm:
         merged_farm_token
     }
 
+    #[allow_multiple_var_args]
     #[endpoint(claimBoostedRewards)]
-    fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
-        self.require_first_epoch_passed();
+    fn claim_boosted_rewards(
+        &self,
+        get_rewards_unlocked: bool,
+        opt_user: OptionalValue<ManagedAddress>,
+    ) -> EsdtTokenPayment {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            first_week_start_epoch <= current_epoch,
+            "Cannot claim rewards yet"
+        );
 
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
@@ -222,11 +240,15 @@ pub trait Farm:
 
         let accumulated_boosted_rewards = self.accumulated_rewards_per_user(user).take();
         let boosted_rewards = self.claim_only_boosted_payment(user);
-        self.send_to_lock_contract_non_zero(
-            self.reward_token_id().get(),
-            accumulated_boosted_rewards + boosted_rewards,
+        let total_boosted_rewards = accumulated_boosted_rewards + boosted_rewards;
+        let total_rewards_payment =
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, total_boosted_rewards);
+
+        self.claim_base_farm_rewards(
+            get_rewards_unlocked,
+            caller.clone(),
             user.clone(),
-            user.clone(),
+            total_rewards_payment,
         )
     }
 
@@ -271,6 +293,33 @@ pub trait Farm:
         rewards.base
     }
 
+    fn claim_base_farm_rewards(
+        &self,
+        get_rewards_unlocked: bool,
+        caller: ManagedAddress,
+        original_caller: ManagedAddress,
+        mut rewards_payment: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
+        match get_rewards_unlocked {
+            true => {
+                let unlocked_rewards_payment = self.claim_unlocked_rewards(
+                    original_caller,
+                    rewards_payment.token_identifier.clone(),
+                    rewards_payment.amount,
+                );
+                rewards_payment.amount = unlocked_rewards_payment.amount;
+
+                rewards_payment
+            }
+            false => self.send_to_lock_contract_non_zero(
+                rewards_payment.token_identifier,
+                rewards_payment.amount,
+                caller,
+                original_caller,
+            ),
+        }
+    }
+
     fn send_to_lock_contract_non_zero(
         &self,
         token_id: TokenIdentifier,
@@ -284,6 +333,23 @@ pub trait Farm:
         }
 
         self.lock_virtual(token_id, amount, destination_address, energy_address)
+    }
+
+    fn claim_unlocked_rewards(
+        &self,
+        user: ManagedAddress,
+        rewards_token: TokenIdentifier,
+        amount: BigUint,
+    ) -> EsdtTokenPayment {
+        let own_sc_address = self.blockchain().get_sc_address();
+        let locked_tokens = self.send_to_lock_contract_non_zero(
+            rewards_token,
+            amount,
+            own_sc_address,
+            user.clone(),
+        );
+
+        self.unlock_early(user, locked_tokens)
     }
 }
 

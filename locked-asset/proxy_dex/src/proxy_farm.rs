@@ -180,6 +180,7 @@ pub trait ProxyFarmModule:
     fn exit_farm_proxy(
         &self,
         farm_address: ManagedAddress,
+        get_rewards_unlocked: bool,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> ExitFarmProxyResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
@@ -204,6 +205,7 @@ pub trait ProxyFarmModule:
             original_caller.clone(),
             farm_address.clone(),
             wrapped_farm_attributes_for_exit.farm_token.clone(),
+            get_rewards_unlocked,
         );
 
         self.burn_if_base_asset(&exit_result.farming_tokens);
@@ -244,6 +246,7 @@ pub trait ProxyFarmModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
+        get_rewards_unlocked: bool,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> DestroyFarmResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
@@ -269,6 +272,7 @@ pub trait ProxyFarmModule:
             original_caller.clone(),
             farm_address.clone(),
             wrapped_farm_attributes_for_exit.farm_token.clone(),
+            get_rewards_unlocked,
         );
 
         self.burn_if_base_asset(&exit_result.farming_tokens);
@@ -372,6 +376,7 @@ pub trait ProxyFarmModule:
     fn claim_rewards_proxy(
         &self,
         farm_address: ManagedAddress,
+        get_rewards_unlocked: bool,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsFarmProxyResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
@@ -392,6 +397,7 @@ pub trait ProxyFarmModule:
             original_caller.clone(),
             farm_address.clone(),
             wrapped_farm_attributes.farm_token.clone(),
+            get_rewards_unlocked,
         );
 
         let new_wrapped_farm_attributes = WrappedFarmTokenAttributes {
