@@ -112,13 +112,7 @@ fn test_router_upgrade_pair() {
         .execute_tx(&owner, &router_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(CUSTOM_TOKEN_ID);
             let second_token_id = managed_token_id!(USDC_TOKEN_ID);
-            sc.upgrade_pair_endpoint(
-                first_token_id,
-                second_token_id,
-                managed_address!(&user),
-                300,
-                50,
-            );
+            sc.upgrade_pair_endpoint(first_token_id, second_token_id);
         })
         .assert_ok();
 

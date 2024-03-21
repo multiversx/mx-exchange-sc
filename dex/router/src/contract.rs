@@ -14,6 +14,8 @@ use pair::fee::ProxyTrait as _;
 use pair::ProxyTrait as _;
 use pausable::ProxyTrait as _;
 
+use crate::factory::CreatePairArgs;
+
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
@@ -124,15 +126,16 @@ pub trait Router:
 
         admins.push(caller.clone());
 
-        let address = self.create_pair(
-            &first_token_id,
-            &second_token_id,
-            &owner,
-            total_fee_percent_requested,
-            special_fee_percent_requested,
-            &initial_liquidity_adder,
+        let create_pair_args = CreatePairArgs {
+            first_token_id: first_token_id.clone(),
+            second_token_id: second_token_id.clone(),
+            owner: &owner,
+            total_fee_percent: total_fee_percent_requested,
+            special_fee_percent: special_fee_percent_requested,
+            initial_liquidity_adder: &initial_liquidity_adder,
             admins,
-        );
+        };
+        let address = self.create_pair(create_pair_args);
 
         self.emit_create_pair_event(
             caller,
@@ -151,39 +154,14 @@ pub trait Router:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        initial_liquidity_adder: ManagedAddress,
-        total_fee_percent_requested: u64,
-        special_fee_percent_requested: u64,
     ) {
         require!(self.is_active(), "Not active");
-
         require!(first_token_id != second_token_id, "Identical tokens");
-        require!(
-            first_token_id.is_valid_esdt_identifier(),
-            "First Token ID is not a valid esdt token ID"
-        );
-        require!(
-            second_token_id.is_valid_esdt_identifier(),
-            "Second Token ID is not a valid esdt token ID"
-        );
-        let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
-        require!(!pair_address.is_zero(), "Pair does not exists");
 
-        require!(
-            total_fee_percent_requested >= special_fee_percent_requested
-                && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
-            "Bad percents"
-        );
+        let pair_address = self.get_pair(first_token_id, second_token_id);
+        require!(!pair_address.is_zero(), "Pair does not exist");
 
-        self.upgrade_pair(
-            pair_address,
-            &first_token_id,
-            &second_token_id,
-            &self.owner().get(),
-            &initial_liquidity_adder,
-            total_fee_percent_requested,
-            special_fee_percent_requested,
-        );
+        self.upgrade_pair(pair_address);
     }
 
     #[payable("EGLD")]
@@ -412,6 +390,23 @@ pub trait Router:
         for (pair_tokens, address) in pair_map.iter() {
             address_pair_map.insert(address, pair_tokens);
         }
+    }
+
+    #[only_owner]
+    #[endpoint(claimDeveloperRewardsPairs)]
+    fn claim_developer_rewards_pairs(&self, pairs: MultiValueEncoded<ManagedAddress>) {
+        let mut total_egld_received = BigUint::zero();
+        for pair in pairs {
+            let (_return_value, transfers): (IgnoreValue, _) = self
+                .send()
+                .claim_developer_rewards(pair)
+                .execute_on_dest_context_with_back_transfers();
+
+            total_egld_received += transfers.total_egld_amount;
+        }
+
+        let owner = self.blockchain().get_caller();
+        self.send().direct_egld(&owner, &total_egld_received);
     }
 
     #[view(getPairCreationEnabled)]

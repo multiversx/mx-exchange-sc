@@ -168,7 +168,7 @@ pub trait LiquidityPoolModule:
         &self,
         liquidity: BigUint,
         token_id: TokenIdentifier,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         let reserve = self.pair_reserve(&token_id).get();
         let total_supply = self.lp_token_supply().get();
         if total_supply != 0 {
@@ -182,7 +182,7 @@ pub trait LiquidityPoolModule:
     fn get_both_tokens_for_given_position(
         &self,
         liquidity: BigUint,
-    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
         let first_token_id = self.first_token_id().get();
         let token_first_token_amount =
             self.get_token_for_given_position(liquidity.clone(), first_token_id);

@@ -16,6 +16,16 @@ pub struct PairContractMetadata<M: ManagedTypeApi> {
     address: ManagedAddress<M>,
 }
 
+pub struct CreatePairArgs<'a, M: ManagedTypeApi> {
+    pub first_token_id: TokenIdentifier<M>,
+    pub second_token_id: TokenIdentifier<M>,
+    pub owner: &'a ManagedAddress<M>,
+    pub total_fee_percent: u64,
+    pub special_fee_percent: u64,
+    pub initial_liquidity_adder: &'a ManagedAddress<M>,
+    pub admins: MultiValueEncoded<M, ManagedAddress<M>>,
+}
+
 #[multiversx_sc::module]
 pub trait FactoryModule {
     #[proxy]
@@ -30,16 +40,7 @@ pub trait FactoryModule {
             .set_if_empty(TEMPORARY_OWNER_PERIOD_BLOCKS);
     }
 
-    fn create_pair(
-        &self,
-        first_token_id: &TokenIdentifier,
-        second_token_id: &TokenIdentifier,
-        owner: &ManagedAddress,
-        total_fee_percent: u64,
-        special_fee_percent: u64,
-        initial_liquidity_adder: &ManagedAddress,
-        admins: MultiValueEncoded<ManagedAddress>,
-    ) -> ManagedAddress {
+    fn create_pair(&self, args: CreatePairArgs<Self::Api>) -> ManagedAddress {
         require!(
             !self.pair_template_address().is_empty(),
             "pair contract template is empty"
@@ -48,14 +49,14 @@ pub trait FactoryModule {
         let (new_address, ()) = self
             .pair_contract_deploy_proxy()
             .init(
-                first_token_id,
-                second_token_id,
+                args.first_token_id.clone(),
+                args.second_token_id.clone(),
                 self.blockchain().get_sc_address(),
-                owner,
-                total_fee_percent,
-                special_fee_percent,
-                initial_liquidity_adder,
-                admins,
+                args.owner,
+                args.total_fee_percent,
+                args.special_fee_percent,
+                args.initial_liquidity_adder,
+                args.admins,
             )
             .deploy_from_source(
                 &self.pair_template_address().get(),
@@ -64,16 +65,16 @@ pub trait FactoryModule {
 
         self.pair_map().insert(
             PairTokens {
-                first_token_id: first_token_id.clone(),
-                second_token_id: second_token_id.clone(),
+                first_token_id: args.first_token_id.clone(),
+                second_token_id: args.second_token_id.clone(),
             },
             new_address.clone(),
         );
         self.address_pair_map().insert(
             new_address.clone(),
             PairTokens {
-                first_token_id: first_token_id.clone(),
-                second_token_id: second_token_id.clone(),
+                first_token_id: args.first_token_id,
+                second_token_id: args.second_token_id,
             },
         );
         self.pair_temporary_owner().insert(
@@ -83,35 +84,23 @@ pub trait FactoryModule {
                 self.blockchain().get_block_nonce(),
             ),
         );
+
         new_address
     }
 
-    fn upgrade_pair(
-        &self,
-        pair_address: ManagedAddress,
-        first_token_id: &TokenIdentifier,
-        second_token_id: &TokenIdentifier,
-        owner: &ManagedAddress,
-        _initial_liquidity_adder: &ManagedAddress,
-        total_fee_percent: u64,
-        special_fee_percent: u64,
-    ) {
-        self.pair_contract_deploy_proxy()
-            .contract(pair_address)
-            .init(
-                first_token_id,
-                second_token_id,
-                self.blockchain().get_sc_address(),
-                owner,
-                total_fee_percent,
-                special_fee_percent,
-                ManagedAddress::zero(),
-                MultiValueEncoded::new(),
-            )
-            .upgrade_from_source(
-                &self.pair_template_address().get(),
-                CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC,
-            );
+    fn upgrade_pair(&self, pair_address: ManagedAddress) {
+        let gas = self.blockchain().get_gas_left();
+        let template_address = self.pair_template_address().get();
+        let code_metadata =
+            CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC;
+        self.send_raw().upgrade_from_source_contract(
+            &pair_address,
+            gas,
+            &BigUint::zero(),
+            &template_address,
+            code_metadata,
+            &ManagedArgBuffer::new(),
+        );
     }
 
     #[view(getAllPairsManagedAddresses)]
