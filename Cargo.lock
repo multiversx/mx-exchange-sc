@@ -2102,6 +2102,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "proxy-dex-xmex"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "config",
+ "energy-factory",
+ "energy-query",
+ "farm",
+ "farm-boosted-yields",
+ "farm-with-locked-rewards",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "hex",
+ "itertools 0.10.5",
+ "legacy_token_decode_module",
+ "locking_module",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "num-traits",
+ "pair",
+ "pausable",
+ "rewards",
+ "sc_whitelist_module",
+ "simple-lock",
+ "token_merge_helper",
+ "token_send",
+ "utils",
+]
+
+[[package]]
+name = "proxy-dex-xmex-meta"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-meta",
+ "proxy-dex-xmex",
+]
+
+[[package]]
 name = "proxy_dex"
 version = "0.0.0"
 dependencies = [

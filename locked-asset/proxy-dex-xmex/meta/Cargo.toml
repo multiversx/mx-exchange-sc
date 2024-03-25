@@ -1,0 +1,13 @@
+[package]
+name = "proxy-dex-xmex-meta"
+version = "0.0.0"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
+publish = false
+
+[dependencies.proxy-dex-xmex]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "=0.46.1"
+default-features = false
