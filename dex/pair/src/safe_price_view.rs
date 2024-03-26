@@ -97,15 +97,6 @@ pub trait SafePriceViewModule:
             .get_from_address(&pair_address);
         let price_observations = self.price_observations();
 
-        let last_price_observation = self.get_price_observation(
-            &pair_address,
-            &first_token_id,
-            &second_token_id,
-            safe_price_current_index,
-            &price_observations,
-            end_round,
-        );
-
         let oldest_price_observation = self.get_oldest_price_observation(
             &pair_address,
             safe_price_current_index,
@@ -124,6 +115,15 @@ pub trait SafePriceViewModule:
             safe_price_current_index,
             &price_observations,
             start_round,
+        );
+
+        let last_price_observation = self.get_price_observation(
+            &pair_address,
+            &first_token_id,
+            &second_token_id,
+            safe_price_current_index,
+            &price_observations,
+            end_round,
         );
 
         let mut weighted_amounts =
@@ -512,12 +512,17 @@ pub trait SafePriceViewModule:
             - first_price_observation
                 .second_token_reserve_accumulated
                 .clone();
-        let lp_supply_diff = last_price_observation.lp_supply_accumulated.clone()
-            - first_price_observation.lp_supply_accumulated.clone();
 
         let weighted_first_token_reserve = first_token_reserve_diff / weight_diff;
         let weighted_second_token_reserve = second_token_reserve_diff / weight_diff;
-        let weighted_lp_supply = lp_supply_diff / weight_diff;
+
+        let weighted_lp_supply = if first_price_observation.lp_supply_accumulated > 0 {
+            let lp_supply_diff = &last_price_observation.lp_supply_accumulated
+                - &first_price_observation.lp_supply_accumulated;
+            lp_supply_diff / weight_diff
+        } else {
+            BigUint::zero()
+        };
 
         PriceObservationWeightedAmounts {
             weighted_first_token_reserve,
