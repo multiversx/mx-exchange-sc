@@ -517,8 +517,8 @@ pub trait SafePriceViewModule:
         let weighted_second_token_reserve = second_token_reserve_diff / weight_diff;
 
         let weighted_lp_supply = if first_price_observation.lp_supply_accumulated > 0 {
-            let lp_supply_diff = last_price_observation.lp_supply_accumulated.clone()
-                - first_price_observation.lp_supply_accumulated.clone();
+            let lp_supply_diff = &last_price_observation.lp_supply_accumulated
+                - &first_price_observation.lp_supply_accumulated;
             lp_supply_diff / weight_diff
         } else {
             BigUint::zero()
