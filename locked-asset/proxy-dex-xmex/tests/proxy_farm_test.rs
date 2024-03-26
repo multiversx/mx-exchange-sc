@@ -125,7 +125,7 @@ fn farm_proxy_actions_test() {
             |sc| {
                 sc.claim_rewards_proxy(
                     managed_address!(&farm_addr),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
             },
@@ -247,7 +247,7 @@ fn farm_proxy_actions_test() {
             |sc| {
                 let output = sc.exit_farm_proxy(
                     managed_address!(&farm_addr),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
                 let output_lp_token = output.0 .0;
@@ -457,7 +457,7 @@ fn farm_with_wrapped_lp_test() {
             |sc| {
                 sc.exit_farm_proxy(
                     managed_address!(&farm_locked_addr),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
             },
@@ -640,7 +640,7 @@ fn farm_proxy_claim_energy_test() {
             |sc| {
                 sc.claim_rewards_proxy(
                     managed_address!(&farm_locked_addr),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
             },
@@ -784,7 +784,7 @@ fn farm_proxy_partial_exit_test() {
             |sc| {
                 sc.exit_farm_proxy(
                     managed_address!(&farm_locked_addr),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
             },
@@ -966,7 +966,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
             |sc| {
                 sc.exit_farm_proxy(
                     managed_address!(&farm_locked_addr),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
             },
@@ -1188,7 +1188,7 @@ fn different_farm_locked_token_nonce_merging_test() {
             |sc| {
                 sc.exit_farm_proxy(
                     managed_address!(&farm_addr),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
             },
@@ -1709,7 +1709,7 @@ fn destroy_farm_locked_tokens_test() {
                     managed_address!(&pair_addr),
                     managed_biguint!(1),
                     managed_biguint!(1),
-                    OptionalValue::None,
+                    false,
                     OptionalValue::None,
                 );
 
