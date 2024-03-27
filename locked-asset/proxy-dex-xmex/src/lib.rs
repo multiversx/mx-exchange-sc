@@ -51,7 +51,7 @@ proxy_dex::proxy_interactions::proxy_common::ProxyCommonModule
         self.set_lp_lock_epochs(lp_lock_epochs);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     #[only_owner]
