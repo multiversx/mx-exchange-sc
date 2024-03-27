@@ -6,8 +6,9 @@ multiversx_sc::derive_imports!();
 use common_structs::Epoch;
 use fixed_supply_token::FixedSupplyToken;
 
+use super::proxy_common::INVALID_PAYMENTS_ERR_MSG;
+
 use crate::{
-    proxy_common::INVALID_PAYMENTS_ERR_MSG,
     wrapped_farm_attributes::{WrappedFarmToken, WrappedFarmTokenAttributes},
     wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
@@ -15,10 +16,8 @@ use crate::{
 pub struct EnterFarmResult<M: ManagedTypeApi> {
     pub farming_token: EsdtTokenPayment<M>,
     pub farm_token: EsdtTokenPayment<M>,
-    pub rewards: EsdtTokenPayment<M>,
 }
 
-pub type EnterFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ExitFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
@@ -31,17 +30,17 @@ pub struct DestroyFarmResultType<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait ProxyFarmModule:
-    crate::proxy_common::ProxyCommonModule
+    super::proxy_common::ProxyCommonModule
     + crate::other_sc_whitelist::OtherScWhitelistModule
-    + crate::proxy_pair::ProxyPairModule
-    + crate::pair_interactions::PairInteractionsModule
-    + crate::farm_interactions::FarmInteractionsModule
+    + super::proxy_pair::ProxyPairModule
+    + super::pair_interactions::PairInteractionsModule
+    + super::farm_interactions::FarmInteractionsModule
     + crate::energy_update::EnergyUpdateModule
     + energy_query::EnergyQueryModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + crate::wrapped_farm_token_merge::WrappedFarmTokenMerge
-    + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + crate::merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge
+    + crate::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
     + crate::events::EventsModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
@@ -53,7 +52,7 @@ pub trait ProxyFarmModule:
         &self,
         farm_address: ManagedAddress,
         opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> EnterFarmProxyResultType<Self::Api> {
+    ) -> EsdtTokenPayment {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -112,7 +111,6 @@ pub trait ProxyFarmModule:
         };
 
         self.send_payment_non_zero(&caller, &new_wrapped_farm_token.payment);
-        self.send_payment_non_zero(&caller, &enter_result.rewards);
 
         self.emit_enter_farm_proxy_event(
             &original_caller,
@@ -123,7 +121,7 @@ pub trait ProxyFarmModule:
             token_merge_requested,
         );
 
-        (new_wrapped_farm_token.payment, enter_result.rewards).into()
+        new_wrapped_farm_token.payment
     }
 
     fn enter_farm_locked_token(
@@ -147,7 +145,6 @@ pub trait ProxyFarmModule:
         EnterFarmResult {
             farming_token: minted_asset_tokens,
             farm_token: enter_result.farm_token,
-            rewards: enter_result.reward_token,
         }
     }
 
@@ -176,7 +173,6 @@ pub trait ProxyFarmModule:
         EnterFarmResult {
             farming_token,
             farm_token: enter_result.farm_token,
-            rewards: enter_result.reward_token,
         }
     }
 
@@ -185,6 +181,7 @@ pub trait ProxyFarmModule:
     fn exit_farm_proxy(
         &self,
         farm_address: ManagedAddress,
+        get_rewards_unlocked: bool,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> ExitFarmProxyResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
@@ -209,6 +206,7 @@ pub trait ProxyFarmModule:
             original_caller.clone(),
             farm_address.clone(),
             wrapped_farm_attributes_for_exit.farm_token.clone(),
+            get_rewards_unlocked,
         );
 
         self.burn_if_base_asset(&exit_result.farming_tokens);
@@ -249,6 +247,7 @@ pub trait ProxyFarmModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
+        get_rewards_unlocked: bool,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> DestroyFarmResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
@@ -274,6 +273,7 @@ pub trait ProxyFarmModule:
             original_caller.clone(),
             farm_address.clone(),
             wrapped_farm_attributes_for_exit.farm_token.clone(),
+            get_rewards_unlocked,
         );
 
         self.burn_if_base_asset(&exit_result.farming_tokens);
@@ -377,6 +377,7 @@ pub trait ProxyFarmModule:
     fn claim_rewards_proxy(
         &self,
         farm_address: ManagedAddress,
+        get_rewards_unlocked: bool,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsFarmProxyResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
@@ -397,6 +398,7 @@ pub trait ProxyFarmModule:
             original_caller.clone(),
             farm_address.clone(),
             wrapped_farm_attributes.farm_token.clone(),
+            get_rewards_unlocked,
         );
 
         let new_wrapped_farm_attributes = WrappedFarmTokenAttributes {

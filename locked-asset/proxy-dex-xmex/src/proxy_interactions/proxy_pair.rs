@@ -1,7 +1,3 @@
-#![allow(clippy::too_many_arguments)]
-#![allow(clippy::comparison_chain)]
-#![allow(clippy::vec_init_then_push)]
-
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -11,10 +7,10 @@ use fixed_supply_token::FixedSupplyToken;
 
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
-    crate::proxy_common::ProxyCommonModule
+    super::proxy_common::ProxyCommonModule
     + crate::other_sc_whitelist::OtherScWhitelistModule
-    + crate::pair_interactions::PairInteractionsModule
-    + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + super::pair_interactions::PairInteractionsModule
+    + crate::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
     + crate::energy_update::EnergyUpdateModule
     + crate::events::EventsModule
     + energy_query::EnergyQueryModule

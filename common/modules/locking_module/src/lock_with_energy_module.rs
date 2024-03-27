@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use energy_factory::virtual_lock::ProxyTrait as _;
+use energy_factory::{unlock_with_penalty::ProxyTrait as _, virtual_lock::ProxyTrait as _};
 
 #[multiversx_sc::module]
 pub trait LockWithEnergyModule {
@@ -33,6 +33,15 @@ pub trait LockWithEnergyModule {
 
         proxy_instance
             .lock_virtual(token_id, amount, lock_epochs, dest_address, energy_address)
+            .execute_on_dest_context()
+    }
+
+    fn unlock_early(&self, user: ManagedAddress, payment: EsdtTokenPayment) -> EsdtTokenPayment {
+        let mut proxy_instance = self.get_locking_sc_proxy_instance();
+
+        proxy_instance
+            .unlock_early(OptionalValue::Some(user))
+            .with_esdt_transfer(payment)
             .execute_on_dest_context()
     }
 

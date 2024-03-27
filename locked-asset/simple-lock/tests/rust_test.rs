@@ -6,7 +6,9 @@ use multiversx_sc_scenario::{managed_biguint, managed_token_id_wrapped, whitebox
 use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
+use simple_lock::increase_lock_time::IncreaseLockTimeModule;
 use simple_lock::locked_token::*;
+use simple_lock::merge_tokens::MergeTokensModule;
 use simple_lock::SimpleLock;
 
 const FREE_TOKEN_ID: &[u8] = b"FREEEEE-123456";
@@ -160,5 +162,161 @@ fn lock_unlock_test() {
                 assert_eq!(payment_result.amount, managed_biguint!(100));
             },
         )
+        .assert_ok();
+}
+
+#[test]
+fn increase_lock_time_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut b_mock = BlockchainStateWrapper::new();
+
+    let user_addr = b_mock.create_user_account(&rust_zero);
+    let owner_addr = b_mock.create_user_account(&rust_zero);
+    let sc_wrapper = b_mock.create_sc_account(
+        &rust_zero,
+        Some(&owner_addr),
+        simple_lock::contract_obj,
+        "Some path",
+    );
+
+    b_mock.set_block_epoch(5);
+
+    b_mock
+        .execute_tx(&owner_addr, &sc_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.locked_token()
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
+        })
+        .assert_ok();
+
+    b_mock.set_esdt_local_roles(
+        sc_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+
+    let lock_amount = rust_biguint!(1_000);
+    b_mock.set_esdt_balance(&user_addr, FREE_TOKEN_ID, &lock_amount);
+
+    // 1ock
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &sc_wrapper,
+            FREE_TOKEN_ID,
+            0,
+            &lock_amount,
+            |sc| {
+                let _ = sc.lock_tokens_endpoint(10, OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // increase lock time
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &sc_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &lock_amount,
+            |sc| {
+                let _ = sc.increase_lock_time(20);
+                let new_attributes: LockedTokenAttributes<DebugApi> =
+                    sc.locked_token().get_token_attributes(2);
+
+                assert_eq!(new_attributes.unlock_epoch, 20);
+            },
+        )
+        .assert_ok();
+}
+
+#[test]
+fn merge_tokens_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut b_mock = BlockchainStateWrapper::new();
+
+    let user_addr = b_mock.create_user_account(&rust_zero);
+    let owner_addr = b_mock.create_user_account(&rust_zero);
+    let sc_wrapper = b_mock.create_sc_account(
+        &rust_zero,
+        Some(&owner_addr),
+        simple_lock::contract_obj,
+        "Some path",
+    );
+
+    b_mock.set_block_epoch(5);
+
+    b_mock
+        .execute_tx(&owner_addr, &sc_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.locked_token()
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
+        })
+        .assert_ok();
+
+    b_mock.set_esdt_local_roles(
+        sc_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+
+    let lock_amount = rust_biguint!(1_000);
+    b_mock.set_esdt_balance(&user_addr, FREE_TOKEN_ID, &(&lock_amount * 2u32));
+
+    // 1st 1ock
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &sc_wrapper,
+            FREE_TOKEN_ID,
+            0,
+            &lock_amount,
+            |sc| {
+                let _ = sc.lock_tokens_endpoint(10, OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // 2nd lock
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &sc_wrapper,
+            FREE_TOKEN_ID,
+            0,
+            &lock_amount,
+            |sc| {
+                let _ = sc.lock_tokens_endpoint(10, OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    let esdt_transfers = [
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: lock_amount.clone(),
+        },
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: lock_amount.clone(),
+        },
+    ];
+
+    b_mock
+        .execute_esdt_multi_transfer(&user_addr, &sc_wrapper, &esdt_transfers, |sc| {
+            let new_locked_token = sc.merge_locked_tokens();
+            assert_eq!(new_locked_token.amount, managed_biguint!(2_000));
+        })
         .assert_ok();
 }

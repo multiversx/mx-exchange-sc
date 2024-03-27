@@ -231,7 +231,7 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.unlock_early();
+                sc.unlock_early(OptionalValue::None);
             },
         )
     }

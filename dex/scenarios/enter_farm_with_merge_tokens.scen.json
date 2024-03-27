@@ -38,11 +38,6 @@
                         "1-token_id": "nested:str:FARM-abcdef",
                         "2-nonce": "u64:3",
                         "3-amount": "biguint:300,000,000"
-                    },
-                    {
-                        "1-token_id": "nested:str:WEGLD-abcdef",
-                        "2-nonce": "u64:0",
-                        "3-amount": "biguint:0"
                     }
                 ],
                 "status": "0",

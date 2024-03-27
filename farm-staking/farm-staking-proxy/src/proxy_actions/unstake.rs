@@ -21,6 +21,7 @@ pub trait ProxyUnstakeModule:
         &self,
         pair_first_token_min_amount: BigUint,
         pair_second_token_min_amount: BigUint,
+        get_rewards_unlocked: bool,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> UnstakeResult<Self::Api> {
         let caller = self.blockchain().get_caller();
@@ -39,6 +40,7 @@ pub trait ProxyUnstakeModule:
             orig_caller.clone(),
             exit_attributes.lp_farm_token_nonce,
             exit_attributes.lp_farm_token_amount,
+            get_rewards_unlocked,
         );
         let remove_liq_result = self.pair_remove_liquidity(
             lp_farm_exit_result.lp_tokens,

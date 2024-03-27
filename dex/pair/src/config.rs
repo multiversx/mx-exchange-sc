@@ -1,12 +1,13 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use common_structs::Percent;
 use pausable::State;
 
 use super::errors::*;
 
-pub const MAX_PERCENTAGE: u64 = 100_000;
-pub const MAX_FEE_PERCENTAGE: u64 = 5_000;
+pub const MAX_PERCENTAGE: Percent = 100_000;
+pub const MAX_FEE_PERCENTAGE: Percent = 5_000;
 
 #[multiversx_sc::module]
 pub trait ConfigModule:
@@ -19,12 +20,12 @@ pub trait ConfigModule:
     }
 
     #[endpoint(setFeePercents)]
-    fn set_fee_percent(&self, total_fee_percent: u64, special_fee_percent: u64) {
+    fn set_fee_percent(&self, total_fee_percent: Percent, special_fee_percent: Percent) {
         self.require_caller_has_owner_or_admin_permissions();
         self.set_fee_percents(total_fee_percent, special_fee_percent);
     }
 
-    fn set_fee_percents(&self, total_fee_percent: u64, special_fee_percent: u64) {
+    fn set_fee_percents(&self, total_fee_percent: Percent, special_fee_percent: Percent) {
         require!(
             total_fee_percent >= special_fee_percent && total_fee_percent <= MAX_FEE_PERCENTAGE,
             ERROR_BAD_PERCENTS
@@ -40,11 +41,11 @@ pub trait ConfigModule:
 
     #[view(getTotalFeePercent)]
     #[storage_mapper("total_fee_percent")]
-    fn total_fee_percent(&self) -> SingleValueMapper<u64>;
+    fn total_fee_percent(&self) -> SingleValueMapper<Percent>;
 
     #[view(getSpecialFee)]
     #[storage_mapper("special_fee_percent")]
-    fn special_fee_percent(&self) -> SingleValueMapper<u64>;
+    fn special_fee_percent(&self) -> SingleValueMapper<Percent>;
 
     #[view(getRouterManagedAddress)]
     #[storage_mapper("router_address")]

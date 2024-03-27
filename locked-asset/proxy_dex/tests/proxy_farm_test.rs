@@ -17,9 +17,10 @@ use multiversx_sc_scenario::{
 };
 use num_traits::ToPrimitive;
 use proxy_dex::{
-    proxy_farm::ProxyFarmModule, proxy_pair::ProxyPairModule,
+    merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge,
+    proxy_interactions::proxy_farm::ProxyFarmModule,
+    proxy_interactions::proxy_pair::ProxyPairModule,
     wrapped_farm_attributes::WrappedFarmTokenAttributes,
-    wrapped_farm_token_merge::WrappedFarmTokenMerge,
     wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
 use proxy_dex_test_setup::*;
@@ -122,7 +123,7 @@ fn farm_proxy_actions_test() {
             1,
             &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.claim_rewards_proxy(managed_address!(&farm_addr), OptionalValue::None);
+                sc.claim_rewards_proxy(managed_address!(&farm_addr), false, OptionalValue::None);
             },
         )
         .assert_ok();
@@ -240,7 +241,8 @@ fn farm_proxy_actions_test() {
             3,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                let output = sc.exit_farm_proxy(managed_address!(&farm_addr), OptionalValue::None);
+                let output =
+                    sc.exit_farm_proxy(managed_address!(&farm_addr), false, OptionalValue::None);
                 let output_lp_token = output.0 .0;
                 assert_eq!(output_lp_token.token_nonce, 1);
                 assert_eq!(output_lp_token.amount, USER_BALANCE);
@@ -446,7 +448,11 @@ fn farm_with_wrapped_lp_test() {
             1,
             &(expected_lp_token_amount.clone() / rust_biguint!(2)),
             |sc| {
-                sc.exit_farm_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
+                sc.exit_farm_proxy(
+                    managed_address!(&farm_locked_addr),
+                    false,
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
@@ -625,7 +631,11 @@ fn farm_proxy_claim_energy_test() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.claim_rewards_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
+                sc.claim_rewards_proxy(
+                    managed_address!(&farm_locked_addr),
+                    false,
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
@@ -765,7 +775,11 @@ fn farm_proxy_partial_exit_test() {
             1,
             &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.exit_farm_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
+                sc.exit_farm_proxy(
+                    managed_address!(&farm_locked_addr),
+                    false,
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
@@ -943,7 +957,11 @@ fn farm_proxy_partial_exit_with_penalty_test() {
             1,
             &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.exit_farm_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
+                sc.exit_farm_proxy(
+                    managed_address!(&farm_locked_addr),
+                    false,
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
@@ -1161,7 +1179,7 @@ fn different_farm_locked_token_nonce_merging_test() {
             3,
             &rust_biguint!(USER_BALANCE * 2),
             |sc| {
-                sc.exit_farm_proxy(managed_address!(&farm_addr), OptionalValue::None);
+                sc.exit_farm_proxy(managed_address!(&farm_addr), false, OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1680,6 +1698,7 @@ fn destroy_farm_locked_tokens_test() {
                     managed_address!(&pair_addr),
                     managed_biguint!(1),
                     managed_biguint!(1),
+                    false,
                     OptionalValue::None,
                 );
 

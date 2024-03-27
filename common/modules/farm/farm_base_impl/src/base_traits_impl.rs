@@ -9,6 +9,28 @@ use mergeable::Mergeable;
 use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 use rewards::RewardsModule;
 
+pub struct RewardPair<M: ManagedTypeApi> {
+    pub base: BigUint<M>,
+    pub boosted: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> RewardPair<M> {
+    #[inline]
+    pub fn new(base: BigUint<M>, boosted: BigUint<M>) -> Self {
+        Self { base, boosted }
+    }
+
+    #[inline]
+    pub fn new_zero() -> Self {
+        Self::new(BigUint::zero(), BigUint::zero())
+    }
+
+    #[inline]
+    pub fn total_rewards(&self) -> BigUint<M> {
+        &self.base + &self.boosted
+    }
+}
+
 pub trait AllBaseFarmImplTraits =
     rewards::RewardsModule
         + config::ConfigModule
@@ -63,19 +85,18 @@ pub trait FarmContract {
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let current_block_nonce = sc.blockchain().get_block_nonce();
         let last_reward_nonce = sc.last_reward_block_nonce().get();
-        if current_block_nonce > last_reward_nonce {
-            let to_mint =
-                Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
-            if to_mint != 0 {
-                Self::mint_rewards(sc, token_id, &to_mint);
-            }
-
-            sc.last_reward_block_nonce().set(current_block_nonce);
-
-            to_mint
-        } else {
-            BigUint::zero()
+        if current_block_nonce <= last_reward_nonce {
+            return BigUint::zero();
         }
+
+        let to_mint = Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
+        if to_mint != 0 {
+            Self::mint_rewards(sc, token_id, &to_mint);
+        }
+
+        sc.last_reward_block_nonce().set(current_block_nonce);
+
+        to_mint
     }
 
     fn generate_aggregated_rewards(
@@ -83,14 +104,16 @@ pub trait FarmContract {
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
         let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
-        if total_reward > 0u64 {
-            storage_cache.reward_reserve += &total_reward;
+        if total_reward == 0u64 {
+            return;
+        }
 
-            if storage_cache.farm_token_supply != 0u64 {
-                let increase = (&total_reward * &storage_cache.division_safety_constant)
-                    / &storage_cache.farm_token_supply;
-                storage_cache.reward_per_share += &increase;
-            }
+        storage_cache.reward_reserve += &total_reward;
+
+        if storage_cache.farm_token_supply != 0u64 {
+            let increase = (&total_reward * &storage_cache.division_safety_constant)
+                / &storage_cache.farm_token_supply;
+            storage_cache.reward_per_share += &increase;
         }
     }
 
@@ -100,14 +123,16 @@ pub trait FarmContract {
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+    ) -> RewardPair<<Self::FarmSc as ContractBase>::Api> {
         let token_rps = token_attributes.get_reward_per_share();
-        if storage_cache.reward_per_share > token_rps {
-            let rps_diff = &storage_cache.reward_per_share - &token_rps;
-            farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
-        } else {
-            BigUint::zero()
+        if storage_cache.reward_per_share <= token_rps {
+            return RewardPair::new_zero();
         }
+
+        let rps_diff = &storage_cache.reward_per_share - &token_rps;
+        let base_rewards = farm_token_amount * &rps_diff / &storage_cache.division_safety_constant;
+
+        RewardPair::new(base_rewards, BigUint::zero())
     }
 
     fn create_enter_farm_initial_attributes(
@@ -212,7 +237,6 @@ pub trait FarmContract {
         }
     }
 
-    #[inline]
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,

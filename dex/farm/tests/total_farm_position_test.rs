@@ -4,6 +4,7 @@ mod farm_setup;
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
+use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_setup::multi_user_farm_setup::{MultiUserFarmSetup, BOOSTED_YIELDS_PERCENTAGE};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 
@@ -83,18 +84,20 @@ fn total_farm_position_claim_test() {
 
     // first user claim with half total position
     let first_base_farm_amt = farm_in_amount * 7_500 / total_farm_tokens;
-
-    // Boosted yields rewards formula
-    // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // (2_500 * 3 * 1_000 / 1_000 + 2_500 * 2 * 100_000_000 / 100_000_000) / (3 + 2)
-    // (7_500 + 2_500) / (5) = 2_500
-    let first_boosted_amt = 2_500; // 1000 energy & 100_000_000 farm tokens
-    let first_total_rewards = first_base_farm_amt + first_boosted_amt;
-
+    let first_total_rewards = first_base_farm_amt;
     let first_received_reward_amt = farm_setup.claim_rewards(&first_user, 3, farm_in_amount);
 
-    // Should be equal to half base generated rewards + full boosted generated rewards
+    farm_setup
+        .b_mock
+        .execute_query(&farm_setup.farm_wrapper, |sc| {
+            let user_boosted_rewards = sc
+                .accumulated_rewards_per_user(&managed_address!(&first_user))
+                .get();
+            assert_eq!(user_boosted_rewards, managed_biguint!(2_500));
+        })
+        .assert_ok();
+
+    // Should be equal to half base generated rewards
     assert_eq!(first_received_reward_amt, first_total_rewards);
 
     farm_setup
@@ -231,8 +234,7 @@ fn total_farm_position_claim_for_other_test() {
     // Second user claims for himself
     let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
     let second_base_farm_amt = second_farm_token_amount * 7_500 / total_farm_tokens;
-    let second_boosted_amt = 1533; // 4000 energy & 50_000_000 farm tokens
-    let second_total = second_base_farm_amt + second_boosted_amt;
+    let second_total = second_base_farm_amt;
 
     let second_received_reward_amt =
         farm_setup.claim_rewards(&second_user, 4, second_farm_token_amount);
@@ -349,9 +351,7 @@ fn farm_total_position_migration_test() {
 
     // first user claim with half total position
     let first_base_farm_amt = farm_in_amount * 7_500 / total_farm_tokens;
-
-    let first_boosted_amt = 2_000; // claim boosted with only half total position - not full rewards
-    let first_total_rewards = first_base_farm_amt + first_boosted_amt;
+    let first_total_rewards = first_base_farm_amt;
 
     let first_received_reward_amt = farm_setup.claim_rewards(&first_user, 3, farm_in_amount);
 
@@ -395,8 +395,7 @@ fn farm_total_position_migration_test() {
     farm_setup.check_user_total_farm_position(&first_user, farm_in_amount * 2);
 
     let second_base_farm_amt = (farm_in_amount * 7_500 / total_farm_tokens) * 2; // user claims with initial position (2 weeks worth of rewards)
-    let second_boosted_amt = 2_500; // claim boosted with entire total position - receives full rewards
-    let second_total_rewards = second_base_farm_amt + second_boosted_amt;
+    let second_total_rewards = second_base_farm_amt;
     assert_eq!(second_received_reward_amt, second_total_rewards);
 }
 
@@ -468,11 +467,10 @@ fn farm_total_position_exit_migration_test() {
     // user farm position should be unchanged
     farm_setup.check_user_total_farm_position(&first_user, farm_in_amount);
 
-    // User should receive half base rewards and full boosted rewards
+    // User should receive half base rewards
     let total_farm_tokens = farm_in_amount * 2;
     let first_base_farm_amt = farm_in_amount * 7_500 / total_farm_tokens;
-    let first_boosted_amt = 2_500;
-    let first_total_rewards = first_base_farm_amt + first_boosted_amt;
+    let first_total_rewards = first_base_farm_amt;
     farm_setup.b_mock.check_esdt_balance(
         &first_user,
         REWARD_TOKEN_ID,
@@ -482,7 +480,6 @@ fn farm_total_position_exit_migration_test() {
 
 #[test]
 fn no_boosted_rewards_penalty_for_no_energy_test() {
-    DebugApi::dummy();
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
@@ -546,8 +543,7 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
     // first user claims 3 weeks worth of rewards (2-4)
     let total_farm_tokens = farm_in_amount * 2;
     let first_base_farm_amt = (farm_in_amount * 7_500 / total_farm_tokens) * 3;
-    let first_boosted_amt = 2_500 * 3;
-    let first_total_rewards = first_base_farm_amt + first_boosted_amt;
+    let first_total_rewards = first_base_farm_amt;
 
     let first_receveived_reward_amt = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
 

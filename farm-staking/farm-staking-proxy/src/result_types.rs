@@ -19,7 +19,6 @@ pub struct LpFarmExitResult<M: ManagedTypeApi> {
 
 pub struct StakingFarmEnterResult<M: ManagedTypeApi> {
     pub received_staking_farm_token: EsdtTokenPayment<M>,
-    pub boosted_rewards: EsdtTokenPayment<M>,
 }
 
 pub struct StakingFarmClaimRewardsResult<M: ManagedTypeApi> {
@@ -44,8 +43,6 @@ pub struct PairRemoveLiquidityResult<M: ManagedTypeApi> {
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct StakeProxyResult<M: ManagedTypeApi> {
     pub dual_yield_tokens: EsdtTokenPayment<M>,
-    pub staking_boosted_rewards: EsdtTokenPayment<M>,
-    pub lp_farm_boosted_rewards: EsdtTokenPayment<M>,
 }
 
 impl<M: ManagedTypeApi> StakeProxyResult<M> {
@@ -55,8 +52,6 @@ impl<M: ManagedTypeApi> StakeProxyResult<M> {
         to: &ManagedAddress<M>,
     ) -> Self {
         sc.send_payment_non_zero(to, &self.dual_yield_tokens);
-        sc.send_payment_non_zero(to, &self.staking_boosted_rewards);
-        sc.send_payment_non_zero(to, &self.lp_farm_boosted_rewards);
 
         self
     }

@@ -1,3 +1,5 @@
+use common_structs::Epoch;
+
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::base::StorageCache;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
@@ -17,7 +19,7 @@ pub struct SwapEvent<M: ManagedTypeApi> {
     token_in_reserve: BigUint<M>,
     token_out_reserve: BigUint<M>,
     block: u64,
-    epoch: u64,
+    epoch: Epoch,
     timestamp: u64,
 }
 
@@ -30,7 +32,7 @@ pub struct SwapNoFeeAndForwardEvent<M: ManagedTypeApi> {
     token_amount_out: BigUint<M>,
     destination: ManagedAddress<M>,
     block: u64,
-    epoch: u64,
+    epoch: Epoch,
     timestamp: u64,
 }
 
@@ -47,7 +49,7 @@ pub struct AddLiquidityEvent<M: ManagedTypeApi> {
     first_token_reserves: BigUint<M>,
     second_token_reserves: BigUint<M>,
     block: u64,
-    epoch: u64,
+    epoch: Epoch,
     timestamp: u64,
 }
 
@@ -64,7 +66,7 @@ pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
     first_token_reserves: BigUint<M>,
     second_token_reserves: BigUint<M>,
     block: u64,
-    epoch: u64,
+    epoch: Epoch,
     timestamp: u64,
 }
 

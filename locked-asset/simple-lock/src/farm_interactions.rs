@@ -10,13 +10,12 @@ type ExitFarmResultType<BigUint> =
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-const ENTER_FARM_RESULTS_LEN: usize = 2;
+const ENTER_FARM_RESULTS_LEN: usize = 1;
 const EXIT_FARM_RESULTS_LEN: usize = 2;
 const CLAIM_REWARDS_RESULTS_LEN: usize = 2;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_tokens: EsdtTokenPayment<M>,
-    pub reward_tokens: EsdtTokenPayment<M>,
 }
 
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
@@ -90,11 +89,9 @@ pub trait FarmInteractionsModule {
         results_wrapper.trim_results_front(ENTER_FARM_RESULTS_LEN);
 
         let new_farm_tokens = results_wrapper.decode_next_result();
-        let reward_tokens = results_wrapper.decode_next_result();
 
         EnterFarmResultWrapper {
             farm_tokens: new_farm_tokens,
-            reward_tokens,
         }
     }
 

@@ -1,3 +1,5 @@
+use common_structs::Epoch;
+
 multiversx_sc::imports!();
 
 #[multiversx_sc::module]
@@ -8,7 +10,7 @@ pub trait LockingWrapperModule:
     + pausable::PausableModule
 {
     #[endpoint(setLockingDeadlineEpoch)]
-    fn set_locking_deadline_epoch(&self, new_deadline: u64) {
+    fn set_locking_deadline_epoch(&self, new_deadline: Epoch) {
         self.require_caller_has_owner_permissions();
         self.locking_deadline_epoch().set(new_deadline);
     }
@@ -25,17 +27,13 @@ pub trait LockingWrapperModule:
     }
 
     #[endpoint(setUnlockEpoch)]
-    fn set_unlock_epoch(&self, new_epoch: u64) {
+    fn set_unlock_epoch(&self, new_epoch: Epoch) {
         self.require_caller_has_owner_permissions();
         self.unlock_epoch().set(new_epoch);
     }
 
     #[inline]
-    fn lock_tokens(
-        &self,
-        token_id: TokenIdentifier,
-        amount: BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
+    fn lock_tokens(&self, token_id: TokenIdentifier, amount: BigUint) -> EsdtTokenPayment {
         self.lock_common(OptionalValue::None, token_id, amount)
     }
 
@@ -45,7 +43,7 @@ pub trait LockingWrapperModule:
         to: ManagedAddress,
         token_id: TokenIdentifier,
         amount: BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         self.lock_common(OptionalValue::Some(to), token_id, amount)
     }
 
@@ -54,7 +52,7 @@ pub trait LockingWrapperModule:
         opt_dest: OptionalValue<ManagedAddress>,
         token_id: TokenIdentifier,
         amount: BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         let unlock_epoch = self.unlock_epoch().get();
         let mut proxy_instance = self.get_locking_sc_proxy_instance();
 
@@ -88,9 +86,9 @@ pub trait LockingWrapperModule:
 
     #[view(getUnlockEpoch)]
     #[storage_mapper("unlockEpoch")]
-    fn unlock_epoch(&self) -> SingleValueMapper<u64>;
+    fn unlock_epoch(&self) -> SingleValueMapper<Epoch>;
 
     #[view(getLockingDeadlineEpoch)]
     #[storage_mapper("locking_deadline_epoch")]
-    fn locking_deadline_epoch(&self) -> SingleValueMapper<u64>;
+    fn locking_deadline_epoch(&self) -> SingleValueMapper<Epoch>;
 }

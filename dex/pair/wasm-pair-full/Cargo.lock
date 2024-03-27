@@ -325,8 +325,10 @@ name = "simple-lock"
 version = "0.0.0"
 dependencies = [
  "common_structs",
+ "mergeable",
  "multiversx-sc",
  "multiversx-sc-modules",
+ "utils",
 ]
 
 [[package]]

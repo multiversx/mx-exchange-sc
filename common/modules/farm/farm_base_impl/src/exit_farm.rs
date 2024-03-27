@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use crate::base_traits_impl::FarmContract;
+use crate::base_traits_impl::{FarmContract, RewardPair};
 use contexts::{
     exit_farm_context::ExitFarmContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},
@@ -15,7 +15,7 @@ where
     pub context: ExitFarmContext<C::Api, T>,
     pub storage_cache: StorageCache<'a, C>,
     pub farming_token_payment: EsdtTokenPayment<C::Api>,
-    pub reward_payment: EsdtTokenPayment<C::Api>,
+    pub rewards: RewardPair<C::Api>,
 }
 
 #[multiversx_sc::module]
@@ -53,14 +53,14 @@ pub trait BaseExitFarmModule:
             .clone()
             .into_part(farm_token_amount);
 
-        let reward = FC::calculate_rewards(
+        let rewards = FC::calculate_rewards(
             self,
             &caller,
             farm_token_amount,
             &token_attributes,
             &storage_cache,
         );
-        storage_cache.reward_reserve -= &reward;
+        storage_cache.reward_reserve -= rewards.total_rewards();
 
         FC::decrease_user_farm_position(self, &payment);
 
@@ -70,8 +70,6 @@ pub trait BaseExitFarmModule:
             0,
             farming_token_amount,
         );
-        let reward_payment =
-            EsdtTokenPayment::new(storage_cache.reward_token_id.clone(), 0, reward);
 
         let farm_token_payment = &exit_farm_context.farm_token.payment;
         self.send().esdt_local_burn(
@@ -85,7 +83,7 @@ pub trait BaseExitFarmModule:
         InternalExitFarmResult {
             context: exit_farm_context,
             farming_token_payment,
-            reward_payment,
+            rewards,
             storage_cache,
         }
     }

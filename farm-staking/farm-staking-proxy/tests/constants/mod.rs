@@ -30,6 +30,7 @@ pub static STAKING_FARM_WASM_PATH: &str = "farm-staking/output/farm-staking.wasm
 pub static STAKING_REWARD_TOKEN_ID: &[u8] = RIDE_TOKEN_ID;
 pub static STAKING_TOKEN_ID: &[u8] = RIDE_TOKEN_ID;
 pub static STAKING_FARM_TOKEN_ID: &[u8] = b"STKFARM-abcdef";
+pub static UNBOND_TOKEN_ID: &[u8] = b"UNBOND-abcdef";
 pub const MAX_APR: u64 = 5_000; // 50%
 pub const UNBOND_EPOCHS: u64 = 10;
 pub const STAKING_FARM_PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;

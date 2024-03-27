@@ -51,6 +51,7 @@ fn pause_all_test() {
                 managed_biguint!(DIV_SAFETY),
                 managed_address!(pair_sc.address_ref()),
                 ManagedAddress::<DebugApi>::zero(),
+                0,
                 MultiValueEncoded::new(),
             );
 

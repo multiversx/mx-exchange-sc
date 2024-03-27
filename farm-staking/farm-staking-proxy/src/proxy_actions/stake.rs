@@ -68,13 +68,11 @@ pub trait ProxyStakeModule:
         );
         let received_staking_farm_token = staking_farm_enter_result.received_staking_farm_token;
 
-        let (merged_lp_farm_tokens, lp_farm_boosted_rewards) = self
-            .merge_lp_farm_tokens(
-                orig_caller,
-                lp_farm_token_payment,
-                additional_lp_farm_tokens,
-            )
-            .into_tuple();
+        let merged_lp_farm_tokens = self.merge_lp_farm_tokens(
+            orig_caller,
+            lp_farm_token_payment,
+            additional_lp_farm_tokens,
+        );
 
         let new_attributes = DualYieldTokenAttributes {
             lp_farm_token_nonce: merged_lp_farm_tokens.token_nonce,
@@ -86,8 +84,6 @@ pub trait ProxyStakeModule:
             self.create_dual_yield_tokens(&dual_yield_token_mapper, &new_attributes);
         let output_payments = StakeProxyResult {
             dual_yield_tokens: new_dual_yield_tokens,
-            staking_boosted_rewards: staking_farm_enter_result.boosted_rewards,
-            lp_farm_boosted_rewards,
         };
 
         output_payments.send_and_return(self, &caller)

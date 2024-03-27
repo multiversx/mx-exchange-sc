@@ -36,6 +36,7 @@ pub trait TokenSendModule {
         self.send().direct_esdt(to, token_id, token_nonce, amount);
     }
 
+    #[inline]
     fn send_payment_non_zero(&self, to: &ManagedAddress, payment: &EsdtTokenPayment<Self::Api>) {
         self.send_tokens_non_zero(
             to,

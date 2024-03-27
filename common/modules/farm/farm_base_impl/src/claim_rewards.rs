@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use crate::base_traits_impl::FarmContract;
+use crate::base_traits_impl::{FarmContract, RewardPair};
 use common_structs::{PaymentAttributesPair, PaymentsVec};
 use contexts::{
     claim_rewards_context::ClaimRewardsContext,
@@ -15,7 +15,7 @@ where
 {
     pub context: ClaimRewardsContext<C::Api, T>,
     pub storage_cache: StorageCache<'a, C>,
-    pub rewards: EsdtTokenPayment<C::Api>,
+    pub rewards: RewardPair<C::Api>,
     pub new_farm_token: PaymentAttributesPair<C::Api, T>,
     pub created_with_merge: bool,
 }
@@ -72,14 +72,14 @@ pub trait BaseClaimRewardsModule:
             .clone()
             .into_part(farm_token_amount);
 
-        let reward = FC::calculate_rewards(
+        let rewards = FC::calculate_rewards(
             self,
             &caller,
             farm_token_amount,
             &token_attributes,
             &storage_cache,
         );
-        storage_cache.reward_reserve -= &reward;
+        storage_cache.reward_reserve -= rewards.total_rewards();
 
         FC::check_and_update_user_farm_position(self, &caller, &payments);
 
@@ -112,7 +112,7 @@ pub trait BaseClaimRewardsModule:
         InternalClaimRewardsResult {
             created_with_merge: !claim_rewards_context.additional_payments.is_empty(),
             context: claim_rewards_context,
-            rewards: EsdtTokenPayment::new(storage_cache.reward_token_id.clone(), 0, reward),
+            rewards,
             new_farm_token,
             storage_cache,
         }

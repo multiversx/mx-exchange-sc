@@ -276,6 +276,7 @@ where
                 division_safety_constant,
                 pair_address,
                 ManagedAddress::<DebugApi>::zero(),
+                0,
                 MultiValueEncoded::new(),
             );
 
@@ -431,8 +432,7 @@ fn enter_farm<FarmObjBuilder>(
 
     b_mock
         .execute_esdt_multi_transfer(user_address, farm_wrapper, &payments, |sc| {
-            let enter_farm_result = sc.enter_farm_endpoint(OptionalValue::None);
-            let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+            let out_farm_token = sc.enter_farm_endpoint(OptionalValue::None);
             assert_eq!(
                 out_farm_token.token_identifier,
                 managed_token_id!(LP_FARM_TOKEN_ID)

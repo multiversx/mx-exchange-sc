@@ -14,6 +14,8 @@ pub trait SimpleLockWhitelist:
     + simple_lock::lp_interactions::LpInteractionsModule
     + simple_lock::farm_interactions::FarmInteractionsModule
     + simple_lock::token_attributes::TokenAttributesModule
+    + simple_lock::increase_lock_time::IncreaseLockTimeModule
+    + simple_lock::merge_tokens::MergeTokensModule
     + utils::UtilsModule
 {
     /// Args: Token IDs that are accepted for the `lock` endpoint.

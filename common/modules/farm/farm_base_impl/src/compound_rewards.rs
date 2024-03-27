@@ -60,15 +60,16 @@ pub trait BaseCompoundRewardsModule:
             .clone()
             .into_part(farm_token_amount);
 
-        let reward = FC::calculate_rewards(
+        let rewards = FC::calculate_rewards(
             self,
             &caller,
             farm_token_amount,
             &token_attributes,
             &storage_cache,
         );
-        storage_cache.reward_reserve -= &reward;
-        storage_cache.farm_token_supply += &reward;
+        let total_rewards = rewards.total_rewards();
+        storage_cache.reward_reserve -= &total_rewards;
+        storage_cache.farm_token_supply += &total_rewards;
 
         FC::check_and_update_user_farm_position(self, &caller, &payments);
 
@@ -78,7 +79,7 @@ pub trait BaseCompoundRewardsModule:
             caller.clone(),
             token_attributes,
             storage_cache.reward_per_share.clone(),
-            &reward,
+            &total_rewards,
         );
         let new_farm_token = self.merge_and_create_token(
             base_attributes,
@@ -86,7 +87,7 @@ pub trait BaseCompoundRewardsModule:
             &farm_token_mapper,
         );
 
-        FC::increase_user_farm_position(self, &caller, &reward);
+        FC::increase_user_farm_position(self, &caller, &total_rewards);
 
         let first_farm_token = &compound_rewards_context.first_farm_token.payment;
         farm_token_mapper.nft_burn(first_farm_token.token_nonce, &first_farm_token.amount);
@@ -97,7 +98,7 @@ pub trait BaseCompoundRewardsModule:
             created_with_merge: !compound_rewards_context.additional_payments.is_empty(),
             context: compound_rewards_context,
             new_farm_token,
-            compounded_rewards: reward,
+            compounded_rewards: total_rewards,
             storage_cache,
         }
     }

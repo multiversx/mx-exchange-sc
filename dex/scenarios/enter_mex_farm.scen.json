@@ -32,11 +32,6 @@
                         "1-token_id": "nested:str:FARM-abcdef",
                         "2-nonce": "u64:1",
                         "3-amount": "biguint:100,000,000"
-                    },
-                    {
-                        "1-token_id": "nested:str:MEX-abcdef",
-                        "2-nonce": "u64:0",
-                        "3-amount": "biguint:0"
                     }
                 ],
                 "status": "0",

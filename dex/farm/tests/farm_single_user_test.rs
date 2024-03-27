@@ -309,8 +309,7 @@ fn test_farm_through_simple_lock() {
             1,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
-                let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+                let out_farm_token = sc.enter_farm_locked_token(FarmType::SimpleFarm);
                 assert_eq!(
                     out_farm_token.token_identifier,
                     managed_token_id!(FARM_PROXY_TOKEN_ID)
@@ -446,8 +445,7 @@ fn test_farm_through_simple_lock() {
             1,
             &rust_biguint!(500_000_000),
             |sc| {
-                let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
-                let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+                let out_farm_token = sc.enter_farm_locked_token(FarmType::SimpleFarm);
                 assert_eq!(
                     out_farm_token.token_identifier,
                     managed_token_id!(FARM_PROXY_TOKEN_ID)
@@ -487,8 +485,7 @@ fn test_farm_through_simple_lock() {
     ];
     b_mock
         .execute_esdt_multi_transfer(&user_addr, &lock_wrapper, &payments, |sc| {
-            let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
-            let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+            let out_farm_token = sc.enter_farm_locked_token(FarmType::SimpleFarm);
             assert_eq!(
                 out_farm_token.token_identifier,
                 managed_token_id!(FARM_PROXY_TOKEN_ID)
@@ -562,8 +559,7 @@ fn test_farm_through_simple_lock() {
     ];
     b_mock
         .execute_esdt_multi_transfer(&user_addr, &lock_wrapper, &payments, |sc| {
-            let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
-            let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+            let out_farm_token = sc.enter_farm_locked_token(FarmType::SimpleFarm);
             assert_eq!(
                 out_farm_token.token_identifier,
                 managed_token_id!(FARM_PROXY_TOKEN_ID)
@@ -808,8 +804,7 @@ fn test_destroy_farm_through_simple_lock() {
             1,
             &rust_biguint!(9_999_000),
             |sc| {
-                let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
-                let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+                let out_farm_token = sc.enter_farm_locked_token(FarmType::SimpleFarm);
                 assert_eq!(
                     out_farm_token.token_identifier,
                     managed_token_id!(FARM_PROXY_TOKEN_ID)

@@ -36,7 +36,8 @@ pub trait FeesHandlerModule:
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_epochs = self.unbond_epochs().get();
         let unlock_epoch = current_epoch + unbond_epochs;
-        self.unlocked_tokens_for_user(&user)
+        let new_unlocked_tokens = self
+            .unlocked_tokens_for_user(&user)
             .update(|unstake_pairs| {
                 let unstake_pair = UnstakePair {
                     unlock_epoch,
@@ -44,9 +45,10 @@ pub trait FeesHandlerModule:
                     unlocked_tokens,
                 };
                 unstake_pairs.push(unstake_pair);
+
+                (*unstake_pairs).clone()
             });
 
-        let new_unlocked_tokens = self.unlocked_tokens_for_user(&user).get();
         self.emit_unlocked_tokens_event(&user, new_unlocked_tokens);
     }
 

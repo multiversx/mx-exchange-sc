@@ -1,8 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::proxy_common::INVALID_PAYMENTS_ERR_MSG;
-use crate::proxy_common::MIN_MERGE_PAYMENTS;
+use crate::proxy_interactions::proxy_common::INVALID_PAYMENTS_ERR_MSG;
+use crate::proxy_interactions::proxy_common::MIN_MERGE_PAYMENTS;
 use crate::wrapped_farm_attributes::merge_wrapped_farm_tokens;
 use crate::wrapped_farm_attributes::WrappedFarmToken;
 use crate::wrapped_farm_attributes::WrappedFarmTokenAttributes;
@@ -14,8 +14,8 @@ pub trait WrappedFarmTokenMerge:
     token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + crate::other_sc_whitelist::OtherScWhitelistModule
-    + crate::proxy_common::ProxyCommonModule
-    + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + crate::proxy_interactions::proxy_common::ProxyCommonModule
+    + super::wrapped_lp_token_merge::WrappedLpTokenMerge
     + utils::UtilsModule
     + energy_query::EnergyQueryModule
 {
