@@ -15,8 +15,9 @@ use multiversx_sc_scenario::{
 use num_traits::ToPrimitive;
 use proxy_dex_test_setup::*;
 use proxy_dex_xmex::{
-    proxy_pair::ProxyPairModule, wrapped_lp_attributes::WrappedLpTokenAttributes,
-    wrapped_lp_token_merge::WrappedLpTokenMerge,
+    merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge,
+    proxy_interactions::proxy_pair::ProxyPairModule,
+    wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
 use simple_lock::locked_token::LockedTokenAttributes;
 

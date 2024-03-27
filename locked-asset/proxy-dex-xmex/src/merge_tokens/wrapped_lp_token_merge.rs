@@ -2,18 +2,16 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use crate::{
-    proxy_common::{INVALID_PAYMENTS_ERR_MSG, MIN_MERGE_PAYMENTS},
+    proxy_interactions::proxy_common::{INVALID_PAYMENTS_ERR_MSG, MIN_MERGE_PAYMENTS},
     wrapped_lp_attributes::{merge_wrapped_lp_tokens, WrappedLpToken, WrappedLpTokenAttributes},
 };
 use fixed_supply_token::FixedSupplyToken;
-
-use super::proxy_common;
 
 #[multiversx_sc::module]
 pub trait WrappedLpTokenMerge:
     token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + proxy_common::ProxyCommonModule
+    + crate::proxy_interactions::proxy_common::ProxyCommonModule
     + utils::UtilsModule
     + energy_query::EnergyQueryModule
 {
