@@ -1,18 +1,51 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
-use common_structs::Epoch;
+use common_structs::{Epoch, PaymentsVec};
 use fixed_supply_token::FixedSupplyToken;
+use proxy_dex::{
+    proxy_interactions::{
+        pair_interactions::{
+            AddInitialLiqArgs, AddLiqArgs, AddLiquidityResultWrapper, RemoveLiqArgs,
+        },
+        proxy_common::LockedUnlockedTokenRefPair,
+    },
+    wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes},
+};
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct AddLiqResultType<M: ManagedTypeApi> {
+    pub new_wrapped_token: EsdtTokenPayment<M>,
+    pub locked_token_leftover: EsdtTokenPayment<M>,
+    pub other_token_leftover: EsdtTokenPayment<M>,
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+pub struct RemoveLiqResultType<M: ManagedTypeApi> {
+    pub locked_tokens: EsdtTokenPayment<M>,
+    pub other_tokens: EsdtTokenPayment<M>,
+    pub opt_unlocked_tokens: Option<EsdtTokenPayment<M>>,
+}
+
+pub struct AddLiqCommonArgs<'a, M: ManagedTypeApi> {
+    pub caller: ManagedAddress<M>,
+    pub pair_address: ManagedAddress<M>,
+    pub first_payment: EsdtTokenPayment<M>,
+    pub second_payment: EsdtTokenPayment<M>,
+    pub other_payments: PaymentsVec<M>,
+    pub input_token_refs: LockedUnlockedTokenRefPair<'a, M>,
+    pub asset_token_id: TokenIdentifier<M>,
+    pub add_liq_result: AddLiquidityResultWrapper<M>,
+}
 
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
-    super::proxy_common::ProxyCommonModule
-    + crate::other_sc_whitelist::OtherScWhitelistModule
-    + super::pair_interactions::PairInteractionsModule
-    + crate::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
-    + crate::energy_update::EnergyUpdateModule
-    + crate::events::EventsModule
+    proxy_dex::proxy_interactions::proxy_common::ProxyCommonModule
+    + proxy_dex::other_sc_whitelist::OtherScWhitelistModule
+    + proxy_dex::proxy_interactions::pair_interactions::PairInteractionsModule
+    + proxy_dex::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + proxy_dex::energy_update::EnergyUpdateModule
+    + proxy_dex::events::EventsModule
     + energy_query::EnergyQueryModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
@@ -21,17 +54,42 @@ pub trait ProxyPairModule:
 {
     #[payable("*")]
     #[endpoint(addLiquidityProxy)]
+    fn add_liquidity_proxy_endpoint(
+        &self,
+        pair_address: ManagedAddress,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    ) -> AddLiqResultType<Self::Api> {
+        let payments = self.get_non_empty_payments();
+        let add_result = self.add_liquidity_proxy(
+            pair_address,
+            first_token_amount_min,
+            second_token_amount_min,
+            payments,
+        );
+
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(add_result.new_wrapped_token.clone());
+        output_payments.push(add_result.locked_token_leftover.clone());
+        output_payments.push(add_result.other_token_leftover.clone());
+
+        let caller = self.blockchain().get_caller();
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+
+        add_result
+    }
+
     fn add_liquidity_proxy(
         &self,
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> MultiValueEncoded<EsdtTokenPayment> {
+        mut payments: PaymentsVec<Self::Api>,
+    ) -> AddLiqResultType<Self::Api> {
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
         let caller = self.blockchain().get_caller();
-        let mut payments = self.get_non_empty_payments();
         let first_payment = self.pop_first_payment(&mut payments);
         let second_payment = self.pop_first_payment(&mut payments);
 
@@ -45,41 +103,108 @@ pub trait ProxyPairModule:
             self.get_underlying_token(first_payment.token_identifier.clone());
         let second_unlocked_token_id =
             self.get_underlying_token(second_payment.token_identifier.clone());
-        let add_liq_result = self.call_add_liquidity(
-            pair_address.clone(),
-            first_unlocked_token_id,
-            first_payment.amount.clone(),
-            first_token_amount_min,
-            second_unlocked_token_id,
-            second_payment.amount.clone(),
-            second_token_amount_min,
-        );
 
-        let mut locked_token_used = input_token_refs.locked_token_ref.clone();
-        locked_token_used.amount = if input_token_refs.locked_token_ref.token_identifier
-            == first_payment.token_identifier
+        let add_liq_args = AddLiqArgs {
+            pair_address: pair_address.clone(),
+            first_token_id: first_unlocked_token_id,
+            first_token_amount_desired: first_payment.amount.clone(),
+            first_token_amount_min,
+            second_token_id: second_unlocked_token_id,
+            second_token_amount_desired: second_payment.amount.clone(),
+            second_token_amount_min,
+        };
+        let add_liq_result = self.call_add_liquidity(add_liq_args);
+
+        let add_liq_common_args = AddLiqCommonArgs {
+            caller,
+            pair_address,
+            first_payment: first_payment.clone(),
+            second_payment: second_payment.clone(),
+            other_payments: payments,
+            input_token_refs,
+            asset_token_id,
+            add_liq_result,
+        };
+
+        self.add_liq_common(add_liq_common_args)
+    }
+
+    fn add_initial_liq_proxy(
+        &self,
+        pair_address: ManagedAddress,
+        mut payments: PaymentsVec<Self::Api>,
+    ) -> AddLiqResultType<Self::Api> {
+        self.require_is_intermediated_pair(&pair_address);
+        self.require_wrapped_lp_token_id_not_empty();
+
+        let caller = self.blockchain().get_caller();
+        let first_payment = self.pop_first_payment(&mut payments);
+        let second_payment = self.pop_first_payment(&mut payments);
+
+        let input_token_refs = self.require_exactly_one_locked(&first_payment, &second_payment);
+        let asset_amount = input_token_refs.locked_token_ref.amount.clone();
+        let asset_token_id = self.get_base_token_id();
+        self.send()
+            .esdt_local_mint(&asset_token_id, 0, &asset_amount);
+
+        let first_unlocked_token_id =
+            self.get_underlying_token(first_payment.token_identifier.clone());
+        let second_unlocked_token_id =
+            self.get_underlying_token(second_payment.token_identifier.clone());
+
+        let add_initial_liq_args = AddInitialLiqArgs {
+            pair_address: pair_address.clone(),
+            first_token_id: first_unlocked_token_id,
+            first_token_amount_desired: first_payment.amount.clone(),
+            second_token_id: second_unlocked_token_id,
+            second_token_amount_desired: second_payment.amount.clone(),
+        };
+        let add_liq_result = self.call_add_initial_liq(add_initial_liq_args);
+
+        let add_liq_common_args = AddLiqCommonArgs {
+            caller,
+            pair_address,
+            first_payment: first_payment.clone(),
+            second_payment: second_payment.clone(),
+            other_payments: payments,
+            input_token_refs,
+            asset_token_id,
+            add_liq_result,
+        };
+
+        self.add_liq_common(add_liq_common_args)
+    }
+
+    fn add_liq_common<'a>(&self, args: AddLiqCommonArgs<Self::Api>) -> AddLiqResultType<Self::Api> {
+        let mut locked_token_used = args.input_token_refs.locked_token_ref.clone();
+        locked_token_used.amount = if args.input_token_refs.locked_token_ref.token_identifier
+            == args.first_payment.token_identifier
         {
-            first_payment.amount.clone() - &add_liq_result.first_token_leftover.amount
+            args.first_payment.amount.clone() - &args.add_liq_result.first_token_leftover.amount
         } else {
-            second_payment.amount.clone() - &add_liq_result.second_token_leftover.amount
+            args.second_payment.amount.clone() - &args.add_liq_result.second_token_leftover.amount
         };
 
         let new_token_attributes = WrappedLpTokenAttributes {
             locked_tokens: locked_token_used,
-            lp_token_id: add_liq_result.lp_tokens_received.token_identifier.clone(),
-            lp_token_amount: add_liq_result.lp_tokens_received.amount.clone(),
+            lp_token_id: args
+                .add_liq_result
+                .lp_tokens_received
+                .token_identifier
+                .clone(),
+            lp_token_amount: args.add_liq_result.lp_tokens_received.amount.clone(),
         };
 
         let wrapped_lp_mapper = self.wrapped_lp_token();
-        let token_merge_requested = !payments.is_empty();
+        let token_merge_requested = !args.other_payments.is_empty();
         let new_wrapped_token = if token_merge_requested {
             let wrapped_lp_tokens =
-                WrappedLpToken::new_from_payments(&payments, &wrapped_lp_mapper);
+                WrappedLpToken::new_from_payments(&args.other_payments, &wrapped_lp_mapper);
 
-            self.send().esdt_local_burn_multi(&payments);
+            self.send().esdt_local_burn_multi(&args.other_payments);
 
             self.merge_wrapped_lp_tokens_with_virtual_pos(
-                &caller,
+                &args.caller,
                 wrapped_lp_tokens,
                 new_token_attributes,
             )
@@ -95,36 +220,33 @@ pub trait ProxyPairModule:
         };
 
         let received_token_refs = self.require_exactly_one_base_asset(
-            &add_liq_result.first_token_leftover,
-            &add_liq_result.second_token_leftover,
+            &args.add_liq_result.first_token_leftover,
+            &args.add_liq_result.second_token_leftover,
         );
         let other_token_leftover = received_token_refs.other_token_ref.clone();
-        let mut locked_token_leftover = input_token_refs.locked_token_ref.clone();
+        let mut locked_token_leftover = args.input_token_refs.locked_token_ref.clone();
         locked_token_leftover.amount = received_token_refs.base_asset_token_ref.amount.clone();
 
         if locked_token_leftover.amount > 0 {
             self.send()
-                .esdt_local_burn(&asset_token_id, 0, &locked_token_leftover.amount);
+                .esdt_local_burn(&args.asset_token_id, 0, &locked_token_leftover.amount);
         }
 
-        let mut output_payments = ManagedVec::new();
-        output_payments.push(new_wrapped_token.payment.clone());
-        output_payments.push(locked_token_leftover);
-        output_payments.push(other_token_leftover);
-
-        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
-
         self.emit_add_liquidity_proxy_event(
-            &caller,
-            &pair_address,
-            first_payment,
-            second_payment,
+            &args.caller,
+            &args.pair_address,
+            args.first_payment,
+            args.second_payment,
             new_wrapped_token.payment.clone(),
             new_wrapped_token.attributes,
             token_merge_requested,
         );
 
-        output_payments.into()
+        AddLiqResultType {
+            new_wrapped_token: new_wrapped_token.payment,
+            locked_token_leftover,
+            other_token_leftover,
+        }
     }
 
     #[payable("*")]
@@ -134,22 +256,29 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> MultiValueEncoded<EsdtTokenPayment> {
+    ) -> RemoveLiqResultType<Self::Api> {
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
         let payment = self.call_value().single_esdt();
-
-        let output_payments = self.remove_liquidity_proxy_common(
+        let remove_liq_result = self.remove_liquidity_proxy_common(
             payment,
             pair_address,
             first_token_amount_min,
             second_token_amount_min,
         );
+
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(remove_liq_result.locked_tokens.clone());
+        output_payments.push(remove_liq_result.other_tokens.clone());
+        if let Some(unlocked_tokens) = &remove_liq_result.opt_unlocked_tokens {
+            output_payments.push(unlocked_tokens.clone());
+        }
+
         let caller = self.blockchain().get_caller();
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
-        output_payments.into()
+        remove_liq_result
     }
 
     fn remove_liquidity_proxy_common(
@@ -158,7 +287,7 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> ManagedVec<EsdtTokenPayment> {
+    ) -> RemoveLiqResultType<Self::Api> {
         let wrapped_lp_mapper = self.wrapped_lp_token();
         wrapped_lp_mapper.require_same_token(&input_payment.token_identifier);
 
@@ -166,23 +295,24 @@ pub trait ProxyPairModule:
         let attributes: WrappedLpTokenAttributes<Self::Api> =
             self.get_attributes_as_part_of_fixed_supply(&input_payment, &wrapped_lp_mapper);
 
-        let remove_liq_result = self.call_remove_liquidity(
-            pair_address.clone(),
-            attributes.lp_token_id.clone(),
-            attributes.lp_token_amount.clone(),
+        let remove_liq_args = RemoveLiqArgs {
+            pair_address: pair_address.clone(),
+            lp_token_id: attributes.lp_token_id.clone(),
+            lp_token_amount: attributes.lp_token_amount.clone(),
             first_token_amount_min,
             second_token_amount_min,
-        );
+        };
+        let remove_liq_result = self.call_remove_liquidity(remove_liq_args);
         let received_token_refs = self.require_exactly_one_base_asset(
             &remove_liq_result.first_token_received,
             &remove_liq_result.second_token_received,
         );
 
-        let mut output_payments = ManagedVec::new();
-
         let base_asset_amount_received = &received_token_refs.base_asset_token_ref.amount.clone();
         let locked_token_amount_available = &attributes.locked_tokens.amount;
-        if base_asset_amount_received > locked_token_amount_available {
+        let (opt_unlocked_tokens, locked_tokens) = if base_asset_amount_received
+            > locked_token_amount_available
+        {
             let asset_token_id = received_token_refs
                 .base_asset_token_ref
                 .token_identifier
@@ -194,8 +324,7 @@ pub trait ProxyPairModule:
             self.send()
                 .esdt_local_burn(&asset_token_id, 0, &attributes.locked_tokens.amount);
 
-            output_payments.push(unlocked_tokens);
-            output_payments.push(attributes.locked_tokens.clone());
+            (Some(unlocked_tokens), attributes.locked_tokens.clone())
         } else {
             let extra_locked_tokens = locked_token_amount_available - base_asset_amount_received;
             self.burn_locked_tokens_and_update_energy(
@@ -216,12 +345,10 @@ pub trait ProxyPairModule:
             self.send()
                 .esdt_local_burn(&asset_token_id, 0, &locked_tokens_out.amount);
 
-            output_payments.push(locked_tokens_out);
-        }
+            (None, locked_tokens_out)
+        };
 
         let other_tokens = received_token_refs.other_token_ref.clone();
-        output_payments.push(other_tokens);
-
         wrapped_lp_mapper.nft_burn(input_payment.token_nonce, &input_payment.amount);
 
         self.emit_remove_liquidity_proxy_event(
@@ -233,7 +360,11 @@ pub trait ProxyPairModule:
             remove_liq_result.second_token_received,
         );
 
-        output_payments
+        RemoveLiqResultType {
+            locked_tokens,
+            other_tokens,
+            opt_unlocked_tokens,
+        }
     }
 
     #[payable("*")]

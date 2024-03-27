@@ -16,13 +16,15 @@ use multiversx_sc_scenario::{
     whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 use num_traits::ToPrimitive;
-use proxy_dex_test_setup::*;
-use proxy_dex_xmex::{
+use proxy_dex::{
     merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge,
-    proxy_interactions::proxy_farm::ProxyFarmModule,
-    proxy_interactions::proxy_pair::ProxyPairModule,
     wrapped_farm_attributes::WrappedFarmTokenAttributes,
     wrapped_lp_attributes::WrappedLpTokenAttributes,
+};
+use proxy_dex_test_setup::*;
+use proxy_dex_xmex::{
+    proxy_interactions::proxy_farm::ProxyFarmModule,
+    proxy_interactions::proxy_pair::ProxyPairModule,
 };
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -33,6 +35,7 @@ fn farm_proxy_setup_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 }
 
@@ -43,6 +46,7 @@ fn farm_proxy_actions_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -123,11 +127,7 @@ fn farm_proxy_actions_test() {
             1,
             &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.claim_rewards_proxy(
-                    managed_address!(&farm_addr),
-                    false,
-                    OptionalValue::None,
-                );
+                sc.claim_rewards_proxy(managed_address!(&farm_addr), false, OptionalValue::None);
             },
         )
         .assert_ok();
@@ -245,11 +245,8 @@ fn farm_proxy_actions_test() {
             3,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                let output = sc.exit_farm_proxy(
-                    managed_address!(&farm_addr),
-                    false,
-                    OptionalValue::None,
-                );
+                let output =
+                    sc.exit_farm_proxy(managed_address!(&farm_addr), false, OptionalValue::None);
                 let output_lp_token = output.0 .0;
                 assert_eq!(output_lp_token.token_nonce, 1);
                 assert_eq!(output_lp_token.amount, USER_BALANCE);
@@ -278,6 +275,7 @@ fn farm_with_wrapped_lp_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 
     setup
@@ -325,7 +323,7 @@ fn farm_with_wrapped_lp_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
@@ -533,6 +531,7 @@ fn farm_proxy_claim_energy_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -675,6 +674,7 @@ fn farm_proxy_partial_exit_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -857,6 +857,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1043,6 +1044,7 @@ fn different_farm_locked_token_nonce_merging_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1186,11 +1188,7 @@ fn different_farm_locked_token_nonce_merging_test() {
             3,
             &rust_biguint!(USER_BALANCE * 2),
             |sc| {
-                sc.exit_farm_proxy(
-                    managed_address!(&farm_addr),
-                    false,
-                    OptionalValue::None,
-                );
+                sc.exit_farm_proxy(managed_address!(&farm_addr), false, OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1216,6 +1214,7 @@ fn increase_proxy_farm_lkmex_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1295,6 +1294,7 @@ fn increase_proxy_farm_proxy_lp_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 
     setup
@@ -1342,7 +1342,7 @@ fn increase_proxy_farm_proxy_lp_energy() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap() / 2),
                 managed_biguint!(other_token_amount.to_u64().unwrap() / 2),
@@ -1354,7 +1354,7 @@ fn increase_proxy_farm_proxy_lp_energy() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap() / 2),
                 managed_biguint!(other_token_amount.to_u64().unwrap() / 2),
@@ -1522,6 +1522,7 @@ fn destroy_farm_locked_tokens_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 
     setup
@@ -1569,7 +1570,7 @@ fn destroy_farm_locked_tokens_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),

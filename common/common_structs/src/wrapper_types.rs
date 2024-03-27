@@ -5,6 +5,8 @@ use core::ops::Deref;
 
 use unwrappable::Unwrappable;
 
+use crate::{Epoch, Nonce};
+
 static NOT_ENOUGH_RESULTS_ERR_MSG: &[u8] = b"Not enough results";
 const FIRST_VEC_INDEX: usize = 0;
 
@@ -22,13 +24,13 @@ impl<M: ManagedTypeApi> TokenPair<M> {
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
 pub struct NonceAmountPair<M: ManagedTypeApi> {
-    pub nonce: u64,
+    pub nonce: Nonce,
     pub amount: BigUint<M>,
 }
 
 impl<M: ManagedTypeApi> NonceAmountPair<M> {
     #[inline]
-    pub fn new(nonce: u64, amount: BigUint<M>) -> Self {
+    pub fn new(nonce: Nonce, amount: BigUint<M>) -> Self {
         NonceAmountPair { nonce, amount }
     }
 }
@@ -37,7 +39,7 @@ impl<M: ManagedTypeApi> NonceAmountPair<M> {
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Debug,
 )]
 pub struct EpochAmountPair<M: ManagedTypeApi> {
-    pub epoch: u64,
+    pub epoch: Epoch,
     pub amount: BigUint<M>,
 }
 

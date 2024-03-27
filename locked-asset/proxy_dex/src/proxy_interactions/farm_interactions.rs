@@ -1,9 +1,6 @@
 multiversx_sc::imports!();
 
-use farm::{
-    base_functions::ClaimRewardsResultType,
-    ExitFarmWithPartialPosResultType,
-};
+use farm::{base_functions::ClaimRewardsResultType, ExitFarmWithPartialPosResultType};
 use farm_with_locked_rewards::ProxyTrait as _;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {

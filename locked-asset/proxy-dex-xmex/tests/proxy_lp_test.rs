@@ -13,12 +13,12 @@ use multiversx_sc_scenario::{
     whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 use num_traits::ToPrimitive;
-use proxy_dex_test_setup::*;
-use proxy_dex_xmex::{
+use proxy_dex::{
     merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge,
-    proxy_interactions::proxy_pair::ProxyPairModule,
     wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
+use proxy_dex_test_setup::*;
+use proxy_dex_xmex::proxy_interactions::proxy_pair::ProxyPairModule;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 #[test]
@@ -28,6 +28,7 @@ fn setup_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
 }
 
@@ -38,6 +39,7 @@ fn add_remove_liquidity_proxy_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -64,7 +66,7 @@ fn add_remove_liquidity_proxy_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
@@ -159,20 +161,19 @@ fn add_remove_liquidity_proxy_test() {
             1,
             &half_lp_tokens,
             |sc| {
-                let output_payments = sc.remove_liquidity_proxy(
+                let remove_liq_result = sc.remove_liquidity_proxy(
                     managed_address!(&pair_addr),
                     managed_biguint!(1),
                     managed_biguint!(1),
                 );
-                let output_vec = output_payments.to_vec();
 
-                assert_eq!(output_payments.len(), 2);
+                assert!(remove_liq_result.opt_unlocked_tokens.is_none());
                 assert_eq!(
-                    output_vec.get(0).amount.to_u64().unwrap(),
+                    remove_liq_result.locked_tokens.amount.to_u64().unwrap(),
                     removed_locked_token_amount.to_u64().unwrap()
                 );
                 assert_eq!(
-                    output_vec.get(1).amount.to_u64().unwrap(),
+                    remove_liq_result.other_tokens.amount.to_u64().unwrap(),
                     removed_other_token_amount.to_u64().unwrap()
                 );
             },
@@ -227,12 +228,13 @@ fn add_remove_liquidity_proxy_test() {
 }
 
 #[test]
-fn tripple_add_liquidity_proxy_test() {
+fn tripple_add_liquidity_proxy_endpoint_test() {
     let mut setup = ProxySetup::new(
         proxy_dex_xmex::contract_obj,
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -262,7 +264,7 @@ fn tripple_add_liquidity_proxy_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount1.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
@@ -345,7 +347,7 @@ fn tripple_add_liquidity_proxy_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount1.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
@@ -429,7 +431,7 @@ fn tripple_add_liquidity_proxy_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount1.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
@@ -504,6 +506,7 @@ fn wrapped_same_nonce_lp_token_merge_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let locked_token_amount = rust_biguint!(1_000_000_000);
@@ -528,7 +531,7 @@ fn wrapped_same_nonce_lp_token_merge_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
@@ -630,6 +633,7 @@ fn wrapped_different_nonce_lp_token_merge_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let user = setup.first_user.clone();
     let user_balance = rust_biguint!(USER_BALANCE);
@@ -676,15 +680,15 @@ fn wrapped_different_nonce_lp_token_merge_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&user, &setup.proxy_wrapper, &payments1, |sc| {
-            let output_lp_token = sc.add_liquidity_proxy(
+            let output_tokens = sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
             );
 
-            assert_eq!(output_lp_token.to_vec().get(0).token_nonce, 1);
+            assert_eq!(output_tokens.new_wrapped_token.token_nonce, 1);
             assert_eq!(
-                output_lp_token.to_vec().get(0).amount,
+                output_tokens.new_wrapped_token.amount,
                 managed_biguint!(500_000_000u64 - 1_000u64)
             );
         })
@@ -709,14 +713,14 @@ fn wrapped_different_nonce_lp_token_merge_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&user, &setup.proxy_wrapper, &payments2, |sc| {
-            let output_lp_token = sc.add_liquidity_proxy(
+            let output_tokens = sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
             );
-            assert_eq!(output_lp_token.to_vec().get(0).token_nonce, 2);
+            assert_eq!(output_tokens.new_wrapped_token.token_nonce, 2);
             assert_eq!(
-                output_lp_token.to_vec().get(0).amount,
+                output_tokens.new_wrapped_token.amount,
                 managed_biguint!(500_000_000u64)
             );
         })
@@ -807,6 +811,7 @@ fn increase_proxy_lp_token_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        router::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -833,7 +838,7 @@ fn increase_proxy_lp_token_energy() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-            sc.add_liquidity_proxy(
+            sc.add_liquidity_proxy_endpoint(
                 managed_address!(&pair_addr),
                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
                 managed_biguint!(other_token_amount.to_u64().unwrap()),
