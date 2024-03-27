@@ -27,6 +27,7 @@ jobs:
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
   
+  # TEMPORARY: Remove this job when we can upgrade to mx-sc-actions v3+
   test_coverage:
     name: Test Coverage
     runs-on: ubuntu-latest
