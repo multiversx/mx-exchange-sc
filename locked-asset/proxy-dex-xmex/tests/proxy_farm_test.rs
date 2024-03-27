@@ -127,7 +127,15 @@ fn farm_proxy_actions_test() {
             1,
             &rust_biguint!(USER_BALANCE / 2),
             |sc| {
+<<<<<<< HEAD
                 sc.claim_rewards_proxy(managed_address!(&farm_addr), false, OptionalValue::None);
+=======
+                sc.claim_rewards_proxy(
+                    managed_address!(&farm_addr),
+                    false,
+                    OptionalValue::None,
+                );
+>>>>>>> feat/v3.1
             },
         )
         .assert_ok();
@@ -245,8 +253,16 @@ fn farm_proxy_actions_test() {
             3,
             &rust_biguint!(USER_BALANCE),
             |sc| {
+<<<<<<< HEAD
                 let output =
                     sc.exit_farm_proxy(managed_address!(&farm_addr), false, OptionalValue::None);
+=======
+                let output = sc.exit_farm_proxy(
+                    managed_address!(&farm_addr),
+                    false,
+                    OptionalValue::None,
+                );
+>>>>>>> feat/v3.1
                 let output_lp_token = output.0 .0;
                 assert_eq!(output_lp_token.token_nonce, 1);
                 assert_eq!(output_lp_token.amount, USER_BALANCE);
@@ -1188,7 +1204,11 @@ fn different_farm_locked_token_nonce_merging_test() {
             3,
             &rust_biguint!(USER_BALANCE * 2),
             |sc| {
-                sc.exit_farm_proxy(managed_address!(&farm_addr), false, OptionalValue::None);
+                sc.exit_farm_proxy(
+                    managed_address!(&farm_addr),
+                    false,
+                    OptionalValue::None,
+                );
             },
         )
         .assert_ok();
