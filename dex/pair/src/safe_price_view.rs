@@ -324,10 +324,10 @@ pub trait SafePriceViewModule:
             );
 
             let first_token_reserve = self
-                .get_pair_reserve_mapper(pair_address.clone(), &first_token_id)
+                .get_pair_reserve_mapper(pair_address.clone(), first_token_id)
                 .get();
             let second_token_reserve = self
-                .get_pair_reserve_mapper(pair_address.clone(), &second_token_id)
+                .get_pair_reserve_mapper(pair_address.clone(), second_token_id)
                 .get();
             return self.compute_new_observation(
                 search_round,
