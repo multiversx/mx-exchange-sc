@@ -29,6 +29,7 @@ pub trait VirtualLockModule:
         dest_address: ManagedAddress,
         energy_address: ManagedAddress,
     ) -> EsdtTokenPayment {
+        self.require_not_paused();
         require!(
             self.is_base_asset_token(&token_id),
             "May only lock the base asset token"

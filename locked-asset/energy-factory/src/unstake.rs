@@ -45,6 +45,7 @@ pub trait UnstakeModule:
     #[payable("*")]
     #[endpoint(revertUnstake)]
     fn revert_unstake(&self, user: ManagedAddress, new_energy: Energy<Self::Api>) {
+        self.require_not_paused();
         self.require_caller_unstake_sc();
 
         self.set_energy_entry(&user, new_energy);
