@@ -1,9 +1,16 @@
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
+use common_structs::Epoch;
 use contexts::storage_cache::StorageCache;
 use fixed_supply_token::FixedSupplyToken;
 
 use crate::{base_impl_wrapper::FarmStakingWrapper, token_attributes::UnbondSftAttributes};
+
+#[derive(TopDecode, TopEncode, NestedEncode, NestedDecode)]
+pub struct OldUnbondAttributes {
+    pub unlock_epoch: Epoch,
+}
 
 #[multiversx_sc::module]
 pub trait UnbondFarmModule:
@@ -38,20 +45,30 @@ pub trait UnbondFarmModule:
         let storage_cache = StorageCache::new(self);
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
+        let farm_token_mapper = self.farm_token();
         let unbond_token_mapper = self.unbond_token();
-        let payment = self.call_value().single_esdt();
-        unbond_token_mapper.require_same_token(&payment.token_identifier);
 
-        let attributes: UnbondSftAttributes<Self::Api> =
-            unbond_token_mapper.get_token_attributes(payment.token_nonce);
+        let payment = self.call_value().single_esdt();
+        let unlock_epoch = if &payment.token_identifier == unbond_token_mapper.get_token_id_ref() {
+            let attributes: UnbondSftAttributes<Self::Api> =
+                unbond_token_mapper.get_token_attributes(payment.token_nonce);
+
+            unbond_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
+            attributes.unlock_epoch
+        } else if &payment.token_identifier == farm_token_mapper.get_token_id_ref() {
+            let old_attributes: OldUnbondAttributes =
+                farm_token_mapper.get_token_attributes(payment.token_nonce);
+
+            farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
+            old_attributes.unlock_epoch
+        } else {
+            sc_panic!("Invalid payment token")
+        };
 
         let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            current_epoch >= attributes.unlock_epoch,
-            "Unbond period not over"
-        );
-
-        unbond_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+        require!(current_epoch >= unlock_epoch, "Unbond period not over");
 
         let caller = self.blockchain().get_caller();
         let farming_tokens =
