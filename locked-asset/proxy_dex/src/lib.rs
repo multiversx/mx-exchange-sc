@@ -60,6 +60,12 @@ pub trait ProxyDexImpl:
 
     #[endpoint]
     fn upgrade(&self, old_locked_token_id: TokenIdentifier, old_factory_address: ManagedAddress) {
+        require!(
+            old_locked_token_id.is_valid_esdt_identifier(),
+            "Invalid token id"
+        );
+        self.require_sc_address(&old_factory_address);
+
         self.old_locked_token_id()
             .set_if_empty(&old_locked_token_id);
         self.old_factory_address()
