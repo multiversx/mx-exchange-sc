@@ -59,7 +59,12 @@ pub trait ProxyDexImpl:
     }
 
     #[endpoint]
-    fn upgrade(&self) {}
+    fn upgrade(&self, old_locked_token_id: TokenIdentifier, old_factory_address: ManagedAddress) {
+        self.old_locked_token_id()
+            .set_if_empty(&old_locked_token_id);
+        self.old_factory_address()
+            .set_if_empty(&old_factory_address);
+    }
 
     #[only_owner]
     #[payable("EGLD")]
