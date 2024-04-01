@@ -6,9 +6,9 @@ multiversx_sc::derive_imports!();
 use common_structs::Epoch;
 use fixed_supply_token::FixedSupplyToken;
 
-use super::proxy_common::INVALID_PAYMENTS_ERR_MSG;
+use proxy_dex::proxy_interactions::proxy_common::INVALID_PAYMENTS_ERR_MSG;
 
-use crate::{
+use proxy_dex::{
     wrapped_farm_attributes::{WrappedFarmToken, WrappedFarmTokenAttributes},
     wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
@@ -30,18 +30,18 @@ pub struct DestroyFarmResultType<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait ProxyFarmModule:
-    super::proxy_common::ProxyCommonModule
-    + crate::other_sc_whitelist::OtherScWhitelistModule
+    proxy_dex::proxy_interactions::proxy_common::ProxyCommonModule
+    + proxy_dex::other_sc_whitelist::OtherScWhitelistModule
     + super::proxy_pair::ProxyPairModule
-    + super::pair_interactions::PairInteractionsModule
-    + super::farm_interactions::FarmInteractionsModule
-    + crate::energy_update::EnergyUpdateModule
+    + proxy_dex::proxy_interactions::pair_interactions::PairInteractionsModule
+    + proxy_dex::proxy_interactions::farm_interactions::FarmInteractionsModule
+    + proxy_dex::energy_update::EnergyUpdateModule
     + energy_query::EnergyQueryModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + crate::merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge
-    + crate::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
-    + crate::events::EventsModule
+    + proxy_dex::merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge
+    + proxy_dex::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + proxy_dex::events::EventsModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
     + sc_whitelist_module::SCWhitelistModule
@@ -290,7 +290,7 @@ pub trait ProxyFarmModule:
                 exit_result.farming_tokens.amount,
             );
 
-        let mut remove_liquidity_result = self.remove_liquidity_proxy_common(
+        let remove_liq_result = self.remove_liquidity_proxy_common(
             initial_proxy_farming_tokens.clone(),
             pair_address,
             first_token_amount_min,
@@ -300,10 +300,17 @@ pub trait ProxyFarmModule:
         // Burn farm token
         wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
-        // Push farm rewards
-        remove_liquidity_result.push(exit_result.reward_tokens.clone());
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(remove_liq_result.locked_tokens.clone());
+        output_payments.push(remove_liq_result.other_tokens.clone());
+        if let Some(unlocked_tokens) = remove_liq_result.opt_unlocked_tokens {
+            output_payments.push(unlocked_tokens);
+        }
 
-        self.send_multiple_tokens_if_not_zero(&caller, &remove_liquidity_result);
+        // Push farm rewards
+        output_payments.push(exit_result.reward_tokens.clone());
+
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
         self.emit_exit_farm_proxy_event(
             &original_caller,
@@ -314,8 +321,8 @@ pub trait ProxyFarmModule:
         );
 
         DestroyFarmResultType {
-            first_payment: remove_liquidity_result.get(0),
-            second_payment: remove_liquidity_result.get(1),
+            first_payment: remove_liq_result.locked_tokens,
+            second_payment: remove_liq_result.other_tokens,
             farm_rewards: exit_result.reward_tokens,
         }
     }

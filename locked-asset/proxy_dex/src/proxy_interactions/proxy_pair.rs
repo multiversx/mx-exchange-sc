@@ -5,6 +5,8 @@ use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
 use common_structs::Epoch;
 use fixed_supply_token::FixedSupplyToken;
 
+use super::pair_interactions::{AddLiqArgs, RemoveLiqArgs};
+
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
     super::proxy_common::ProxyCommonModule
@@ -45,15 +47,17 @@ pub trait ProxyPairModule:
             self.get_underlying_token(first_payment.token_identifier.clone());
         let second_unlocked_token_id =
             self.get_underlying_token(second_payment.token_identifier.clone());
-        let add_liq_result = self.call_add_liquidity(
-            pair_address.clone(),
-            first_unlocked_token_id,
-            first_payment.amount.clone(),
+
+        let add_liq_args = AddLiqArgs {
+            pair_address: pair_address.clone(),
+            first_token_id: first_unlocked_token_id,
+            first_token_amount_desired: first_payment.amount.clone(),
             first_token_amount_min,
-            second_unlocked_token_id,
-            second_payment.amount.clone(),
+            second_token_id: second_unlocked_token_id,
+            second_token_amount_desired: second_payment.amount.clone(),
             second_token_amount_min,
-        );
+        };
+        let add_liq_result = self.call_add_liquidity(add_liq_args);
 
         let mut locked_token_used = input_token_refs.locked_token_ref.clone();
         locked_token_used.amount = if input_token_refs.locked_token_ref.token_identifier
@@ -166,13 +170,14 @@ pub trait ProxyPairModule:
         let attributes: WrappedLpTokenAttributes<Self::Api> =
             self.get_attributes_as_part_of_fixed_supply(&input_payment, &wrapped_lp_mapper);
 
-        let remove_liq_result = self.call_remove_liquidity(
-            pair_address.clone(),
-            attributes.lp_token_id.clone(),
-            attributes.lp_token_amount.clone(),
+        let remove_liq_args = RemoveLiqArgs {
+            pair_address: pair_address.clone(),
+            lp_token_id: attributes.lp_token_id.clone(),
+            lp_token_amount: attributes.lp_token_amount.clone(),
             first_token_amount_min,
             second_token_amount_min,
-        );
+        };
+        let remove_liq_result = self.call_remove_liquidity(remove_liq_args);
         let received_token_refs = self.require_exactly_one_base_asset(
             &remove_liq_result.first_token_received,
             &remove_liq_result.second_token_received,

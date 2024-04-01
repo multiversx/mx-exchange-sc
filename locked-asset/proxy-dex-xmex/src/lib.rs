@@ -1,31 +1,31 @@
 #![no_std]
 
+use common_structs::Epoch;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-pub mod energy_update;
-pub mod events;
-pub mod merge_tokens;
-pub mod other_sc_whitelist;
+pub mod create_pair_foundation;
+pub mod create_pair_user;
 pub mod proxy_interactions;
-pub mod wrapped_farm_attributes;
-pub mod wrapped_lp_attributes;
 
 #[multiversx_sc::contract]
 pub trait ProxyDexImpl:
-    proxy_interactions::proxy_common::ProxyCommonModule
-    + crate::other_sc_whitelist::OtherScWhitelistModule
+proxy_dex::proxy_interactions::proxy_common::ProxyCommonModule
+    + proxy_dex::other_sc_whitelist::OtherScWhitelistModule
     + proxy_interactions::proxy_pair::ProxyPairModule
-    + proxy_interactions::pair_interactions::PairInteractionsModule
+    + proxy_dex::proxy_interactions::pair_interactions::PairInteractionsModule
     + proxy_interactions::proxy_farm::ProxyFarmModule
-    + proxy_interactions::farm_interactions::FarmInteractionsModule
+    + proxy_dex::proxy_interactions::farm_interactions::FarmInteractionsModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge
-    + merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
-    + energy_update::EnergyUpdateModule
+    + proxy_dex::merge_tokens::wrapped_farm_token_merge::WrappedFarmTokenMerge
+    + proxy_dex::merge_tokens::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + proxy_dex::energy_update::EnergyUpdateModule
     + energy_query::EnergyQueryModule
-    + events::EventsModule
+    + proxy_dex::events::EventsModule
+    + create_pair_user::CreatePairUserModule
+    + create_pair_foundation::CreatePairFoundationModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
@@ -37,20 +37,21 @@ pub trait ProxyDexImpl:
         old_locked_token_id: TokenIdentifier,
         old_factory_address: ManagedAddress,
         energy_factory_address: ManagedAddress,
+        foundation_address: ManagedAddress,
+        lp_lock_epochs: Epoch,
     ) {
         self.require_valid_token_id(&old_locked_token_id);
         self.require_sc_address(&old_factory_address);
         self.require_sc_address(&energy_factory_address);
 
-        self.old_locked_token_id()
-            .set_if_empty(&old_locked_token_id);
-        self.old_factory_address()
-            .set_if_empty(&old_factory_address);
-        self.energy_factory_address()
-            .set_if_empty(&energy_factory_address);
+        self.old_locked_token_id().set(old_locked_token_id);
+        self.old_factory_address().set(old_factory_address);
+        self.energy_factory_address().set(energy_factory_address);
+        self.set_foundation_address(foundation_address);
+        self.set_lp_lock_epochs(lp_lock_epochs);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     #[only_owner]

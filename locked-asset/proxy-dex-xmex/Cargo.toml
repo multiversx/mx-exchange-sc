@@ -20,6 +20,9 @@ path = "../../dex/pair"
 [dependencies.farm]
 path = "../../dex/farm"
 
+[dependencies.proxy_dex]
+path = "../proxy_dex"
+
 [dependencies.farm-with-locked-rewards]
 path = "../../dex/farm-with-locked-rewards"
 
@@ -38,6 +41,9 @@ path = "../../common/modules/token_send"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
 [dependencies.mergeable]
 path = "../../common/traits/mergeable"
 
@@ -45,11 +51,11 @@ path = "../../common/traits/mergeable"
 path = "../../common/traits/fixed-supply-token"
 
 [dependencies.multiversx-sc]
-version = "=0.46.1"
+version = "=0.47.5"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.46.1"
+version = "=0.47.5"
 
 [dependencies.energy-factory]
 path = "../energy-factory"
@@ -69,7 +75,7 @@ num-traits = "0.2"
 hex = "0.4"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.46.1"
+version = "=0.47.5"
 
 [dev-dependencies.pausable]
 path = "../../common/modules/pausable"
@@ -88,3 +94,6 @@ path = "../../common/modules/farm/rewards"
 
 [dev-dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"
+
+[dev-dependencies.router]
+path = "../../dex/router"

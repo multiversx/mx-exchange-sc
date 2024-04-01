@@ -176,7 +176,6 @@ pub trait ProxyFarmModule:
         }
     }
 
-    #[allow_multiple_var_args]
     #[payable("*")]
     #[endpoint(exitFarmProxy)]
     fn exit_farm_proxy(
