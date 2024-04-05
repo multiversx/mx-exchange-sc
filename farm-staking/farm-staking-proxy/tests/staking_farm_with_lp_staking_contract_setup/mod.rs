@@ -119,6 +119,7 @@ where
     b_mock
         .execute_tx(owner_addr, &proxy_wrapper, &rust_zero, |sc| {
             sc.init(
+                managed_address!(staking_farm_address), // TODO - replace with energy factory address when needed
                 managed_address!(lp_farm_address),
                 managed_address!(staking_farm_address),
                 managed_address!(pair_address),

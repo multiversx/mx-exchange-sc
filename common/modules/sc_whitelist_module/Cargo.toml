@@ -6,9 +6,10 @@ edition = "2021"
 
 [lib]
 path = "src/sc_whitelist_module.rs"
+
 [dependencies.common_errors]
 path = "../../common_errors"
 
 [dependencies.multiversx-sc]
-version = "=0.43.3"
+version = "=0.46.1"
 features = ["esdt-token-payment-legacy-decode"]

@@ -4,6 +4,7 @@ use multiversx_sc::{
     codec::{DecodeError, TopDecode, TopEncode},
 };
 bitflags! {
+    #[derive(Clone)]
     pub struct Permissions: u32 {
         const NONE = 0;
         const OWNER = 1;

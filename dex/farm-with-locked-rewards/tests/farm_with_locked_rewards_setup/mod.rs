@@ -391,17 +391,13 @@ where
                     assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
                     assert_eq!(out_farm_token.amount, managed_biguint!(farm_token_amount));
 
+                    assert_eq!(
+                        out_reward_token.token_identifier,
+                        managed_token_id!(LOCKED_REWARD_TOKEN_ID)
+                    );
                     if out_reward_token.amount > 0 {
-                        assert_eq!(
-                            out_reward_token.token_identifier,
-                            managed_token_id!(LOCKED_REWARD_TOKEN_ID)
-                        );
                         assert_eq!(out_reward_token.token_nonce, 1);
                     } else {
-                        assert_eq!(
-                            out_reward_token.token_identifier,
-                            managed_token_id!(REWARD_TOKEN_ID)
-                        );
                         assert_eq!(out_reward_token.token_nonce, 0);
                     }
 

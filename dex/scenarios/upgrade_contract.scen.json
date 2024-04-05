@@ -16,7 +16,7 @@
                     "str:ALC-abcdef",
                     "str:WEGLD-abcdef",
                     "0x0000000000000000000000000000000000000000000000000000000000000000",
-                    "301",
+                    "300",
                     "100"
                 ],
                 "gasLimit": "1,000,000,000",
@@ -38,7 +38,7 @@
                     "balance": "*",
                     "esdt": "*",
                     "storage": {
-                        "str:total_fee_percent": "301",
+                        "str:total_fee_percent": "300",
                         "+": ""
                     },
                     "code": "file:../pair/output/pair.wasm"

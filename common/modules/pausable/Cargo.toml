@@ -6,9 +6,10 @@ edition = "2021"
 
 [lib]
 path = "src/pausable.rs"
+
 [dependencies.permissions_module]
 path = "../permissions_module"
 
 [dependencies.multiversx-sc]
-version = "=0.43.3"
+version = "=0.46.1"
 features = ["esdt-token-payment-legacy-decode"]

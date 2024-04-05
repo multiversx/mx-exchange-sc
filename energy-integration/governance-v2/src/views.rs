@@ -73,7 +73,7 @@ pub trait ViewsModule:
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal = self.proposals().get(proposal_id);
         let total_quorum_for_proposal = proposal.total_quorum;
-        let required_minimum_percentage = proposal.minimum_quorum;
+        let required_minimum_percentage = BigUint::from(proposal.minimum_quorum);
         let current_quorum = self.proposal_votes(proposal_id).get().quorum;
 
         current_quorum * FULL_PERCENTAGE >= required_minimum_percentage * total_quorum_for_proposal
@@ -92,6 +92,12 @@ pub trait ViewsModule:
 
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {
         self.is_valid_proposal_id(proposal_id) && !self.proposals().item_is_empty(proposal_id)
+    }
+
+    #[only_owner]
+    #[endpoint(changeFeesCollectorAddress)]
+    fn change_fees_collector_address(&self, new_value: ManagedAddress) {
+        self.fees_collector_address().set(new_value);
     }
 
     #[proxy]

@@ -7,8 +7,8 @@ use governance_v2::{
     configurable::ConfigurablePropertiesModule, proposal::GovernanceProposalStatus,
     proposal_storage::ProposalStorageModule, views::ViewsModule,
 };
-use multiversx_sc::{codec::Empty, types::ManagedVec};
-use multiversx_sc_scenario::{managed_biguint, managed_buffer, rust_biguint};
+use multiversx_sc::types::ManagedVec;
+use multiversx_sc_scenario::{managed_buffer, rust_biguint};
 
 #[test]
 fn init_gov_test() {
@@ -26,7 +26,7 @@ fn gov_propose_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -71,7 +71,7 @@ fn gov_propose_test() {
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
             let proposal = sc.proposals().get(1);
-            let action = proposal.actions.get(0).unwrap();
+            let action = proposal.actions.first().unwrap();
             let mut args_managed = ManagedVec::new();
             args_managed.push(managed_buffer!(&1_000u64.to_be_bytes()));
 
@@ -88,16 +88,18 @@ fn gov_propose_test() {
 fn gov_propose_total_energy_0_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let first_user_addr = gov_setup.first_user.clone();
+    let no_energy_user = gov_setup.no_energy_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&no_energy_user, MEX_TOKEN_ID, &min_fee);
+
+    gov_setup.change_min_energy(0).assert_ok();
 
     let (result, proposal_id) = gov_setup.propose(
-        &first_user_addr,
+        &no_energy_user,
         &min_fee,
         &sc_addr,
         b"changeTODO",
@@ -105,16 +107,12 @@ fn gov_propose_total_energy_0_test() {
     );
     result.assert_ok();
     assert_eq!(proposal_id, 1);
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS + VOTING_DELAY_BLOCKS);
 
     gov_setup
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
-            let mut proposal = sc.proposals().get(1);
-            proposal.total_quorum = managed_biguint!(0);
-            sc.proposals().set(1, &proposal);
             assert!(
-                sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
+                sc.get_proposal_status(1) == GovernanceProposalStatus::Pending,
                 "Action should have been Defeated"
             );
         })
@@ -133,7 +131,7 @@ fn gov_no_veto_vote_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -148,10 +146,7 @@ fn gov_no_veto_vote_test() {
     gov_setup
         .b_mock
         .execute_query(&gov_setup.gov_wrapper, |sc| {
-            assert_eq!(
-                sc.quorum_percentage().get(),
-                managed_biguint!(QUORUM_PERCENTAGE)
-            );
+            assert_eq!(sc.quorum_percentage().get(), QUORUM_PERCENTAGE);
         })
         .assert_ok();
 
@@ -191,7 +186,7 @@ fn gov_abstain_vote_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -233,7 +228,7 @@ fn gov_no_quorum_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -272,7 +267,7 @@ fn gov_modify_quorum_after_end_vote_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -297,8 +292,8 @@ fn gov_modify_quorum_after_end_vote_test() {
                 sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
                 "Action should have been Defeated"
             );
-            sc.try_change_quorum_percentage(managed_biguint!(QUORUM_PERCENTAGE / 2));
-            assert!(sc.quorum_percentage().get() == managed_biguint!(QUORUM_PERCENTAGE / 2));
+            sc.try_change_quorum_percentage(QUORUM_PERCENTAGE / 2);
+            assert!(sc.quorum_percentage().get() == QUORUM_PERCENTAGE / 2);
 
             assert!(
                 sc.get_proposal_status(1) == GovernanceProposalStatus::Defeated,
@@ -319,7 +314,7 @@ fn gov_withdraw_defeated_proposal_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -331,14 +326,9 @@ fn gov_withdraw_defeated_proposal_test() {
     result.assert_ok();
     assert_eq!(proposal_id, 1);
 
-    // Check proposer balance
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &rust_biguint!(0),
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
@@ -369,14 +359,9 @@ fn gov_withdraw_defeated_proposal_test() {
         .withdraw_after_defeated(&first_user_addr, proposal_id)
         .assert_ok();
 
-    // Check proposer balance (fee)
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 }
 
 #[test]
@@ -390,7 +375,7 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -403,13 +388,9 @@ fn gov_modify_withdraw_defeated_proposal_test() {
     assert_eq!(proposal_id, 1);
 
     // Check proposer balance
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &rust_biguint!(0),
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
@@ -449,13 +430,9 @@ fn gov_modify_withdraw_defeated_proposal_test() {
         .assert_ok();
 
     // Check proposer balance (fee)
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 }
 
 #[test]
@@ -469,7 +446,7 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -482,13 +459,9 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
     assert_eq!(proposal_id, 1);
 
     // Check proposer balance
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &rust_biguint!(0),
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
@@ -515,13 +488,9 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
         .assert_ok();
 
     // Check proposer balance (fee)
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &(min_fee / 2u64),
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &(&min_fee / 2u64));
 
     // Withdraw the fee twice - error
     gov_setup
@@ -540,7 +509,7 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     gov_setup.change_withdraw_percentage(0).assert_ok();
     let (result, proposal_id) = gov_setup.propose(
@@ -554,13 +523,9 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
     assert_eq!(proposal_id, 1);
 
     // Check proposer balance
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &rust_biguint!(0),
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
@@ -587,18 +552,14 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
         .assert_ok();
 
     // Check proposer balance (fee)
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &rust_biguint!(0),
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
     // Give proposer the minimum fee
     gov_setup
         .b_mock
-        .set_nft_balance(&first_user_addr, WXMEX_TOKEN_ID, 1, &min_fee, &Empty);
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 
     gov_setup.change_withdraw_percentage(10_000).assert_ok();
     let (result, proposal_id) = gov_setup.propose(
@@ -612,13 +573,9 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
     assert_eq!(proposal_id, 2);
 
     // Check proposer balance
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &rust_biguint!(0),
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
 
@@ -645,13 +602,9 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
         .assert_ok();
 
     // Check proposer balance (fee)
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
 }
 
 #[test]
@@ -662,13 +615,9 @@ fn gov_propose_cancel_proposal_id_test() {
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
     let min_fee = rust_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST;
     // Give proposer the minimum fee
-    gov_setup.b_mock.set_nft_balance(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &(min_fee.clone() * 3u64),
-        &Empty,
-    );
+    gov_setup
+        .b_mock
+        .set_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &(&min_fee * 3u64));
 
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
@@ -712,24 +661,33 @@ fn gov_propose_cancel_proposal_id_test() {
         .assert_ok();
 
     // Check proposer balance (fee = 0)
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &rust_biguint!(0),
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
     gov_setup.cancel_proposal(&first_user_addr, 2).assert_ok();
 
+    // Try to retrieve the cancelled proposal
+    gov_setup
+        .b_mock
+        .execute_tx(
+            &gov_setup.first_user.clone(),
+            &gov_setup.gov_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.proposals().get(2);
+            },
+        )
+        .assert_ok();
+
     // Check proposer balance (fee should be refunded)
-    gov_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user_addr,
-        WXMEX_TOKEN_ID,
-        1,
-        &min_fee,
-        None,
-    );
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &min_fee);
+    assert_eq!(proposal_id, 3);
+    gov_setup
+        .check_proposal_id_consistency(&first_user_addr, proposal_id)
+        .assert_ok();
 
     // Proposal ID = 4
     let (result, proposal_id) = gov_setup.propose(
@@ -746,6 +704,19 @@ fn gov_propose_cancel_proposal_id_test() {
         .assert_ok();
 
     gov_setup.cancel_proposal(&first_user_addr, 4).assert_ok();
+
+    // Try to retrieve the cancelled proposal
+    gov_setup
+        .b_mock
+        .execute_tx(
+            &gov_setup.first_user.clone(),
+            &gov_setup.gov_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.proposals().get(4);
+            },
+        )
+        .assert_ok();
 
     // Proposal ID = 5
     let (result, proposal_id) = gov_setup.propose(

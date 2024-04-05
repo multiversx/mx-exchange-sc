@@ -4,8 +4,10 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 authors = ["Dorin Iancu <dorin.iancu@multiversx.com>"]
+
 [dependencies.simple-lock]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "0.43.2"
+version = "0.46.1"
+default-features = false

@@ -1,9 +1,9 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use super::factory;
+use pair::pair_actions::swap::ProxyTrait as _;
 
-use pair::ProxyTrait as _;
+use super::factory;
 
 type SwapOperationType<M> =
     MultiValue4<ManagedAddress<M>, ManagedBuffer<M>, TokenIdentifier<M>, BigUint<M>>;

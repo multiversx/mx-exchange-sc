@@ -44,7 +44,8 @@ pub struct PairRemoveLiquidityResult<M: ManagedTypeApi> {
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct StakeProxyResult<M: ManagedTypeApi> {
     pub dual_yield_tokens: EsdtTokenPayment<M>,
-    pub boosted_rewards: EsdtTokenPayment<M>,
+    pub staking_boosted_rewards: EsdtTokenPayment<M>,
+    pub lp_farm_boosted_rewards: EsdtTokenPayment<M>,
 }
 
 impl<M: ManagedTypeApi> StakeProxyResult<M> {
@@ -54,7 +55,8 @@ impl<M: ManagedTypeApi> StakeProxyResult<M> {
         to: &ManagedAddress<M>,
     ) -> Self {
         sc.send_payment_non_zero(to, &self.dual_yield_tokens);
-        sc.send_payment_non_zero(to, &self.boosted_rewards);
+        sc.send_payment_non_zero(to, &self.staking_boosted_rewards);
+        sc.send_payment_non_zero(to, &self.lp_farm_boosted_rewards);
 
         self
     }

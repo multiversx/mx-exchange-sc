@@ -1,23 +1,26 @@
 multiversx_sc::imports!();
 
 use farm::{
-    base_functions::ClaimRewardsResultType, EnterFarmResultType, ExitFarmWithPartialPosResultType,
-    ProxyTrait as _,
+    base_functions::{ClaimRewardsResultType, DoubleMultiPayment},
+    EnterFarmResultType, ExitFarmWithPartialPosResultType,
 };
 use farm_staking::{
     claim_stake_farm_rewards::ProxyTrait as _, stake_farm::ProxyTrait as _,
     unstake_farm::ProxyTrait as _,
 };
-use pair::safe_price_view::ProxyTrait as _;
+use farm_with_locked_rewards::ProxyTrait as _;
+use pair::{
+    pair_actions::{common_result_types::RemoveLiquidityResultType, remove_liq::ProxyTrait as _},
+    safe_price_view::ProxyTrait as _,
+};
 
 use crate::result_types::*;
-use pair::RemoveLiquidityResultType;
 
 pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
 
 #[multiversx_sc::module]
 pub trait ExternalContractsInteractionsModule:
-    crate::lp_farm_token::LpFarmTokenModule + utils::UtilsModule
+    crate::lp_farm_token::LpFarmTokenModule + utils::UtilsModule + energy_query::EnergyQueryModule
 {
     // lp farm
 
@@ -66,19 +69,21 @@ pub trait ExternalContractsInteractionsModule:
     fn merge_lp_farm_tokens(
         &self,
         orig_caller: ManagedAddress,
-        base_lp_token: EsdtTokenPayment,
-        mut additional_lp_tokens: PaymentsVec<Self::Api>,
-    ) -> EsdtTokenPayment {
-        if additional_lp_tokens.is_empty() {
-            return base_lp_token;
+        base_lp_farm_token: EsdtTokenPayment,
+        mut additional_lp_farm_tokens: PaymentsVec<Self::Api>,
+    ) -> DoubleMultiPayment<Self::Api> {
+        if additional_lp_farm_tokens.is_empty() {
+            let locked_token_id = self.get_locked_token_id();
+            let rewards_payment = EsdtTokenPayment::new(locked_token_id, 0, BigUint::zero());
+            return (base_lp_farm_token, rewards_payment).into();
         }
 
-        additional_lp_tokens.push(base_lp_token);
+        additional_lp_farm_tokens.push(base_lp_farm_token);
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
             .merge_farm_tokens_endpoint(orig_caller)
-            .with_multi_token_transfer(additional_lp_tokens)
+            .with_multi_token_transfer(additional_lp_farm_tokens)
             .execute_on_dest_context()
     }
 
@@ -216,7 +221,10 @@ pub trait ExternalContractsInteractionsModule:
     fn staking_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_staking::Proxy<Self::Api>;
 
     #[proxy]
-    fn lp_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm::Proxy<Self::Api>;
+    fn lp_farm_proxy_obj(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> farm_with_locked_rewards::Proxy<Self::Api>;
 
     #[proxy]
     fn pair_proxy_obj(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;

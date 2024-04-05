@@ -231,3 +231,50 @@ fn test_unbond() {
         USER_TOTAL_RIDE_TOKENS + expected_rewards,
     );
 }
+
+#[test]
+fn test_withdraw_rewards() {
+    DebugApi::dummy();
+    let mut farm_setup =
+        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let initial_rewards_capacity = 1_000_000_000_000u64;
+    farm_setup.check_rewards_capacity(initial_rewards_capacity);
+
+    let withdraw_amount = rust_biguint!(TOTAL_REWARDS_AMOUNT);
+    farm_setup.withdraw_rewards(&withdraw_amount);
+
+    let final_rewards_capacity = 0u64;
+    farm_setup.check_rewards_capacity(final_rewards_capacity);
+}
+
+#[test]
+fn test_withdraw_after_produced_rewards() {
+    DebugApi::dummy();
+    let mut farm_setup =
+        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let initial_rewards_capacity = 1_000_000_000_000u64;
+    farm_setup.check_rewards_capacity(initial_rewards_capacity);
+
+    let farm_in_amount = 100_000_000;
+    let expected_farm_token_nonce = 1;
+    farm_setup.stake_farm(farm_in_amount, &[], expected_farm_token_nonce, 0, 0);
+    farm_setup.check_farm_token_supply(farm_in_amount);
+
+    farm_setup.set_block_epoch(5);
+    farm_setup.set_block_nonce(10);
+
+    let withdraw_amount = rust_biguint!(TOTAL_REWARDS_AMOUNT);
+    farm_setup.withdraw_rewards_with_error(&withdraw_amount, 4, WITHDRAW_AMOUNT_TOO_HIGH);
+
+    let expected_reward_token_out = 40;
+
+    let withdraw_amount =
+        rust_biguint!(TOTAL_REWARDS_AMOUNT) - rust_biguint!(expected_reward_token_out);
+    farm_setup.withdraw_rewards(&withdraw_amount);
+
+    // Only the user's rewards will remain
+    let final_rewards_capacity = expected_reward_token_out;
+    farm_setup.check_rewards_capacity(final_rewards_capacity);
+}

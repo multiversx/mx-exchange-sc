@@ -82,7 +82,14 @@ pub trait Farm:
     }
 
     #[endpoint]
-    fn upgrade(&self) {}
+    fn upgrade(&self) {
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
+
+        // Farm position migration code
+        let farm_token_mapper = self.farm_token();
+        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+    }
 
     #[payable("*")]
     #[endpoint(enterFarm)]
@@ -95,16 +102,12 @@ pub trait Farm:
 
         self.migrate_old_farm_positions(&orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
-        let boosted_rewards_payment = if boosted_rewards > 0 {
-            self.send_to_lock_contract_non_zero(
-                self.reward_token_id().get(),
-                boosted_rewards,
-                caller.clone(),
-                orig_caller.clone(),
-            )
-        } else {
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero())
-        };
+        let boosted_rewards_payment = self.send_to_lock_contract_non_zero(
+            self.reward_token_id().get(),
+            boosted_rewards,
+            caller.clone(),
+            orig_caller.clone(),
+        );
 
         let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(orig_caller.clone());
         self.send_payment_non_zero(&caller, &new_farm_token);
@@ -173,7 +176,7 @@ pub trait Farm:
 
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             rewards.token_identifier.clone(),
-            rewards.amount.clone(),
+            rewards.amount,
             caller,
             orig_caller.clone(),
         );
@@ -282,7 +285,8 @@ pub trait Farm:
         energy_address: ManagedAddress,
     ) -> EsdtTokenPayment {
         if amount == 0 {
-            return EsdtTokenPayment::new(token_id, 0, amount);
+            let locked_token_id = self.get_locked_token_id();
+            return EsdtTokenPayment::new(locked_token_id, 0, amount);
         }
 
         self.lock_virtual(token_id, amount, destination_address, energy_address)

@@ -2,8 +2,9 @@ multiversx_sc::imports!();
 
 use farm::{
     base_functions::{ClaimRewardsResultType, ClaimRewardsResultWrapper},
-    EnterFarmResultType, ExitFarmWithPartialPosResultType, ProxyTrait as _,
+    EnterFarmResultType, ExitFarmWithPartialPosResultType,
 };
+use farm_with_locked_rewards::ProxyTrait as _;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
@@ -77,5 +78,6 @@ pub trait FarmInteractionsModule {
     }
 
     #[proxy]
-    fn farm_contract_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
+    fn farm_contract_proxy(&self, to: ManagedAddress)
+        -> farm_with_locked_rewards::Proxy<Self::Api>;
 }
