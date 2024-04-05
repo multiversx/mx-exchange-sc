@@ -3,6 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub mod config;
 pub mod enable_swap_by_user;
 mod events;
 pub mod factory;
@@ -24,7 +25,8 @@ const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
 
 #[multiversx_sc::contract]
 pub trait Router:
-    factory::FactoryModule
+    config::ConfigModule
+    + factory::FactoryModule
     + events::EventsModule
     + multi_pair_swap::MultiPairSwap
     + token_send::TokenSendModule
@@ -40,7 +42,9 @@ pub trait Router:
     }
 
     #[endpoint]
-    fn upgrade(&self) {}
+    fn upgrade(&self) {
+        self.state().set(false);
+    }
 
     #[only_owner]
     #[endpoint]
@@ -60,6 +64,10 @@ pub trait Router:
     #[endpoint]
     fn resume(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
+            require!(
+                self.pair_map().len() == self.address_pair_map().len(),
+                "The size of the 2 pair maps is not the same"
+            );
             self.state().set(true);
         } else {
             self.check_is_pair_sc(&address);
@@ -389,11 +397,6 @@ pub trait Router:
         }
     }
 
-    #[inline]
-    fn is_active(&self) -> bool {
-        self.state().get()
-    }
-
     #[only_owner]
     #[endpoint(setPairCreationEnabled)]
     fn set_pair_creation_enabled(&self, enabled: bool) {
@@ -412,17 +415,10 @@ pub trait Router:
         for (pair_tokens, address) in pair_map.iter() {
             address_pair_map.insert(address, pair_tokens);
         }
+
+        require!(
+            pair_map.len() == address_pair_map.len(),
+            "The size of the 2 pair maps is not the same"
+        );
     }
-
-    #[view(getPairCreationEnabled)]
-    #[storage_mapper("pair_creation_enabled")]
-    fn pair_creation_enabled(&self) -> SingleValueMapper<bool>;
-
-    #[view(getState)]
-    #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<bool>;
-
-    #[view(getOwner)]
-    #[storage_mapper("owner")]
-    fn owner(&self) -> SingleValueMapper<ManagedAddress>;
 }

@@ -3,6 +3,8 @@ multiversx_sc::derive_imports!();
 
 use pair::pair_actions::swap::ProxyTrait as _;
 
+use crate::config;
+
 use super::factory;
 
 type SwapOperationType<M> =
@@ -12,10 +14,14 @@ pub const SWAP_TOKENS_FIXED_INPUT_FUNC_NAME: &[u8] = b"swapTokensFixedInput";
 pub const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 
 #[multiversx_sc::module]
-pub trait MultiPairSwap: factory::FactoryModule + token_send::TokenSendModule {
+pub trait MultiPairSwap:
+    config::ConfigModule + factory::FactoryModule + token_send::TokenSendModule
+{
     #[payable("*")]
     #[endpoint(multiPairSwap)]
     fn multi_pair_swap(&self, swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>) {
+        require!(self.is_active(), "Not active");
+
         let (token_id, nonce, amount) = self.call_value().single_esdt().into_tuple();
         require!(nonce == 0, "Invalid nonce. Should be zero");
         require!(amount > 0u64, "Invalid amount. Should not be zero");
