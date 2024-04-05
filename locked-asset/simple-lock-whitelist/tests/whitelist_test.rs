@@ -37,6 +37,8 @@ fn lock_whitelist_test() {
             sc.init(whitelist);
             sc.locked_token()
                 .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
+
+            sc.set_transfer_roles_ready(true);
         })
         .assert_ok();
 
