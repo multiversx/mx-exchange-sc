@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           26
+// Endpoints:                           27
 // Async Callback:                       1
-// Total number of exported functions:  28
+// Total number of exported functions:  29
 
 #![no_std]
 #![allow(internal_features)]
@@ -22,12 +22,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         init => init
         upgrade => upgrade
         setTransferRoleLockedToken => set_transfer_role
+        setTransferRolesReady => set_transfer_roles_ready
         setTransferRoleProxyLpToken => set_transfer_role_proxy_lp
         setTransferRoleProxyFarmToken => set_transfer_role_proxy_farm
-        setLockedToken => set_locked_token
         lockTokens => lock_tokens_endpoint
         unlockTokens => unlock_tokens_endpoint
         getTokenWhitelist => token_whitelist
+        getTransferRolesReady => transfer_roles_ready
         issueLockedToken => issue_locked_token
         getLockedTokenId => locked_token
         issueLpProxyToken => issue_lp_proxy_token
