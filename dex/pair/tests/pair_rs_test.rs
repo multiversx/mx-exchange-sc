@@ -148,11 +148,6 @@ fn test_safe_price_migration() {
     let payment_amount = 1000;
     let mut expected_amount = 996;
 
-    let mut first_token_reserve = 1_002_000;
-    let mut second_token_reserve = 1_000_004;
-    let mut first_token_accumulated = 1_001_000;
-    let mut second_token_accumulated = 1_001_000;
-
     let weight = 10;
     let mut block_round = starting_round + weight;
     pair_setup.b_mock.set_block_round(block_round);
@@ -190,14 +185,7 @@ fn test_safe_price_migration() {
     );
     pair_setup.check_lp_amount(lp_amount);
 
-    first_token_accumulated += weight * first_token_reserve;
-    second_token_accumulated += weight * second_token_reserve;
-
     block_round += weight;
-    first_token_reserve += payment_amount;
-    second_token_reserve -= expected_amount;
-    first_token_accumulated += weight * first_token_reserve;
-    second_token_accumulated += weight * second_token_reserve;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
 
@@ -223,10 +211,6 @@ fn test_safe_price_migration() {
     pair_setup.check_lp_amount(lp_amount);
 
     block_round += weight;
-    first_token_reserve += payment_amount;
-    second_token_reserve -= expected_amount;
-    first_token_accumulated += weight * first_token_reserve;
-    second_token_accumulated += weight * second_token_reserve;
     expected_amount -= 1;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -239,10 +223,6 @@ fn test_safe_price_migration() {
     pair_setup.check_lp_amount(lp_amount);
 
     block_round += weight;
-    first_token_reserve += payment_amount;
-    second_token_reserve -= expected_amount;
-    first_token_accumulated += weight * first_token_reserve;
-    second_token_accumulated += weight * second_token_reserve;
     expected_amount -= 1;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -290,8 +270,8 @@ fn test_safe_price_migration() {
     );
 
     // Simulate old price observations
-    pair_setup.set_price_observation_as_old(&pair_address, 1);
-    pair_setup.set_price_observation_as_old(&pair_address, 2);
+    pair_setup.set_price_observation_as_old(1);
+    pair_setup.set_price_observation_as_old(2);
 
     // Check migration safe price
     // Both observations are old
