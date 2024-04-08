@@ -43,7 +43,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeFarmFromWhitelist => remove_farm_from_whitelist
         enterFarmLockedToken => enter_farm_locked_token
         exitFarmLockedToken => exit_farm_locked_token
-        destroyFarmLockedTokens => destroy_farm_locked_tokens
         farmClaimRewardsLockedToken => farm_claim_rewards_locked_token
         getKnownFarms => known_farms
         getFarmProxyTokenId => farm_proxy_token
