@@ -19,7 +19,7 @@ pub trait MultiPairSwap:
 {
     #[payable("*")]
     #[endpoint(multiPairSwap)]
-    fn multi_pair_swap(&self, swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>) {
+    fn multi_pair_swap(&self, swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>) -> ManagedVec<EsdtTokenPayment> {
         require!(self.is_active(), "Not active");
 
         let (token_id, nonce, amount) = self.call_value().single_esdt().into_tuple();
@@ -67,6 +67,8 @@ pub trait MultiPairSwap:
 
         payments.push(last_payment);
         self.send().direct_multi(&caller, &payments);
+
+        payments
     }
 
     fn actual_swap_fixed_input(
