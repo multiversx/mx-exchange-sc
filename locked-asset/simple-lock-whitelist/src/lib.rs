@@ -26,6 +26,8 @@ pub trait SimpleLockWhitelist:
 
             let _ = whitelist.insert(token_id);
         }
+
+        self.transfer_roles_not_set().set(true);
     }
 
     #[endpoint]
@@ -45,11 +47,11 @@ pub trait SimpleLockWhitelist:
     }
 
     #[only_owner]
-    #[endpoint(setTransferRolesReady)]
-    fn set_transfer_roles_ready(&self, roles_ready: bool) {
+    #[endpoint(setTransferRolesStatus)]
+    fn set_transfer_roles_status(&self, roles_status: bool) {
         self.locked_token().require_issued_or_set();
 
-        self.transfer_roles_ready().set(roles_ready);
+        self.transfer_roles_not_set().set(roles_status);
     }
 
     #[only_owner]
@@ -140,7 +142,7 @@ pub trait SimpleLockWhitelist:
 
     fn require_transfer_roles_ready(&self) {
         require!(
-            self.transfer_roles_ready().get(),
+            !self.transfer_roles_not_set().get(),
             "Transfer roles not ready"
         );
     }
@@ -149,7 +151,7 @@ pub trait SimpleLockWhitelist:
     #[storage_mapper("tokenWhitelist")]
     fn token_whitelist(&self) -> UnorderedSetMapper<TokenIdentifier>;
 
-    #[view(getTransferRolesReady)]
-    #[storage_mapper("transferRolesReady")]
-    fn transfer_roles_ready(&self) -> SingleValueMapper<bool>;
+    #[view(getTransferRolesNotSet)]
+    #[storage_mapper("transferRolesNotSet")]
+    fn transfer_roles_not_set(&self) -> SingleValueMapper<bool>;
 }

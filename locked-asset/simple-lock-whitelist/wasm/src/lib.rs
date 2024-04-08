@@ -22,13 +22,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         init => init
         upgrade => upgrade
         setTransferRoleLockedToken => set_transfer_role
-        setTransferRolesReady => set_transfer_roles_ready
+        setTransferRolesStatus => set_transfer_roles_status
         setTransferRoleProxyLpToken => set_transfer_role_proxy_lp
         setTransferRoleProxyFarmToken => set_transfer_role_proxy_farm
         lockTokens => lock_tokens_endpoint
         unlockTokens => unlock_tokens_endpoint
         getTokenWhitelist => token_whitelist
-        getTransferRolesReady => transfer_roles_ready
+        getTransferRolesNotSet => transfer_roles_not_set
         issueLockedToken => issue_locked_token
         getLockedTokenId => locked_token
         issueLpProxyToken => issue_lp_proxy_token
