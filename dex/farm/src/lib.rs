@@ -16,6 +16,7 @@ use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
 use farm_base_impl::base_traits_impl::FarmContract;
+use fixed_supply_token::FixedSupplyToken;
 
 pub type EnterFarmResultType<M> = DoubleMultiPayment<M>;
 pub type ExitFarmWithPartialPosResultType<M> = DoubleMultiPayment<M>;
@@ -193,7 +194,14 @@ pub trait Farm:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let merged_farm_token = self.merge_farm_tokens::<Wrapper<Self>>();
+        let mut output_attributes = self.merge_and_return_attributes::<Wrapper<Self>>();
+        output_attributes.original_owner = orig_caller;
+
+        let new_token_amount = output_attributes.get_total_supply();
+        let merged_farm_token = self
+            .farm_token()
+            .nft_create(new_token_amount, &output_attributes);
+
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 

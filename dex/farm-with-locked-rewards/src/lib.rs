@@ -8,6 +8,7 @@ multiversx_sc::derive_imports!();
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
+use fixed_supply_token::FixedSupplyToken;
 
 use farm::{
     base_functions::{BaseFunctionsModule, ClaimRewardsResultType, DoubleMultiPayment, Wrapper},
@@ -198,7 +199,13 @@ pub trait Farm:
         self.migrate_old_farm_positions(&orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
 
-        let merged_farm_token = self.merge_farm_tokens::<NoMintWrapper<Self>>();
+        let mut output_attributes = self.merge_and_return_attributes::<NoMintWrapper<Self>>();
+        output_attributes.original_owner = orig_caller.clone();
+
+        let new_token_amount = output_attributes.get_total_supply();
+        let merged_farm_token = self
+            .farm_token()
+            .nft_create(new_token_amount, &output_attributes);
 
         self.send_payment_non_zero(&caller, &merged_farm_token);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
