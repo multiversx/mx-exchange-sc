@@ -141,6 +141,200 @@ fn test_safe_price_observation_decoding() {
 }
 
 #[test]
+fn test_safe_price_migration() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let pair_address = pair_setup.pair_wrapper.address_ref().clone();
+    let starting_round = 1000;
+    let payment_amount = 1000;
+    let mut expected_amount = 996;
+
+    let mut first_token_reserve = 1_002_000;
+    let mut second_token_reserve = 1_000_004;
+    let mut first_token_accumulated = 1_001_000;
+    let mut second_token_accumulated = 1_001_000;
+
+    let weight = 10;
+    let mut block_round = starting_round + weight;
+    pair_setup.b_mock.set_block_round(block_round);
+
+    let lp_increase = 1_000_000;
+    let min_lp_amount = 1_000;
+    let mut lp_amount = lp_increase + min_lp_amount;
+    pair_setup.add_liquidity(
+        lp_increase + min_lp_amount,
+        lp_increase,
+        lp_increase + min_lp_amount,
+        lp_increase,
+        lp_increase,
+        lp_increase + min_lp_amount,
+        lp_increase + min_lp_amount,
+    );
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    block_round += weight;
+    expected_amount -= 2; // slippage
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
+
+    block_round += weight;
+    first_token_reserve += payment_amount;
+    second_token_reserve -= expected_amount;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
+    expected_amount -= 2;
+    pair_setup.b_mock.set_block_round(block_round);
+
+    // Change LP amount starting block 1030
+    let lp_amount_increase = 998_005;
+    lp_amount += lp_amount_increase;
+    pair_setup.add_liquidity(
+        lp_increase,
+        lp_increase,
+        996_021,
+        996_021,
+        lp_amount_increase,
+        lp_increase,
+        996_021,
+    );
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    block_round += weight;
+    first_token_reserve += payment_amount;
+    second_token_reserve -= expected_amount;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
+    expected_amount -= 1;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    block_round += weight;
+    first_token_reserve += payment_amount;
+    second_token_reserve -= expected_amount;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
+    expected_amount -= 1;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    // Check the normal safe price
+    let lp_token_amount = 100_000;
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1011,
+        1019,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        100_099,
+        MEX_TOKEN_ID,
+        99_900,
+    );
+
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1020,
+        1030,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        100_199,
+        MEX_TOKEN_ID,
+        99_801,
+    );
+
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1030,
+        1040,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        100_249,
+        MEX_TOKEN_ID,
+        99_751,
+    );
+
+    // Simulate old price observations
+    pair_setup.set_price_observation_as_old(&pair_address, 1);
+    pair_setup.set_price_observation_as_old(&pair_address, 2);
+
+    // Check migration safe price
+    // Both observations are old
+    // Latest LP amount is used, so this should be the different than before
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1011,
+        1019,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        50124,
+        MEX_TOKEN_ID,
+        50_025,
+    );
+
+    // First observation is old and the last observation is migrated
+    // Latest LP amount is used, so this should be the different than before
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1020,
+        1030,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        50_174,
+        MEX_TOKEN_ID,
+        49_975,
+    );
+
+    // Both observations are migrated,
+    // Saved LP is used, so this should be the same as before
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1030,
+        1040,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        100_249,
+        MEX_TOKEN_ID,
+        99_751,
+    );
+}
+
+#[test]
 fn test_safe_price() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
