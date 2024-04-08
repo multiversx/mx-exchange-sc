@@ -636,7 +636,7 @@ fn farm_total_position_on_merge_migration_test() {
     farm_setup.b_mock.set_block_nonce(block_nonce);
 
     farm_setup.check_user_total_farm_position(&first_user, farm_in_amount * 2);
-    let _ = farm_setup.merge_farm_tokens(&first_user, payments);
+    farm_setup.merge_farm_tokens(&first_user, payments);
     farm_setup.check_user_total_farm_position(&first_user, total_farm_tokens);
 
     farm_setup
@@ -763,7 +763,7 @@ fn total_farm_position_owner_change_test() {
     farm_setup.enter_farm(&first_user, farm_token_amount);
 
     farm_setup.check_user_total_farm_position(&first_user, farm_token_amount * 6);
-    farm_setup.check_user_total_farm_position(&second_user, farm_token_amount * 0);
+    farm_setup.check_user_total_farm_position(&second_user, 0);
 
     assert_eq!(farm_setup.last_farm_token_nonce, 6);
 
@@ -776,7 +776,7 @@ fn total_farm_position_owner_change_test() {
 
     // Total farm position unchanged as users only transfered the farm positions
     farm_setup.check_user_total_farm_position(&first_user, farm_token_amount * 6);
-    farm_setup.check_user_total_farm_position(&second_user, farm_token_amount * 0);
+    farm_setup.check_user_total_farm_position(&second_user, 0);
 
     // second user enter farm
     farm_setup.set_user_energy(&second_user, 4_000, 2, 1);
