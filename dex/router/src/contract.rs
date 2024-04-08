@@ -279,23 +279,6 @@ pub trait Router:
     }
 
     #[only_owner]
-    #[endpoint(setLocalRolesOwner)]
-    fn set_local_roles_owner(
-        &self,
-        token: TokenIdentifier,
-        address: ManagedAddress,
-        roles: MultiValueEncoded<EsdtLocalRole>,
-    ) {
-        require!(self.is_active(), "Not active");
-
-        self.send()
-            .esdt_system_sc_proxy()
-            .set_special_roles(&address, &token, roles.into_iter())
-            .async_call()
-            .call_and_exit()
-    }
-
-    #[only_owner]
     #[endpoint(removePair)]
     fn remove_pair(
         &self,
