@@ -4,18 +4,27 @@ mod pair_setup;
 use fees_collector::{
     config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
 };
+use multiversx_sc::codec::{self, TopDecode};
 use multiversx_sc::{
-    codec::multi_types::OptionalValue,
+    api::ManagedTypeApi,
+    codec::{
+        derive::{NestedEncode, TopEncode},
+        multi_types::OptionalValue,
+        top_encode_to_vec_u8,
+    },
     storage::mappers::StorageTokenWrapper,
-    types::{EsdtLocalRole, MultiValueEncoded},
+    types::{BigUint, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 use pair::{
-    config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule,
+    config::MAX_PERCENTAGE,
+    fee::FeeModule,
+    locking_wrapper::LockingWrapperModule,
     pair_actions::swap::SwapModule,
+    safe_price::{PriceObservation, Round, SafePriceModule},
 };
 use pair_setup::*;
 use simple_lock::{
@@ -23,6 +32,14 @@ use simple_lock::{
     proxy_lp::{LpProxyTokenAttributes, ProxyLpModule},
     SimpleLock,
 };
+
+#[derive(TopEncode, NestedEncode, Clone, Debug)]
+pub struct OldPriceObservation<M: ManagedTypeApi> {
+    pub first_token_reserve_accumulated: BigUint<M>,
+    pub second_token_reserve_accumulated: BigUint<M>,
+    pub weight_accumulated: u64,
+    pub recording_round: Round,
+}
 
 #[test]
 fn test_pair_setup() {
@@ -86,6 +103,40 @@ fn test_perfect_swap_fixed_output() {
         &pair_setup.user_address,
         MEX_TOKEN_ID,
         &(rust_biguint!(USER_TOTAL_WEGLD_TOKENS - token_amount + 996)),
+    );
+}
+
+#[test]
+fn test_safe_price_observation_decoding() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let _ = pair_setup.b_mock.execute_tx(
+        &pair_setup.owner_address,
+        &pair_setup.pair_wrapper,
+        &rust_biguint!(0),
+        |sc| {
+            let old_observation: OldPriceObservation<DebugApi> = OldPriceObservation {
+                first_token_reserve_accumulated: managed_biguint!(1u64),
+                second_token_reserve_accumulated: managed_biguint!(1u64),
+                weight_accumulated: 1u64,
+                recording_round: 1u64,
+            };
+
+            let buffer = top_encode_to_vec_u8(&old_observation).unwrap();
+
+            let mut new_observation = PriceObservation::<DebugApi>::top_decode(buffer).unwrap();
+            assert_eq!(
+                new_observation.lp_supply_accumulated,
+                managed_biguint!(0u64)
+            );
+
+            new_observation.lp_supply_accumulated = managed_biguint!(2u64);
+            sc.price_observations().push(&new_observation.clone());
+            let final_observation = sc.price_observations().get(1);
+            assert_eq!(
+                new_observation.lp_supply_accumulated,
+                final_observation.lp_supply_accumulated
+            );
+        },
     );
 }
 
