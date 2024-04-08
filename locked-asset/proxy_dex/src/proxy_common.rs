@@ -135,8 +135,8 @@ pub trait ProxyCommonModule: energy_query::EnergyQueryModule {
         let new_token_id = self.get_locked_token_id();
         let old_token_id = self.old_locked_token_id().get();
         let mut results = MultiValueEncoded::new();
-        results.push(new_token_id);
         results.push(old_token_id);
+        results.push(new_token_id);
 
         results
     }
