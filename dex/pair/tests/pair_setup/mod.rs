@@ -407,11 +407,7 @@ where
         });
     }
 
-    pub fn set_price_observation_as_old(
-        &mut self,
-        pair_address: &Address,
-        observation_index: usize,
-    ) {
+    pub fn set_price_observation_as_old(&mut self, observation_index: usize) {
         let _ = self.b_mock.execute_query(&self.pair_wrapper, |sc| {
             let price_observations = sc.price_observations();
 
