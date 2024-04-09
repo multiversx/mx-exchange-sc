@@ -7,7 +7,7 @@ multiversx_sc::derive_imports!();
 
 use base_impl_wrapper::FarmStakingWrapper;
 use contexts::storage_cache::StorageCache;
-use farm::base_functions::DoubleMultiPayment;
+use farm::{base_functions::DoubleMultiPayment, MAX_PERCENT};
 use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
 use token_attributes::StakingFarmTokenAttributes;
@@ -128,6 +128,17 @@ pub trait FarmStaking:
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
         (merged_farm_token, boosted_rewards_payment).into()
+    }
+
+    #[endpoint(setBoostedYieldsRewardsPercentage)]
+    fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
+        self.require_caller_has_admin_permissions();
+        require!(percentage <= MAX_PERCENT, "Invalid percentage");
+
+        let mut storage_cache = StorageCache::new(self);
+        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
+        self.boosted_yields_rewards_percentage().set(percentage);
     }
 
     #[view(calculateRewardsForGivenPosition)]
