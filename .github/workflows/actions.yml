@@ -26,3 +26,55 @@ jobs:
       vmtools-version: v1.5.24
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
+  
+  # TEMPORARY: Remove this job when we can upgrade to mx-sc-actions v3+
+  test_coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly-2023-12-11
+          target: wasm32-unknown-unknown
+
+      - name: Install prerequisites
+        run: |
+          rustup component add llvm-tools-preview
+          dirname $(find ~/.rustup -name llvm-cov) >> $GITHUB_PATH
+
+          echo $(dirname $(find ~/.rustup -name llvm-cov))
+
+          cargo install multiversx-sc-meta --locked
+
+      - name: Run tests and generate report
+        env:
+          RUSTFLAGS: ""
+        run: |
+          sc-meta test-coverage --output ./coverage.md
+
+      - name: Upload the report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: coverage.md
+
+      - name: Find the comment containing the report
+        id: fc
+        uses: peter-evans/find-comment@v2
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: "github-actions[bot]"
+          body-includes: "Coverage Summary"
+
+      - name: Create or update the report comment
+        uses: peter-evans/create-or-update-comment@v2
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-file: ./coverage.md
+          edit-mode: replace

@@ -89,6 +89,9 @@ pub trait FarmStaking:
         );
         self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
 
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
+
         // Farm position migration code
         let farm_token_mapper = self.farm_token();
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
@@ -96,6 +99,9 @@ pub trait FarmStaking:
 
     #[endpoint]
     fn upgrade(&self) {
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
+
         // Farm position migration code
         let farm_token_mapper = self.farm_token();
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
