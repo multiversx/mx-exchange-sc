@@ -26,6 +26,8 @@ pub trait SimpleLockWhitelist:
 
             let _ = whitelist.insert(token_id);
         }
+
+        self.transfer_roles_not_set().set(true);
     }
 
     #[endpoint]
@@ -42,6 +44,14 @@ pub trait SimpleLockWhitelist:
 
         self.locked_token()
             .set_local_roles_for_address(&address, &[EsdtLocalRole::Transfer], None);
+    }
+
+    #[only_owner]
+    #[endpoint(setTransferRolesStatus)]
+    fn set_transfer_roles_status(&self, roles_status: bool) {
+        self.locked_token().require_issued_or_set();
+
+        self.transfer_roles_not_set().set(roles_status);
     }
 
     #[only_owner]
@@ -74,13 +84,6 @@ pub trait SimpleLockWhitelist:
         );
     }
 
-    #[only_owner]
-    #[endpoint(setLockedToken)]
-    fn set_locked_token(&self, token_id: TokenIdentifier) {
-        require!(token_id.is_valid_esdt_identifier(), "Token id is not valid");
-        self.locked_token().set_token_id(token_id);
-    }
-
     /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens.
     /// on a 1:1 ratio. If unlock epoch has already passed, the original tokens are sent instead.
     ///
@@ -98,6 +101,7 @@ pub trait SimpleLockWhitelist:
         unlock_epoch: u64,
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        self.require_transfer_roles_ready();
         let payment = self.call_value().single_esdt();
         self.require_token_in_whitelist(&payment.token_identifier);
 
@@ -123,6 +127,7 @@ pub trait SimpleLockWhitelist:
         &self,
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        self.require_transfer_roles_ready();
         let payment = self.call_value().single_esdt();
         let dest_address = self.dest_from_optional(opt_destination);
         self.unlock_and_send(&dest_address, payment)
@@ -135,7 +140,18 @@ pub trait SimpleLockWhitelist:
         );
     }
 
+    fn require_transfer_roles_ready(&self) {
+        require!(
+            !self.transfer_roles_not_set().get(),
+            "Transfer roles not ready"
+        );
+    }
+
     #[view(getTokenWhitelist)]
     #[storage_mapper("tokenWhitelist")]
     fn token_whitelist(&self) -> UnorderedSetMapper<TokenIdentifier>;
+
+    #[view(getTransferRolesNotSet)]
+    #[storage_mapper("transferRolesNotSet")]
+    fn transfer_roles_not_set(&self) -> SingleValueMapper<bool>;
 }

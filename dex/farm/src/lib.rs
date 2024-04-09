@@ -21,6 +21,8 @@ use fixed_supply_token::FixedSupplyToken;
 pub type EnterFarmResultType<M> = DoubleMultiPayment<M>;
 pub type ExitFarmWithPartialPosResultType<M> = DoubleMultiPayment<M>;
 
+pub const MAX_PERCENT: u64 = 10_000;
+
 #[multiversx_sc::contract]
 pub trait Farm:
     rewards::RewardsModule
@@ -251,6 +253,17 @@ pub trait Farm:
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards::<Wrapper<Self>>(per_block_amount);
+    }
+
+    #[endpoint(setBoostedYieldsRewardsPercentage)]
+    fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
+        self.require_caller_has_admin_permissions();
+        require!(percentage <= MAX_PERCENT, "Invalid percentage");
+
+        let mut storage_cache = StorageCache::new(self);
+        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
+        self.boosted_yields_rewards_percentage().set(percentage);
     }
 
     #[view(calculateRewardsForGivenPosition)]

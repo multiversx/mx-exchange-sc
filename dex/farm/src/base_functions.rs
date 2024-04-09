@@ -12,7 +12,7 @@ use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 
-use crate::exit_penalty;
+use crate::{exit_penalty, MAX_PERCENT};
 
 pub type DoubleMultiPayment<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsResultType<M> = DoubleMultiPayment<M>;
@@ -342,7 +342,7 @@ where
         if user_farming_epochs >= min_farming_epochs {
             BigUint::zero()
         } else {
-            total_exit_amount * sc.penalty_percent().get() / exit_penalty::MAX_PERCENT
+            total_exit_amount * sc.penalty_percent().get() / MAX_PERCENT
         }
     }
 
