@@ -9,13 +9,14 @@ use multiversx_sc::{
         MultiValueEncoded,
     },
 };
-use pair::{config::ConfigModule, pair_actions::initial_liq::InitialLiquidityModule, Pair};
+use pair::{
+    config::ConfigModule as PairConfigModule, pair_actions::initial_liq::InitialLiquidityModule,
+    Pair,
+};
 use pausable::{PausableModule, State};
 use router::{
-    enable_swap_by_user::EnableSwapByUserModule,
-    factory::{FactoryModule, PairTokens},
-    multi_pair_swap::SWAP_TOKENS_FIXED_INPUT_FUNC_NAME,
-    Router,
+    config::ConfigModule, enable_swap_by_user::EnableSwapByUserModule, factory::PairTokens,
+    multi_pair_swap::SWAP_TOKENS_FIXED_INPUT_FUNC_NAME, Router,
 };
 use router_setup::*;
 

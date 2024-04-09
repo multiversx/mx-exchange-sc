@@ -27,10 +27,11 @@ pub const MIN_LOCKED_PERIOD_EPOCHS: u64 = 100;
 pub const USER_CUSTOM_TOKEN_BALANCE: u64 = 1_000_000_000;
 pub const USER_USDC_BALANCE: u64 = 1_000_000;
 
-use pair::config::*;
+use pair::config::ConfigModule as PairConfigModule;
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::*;
 use pausable::{PausableModule, State};
+use router::config::ConfigModule;
 use router::factory::*;
 use router::multi_pair_swap::*;
 use router::*;
