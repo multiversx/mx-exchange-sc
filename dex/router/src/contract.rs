@@ -388,20 +388,29 @@ pub trait Router:
 
     #[only_owner]
     #[endpoint(migratePairMap)]
-    fn migrate_pair_map(&self) {
+    fn migrate_pair_map(
+        &self,
+        token_pairs: MultiValueEncoded<MultiValue2<TokenIdentifier, TokenIdentifier>>,
+    ) {
         let pair_map = self.pair_map();
         let mut address_pair_map = self.address_pair_map();
-        require!(
-            address_pair_map.is_empty(),
-            "The destination mapper must be empty"
-        );
-        for (pair_tokens, address) in pair_map.iter() {
-            address_pair_map.insert(address, pair_tokens);
-        }
 
-        require!(
-            pair_map.len() == address_pair_map.len(),
-            "The size of the 2 pair maps is not the same"
-        );
+        for token_pair_values in token_pairs {
+            let (first_token_id, second_token_id) = token_pair_values.into_tuple();
+            let pair_tokens = PairTokens {
+                first_token_id,
+                second_token_id,
+            };
+            let lp_address_opt = pair_map.get(&pair_tokens);
+            require!(lp_address_opt.is_some(), "LP address not found");
+            unsafe {
+                let lp_address = lp_address_opt.unwrap_unchecked();
+                require!(
+                    !address_pair_map.contains_key(&lp_address),
+                    "Address pair mapper already contains these values"
+                );
+                address_pair_map.insert(lp_address, pair_tokens);
+            }
+        }
     }
 }

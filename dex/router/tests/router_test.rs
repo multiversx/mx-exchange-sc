@@ -255,7 +255,15 @@ fn user_enable_pair_swaps_through_router_test() {
                 managed_address!(pair_wrapper.address_ref()),
             );
 
-            sc.migrate_pair_map();
+            let mut migration_data = MultiValueEncoded::new();
+            migration_data.push(
+                (
+                    (managed_token_id!(CUSTOM_TOKEN_ID)),
+                    (managed_token_id!(USDC_TOKEN_ID)),
+                )
+                    .into(),
+            );
+            sc.migrate_pair_map(migration_data);
 
             sc.add_common_tokens_for_user_pairs(MultiValueEncoded::from(ManagedVec::from(vec![
                 managed_token_id!(USDC_TOKEN_ID),
@@ -442,7 +450,15 @@ fn user_enable_pair_swaps_fail_test() {
                 managed_address!(pair_wrapper.address_ref()),
             );
 
-            sc.migrate_pair_map();
+            let mut migration_data = MultiValueEncoded::new();
+            migration_data.push(
+                (
+                    (managed_token_id!(CUSTOM_TOKEN_ID)),
+                    (managed_token_id!(USDC_TOKEN_ID)),
+                )
+                    .into(),
+            );
+            sc.migrate_pair_map(migration_data);
 
             sc.add_common_tokens_for_user_pairs(MultiValueEncoded::from(ManagedVec::from(vec![
                 managed_token_id!(USDC_TOKEN_ID),
