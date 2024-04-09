@@ -5,7 +5,7 @@ use pair::{config::ProxyTrait as _, pair_actions::views::ProxyTrait as _};
 use pausable::{ProxyTrait as _, State};
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::{DEFAULT_SPECIAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT};
+use crate::{config, DEFAULT_SPECIAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT};
 
 static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
@@ -27,7 +27,7 @@ pub struct SafePriceResult<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait EnableSwapByUserModule:
-    crate::factory::FactoryModule + crate::events::EventsModule
+    config::ConfigModule + crate::factory::FactoryModule + crate::events::EventsModule
 {
     #[only_owner]
     #[endpoint(configEnableByUserParameters)]
@@ -250,14 +250,4 @@ pub trait EnableSwapByUserModule:
 
     #[proxy]
     fn user_pair_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
-
-    #[storage_mapper("enableSwapByUserConfig")]
-    fn enable_swap_by_user_config(
-        &self,
-        token_id: &TokenIdentifier,
-    ) -> SingleValueMapper<EnableSwapByUserConfig<Self::Api>>;
-
-    #[view(getCommonTokensForUserPairs)]
-    #[storage_mapper("commonTokensForUserPairs")]
-    fn common_tokens_for_user_pairs(&self) -> UnorderedSetMapper<TokenIdentifier>;
 }
