@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use governance_v2::{
     proposal_storage::{ProposalStorageModule, VoteType},
     GovernanceV2,
@@ -9,8 +11,8 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
-    whitebox::TxResult,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::TxResult,
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 use num_bigint::BigUint;
