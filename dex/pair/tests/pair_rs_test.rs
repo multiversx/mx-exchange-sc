@@ -4,18 +4,27 @@ mod pair_setup;
 use fees_collector::{
     config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
 };
+use multiversx_sc::codec::{self, TopDecode};
 use multiversx_sc::{
-    codec::multi_types::OptionalValue,
+    api::ManagedTypeApi,
+    codec::{
+        derive::{NestedEncode, TopEncode},
+        multi_types::OptionalValue,
+        top_encode_to_vec_u8,
+    },
     storage::mappers::StorageTokenWrapper,
-    types::{EsdtLocalRole, MultiValueEncoded},
+    types::{BigUint, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 use pair::{
-    config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule,
+    config::MAX_PERCENTAGE,
+    fee::FeeModule,
+    locking_wrapper::LockingWrapperModule,
     pair_actions::swap::SwapModule,
+    safe_price::{PriceObservation, Round, SafePriceModule},
 };
 use pair_setup::*;
 use simple_lock::{
@@ -23,6 +32,14 @@ use simple_lock::{
     proxy_lp::{LpProxyTokenAttributes, ProxyLpModule},
     SimpleLock,
 };
+
+#[derive(TopEncode, NestedEncode, Clone, Debug)]
+pub struct OldPriceObservation<M: ManagedTypeApi> {
+    pub first_token_reserve_accumulated: BigUint<M>,
+    pub second_token_reserve_accumulated: BigUint<M>,
+    pub weight_accumulated: u64,
+    pub recording_round: Round,
+}
 
 #[test]
 fn test_pair_setup() {
@@ -58,6 +75,243 @@ fn test_swap_fixed_output() {
     );
 
     pair_setup.swap_fixed_output(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 900, 96);
+}
+
+#[test]
+fn test_perfect_swap_fixed_output() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+
+    let token_amount = 1_001_000;
+
+    pair_setup.add_liquidity(
+        token_amount,
+        1_000_000,
+        token_amount,
+        1_000_000,
+        1_000_000,
+        token_amount,
+        token_amount,
+    );
+
+    pair_setup.swap_fixed_output(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 996, 0);
+    pair_setup.b_mock.check_esdt_balance(
+        &pair_setup.user_address,
+        WEGLD_TOKEN_ID,
+        &(rust_biguint!(USER_TOTAL_WEGLD_TOKENS - token_amount - 1_000)),
+    );
+    pair_setup.b_mock.check_esdt_balance(
+        &pair_setup.user_address,
+        MEX_TOKEN_ID,
+        &(rust_biguint!(USER_TOTAL_WEGLD_TOKENS - token_amount + 996)),
+    );
+}
+
+#[test]
+fn test_safe_price_observation_decoding() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let _ = pair_setup.b_mock.execute_tx(
+        &pair_setup.owner_address,
+        &pair_setup.pair_wrapper,
+        &rust_biguint!(0),
+        |sc| {
+            let old_observation: OldPriceObservation<DebugApi> = OldPriceObservation {
+                first_token_reserve_accumulated: managed_biguint!(1u64),
+                second_token_reserve_accumulated: managed_biguint!(1u64),
+                weight_accumulated: 1u64,
+                recording_round: 1u64,
+            };
+
+            let buffer = top_encode_to_vec_u8(&old_observation).unwrap();
+
+            let mut new_observation = PriceObservation::<DebugApi>::top_decode(buffer).unwrap();
+            assert_eq!(
+                new_observation.lp_supply_accumulated,
+                managed_biguint!(0u64)
+            );
+
+            new_observation.lp_supply_accumulated = managed_biguint!(2u64);
+            sc.price_observations().push(&new_observation.clone());
+            let final_observation = sc.price_observations().get(1);
+            assert_eq!(
+                new_observation.lp_supply_accumulated,
+                final_observation.lp_supply_accumulated
+            );
+        },
+    );
+}
+
+#[test]
+fn test_safe_price_migration() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let pair_address = pair_setup.pair_wrapper.address_ref().clone();
+    let starting_round = 1000;
+    let payment_amount = 1000;
+    let mut expected_amount = 996;
+
+    let weight = 10;
+    let mut block_round = starting_round + weight;
+    pair_setup.b_mock.set_block_round(block_round);
+
+    let lp_increase = 1_000_000;
+    let min_lp_amount = 1_000;
+    let mut lp_amount = lp_increase + min_lp_amount;
+    pair_setup.add_liquidity(
+        lp_increase + min_lp_amount,
+        lp_increase,
+        lp_increase + min_lp_amount,
+        lp_increase,
+        lp_increase,
+        lp_increase + min_lp_amount,
+        lp_increase + min_lp_amount,
+    );
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    block_round += weight;
+    expected_amount -= 2; // slippage
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    block_round += weight;
+    expected_amount -= 2;
+    pair_setup.b_mock.set_block_round(block_round);
+
+    // Change LP amount starting block 1030
+    let lp_amount_increase = 998_005;
+    lp_amount += lp_amount_increase;
+    pair_setup.add_liquidity(
+        lp_increase,
+        lp_increase,
+        996_021,
+        996_021,
+        lp_amount_increase,
+        lp_increase,
+        996_021,
+    );
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    block_round += weight;
+    expected_amount -= 1;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    block_round += weight;
+    expected_amount -= 1;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_lp_amount(lp_amount);
+
+    // Check the normal safe price
+    let lp_token_amount = 100_000;
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1011,
+        1019,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        100_099,
+        MEX_TOKEN_ID,
+        99_900,
+    );
+
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1020,
+        1030,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        100_199,
+        MEX_TOKEN_ID,
+        99_801,
+    );
+
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1030,
+        1040,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        100_249,
+        MEX_TOKEN_ID,
+        99_751,
+    );
+
+    // Simulate old price observations
+    pair_setup.set_price_observation_as_old(1);
+    pair_setup.set_price_observation_as_old(2);
+
+    // Check migration safe price
+    // Both observations are old
+    // Latest LP amount is used, so this should be the different than before
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1011,
+        1019,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        50124,
+        MEX_TOKEN_ID,
+        50_025,
+    );
+
+    // First observation is old and the last observation is migrated
+    // Latest LP amount is used, so this should be the different than before
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1020,
+        1030,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        50_174,
+        MEX_TOKEN_ID,
+        49_975,
+    );
+
+    // Both observations are migrated,
+    // Saved LP is used, so this should be the same as before
+    pair_setup.check_lp_tokens_safe_price(
+        &pair_address,
+        1030,
+        1040,
+        lp_token_amount,
+        WEGLD_TOKEN_ID,
+        100_249,
+        MEX_TOKEN_ID,
+        99_751,
+    );
 }
 
 #[test]

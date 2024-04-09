@@ -46,14 +46,6 @@ pub trait FarmBoostedYieldsModule:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
 {
-    #[endpoint(setBoostedYieldsRewardsPercentage)]
-    fn set_boosted_yields_rewards_percentage(&self, percentage: Percentage) {
-        self.require_caller_has_admin_permissions();
-        require!(percentage <= MAX_PERCENT, "Invalid percentage");
-
-        self.boosted_yields_rewards_percentage().set(percentage);
-    }
-
     #[endpoint(collectUndistributedBoostedRewards)]
     fn collect_undistributed_boosted_rewards(&self) {
         self.require_caller_has_admin_permissions();

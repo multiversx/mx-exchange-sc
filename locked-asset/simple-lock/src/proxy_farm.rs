@@ -28,13 +28,6 @@ pub type FarmClaimRewardsThroughProxyResultType<M> =
     MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type FarmCompoundRewardsThroughProxyResultType<M> = EsdtTokenPayment<M>;
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
-pub struct DestroyFarmResultType<M: ManagedTypeApi> {
-    pub first_payment: EsdtTokenPayment<M>,
-    pub second_payment: EsdtTokenPayment<M>,
-    pub farm_rewards: EsdtTokenPayment<M>,
-}
-
 #[multiversx_sc::module]
 pub trait ProxyFarmModule:
     crate::farm_interactions::FarmInteractionsModule
@@ -241,74 +234,6 @@ pub trait ProxyFarmModule:
         }
 
         (lp_proxy_token_payment, exit_farm_result.reward_tokens).into()
-    }
-
-    /// Destroy a farm to the original tokens.
-    ///
-    /// Expected payment: Original tokens tokens
-    ///
-    /// Output Payments:
-    /// - original tokens
-    /// - farm reward tokens
-    #[payable("*")]
-    #[endpoint(destroyFarmLockedTokens)]
-    fn destroy_farm_locked_tokens(
-        &self,
-        first_token_min_amount_out: BigUint,
-        second_token_min_amount_out: BigUint,
-    ) -> DestroyFarmResultType<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
-
-        let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
-            self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
-
-        let farm_address = self.try_get_farm_address(
-            &farm_proxy_token_attributes.farming_token_id,
-            farm_proxy_token_attributes.farm_type,
-        );
-        let caller = self.blockchain().get_caller();
-        let exit_farm_result = self.call_farm_exit(
-            farm_address,
-            farm_proxy_token_attributes.farm_token_id,
-            farm_proxy_token_attributes.farm_token_nonce,
-            payment.amount.clone(),
-            caller.clone(),
-        );
-        require!(
-            exit_farm_result.initial_farming_tokens.token_identifier
-                == farm_proxy_token_attributes.farming_token_id,
-            INVALID_PAYMENTS_RECEIVED_FROM_FARM_ERR_MSG
-        );
-
-        if exit_farm_result.reward_tokens.amount > 0 {
-            self.send().direct_esdt(
-                &caller,
-                &exit_farm_result.reward_tokens.token_identifier,
-                exit_farm_result.reward_tokens.token_nonce,
-                &exit_farm_result.reward_tokens.amount,
-            );
-        }
-
-        let locked_lp_nonce = farm_proxy_token_attributes.farming_token_locked_nonce;
-        let lp_proxy_token_mapper = self.lp_proxy_token();
-
-        let (first_payment, second_payment) = self
-            .remove_liquidity_locked_token_common(
-                EsdtTokenPayment::new(
-                    lp_proxy_token_mapper.get_token_id(),
-                    locked_lp_nonce,
-                    exit_farm_result.initial_farming_tokens.amount,
-                ),
-                first_token_min_amount_out,
-                second_token_min_amount_out,
-            )
-            .into_tuple();
-
-        DestroyFarmResultType {
-            first_payment,
-            second_payment,
-            farm_rewards: exit_farm_result.reward_tokens,
-        }
     }
 
     /// Claim rewards from a previously entered farm.

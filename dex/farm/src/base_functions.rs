@@ -363,7 +363,7 @@ where
             return BigUint::zero();
         }
 
-        total_exit_amount * sc.penalty_percent().get() / exit_penalty::MAX_PERCENT
+        total_exit_amount * sc.penalty_percent().get() / crate::MAX_PERCENT
     }
 
     fn apply_penalty(

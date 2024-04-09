@@ -13,7 +13,7 @@ use farm::{
     exit_penalty::{
         DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     },
-    ExitFarmWithPartialPosResultType,
+    ExitFarmWithPartialPosResultType, MAX_PERCENT,
 };
 use farm_base_impl::base_traits_impl::{FarmContract, RewardPair};
 
@@ -79,10 +79,20 @@ pub trait Farm:
             .set(DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.burn_gas_limit().set(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
+
+        // Farm position migration code
+        let farm_token_mapper = self.farm_token();
+        self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
     #[endpoint]
     fn upgrade(&self) {
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
+
         // Farm position migration code
         let farm_token_mapper = self.farm_token();
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
@@ -265,6 +275,17 @@ pub trait Farm:
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards::<NoMintWrapper<Self>>(per_block_amount);
+    }
+
+    #[endpoint(setBoostedYieldsRewardsPercentage)]
+    fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
+        self.require_caller_has_admin_permissions();
+        require!(percentage <= MAX_PERCENT, "Invalid percentage");
+
+        let mut storage_cache = StorageCache::new(self);
+        NoMintWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
+        self.boosted_yields_rewards_percentage().set(percentage);
     }
 
     #[view(calculateRewardsForGivenPosition)]

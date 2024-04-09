@@ -12,6 +12,12 @@ use crate::{
 pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
 pub const SECONDS_PER_ROUND: u64 = 6;
 
+struct PriceObservationWeightedAmounts<M: ManagedTypeApi> {
+    weighted_first_token_reserve: BigUint<M>,
+    weighted_second_token_reserve: BigUint<M>,
+    weighted_lp_supply: BigUint<M>,
+}
+
 #[multiversx_sc::module]
 pub trait SafePriceViewModule:
     safe_price::SafePriceModule
@@ -84,31 +90,13 @@ pub trait SafePriceViewModule:
     ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
         require!(end_round > start_round, ERROR_PARAMETERS);
 
-        let lp_total_supply = self.get_lp_token_supply_mapper(pair_address.clone()).get();
         let first_token_id = self.get_first_token_id_mapper(pair_address.clone()).get();
         let second_token_id = self.get_second_token_id_mapper(pair_address.clone()).get();
-
-        if lp_total_supply == 0 {
-            return (
-                EsdtTokenPayment::new(first_token_id, 0, BigUint::zero()),
-                EsdtTokenPayment::new(second_token_id, 0, BigUint::zero()),
-            )
-                .into();
-        }
 
         let safe_price_current_index = self
             .get_safe_price_current_index_mapper(pair_address.clone())
             .get();
         let price_observations = self.get_price_observation_mapper(pair_address.clone());
-
-        let last_price_observation = self.get_price_observation(
-            &pair_address,
-            &first_token_id,
-            &second_token_id,
-            safe_price_current_index,
-            &price_observations,
-            end_round,
-        );
 
         let oldest_price_observation =
             self.get_oldest_price_observation(safe_price_current_index, &price_observations);
@@ -127,11 +115,35 @@ pub trait SafePriceViewModule:
             start_round,
         );
 
-        let (weighted_first_token_reserve, weighted_second_token_reserve) =
-            self.compute_weighted_reserves(&first_price_observation, &last_price_observation);
+        let last_price_observation = self.get_price_observation(
+            &pair_address,
+            &first_token_id,
+            &second_token_id,
+            safe_price_current_index,
+            &price_observations,
+            end_round,
+        );
 
-        let first_token_worth = &liquidity * &weighted_first_token_reserve / &lp_total_supply;
-        let second_token_worth = &liquidity * &weighted_second_token_reserve / &lp_total_supply;
+        let mut weighted_amounts =
+            self.compute_weighted_amounts(&first_price_observation, &last_price_observation);
+
+        if weighted_amounts.weighted_lp_supply == 0 {
+            let current_lp_supply = self.get_lp_token_supply_mapper(pair_address.clone()).get();
+            if current_lp_supply == 0 {
+                return (
+                    EsdtTokenPayment::new(first_token_id, 0, BigUint::zero()),
+                    EsdtTokenPayment::new(second_token_id, 0, BigUint::zero()),
+                )
+                    .into();
+            } else {
+                weighted_amounts.weighted_lp_supply = current_lp_supply;
+            }
+        }
+
+        let first_token_worth = &liquidity * &weighted_amounts.weighted_first_token_reserve
+            / &weighted_amounts.weighted_lp_supply;
+        let second_token_worth = &liquidity * &weighted_amounts.weighted_second_token_reserve
+            / &weighted_amounts.weighted_lp_supply;
         let first_token_payment = EsdtTokenPayment::new(first_token_id, 0, first_token_worth);
         let second_token_payment = EsdtTokenPayment::new(second_token_id, 0, second_token_worth);
 
@@ -277,16 +289,18 @@ pub trait SafePriceViewModule:
         let first_token_id = self.get_first_token_id_mapper(pair_address.clone()).get();
         let second_token_id = self.get_second_token_id_mapper(pair_address.clone()).get();
 
-        let (weighted_first_token_reserve, weighted_second_token_reserve) =
-            self.compute_weighted_reserves(first_price_observation, last_price_observation);
+        let weighted_amounts =
+            self.compute_weighted_amounts(first_price_observation, last_price_observation);
 
         if input_payment.token_identifier == first_token_id {
-            let output_amount =
-                input_payment.amount * weighted_second_token_reserve / weighted_first_token_reserve;
+            let output_amount = input_payment.amount
+                * weighted_amounts.weighted_second_token_reserve
+                / weighted_amounts.weighted_first_token_reserve;
             EsdtTokenPayment::new(second_token_id, 0, output_amount)
         } else if input_payment.token_identifier == second_token_id {
-            let output_amount =
-                input_payment.amount * weighted_first_token_reserve / weighted_second_token_reserve;
+            let output_amount = input_payment.amount
+                * weighted_amounts.weighted_first_token_reserve
+                / weighted_amounts.weighted_second_token_reserve;
             EsdtTokenPayment::new(first_token_id, 0, output_amount)
         } else {
             sc_panic!(ERROR_BAD_INPUT_TOKEN);
@@ -329,10 +343,12 @@ pub trait SafePriceViewModule:
             let second_token_reserve = self
                 .get_pair_reserve_mapper(pair_address.clone(), second_token_id)
                 .get();
+            let current_lp_supply = self.get_lp_token_supply_mapper(pair_address.clone()).get();
             return self.compute_new_observation(
                 search_round,
                 &first_token_reserve,
                 &second_token_reserve,
+                &current_lp_supply,
                 &last_observation,
             );
         }
@@ -441,9 +457,12 @@ pub trait SafePriceViewModule:
         let second_token_reserve_sum = BigUint::from(left_weight)
             * left_observation.second_token_reserve_accumulated
             + BigUint::from(right_weight) * right_observation.second_token_reserve_accumulated;
+        let lp_supply_sum = BigUint::from(left_weight) * left_observation.lp_supply_accumulated
+            + BigUint::from(right_weight) * right_observation.lp_supply_accumulated;
 
         let first_token_reserve_accumulated = first_token_reserve_sum / weight_sum;
         let second_token_reserve_accumulated = second_token_reserve_sum / weight_sum;
+        let lp_supply_accumulated = lp_supply_sum / weight_sum;
         let weight_accumulated =
             left_observation.weight_accumulated + search_round - left_observation.recording_round;
 
@@ -452,14 +471,15 @@ pub trait SafePriceViewModule:
             second_token_reserve_accumulated,
             weight_accumulated,
             recording_round: search_round,
+            lp_supply_accumulated,
         }
     }
 
-    fn compute_weighted_reserves(
+    fn compute_weighted_amounts(
         &self,
         first_price_observation: &PriceObservation<Self::Api>,
         last_price_observation: &PriceObservation<Self::Api>,
-    ) -> (BigUint, BigUint) {
+    ) -> PriceObservationWeightedAmounts<Self::Api> {
         let weight_diff =
             last_price_observation.weight_accumulated - first_price_observation.weight_accumulated;
 
@@ -480,7 +500,20 @@ pub trait SafePriceViewModule:
 
         let weighted_first_token_reserve = first_token_reserve_diff / weight_diff;
         let weighted_second_token_reserve = second_token_reserve_diff / weight_diff;
-        (weighted_first_token_reserve, weighted_second_token_reserve)
+
+        let weighted_lp_supply = if first_price_observation.lp_supply_accumulated > 0 {
+            let lp_supply_diff = &last_price_observation.lp_supply_accumulated
+                - &first_price_observation.lp_supply_accumulated;
+            lp_supply_diff / weight_diff
+        } else {
+            BigUint::zero()
+        };
+
+        PriceObservationWeightedAmounts {
+            weighted_first_token_reserve,
+            weighted_second_token_reserve,
+            weighted_lp_supply,
+        }
     }
 
     fn get_default_offset_rounds(&self, pair_address: &ManagedAddress, end_round: Round) -> u64 {

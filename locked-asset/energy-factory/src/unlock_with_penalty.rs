@@ -41,6 +41,7 @@ pub trait UnlockWithPenaltyModule:
         &self,
         opt_user_with_energy: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment {
+        self.require_not_paused();
         let caller = self.blockchain().get_caller();
         let user_with_energy = self.get_orig_caller_from_opt(&caller, opt_user_with_energy);
         let payment = self.call_value().single_esdt();
@@ -66,6 +67,7 @@ pub trait UnlockWithPenaltyModule:
     #[payable("*")]
     #[endpoint(reduceLockPeriod)]
     fn reduce_lock_period(&self, new_lock_period: Epoch) -> EsdtTokenPayment {
+        self.require_not_paused();
         self.require_is_listed_lock_option(new_lock_period);
 
         let caller = self.blockchain().get_caller();

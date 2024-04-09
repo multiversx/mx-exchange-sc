@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           33
+// Endpoints:                           34
 // Async Callback:                       1
-// Total number of exported functions:  35
+// Total number of exported functions:  36
 
 #![no_std]
 #![allow(internal_features)]
@@ -37,22 +37,23 @@ multiversx_sc_wasm_adapter::endpoints! {
         getPairCreationEnabled => pair_creation_enabled
         getState => state
         getOwner => owner
-        getAllPairsManagedAddresses => get_all_pairs_addresses
-        getAllPairTokens => get_all_token_pairs
-        getAllPairContractMetadata => get_all_pair_contract_metadata
-        getPair => get_pair
-        clearPairTemporaryOwnerStorage => clear_pair_temporary_owner_storage
         setTemporaryOwnerPeriod => set_temporary_owner_period
         setPairTemplateAddress => set_pair_template_address
         getPairTemplateAddress => pair_template_address
         getTemporaryOwnerPeriod => temporary_owner_period
+        getCommonTokensForUserPairs => common_tokens_for_user_pairs
+        getAllPairsManagedAddresses => get_all_pairs_addresses
+        getAllPairTokens => get_all_token_pairs
+        getAllPairContractMetadata => get_all_pair_contract_metadata
+        getPair => get_pair
+        getPairTokens => get_pair_tokens
+        clearPairTemporaryOwnerStorage => clear_pair_temporary_owner_storage
         multiPairSwap => multi_pair_swap
         configEnableByUserParameters => config_enable_by_user_parameters
         addCommonTokensForUserPairs => add_common_tokens_for_user_pairs
         removeCommonTokensForUserPairs => remove_common_tokens_for_user_pairs
         setSwapEnabledByUser => set_swap_enabled_by_user
         getEnableSwapByUserConfig => try_get_config
-        getCommonTokensForUserPairs => common_tokens_for_user_pairs
     )
 }
 

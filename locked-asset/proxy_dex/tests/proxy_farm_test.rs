@@ -6,7 +6,8 @@ use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::Energy;
-use farm::exit_penalty::{DEFAULT_PENALTY_PERCENT, MAX_PERCENT};
+use farm::exit_penalty::DEFAULT_PENALTY_PERCENT;
+use farm::MAX_PERCENT;
 use multiversx_sc::{
     codec::{multi_types::OptionalValue, Empty},
     types::{BigInt, EsdtLocalRole, EsdtTokenPayment},

@@ -22,7 +22,6 @@ use unbond_sc_mock::*;
 use energy_factory::{energy::EnergyModule, unstake::UnstakeModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
-use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;

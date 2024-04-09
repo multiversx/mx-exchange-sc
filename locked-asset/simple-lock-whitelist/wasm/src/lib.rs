@@ -22,12 +22,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         init => init
         upgrade => upgrade
         setTransferRoleLockedToken => set_transfer_role
+        setTransferRolesStatus => set_transfer_roles_status
         setTransferRoleProxyLpToken => set_transfer_role_proxy_lp
         setTransferRoleProxyFarmToken => set_transfer_role_proxy_farm
-        setLockedToken => set_locked_token
         lockTokens => lock_tokens_endpoint
         unlockTokens => unlock_tokens_endpoint
         getTokenWhitelist => token_whitelist
+        getTransferRolesNotSet => transfer_roles_not_set
         issueLockedToken => issue_locked_token
         getLockedTokenId => locked_token
         issueLpProxyToken => issue_lp_proxy_token
@@ -42,7 +43,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeFarmFromWhitelist => remove_farm_from_whitelist
         enterFarmLockedToken => enter_farm_locked_token
         exitFarmLockedToken => exit_farm_locked_token
-        destroyFarmLockedTokens => destroy_farm_locked_tokens
         farmClaimRewardsLockedToken => farm_claim_rewards_locked_token
         getKnownFarms => known_farms
         getFarmProxyTokenId => farm_proxy_token

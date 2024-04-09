@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         init => init
         upgrade => upgrade
         mergeFarmTokens => merge_farm_tokens_endpoint
+        setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage
         calculateRewardsForGivenPosition => calculate_rewards_for_given_position
         topUpRewards => top_up_rewards
         withdrawRewards => withdraw_rewards
@@ -74,7 +75,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         registerUnbondToken => register_unbond_token
         setTransferRoleUnbondToken => set_transfer_role_unbond_token
         getUnbondTokenId => unbond_token
-        setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getBoostedYieldsRewardsPercentage => boosted_yields_rewards_percentage
         getAccumulatedRewardsForWeek => accumulated_rewards_for_week

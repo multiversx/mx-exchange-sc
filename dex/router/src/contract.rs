@@ -3,6 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub mod config;
 pub mod enable_swap_by_user;
 mod events;
 pub mod factory;
@@ -14,18 +15,18 @@ use pair::fee::ProxyTrait as _;
 use pair::ProxyTrait as _;
 use pausable::ProxyTrait as _;
 
-use crate::factory::CreatePairArgs;
-
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
 pub const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
 pub const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
+const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
 
 #[multiversx_sc::contract]
 pub trait Router:
-    factory::FactoryModule
+    config::ConfigModule
+    + factory::FactoryModule
     + events::EventsModule
     + multi_pair_swap::MultiPairSwap
     + token_send::TokenSendModule
@@ -41,7 +42,9 @@ pub trait Router:
     }
 
     #[endpoint]
-    fn upgrade(&self) {}
+    fn upgrade(&self) {
+        self.state().set(false);
+    }
 
     #[only_owner]
     #[endpoint]
@@ -61,6 +64,10 @@ pub trait Router:
     #[endpoint]
     fn resume(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
+            require!(
+                self.pair_map().len() == self.address_pair_map().len(),
+                "The size of the 2 pair maps is not the same"
+            );
             self.state().set(true);
         } else {
             self.check_is_pair_sc(&address);
@@ -92,6 +99,15 @@ pub trait Router:
             );
         }
 
+        require!(first_token_id != second_token_id, "Identical tokens");
+        require!(
+            first_token_id.is_valid_esdt_identifier(),
+            "First Token ID is not a valid esdt token ID"
+        );
+        require!(
+            second_token_id.is_valid_esdt_identifier(),
+            "Second Token ID is not a valid esdt token ID"
+        );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(pair_address.is_zero(), "Pair already exists");
 
@@ -99,28 +115,32 @@ pub trait Router:
         let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
 
         if caller == owner {
-            match opt_fee_percents {
-                OptionalValue::Some(fee_percents_multi_arg) => {
-                    let (total_fee, special_fee) = fee_percents_multi_arg.into_tuple();
-                    total_fee_percent_requested = total_fee;
-                    special_fee_percent_requested = special_fee;
-                }
-                OptionalValue::None => sc_panic!("Bad percents length"),
-            };
+            if let Some(fee_percents_multi_arg) = opt_fee_percents.into_option() {
+                let fee_percents_tuple = fee_percents_multi_arg.into_tuple();
+                total_fee_percent_requested = fee_percents_tuple.0;
+                special_fee_percent_requested = fee_percents_tuple.1;
+
+                require!(
+                    total_fee_percent_requested >= special_fee_percent_requested
+                        && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
+                    "Bad percents"
+                );
+            } else {
+                sc_panic!("Bad percents length");
+            }
         }
 
         admins.push(caller.clone());
 
-        let create_pair_args = CreatePairArgs {
-            first_token_id: first_token_id.clone(),
-            second_token_id: second_token_id.clone(),
-            owner: &owner,
-            total_fee_percent: total_fee_percent_requested,
-            special_fee_percent: special_fee_percent_requested,
-            initial_liquidity_adder: &initial_liquidity_adder,
+        let address = self.create_pair(
+            &first_token_id,
+            &second_token_id,
+            &owner,
+            total_fee_percent_requested,
+            special_fee_percent_requested,
+            &initial_liquidity_adder,
             admins,
-        };
-        let address = self.create_pair(create_pair_args);
+        );
 
         self.emit_create_pair_event(
             caller,
@@ -140,14 +160,38 @@ pub trait Router:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
+        initial_liquidity_adder: ManagedAddress,
+        total_fee_percent_requested: u64,
+        special_fee_percent_requested: u64,
     ) {
         require!(self.is_active(), "Not active");
         require!(first_token_id != second_token_id, "Identical tokens");
+        require!(
+            first_token_id.is_valid_esdt_identifier(),
+            "First Token ID is not a valid esdt token ID"
+        );
+        require!(
+            second_token_id.is_valid_esdt_identifier(),
+            "Second Token ID is not a valid esdt token ID"
+        );
+        let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
+        require!(!pair_address.is_zero(), "Pair does not exists");
 
-        let pair_address = self.get_pair(first_token_id, second_token_id);
-        require!(!pair_address.is_zero(), "Pair does not exist");
+        require!(
+            total_fee_percent_requested >= special_fee_percent_requested
+                && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
+            "Bad percents"
+        );
 
-        self.upgrade_pair(pair_address);
+        self.upgrade_pair(
+            pair_address,
+            &first_token_id,
+            &second_token_id,
+            &self.owner().get(),
+            &initial_liquidity_adder,
+            total_fee_percent_requested,
+            special_fee_percent_requested,
+        );
     }
 
     #[payable("EGLD")]
@@ -350,11 +394,6 @@ pub trait Router:
         }
     }
 
-    #[inline]
-    fn is_active(&self) -> bool {
-        self.state().get()
-    }
-
     #[only_owner]
     #[endpoint(setPairCreationEnabled)]
     fn set_pair_creation_enabled(&self, enabled: bool) {
@@ -363,15 +402,28 @@ pub trait Router:
 
     #[only_owner]
     #[endpoint(migratePairMap)]
-    fn migrate_pair_map(&self) {
+    fn migrate_pair_map(
+        &self,
+        token_pairs: MultiValueEncoded<MultiValue2<TokenIdentifier, TokenIdentifier>>,
+    ) {
         let pair_map = self.pair_map();
         let mut address_pair_map = self.address_pair_map();
-        require!(
-            address_pair_map.is_empty(),
-            "The destination mapper must be empty"
-        );
-        for (pair_tokens, address) in pair_map.iter() {
-            address_pair_map.insert(address, pair_tokens);
+        for token_pair_values in token_pairs {
+            let (first_token_id, second_token_id) = token_pair_values.into_tuple();
+            let pair_tokens = PairTokens {
+                first_token_id,
+                second_token_id,
+            };
+            let lp_address_opt = pair_map.get(&pair_tokens);
+            require!(lp_address_opt.is_some(), "LP address not found");
+            unsafe {
+                let lp_address = lp_address_opt.unwrap_unchecked();
+                require!(
+                    !address_pair_map.contains_key(&lp_address),
+                    "Address pair mapper already contains these values"
+                );
+                address_pair_map.insert(lp_address, pair_tokens);
+            }
         }
     }
 
@@ -391,16 +443,4 @@ pub trait Router:
         let owner = self.blockchain().get_caller();
         self.send().direct_egld(&owner, &total_egld_received);
     }
-
-    #[view(getPairCreationEnabled)]
-    #[storage_mapper("pair_creation_enabled")]
-    fn pair_creation_enabled(&self) -> SingleValueMapper<bool>;
-
-    #[view(getState)]
-    #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<bool>;
-
-    #[view(getOwner)]
-    #[storage_mapper("owner")]
-    fn owner(&self) -> SingleValueMapper<ManagedAddress>;
 }

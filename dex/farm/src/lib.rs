@@ -17,6 +17,8 @@ use farm_base_impl::base_traits_impl::FarmContract;
 
 pub type ExitFarmWithPartialPosResultType<M> = DoubleMultiPayment<M>;
 
+pub const MAX_PERCENT: u64 = 10_000;
+
 #[multiversx_sc::contract]
 pub trait Farm:
     rewards::RewardsModule
@@ -82,6 +84,9 @@ pub trait Farm:
 
     #[endpoint]
     fn upgrade(&self) {
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
+
         // Farm position migration code
         let farm_token_mapper = self.farm_token();
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
@@ -245,6 +250,17 @@ pub trait Farm:
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards::<Wrapper<Self>>(per_block_amount);
+    }
+
+    #[endpoint(setBoostedYieldsRewardsPercentage)]
+    fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
+        self.require_caller_has_admin_permissions();
+        require!(percentage <= MAX_PERCENT, "Invalid percentage");
+
+        let mut storage_cache = StorageCache::new(self);
+        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
+        self.boosted_yields_rewards_percentage().set(percentage);
     }
 
     #[view(calculateRewardsForGivenPosition)]
