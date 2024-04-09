@@ -2,7 +2,6 @@
 
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
-use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_with_locked_rewards::Farm;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
