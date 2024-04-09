@@ -15,7 +15,6 @@ use config::*;
 use energy_factory::energy::EnergyModule;
 use energy_query::{Energy, EnergyQueryModule};
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
-use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_staking::claim_stake_farm_rewards::ClaimStakeFarmRewardsModule;
 use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_staking::stake_farm::StakeFarmModule;

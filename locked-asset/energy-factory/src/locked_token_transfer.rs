@@ -4,7 +4,10 @@ use crate::energy::Energy;
 
 #[multiversx_sc::module]
 pub trait LockedTokenTransferModule:
-    utils::UtilsModule + crate::energy::EnergyModule + crate::events::EventsModule
+    utils::UtilsModule
+    + crate::energy::EnergyModule
+    + crate::events::EventsModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[only_owner]
     #[endpoint(addToTokenTransferWhitelist)]
@@ -34,6 +37,7 @@ pub trait LockedTokenTransferModule:
         user: ManagedAddress,
         energy: Energy<Self::Api>,
     ) {
+        self.require_not_paused();
         let caller = self.blockchain().get_caller();
         self.token_transfer_whitelist().require_whitelisted(&caller);
 

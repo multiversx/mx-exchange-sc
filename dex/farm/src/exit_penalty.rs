@@ -4,7 +4,8 @@ use common_errors::ERROR_PARAMETERS;
 use common_structs::Epoch;
 use pair::pair_actions::remove_liq::ProxyTrait as _;
 
-pub const MAX_PERCENT: u64 = 10_000;
+use crate::MAX_PERCENT;
+
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
 pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u64 = 3;
 pub const DEFAULT_BURN_GAS_LIMIT: u64 = 50_000_000;
