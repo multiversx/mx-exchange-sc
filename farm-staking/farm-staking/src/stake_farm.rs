@@ -1,7 +1,6 @@
 multiversx_sc::imports!();
 
 use common_structs::PaymentsVec;
-use farm::EnterFarmResultType;
 
 use crate::base_impl_wrapper::FarmStakingWrapper;
 
@@ -38,7 +37,7 @@ pub trait StakeFarmModule:
         &self,
         staked_token_amount: BigUint,
         original_caller: ManagedAddress,
-    ) -> EnterFarmResultType<Self::Api> {
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
 
@@ -58,7 +57,7 @@ pub trait StakeFarmModule:
     fn stake_farm_endpoint(
         &self,
         opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> EnterFarmResultType<Self::Api> {
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
         let payments = self.get_non_empty_payments();
@@ -70,19 +69,18 @@ pub trait StakeFarmModule:
         &self,
         original_caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
-    ) -> EnterFarmResultType<Self::Api> {
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         self.migrate_old_farm_positions(&original_caller);
+
         let boosted_rewards = self.claim_only_boosted_payment(&original_caller);
-        let boosted_rewards_payment =
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+        self.add_boosted_rewards(&original_caller, &boosted_rewards);
 
         let enter_result =
             self.enter_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payments);
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &new_farm_token);
-        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
         self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
 
@@ -96,6 +94,6 @@ pub trait StakeFarmModule:
             enter_result.storage_cache,
         );
 
-        (new_farm_token, boosted_rewards_payment).into()
+        new_farm_token
     }
 }

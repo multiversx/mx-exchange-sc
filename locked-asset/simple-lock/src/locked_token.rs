@@ -1,21 +1,34 @@
+use common_structs::{Epoch, Nonce};
+use mergeable::Mergeable;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedDecode, NestedEncode, PartialEq, Debug, Clone)]
 pub struct LockedTokenAttributes<M: ManagedTypeApi> {
     pub original_token_id: EgldOrEsdtTokenIdentifier<M>,
-    pub original_token_nonce: u64,
-    pub unlock_epoch: u64,
+    pub original_token_nonce: Nonce,
+    pub unlock_epoch: Epoch,
+}
+
+impl<M: ManagedTypeApi> Mergeable<M> for LockedTokenAttributes<M> {
+    fn can_merge_with(&self, other: &Self) -> bool {
+        self.original_token_id == other.original_token_id
+            && self.original_token_nonce == other.original_token_nonce
+            && self.unlock_epoch == other.unlock_epoch
+    }
+
+    fn merge_with(&mut self, _other: Self) {}
 }
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum PreviousStatusFlag {
     NotLocked,
-    Locked { locked_token_nonce: u64 },
+    Locked { locked_token_nonce: Nonce },
 }
 
 impl PreviousStatusFlag {
-    pub fn new(locked_token_nonce: u64) -> Self {
+    pub fn new(locked_token_nonce: Nonce) -> Self {
         if locked_token_nonce == 0 {
             PreviousStatusFlag::NotLocked
         } else {
@@ -40,7 +53,7 @@ pub struct UnlockedPaymentWrapper<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> UnlockedPaymentWrapper<M> {
-    pub fn get_locked_token_nonce(&self) -> u64 {
+    pub fn get_locked_token_nonce(&self) -> Nonce {
         match self.status_before {
             PreviousStatusFlag::NotLocked => 0,
             PreviousStatusFlag::Locked { locked_token_nonce } => locked_token_nonce,

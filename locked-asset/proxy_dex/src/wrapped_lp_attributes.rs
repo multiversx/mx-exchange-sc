@@ -6,7 +6,7 @@ use fixed_supply_token::FixedSupplyToken;
 use mergeable::ExternallyMergeable;
 use multiversx_sc::api::{CallTypeApi, StorageMapperApi};
 
-use crate::external_merging::merge_locked_tokens_through_factory;
+use crate::merge_tokens::external_merging::merge_locked_tokens_through_factory;
 
 #[derive(
     ManagedVecItem,

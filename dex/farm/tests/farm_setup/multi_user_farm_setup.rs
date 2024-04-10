@@ -115,6 +115,7 @@ where
                     division_safety_constant,
                     pair_address,
                     managed_address!(&owner),
+                    0,
                     MultiValueEncoded::new(),
                 );
 
@@ -251,8 +252,7 @@ where
                 0,
                 &rust_biguint!(farming_token_amount),
                 |sc| {
-                    let enter_farm_result = sc.enter_farm_endpoint(OptionalValue::None);
-                    let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+                    let out_farm_token = sc.enter_farm_endpoint(OptionalValue::None);
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)
@@ -273,9 +273,8 @@ where
         farming_token_amount: u64,
         farm_token_nonce: u64,
         farm_token_amount: u64,
-    ) -> u64 {
+    ) {
         self.last_farm_token_nonce += 1;
-        let mut result = 0;
         let expected_farm_token_nonce = self.last_farm_token_nonce;
 
         let mut payments = Vec::new();
@@ -292,8 +291,7 @@ where
 
         self.b_mock
             .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
-                let enter_farm_result = sc.enter_farm_endpoint(OptionalValue::None);
-                let (out_farm_token, reward_token) = enter_farm_result.into_tuple();
+                let out_farm_token = sc.enter_farm_endpoint(OptionalValue::None);
                 assert_eq!(
                     out_farm_token.token_identifier,
                     managed_token_id!(FARM_TOKEN_ID)
@@ -303,11 +301,8 @@ where
                     out_farm_token.amount,
                     managed_biguint!(farming_token_amount + farm_token_amount)
                 );
-                result = reward_token.amount.to_u64().unwrap();
             })
             .assert_ok();
-
-        result
     }
 
     pub fn merge_farm_tokens(
@@ -335,9 +330,7 @@ where
 
         self.b_mock
             .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
-                let (out_farm_token, _boosted_rewards) = sc
-                    .merge_farm_tokens_endpoint(OptionalValue::None)
-                    .into_tuple();
+                let out_farm_token = sc.merge_farm_tokens_endpoint(OptionalValue::None);
                 assert_eq!(
                     out_farm_token.token_identifier,
                     managed_token_id!(FARM_TOKEN_ID)

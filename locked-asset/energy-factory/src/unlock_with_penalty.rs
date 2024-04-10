@@ -37,11 +37,16 @@ pub trait UnlockWithPenaltyModule:
     /// Tokens can be unlocked through another SC after the unbond period has passed.
     #[payable("*")]
     #[endpoint(unlockEarly)]
-    fn unlock_early(&self) {
+    fn unlock_early(
+        &self,
+        opt_user_with_energy: OptionalValue<ManagedAddress>,
+    ) -> EsdtTokenPayment {
         self.require_not_paused();
         let caller = self.blockchain().get_caller();
+        let user_with_energy = self.get_orig_caller_from_opt(&caller, opt_user_with_energy);
         let payment = self.call_value().single_esdt();
-        let reduce_result = self.reduce_lock_period_common(&caller, payment.clone(), None);
+        let reduce_result =
+            self.reduce_lock_period_common(&user_with_energy, payment.clone(), None);
 
         let unlocked_tokens = self.to_esdt_payment(reduce_result.unlocked_tokens);
         self.send().esdt_local_mint(
@@ -50,8 +55,10 @@ pub trait UnlockWithPenaltyModule:
             &unlocked_tokens.amount,
         );
 
-        self.set_energy_entry(&caller, reduce_result.energy);
-        self.unstake_tokens(caller, payment, unlocked_tokens);
+        self.set_energy_entry(&user_with_energy, reduce_result.energy);
+        self.unstake_tokens(user_with_energy, payment, unlocked_tokens.clone());
+
+        unlocked_tokens
     }
 
     /// Reduce the locking period of a locked token. This incures a penalty.

@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 
 use common_structs::FarmToken;
 use contexts::storage_cache::StorageCache;
-use farm_base_impl::base_traits_impl::FarmContract;
+use farm_base_impl::base_traits_impl::{FarmContract, RewardPair};
 use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::token_attributes::StakingFarmTokenAttributes;
@@ -31,10 +31,17 @@ where
     T: FarmStakingTraits,
 {
     pub fn calculate_base_farm_rewards(
+        sc: &<Self as FarmContract>::FarmSc,
         farm_token_amount: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         token_attributes: &<Self as FarmContract>::AttributesType,
         storage_cache: &StorageCache<<Self as FarmContract>::FarmSc>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
+        let current_epoch = sc.blockchain().get_block_epoch();
+        let first_week_start_epoch = sc.first_week_start_epoch().get();
+        if first_week_start_epoch > current_epoch {
+            return BigUint::zero();
+        }
+
         let token_rps = token_attributes.get_reward_per_share();
         if storage_cache.reward_per_share > token_rps {
             let rps_diff = &storage_cache.reward_per_share - &token_rps;
@@ -48,6 +55,12 @@ where
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
+        let current_epoch = sc.blockchain().get_block_epoch();
+        let first_week_start_epoch = sc.first_week_start_epoch().get();
+        if first_week_start_epoch > current_epoch {
+            return BigUint::zero();
+        }
+
         let user_total_farm_position = sc.get_user_total_farm_position(caller);
         let user_farm_position = user_total_farm_position.total_farm_position;
         let mut boosted_rewards = BigUint::zero();
@@ -132,12 +145,16 @@ where
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        let base_farm_reward =
-            Self::calculate_base_farm_rewards(farm_token_amount, token_attributes, storage_cache);
+    ) -> RewardPair<<Self::FarmSc as ContractBase>::Api> {
+        let base_farm_reward = Self::calculate_base_farm_rewards(
+            sc,
+            farm_token_amount,
+            token_attributes,
+            storage_cache,
+        );
         let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller);
 
-        base_farm_reward + boosted_yield_rewards
+        RewardPair::new(base_farm_reward, boosted_yield_rewards)
     }
 
     fn create_enter_farm_initial_attributes(

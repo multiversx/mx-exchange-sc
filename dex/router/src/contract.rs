@@ -18,8 +18,8 @@ use pausable::ProxyTrait as _;
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
-const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
-const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
+pub const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
+pub const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
 
@@ -89,9 +89,9 @@ pub trait Router:
         mut admins: MultiValueEncoded<ManagedAddress>,
     ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
+
         let owner = self.owner().get();
         let caller = self.blockchain().get_caller();
-
         if caller != owner {
             require!(
                 self.pair_creation_enabled().get(),
@@ -150,6 +150,7 @@ pub trait Router:
             special_fee_percent_requested,
             address.clone(),
         );
+
         address
     }
 
@@ -164,7 +165,6 @@ pub trait Router:
         special_fee_percent_requested: u64,
     ) {
         require!(self.is_active(), "Not active");
-
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
             first_token_id.is_valid_esdt_identifier(),
@@ -202,9 +202,10 @@ pub trait Router:
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
     ) {
-        let issue_cost = self.call_value().egld_value().clone_value();
-
         require!(self.is_active(), "Not active");
+        self.check_is_pair_sc(&pair_address);
+
+        let issue_cost = self.call_value().egld_value().clone_value();
         let caller = self.blockchain().get_caller();
         if caller != self.owner().get() {
             require!(
@@ -212,22 +213,18 @@ pub trait Router:
                 "Pair creation is disabled"
             );
         }
-        self.check_is_pair_sc(&pair_address);
-        let result = self.get_pair_temporary_owner(&pair_address);
 
-        match result {
-            None => {}
-            Some(temporary_owner) => {
-                require!(caller == temporary_owner, "Temporary owner differs");
-            }
-        };
+        let opt_temp_owner = self.get_pair_temporary_owner(&pair_address);
+        if let Some(temporary_owner) = opt_temp_owner {
+            require!(caller == temporary_owner, "Temporary owner differs");
+        }
 
-        let result: TokenIdentifier = self
+        let lp_token_id: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
             .execute_on_dest_context();
         require!(
-            !result.is_valid_esdt_identifier(),
+            !lp_token_id.is_valid_esdt_identifier(),
             "LP Token already issued"
         );
 
@@ -255,7 +252,7 @@ pub trait Router:
                 self.callbacks()
                     .lp_token_issue_callback(&caller, &pair_address),
             )
-            .call_and_exit()
+            .call_and_exit();
     }
 
     #[endpoint(setLocalRoles)]
@@ -274,6 +271,23 @@ pub trait Router:
         self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
+            .async_call()
+            .call_and_exit();
+    }
+
+    #[only_owner]
+    #[endpoint(setLocalRolesOwner)]
+    fn set_local_roles_owner(
+        &self,
+        token: TokenIdentifier,
+        address: ManagedAddress,
+        roles: MultiValueEncoded<EsdtLocalRole>,
+    ) {
+        require!(self.is_active(), "Not active");
+
+        self.send()
+            .esdt_system_sc_proxy()
+            .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
             .call_and_exit()
     }
@@ -388,20 +402,45 @@ pub trait Router:
 
     #[only_owner]
     #[endpoint(migratePairMap)]
-    fn migrate_pair_map(&self) {
+    fn migrate_pair_map(
+        &self,
+        token_pairs: MultiValueEncoded<MultiValue2<TokenIdentifier, TokenIdentifier>>,
+    ) {
         let pair_map = self.pair_map();
         let mut address_pair_map = self.address_pair_map();
-        require!(
-            address_pair_map.is_empty(),
-            "The destination mapper must be empty"
-        );
-        for (pair_tokens, address) in pair_map.iter() {
-            address_pair_map.insert(address, pair_tokens);
+        for token_pair_values in token_pairs {
+            let (first_token_id, second_token_id) = token_pair_values.into_tuple();
+            let pair_tokens = PairTokens {
+                first_token_id,
+                second_token_id,
+            };
+            let lp_address_opt = pair_map.get(&pair_tokens);
+            require!(lp_address_opt.is_some(), "LP address not found");
+            unsafe {
+                let lp_address = lp_address_opt.unwrap_unchecked();
+                require!(
+                    !address_pair_map.contains_key(&lp_address),
+                    "Address pair mapper already contains these values"
+                );
+                address_pair_map.insert(lp_address, pair_tokens);
+            }
+        }
+    }
+
+    #[only_owner]
+    #[endpoint(claimDeveloperRewardsPairs)]
+    fn claim_developer_rewards_pairs(&self, pairs: MultiValueEncoded<ManagedAddress>) {
+        let mut total_egld_received = BigUint::zero();
+        for pair in pairs {
+            let (_return_value, transfers): (IgnoreValue, _) = self
+                .send()
+                .claim_developer_rewards(pair)
+                .execute_on_dest_context_with_back_transfers();
+
+            total_egld_received += transfers.total_egld_amount;
         }
 
-        require!(
-            pair_map.len() == address_pair_map.len(),
-            "The size of the 2 pair maps is not the same"
-        );
+        let owner = self.blockchain().get_caller();
+        self.send().direct_egld(&owner, &total_egld_received);
     }
 }

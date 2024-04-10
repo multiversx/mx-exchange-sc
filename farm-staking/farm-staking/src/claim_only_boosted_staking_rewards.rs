@@ -26,6 +26,13 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
 {
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            first_week_start_epoch <= current_epoch,
+            "Cannot claim rewards yet"
+        );
+
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
             OptionalValue::Some(user) => user,
@@ -39,9 +46,13 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
             );
         }
 
+        let accumulated_boosted_rewards = self.accumulated_rewards_per_user(user).take();
         let boosted_rewards = self.claim_only_boosted_payment(user);
-        let boosted_rewards_payment =
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+        let boosted_rewards_payment = EsdtTokenPayment::new(
+            self.reward_token_id().get(),
+            0,
+            accumulated_boosted_rewards + boosted_rewards,
+        );
 
         self.send_payment_non_zero(user, &boosted_rewards_payment);
 

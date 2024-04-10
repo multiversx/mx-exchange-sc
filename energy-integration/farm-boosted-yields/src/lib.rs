@@ -14,7 +14,9 @@ use weekly_rewards_splitting::{
 
 pub mod boosted_yields_factors;
 
-const MAX_PERCENT: u64 = 10_000;
+pub type Percentage = u64;
+
+const MAX_PERCENT: Percentage = 10_000;
 
 pub struct SplitReward<M: ManagedTypeApi> {
     pub base_farm: BigUint<M>,
@@ -134,9 +136,18 @@ pub trait FarmBoostedYieldsModule:
         }
     }
 
+    fn add_boosted_rewards(&self, user: &ManagedAddress, amount: &BigUint) {
+        if amount == &0 {
+            return;
+        }
+
+        self.accumulated_rewards_per_user(user)
+            .update(|amt| *amt += amount);
+    }
+
     #[view(getBoostedYieldsRewardsPercentage)]
     #[storage_mapper("boostedYieldsRewardsPercentage")]
-    fn boosted_yields_rewards_percentage(&self) -> SingleValueMapper<u64>;
+    fn boosted_yields_rewards_percentage(&self) -> SingleValueMapper<Percentage>;
 
     #[view(getAccumulatedRewardsForWeek)]
     #[storage_mapper("accumulatedRewardsForWeek")]
@@ -147,15 +158,18 @@ pub trait FarmBoostedYieldsModule:
     fn farm_supply_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
     #[view(getRemainingBoostedRewardsToDistribute)]
-    #[storage_mapper("remainingBoostedRewardsToDistribute")]
+    #[storage_mapper("remaBoostedRewToDistribute")]
     fn remaining_boosted_rewards_to_distribute(&self, week: Week) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("lastUndistributedBoostedRewardsCollectWeek")]
+    #[storage_mapper("lastUndistBoostedRewCollectWeek")]
     fn last_undistributed_boosted_rewards_collect_week(&self) -> SingleValueMapper<Week>;
 
     #[view(getUndistributedBoostedRewards)]
     #[storage_mapper("undistributedBoostedRewards")]
     fn undistributed_boosted_rewards(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("accRewPerUser")]
+    fn accumulated_rewards_per_user(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
 }
 
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {

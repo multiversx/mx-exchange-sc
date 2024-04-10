@@ -14,9 +14,12 @@ use multiversx_sc_scenario::{
 };
 
 mod fees_collector_mock;
-use fees_collector_mock::*;
+mod unbond_sc_mock;
 
-use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
+use fees_collector_mock::*;
+use unbond_sc_mock::*;
+
+use energy_factory::{energy::EnergyModule, unstake::UnstakeModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
@@ -71,6 +74,7 @@ where
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>,
     pub energy_factory_wrapper:
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
+    pub unbond_sc_mock: Address,
 }
 
 impl<FarmObjBuilder, EnergyFactoryBuilder> FarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
@@ -104,6 +108,9 @@ where
             "fees collector mock",
         );
 
+        let token_unstake_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner), UnbondScMock::new, "unstake token");
+
         b_mock
             .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 let mut lock_options = MultiValueEncoded::new();
@@ -122,6 +129,7 @@ where
                 sc.locked_token()
                     .set_token_id(managed_token_id!(LOCKED_REWARD_TOKEN_ID));
                 sc.set_paused(false);
+                sc.set_token_unstake_address(managed_address!(token_unstake_wrapper.address_ref()));
             })
             .assert_ok();
 
@@ -138,6 +146,7 @@ where
                     division_safety_constant,
                     pair_address,
                     managed_address!(&owner),
+                    0,
                     MultiValueEncoded::new(),
                 );
 
@@ -174,6 +183,11 @@ where
             FARM_TOKEN_ID,
             &farm_token_roles[..],
         );
+        b_mock.set_esdt_local_roles(
+            farm_wrapper.address_ref(),
+            REWARD_TOKEN_ID,
+            &[EsdtLocalRole::Mint],
+        );
 
         let farming_token_roles = [EsdtLocalRole::Burn];
         b_mock.set_esdt_local_roles(
@@ -194,6 +208,12 @@ where
             &locked_reward_token_roles[..],
         );
 
+        b_mock.set_esdt_local_roles(
+            energy_factory_wrapper.address_ref(),
+            REWARD_TOKEN_ID,
+            &[EsdtLocalRole::Mint],
+        );
+
         b_mock.set_esdt_balance(
             &first_user,
             FARMING_TOKEN_ID,
@@ -208,6 +228,18 @@ where
             &third_user,
             FARMING_TOKEN_ID,
             &rust_biguint!(FARMING_TOKEN_BALANCE),
+        );
+
+        // set unbond sc roles
+        b_mock.set_esdt_local_roles(
+            token_unstake_wrapper.address_ref(),
+            REWARD_TOKEN_ID,
+            &[EsdtLocalRole::Burn],
+        );
+        b_mock.set_esdt_local_roles(
+            token_unstake_wrapper.address_ref(),
+            LOCKED_REWARD_TOKEN_ID,
+            &[EsdtLocalRole::NftBurn],
         );
 
         b_mock
@@ -226,6 +258,7 @@ where
             last_farm_token_nonce: 0,
             farm_wrapper,
             energy_factory_wrapper,
+            unbond_sc_mock: token_unstake_wrapper.address_ref().clone(),
         }
     }
 
@@ -286,9 +319,8 @@ where
                 0,
                 &rust_biguint!(farming_token_amount),
                 |sc| {
-                    let enter_farm_result =
+                    let out_farm_token =
                         sc.enter_farm_endpoint(OptionalValue::Some(managed_address!(user)));
-                    let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)
@@ -381,7 +413,7 @@ where
                 &rust_biguint!(farm_token_amount),
                 |sc| {
                     let (out_farm_token, out_reward_token) = sc
-                        .claim_rewards_endpoint(OptionalValue::Some(managed_address!(user)))
+                        .claim_rewards_endpoint(false, OptionalValue::Some(managed_address!(user)))
                         .into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
@@ -417,7 +449,8 @@ where
                 farm_token_nonce,
                 &rust_biguint!(exit_farm_amount),
                 |sc| {
-                    let _ = sc.exit_farm_endpoint(OptionalValue::Some(managed_address!(user)));
+                    let _ =
+                        sc.exit_farm_endpoint(false, OptionalValue::Some(managed_address!(user)));
                 },
             )
             .assert_ok();

@@ -1,9 +1,6 @@
 multiversx_sc::imports!();
 
-use farm::{
-    base_functions::{ClaimRewardsResultType, DoubleMultiPayment},
-    EnterFarmResultType, ExitFarmWithPartialPosResultType,
-};
+use farm::{base_functions::ClaimRewardsResultType, ExitFarmWithPartialPosResultType};
 use farm_staking::{
     claim_stake_farm_rewards::ProxyTrait as _, stake_farm::ProxyTrait as _,
     unstake_farm::ProxyTrait as _,
@@ -27,15 +24,14 @@ pub trait ExternalContractsInteractionsModule:
     fn lp_farm_claim_rewards(
         &self,
         orig_caller: ManagedAddress,
-        lp_farm_token_id: TokenIdentifier,
-        lp_farm_token_nonce: u64,
-        lp_farm_token_amount: BigUint,
+        lp_farm_token: EsdtTokenPayment,
+        get_rewards_unlocked: bool,
     ) -> LpFarmClaimRewardsResult<Self::Api> {
         let lp_farm_address = self.lp_farm_address().get();
         let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .claim_rewards_endpoint(orig_caller)
-            .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
+            .claim_rewards_endpoint(get_rewards_unlocked, orig_caller)
+            .with_esdt_transfer(lp_farm_token)
             .execute_on_dest_context();
         let (new_lp_farm_tokens, lp_farm_rewards) = lp_farm_result.into_tuple();
 
@@ -50,12 +46,13 @@ pub trait ExternalContractsInteractionsModule:
         orig_caller: ManagedAddress,
         lp_farm_token_nonce: u64,
         lp_farm_token_amount: BigUint,
+        get_rewards_unlocked: bool,
     ) -> LpFarmExitResult<Self::Api> {
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm_endpoint(orig_caller)
+            .exit_farm_endpoint(get_rewards_unlocked, orig_caller)
             .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
             .execute_on_dest_context();
         let (lp_tokens, lp_farm_rewards) = exit_farm_result.into_tuple();
@@ -71,11 +68,9 @@ pub trait ExternalContractsInteractionsModule:
         orig_caller: ManagedAddress,
         base_lp_farm_token: EsdtTokenPayment,
         mut additional_lp_farm_tokens: PaymentsVec<Self::Api>,
-    ) -> DoubleMultiPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         if additional_lp_farm_tokens.is_empty() {
-            let locked_token_id = self.get_locked_token_id();
-            let rewards_payment = EsdtTokenPayment::new(locked_token_id, 0, BigUint::zero());
-            return (base_lp_farm_token, rewards_payment).into();
+            return base_lp_farm_token;
         }
 
         additional_lp_farm_tokens.push(base_lp_farm_token);
@@ -96,16 +91,14 @@ pub trait ExternalContractsInteractionsModule:
         staking_farm_tokens: PaymentsVec<Self::Api>,
     ) -> StakingFarmEnterResult<Self::Api> {
         let staking_farm_address = self.staking_farm_address().get();
-        let enter_result: EnterFarmResultType<Self::Api> = self
+        let received_staking_farm_token: EsdtTokenPayment = self
             .staking_farm_proxy_obj(staking_farm_address)
             .stake_farm_through_proxy(staking_token_amount, orig_caller)
             .with_multi_token_transfer(staking_farm_tokens)
             .execute_on_dest_context();
-        let (received_staking_farm_token, boosted_rewards) = enter_result.into_tuple();
 
         StakingFarmEnterResult {
             received_staking_farm_token,
-            boosted_rewards,
         }
     }
 

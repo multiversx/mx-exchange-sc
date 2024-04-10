@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::{FarmToken, FarmTokenAttributes};
+use common_structs::{Epoch, FarmToken, FarmTokenAttributes};
 use fixed_supply_token::FixedSupplyToken;
 use math::weighted_average_round_up;
 use mergeable::Mergeable;
@@ -71,20 +71,24 @@ impl<M: ManagedTypeApi> Into<FarmTokenAttributes<M>> for StakingFarmTokenAttribu
 }
 
 impl<M: ManagedTypeApi> FarmToken<M> for StakingFarmTokenAttributes<M> {
+    #[inline]
     fn get_reward_per_share(&self) -> BigUint<M> {
         self.reward_per_share.clone()
     }
 
+    #[inline]
     fn get_compounded_rewards(&self) -> BigUint<M> {
         self.compounded_reward.clone()
     }
 
+    #[inline]
     fn get_initial_farming_tokens(&self) -> BigUint<M> {
         &self.current_farm_amount - &self.compounded_reward
     }
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for StakingFarmTokenAttributes<M> {
+    #[inline]
     fn get_total_supply(&self) -> BigUint<M> {
         self.current_farm_amount.clone()
     }
@@ -130,6 +134,30 @@ impl<M: ManagedTypeApi> Mergeable<M> for StakingFarmTokenAttributes<M> {
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
-pub struct UnbondSftAttributes {
-    pub unlock_epoch: u64,
+pub struct UnbondSftAttributes<M: ManagedTypeApi> {
+    pub unlock_epoch: Epoch,
+    pub supply: BigUint<M>,
+    pub original_attributes: StakingFarmTokenAttributes<M>,
+}
+
+impl<M: ManagedTypeApi> FixedSupplyToken<M> for UnbondSftAttributes<M> {
+    #[inline]
+    fn get_total_supply(&self) -> BigUint<M> {
+        self.supply.clone()
+    }
+
+    fn into_part(self, payment_amount: &BigUint<M>) -> Self {
+        if payment_amount == &self.get_total_supply() {
+            return self;
+        }
+
+        let new_supply = payment_amount.clone();
+        let new_attributes = self.original_attributes.into_part(payment_amount);
+
+        UnbondSftAttributes {
+            unlock_epoch: self.unlock_epoch,
+            supply: new_supply,
+            original_attributes: new_attributes,
+        }
+    }
 }

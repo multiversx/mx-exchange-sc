@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use common_structs::Nonce;
+
 use crate::{error_messages::*, proxy_lp::LpProxyTokenAttributes};
 
 #[derive(
@@ -15,9 +17,9 @@ pub enum FarmType {
 pub struct FarmProxyTokenAttributes<M: ManagedTypeApi> {
     pub farm_type: FarmType,
     pub farm_token_id: TokenIdentifier<M>,
-    pub farm_token_nonce: u64,
+    pub farm_token_nonce: Nonce,
     pub farming_token_id: TokenIdentifier<M>,
-    pub farming_token_locked_nonce: u64,
+    pub farming_token_locked_nonce: Nonce,
 }
 
 pub type EnterFarmThroughProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
@@ -112,10 +114,7 @@ pub trait ProxyFarmModule:
     /// - FARM_PROXY token, which can later be used to further interact with the specific farm
     #[payable("*")]
     #[endpoint(enterFarmLockedToken)]
-    fn enter_farm_locked_token(
-        &self,
-        farm_type: FarmType,
-    ) -> EnterFarmThroughProxyResultType<Self::Api> {
+    fn enter_farm_locked_token(&self, farm_type: FarmType) -> EsdtTokenPayment {
         let payments: ManagedVec<EsdtTokenPayment<Self::Api>> =
             self.call_value().all_esdt_transfers().clone_value();
         require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
@@ -172,22 +171,11 @@ pub trait ProxyFarmModule:
             farming_token_locked_nonce: proxy_lp_payment.token_nonce,
         };
 
-        let farm_tokens = farm_proxy_token_mapper.nft_create_and_send(
+        farm_proxy_token_mapper.nft_create_and_send(
             &caller,
             farm_tokens.amount,
             &proxy_farm_token_attributes,
-        );
-
-        if enter_farm_result.reward_tokens.amount > 0 {
-            self.send().direct_esdt(
-                &caller,
-                &enter_farm_result.reward_tokens.token_identifier,
-                enter_farm_result.reward_tokens.token_nonce,
-                &enter_farm_result.reward_tokens.amount,
-            );
-        }
-
-        (farm_tokens, enter_farm_result.reward_tokens).into()
+        )
     }
 
     /// Exit a farm previously entered through `enterFarmLockedToken`.

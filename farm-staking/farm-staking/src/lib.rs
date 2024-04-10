@@ -6,8 +6,9 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use base_impl_wrapper::FarmStakingWrapper;
+use common_structs::Epoch;
 use contexts::storage_cache::StorageCache;
-use farm::{base_functions::DoubleMultiPayment, MAX_PERCENT};
+use farm::MAX_PERCENT;
 use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
 use token_attributes::StakingFarmTokenAttributes;
@@ -23,6 +24,7 @@ pub mod farm_token_roles;
 pub mod stake_farm;
 pub mod token_attributes;
 pub mod unbond_farm;
+pub mod unbond_token;
 pub mod unstake_farm;
 
 #[multiversx_sc::contract]
@@ -51,6 +53,7 @@ pub trait FarmStaking:
     + unstake_farm::UnstakeFarmModule
     + unbond_farm::UnbondFarmModule
     + claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
+    + unbond_token::UnbondTokenModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
     + week_timekeeping::WeekTimekeepingModule
@@ -69,6 +72,7 @@ pub trait FarmStaking:
         max_apr: BigUint,
         min_unbond_epochs: u64,
         owner: ManagedAddress,
+        first_week_start_epoch: Epoch,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         // farming and reward token are the same
@@ -80,8 +84,15 @@ pub trait FarmStaking:
             admins,
         );
 
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            first_week_start_epoch >= current_epoch,
+            "Invalid start epoch"
+        );
+        self.first_week_start_epoch().set(first_week_start_epoch);
+
         require!(max_apr > 0u64, "Invalid max APR percentage");
-        self.max_annual_percentage_rewards().set_if_empty(&max_apr);
+        self.max_annual_percentage_rewards().set(&max_apr);
 
         require!(
             min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
@@ -109,13 +120,12 @@ pub trait FarmStaking:
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens_endpoint(&self) -> DoubleMultiPayment<Self::Api> {
+    fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         self.migrate_old_farm_positions(&caller);
 
         let boosted_rewards = self.claim_only_boosted_payment(&caller);
-        let boosted_rewards_payment =
-            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+        self.add_boosted_rewards(&caller, &boosted_rewards);
 
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
@@ -125,9 +135,8 @@ pub trait FarmStaking:
 
         let merged_farm_token = token_mapper.nft_create(new_token_amount, &output_attributes);
         self.send_payment_non_zero(&caller, &merged_farm_token);
-        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
-        (merged_farm_token, boosted_rewards_payment).into()
+        merged_farm_token
     }
 
     #[endpoint(setBoostedYieldsRewardsPercentage)]
@@ -152,13 +161,15 @@ pub trait FarmStaking:
         let mut storage_cache = StorageCache::new(self);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        FarmStakingWrapper::<Self>::calculate_rewards(
+        let rewards = FarmStakingWrapper::<Self>::calculate_rewards(
             self,
             &ManagedAddress::zero(),
             &farm_token_amount,
             &attributes,
             &storage_cache,
-        )
+        );
+
+        rewards.base
     }
 
     fn require_queried(&self) {

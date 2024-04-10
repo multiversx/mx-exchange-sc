@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use common_structs::Nonce;
+
 use crate::error_messages::*;
 use crate::locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPaymentWrapper};
 
@@ -8,9 +10,9 @@ use crate::locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPay
 pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
     pub lp_token_id: TokenIdentifier<M>,
     pub first_token_id: TokenIdentifier<M>,
-    pub first_token_locked_nonce: u64,
+    pub first_token_locked_nonce: Nonce,
     pub second_token_id: TokenIdentifier<M>,
-    pub second_token_locked_nonce: u64,
+    pub second_token_locked_nonce: Nonce,
 }
 
 pub type AddLiquidityThroughProxyResultType<M> =

@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           33
+// Endpoints:                           34
 // Async Callback:                       1
-// Total number of exported functions:  35
+// Total number of exported functions:  36
 
 #![no_std]
 #![allow(internal_features)]
@@ -27,11 +27,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgradePair => upgrade_pair_endpoint
         issueLpToken => issue_lp_token
         setLocalRoles => set_local_roles
+        setLocalRolesOwner => set_local_roles_owner
         removePair => remove_pair
         setFeeOn => set_fee_on
         setFeeOff => set_fee_off
         setPairCreationEnabled => set_pair_creation_enabled
         migratePairMap => migrate_pair_map
+        claimDeveloperRewardsPairs => claim_developer_rewards_pairs
         getPairCreationEnabled => pair_creation_enabled
         getState => state
         getOwner => owner

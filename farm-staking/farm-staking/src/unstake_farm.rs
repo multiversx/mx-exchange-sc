@@ -1,13 +1,18 @@
 multiversx_sc::imports!();
 
 use farm::ExitFarmWithPartialPosResultType;
+use fixed_supply_token::FixedSupplyToken;
 
-use crate::{base_impl_wrapper::FarmStakingWrapper, token_attributes::UnbondSftAttributes};
+use crate::{
+    base_impl_wrapper::FarmStakingWrapper,
+    token_attributes::{StakingFarmTokenAttributes, UnbondSftAttributes},
+};
 
 #[multiversx_sc::module]
 pub trait UnstakeFarmModule:
     crate::custom_rewards::CustomRewardsModule
     + crate::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
+    + crate::unbond_token::UnbondTokenModule
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
@@ -76,18 +81,28 @@ pub trait UnstakeFarmModule:
 
         let exit_result =
             self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment);
+        self.add_boosted_rewards(&original_caller, &exit_result.rewards.boosted);
 
         self.decrease_old_farm_positions(migrated_amount, &original_caller);
 
         let unbond_token_amount =
             opt_unbond_amount.unwrap_or(exit_result.farming_token_payment.amount);
-        let farm_token_id = exit_result.storage_cache.farm_token_id.clone();
 
         let caller = self.blockchain().get_caller();
+        let original_attributes = exit_result
+            .context
+            .farm_token
+            .attributes
+            .clone()
+            .into_part(&exit_result.context.farm_token.payment.amount);
         let unbond_farm_token =
-            self.create_and_send_unbond_tokens(&caller, farm_token_id, unbond_token_amount);
+            self.create_and_send_unbond_tokens(&caller, unbond_token_amount, original_attributes);
 
-        self.send_payment_non_zero(&caller, &exit_result.reward_payment);
+        let reward_token_id = self.reward_token_id().get();
+        let base_rewards_payment =
+            EsdtTokenPayment::new(reward_token_id, 0, exit_result.rewards.base);
+
+        self.send_payment_non_zero(&caller, &base_rewards_payment);
 
         self.clear_user_energy_if_needed(&original_caller);
         self.set_farm_supply_for_current_week(&exit_result.storage_cache.farm_token_supply);
@@ -96,31 +111,30 @@ pub trait UnstakeFarmModule:
             &caller,
             exit_result.context,
             unbond_farm_token.clone(),
-            exit_result.reward_payment.clone(),
+            base_rewards_payment.clone(),
             exit_result.storage_cache,
         );
 
-        (unbond_farm_token, exit_result.reward_payment).into()
+        (unbond_farm_token, base_rewards_payment).into()
     }
 
     fn create_and_send_unbond_tokens(
         &self,
         to: &ManagedAddress,
-        farm_token_id: TokenIdentifier,
         amount: BigUint,
+        original_attributes: StakingFarmTokenAttributes<Self::Api>,
     ) -> EsdtTokenPayment {
         let min_unbond_epochs = self.min_unbond_epochs().get();
         let current_epoch = self.blockchain().get_block_epoch();
-        let nft_nonce = self.send().esdt_nft_create_compact(
-            &farm_token_id,
-            &amount,
+
+        self.unbond_token().nft_create_and_send(
+            to,
+            amount.clone(),
             &UnbondSftAttributes {
                 unlock_epoch: current_epoch + min_unbond_epochs,
+                original_attributes,
+                supply: amount,
             },
-        );
-        self.send()
-            .direct_esdt(to, &farm_token_id, nft_nonce, &amount);
-
-        EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
+        )
     }
 }

@@ -8,12 +8,15 @@ pub mod staking_farm_with_lp_staking_contract_setup;
 multiversx_sc::imports!();
 
 use constants::*;
+use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 
 use farm_staking_proxy::proxy_actions::unstake::ProxyUnstakeModule;
 
 use multiversx_sc::codec::Empty;
-use multiversx_sc_scenario::{managed_biguint, managed_token_id, rust_biguint, DebugApi};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, DebugApi,
+};
 use staking_farm_with_lp_staking_contract_interactions::*;
 
 #[test]
@@ -168,7 +171,6 @@ fn test_unstake_through_proxy_no_claim() {
         99_999,
         1_899,
         1_001_000_000,
-        30,
     );
 }
 
@@ -208,7 +210,6 @@ fn unstake_through_proxy_after_claim() {
         0,
         0,
         1_001_000_000,
-        30,
     );
 }
 
@@ -247,6 +248,7 @@ fn unstake_partial_position_test() {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
+                    false,
                     OptionalValue::None,
                 );
 
@@ -274,7 +276,7 @@ fn unstake_partial_position_test() {
                 let unbond_tokens = results.unbond_staking_farm_token;
                 assert_eq!(
                     unbond_tokens.token_identifier,
-                    managed_token_id!(STAKING_FARM_TOKEN_ID)
+                    managed_token_id!(UNBOND_TOKEN_ID)
                 );
                 assert_eq!(unbond_tokens.amount, dual_yield_token_amount / 2);
             },
@@ -294,6 +296,7 @@ fn unstake_partial_position_test() {
                 let results = sc.unstake_farm_tokens(
                     managed_biguint!(1),
                     managed_biguint!(1),
+                    false,
                     OptionalValue::None,
                 );
 
@@ -321,7 +324,7 @@ fn unstake_partial_position_test() {
                 let unbond_tokens = results.unbond_staking_farm_token;
                 assert_eq!(
                     unbond_tokens.token_identifier,
-                    managed_token_id!(STAKING_FARM_TOKEN_ID)
+                    managed_token_id!(UNBOND_TOKEN_ID)
                 );
                 assert_eq!(unbond_tokens.amount, 1_001_000_000 / 2);
             },
@@ -365,7 +368,6 @@ fn unbond_test() {
         0,
         0,
         1_001_000_000,
-        30,
     );
 
     setup.b_mock.set_block_epoch(30);
@@ -614,14 +616,13 @@ fn test_farm_stake_proxy_merging_boosted_rewards() {
         )
     });
 
-    // check boosted rewards
-    setup.b_mock.execute_in_managed_environment(|| {
-        setup.b_mock.check_nft_balance::<Empty>(
-            &user_address,
-            LOCKED_TOKEN_ID,
-            1,
-            &rust_biguint!(boosted_rewards),
-            None,
-        )
-    });
+    setup
+        .b_mock
+        .execute_query(&setup.lp_farm_wrapper, |sc| {
+            let rewards = sc
+                .accumulated_rewards_per_user(&managed_address!(&user_address))
+                .get();
+            assert_eq!(rewards, managed_biguint!(boosted_rewards));
+        })
+        .assert_ok();
 }

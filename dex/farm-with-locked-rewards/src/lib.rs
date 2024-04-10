@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(clippy::too_many_arguments)]
-#![feature(exact_size_is_empty)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -8,15 +6,16 @@ multiversx_sc::derive_imports!();
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
+use week_timekeeping::Epoch;
 
 use farm::{
-    base_functions::{BaseFunctionsModule, ClaimRewardsResultType, DoubleMultiPayment, Wrapper},
+    base_functions::{BaseFunctionsModule, ClaimRewardsResultType, Wrapper},
     exit_penalty::{
         DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     },
-    EnterFarmResultType, ExitFarmWithPartialPosResultType, MAX_PERCENT,
+    ExitFarmWithPartialPosResultType, MAX_PERCENT,
 };
-use farm_base_impl::base_traits_impl::FarmContract;
+use farm_base_impl::base_traits_impl::{FarmContract, RewardPair};
 
 #[multiversx_sc::contract]
 pub trait Farm:
@@ -57,6 +56,7 @@ pub trait Farm:
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
         owner: ManagedAddress,
+        first_week_start_epoch: Epoch,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         self.base_farm_init(
@@ -67,10 +67,17 @@ pub trait Farm:
             admins,
         );
 
-        self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            first_week_start_epoch >= current_epoch,
+            "Invalid start epoch"
+        );
+        self.first_week_start_epoch().set(first_week_start_epoch);
+
+        self.penalty_percent().set(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
-            .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
+            .set(DEFAULT_MINUMUM_FARMING_EPOCHS);
+        self.burn_gas_limit().set(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
 
         let current_epoch = self.blockchain().get_block_epoch();
@@ -96,33 +103,32 @@ pub trait Farm:
     fn enter_farm_endpoint(
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> EnterFarmResultType<Self::Api> {
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         self.migrate_old_farm_positions(&orig_caller);
+
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
-        let boosted_rewards_payment = self.send_to_lock_contract_non_zero(
-            self.reward_token_id().get(),
-            boosted_rewards,
-            caller.clone(),
-            orig_caller.clone(),
-        );
+        self.add_boosted_rewards(&orig_caller, &boosted_rewards);
 
         let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(orig_caller.clone());
         self.send_payment_non_zero(&caller, &new_farm_token);
 
         self.update_energy_and_progress(&orig_caller);
 
-        (new_farm_token, boosted_rewards_payment).into()
+        new_farm_token
     }
 
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(
         &self,
+        get_rewards_unlocked: bool,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsResultType<Self::Api> {
+        self.require_first_epoch_passed();
+
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
@@ -131,59 +137,65 @@ pub trait Farm:
         let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_claim_rewards_result =
             self.claim_rewards_base::<NoMintWrapper<Self>>(orig_caller.clone(), payments);
+        self.add_boosted_rewards(&orig_caller, &base_claim_rewards_result.rewards.boosted);
+
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
-        let rewards_payment = base_claim_rewards_result.rewards;
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            rewards_payment.token_identifier,
-            rewards_payment.amount,
+        let rewards_token_id = self.reward_token_id().get();
+        let rewards_amount = base_claim_rewards_result.rewards.base;
+        let rewards_payment = EsdtTokenPayment::new(rewards_token_id, 0, rewards_amount);
+        let output_rewards_payment = self.claim_base_farm_rewards(
+            get_rewards_unlocked,
             caller,
             orig_caller.clone(),
+            rewards_payment,
         );
 
         self.emit_claim_rewards_event::<_, FarmTokenAttributes<Self::Api>>(
             &orig_caller,
             base_claim_rewards_result.context,
             base_claim_rewards_result.new_farm_token,
-            locked_rewards_payment.clone(),
+            output_rewards_payment.clone(),
             base_claim_rewards_result.created_with_merge,
             base_claim_rewards_result.storage_cache,
         );
 
-        (output_farm_token_payment, locked_rewards_payment).into()
+        (output_farm_token_payment, output_rewards_payment).into()
     }
 
     #[payable("*")]
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(
         &self,
+        get_rewards_unlocked: bool,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let payment = self.call_value().single_esdt();
-
         let migrated_amount = self.migrate_old_farm_positions(&orig_caller);
-
         let exit_farm_result = self.exit_farm::<NoMintWrapper<Self>>(orig_caller.clone(), payment);
+        self.add_boosted_rewards(&orig_caller, &exit_farm_result.rewards.boosted);
 
         self.decrease_old_farm_positions(migrated_amount, &orig_caller);
 
-        let rewards = exit_farm_result.rewards;
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
 
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            rewards.token_identifier.clone(),
-            rewards.amount,
+        let rewards_token_id = self.reward_token_id().get();
+        let rewards_amount = exit_farm_result.rewards.base;
+        let rewards_payment = EsdtTokenPayment::new(rewards_token_id, 0, rewards_amount);
+        let output_rewards_payment = self.claim_base_farm_rewards(
+            get_rewards_unlocked,
             caller,
             orig_caller.clone(),
+            rewards_payment,
         );
 
         self.clear_user_energy_if_needed(&orig_caller);
 
-        (exit_farm_result.farming_tokens, locked_rewards_payment).into()
+        (exit_farm_result.farming_tokens, output_rewards_payment).into()
     }
 
     #[payable("*")]
@@ -191,31 +203,35 @@ pub trait Farm:
     fn merge_farm_tokens_endpoint(
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> DoubleMultiPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         self.migrate_old_farm_positions(&orig_caller);
+
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
+        self.add_boosted_rewards(&orig_caller, &boosted_rewards);
 
         let merged_farm_token = self.merge_farm_tokens::<NoMintWrapper<Self>>();
 
         self.send_payment_non_zero(&caller, &merged_farm_token);
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            self.reward_token_id().get(),
-            boosted_rewards,
-            caller,
-            orig_caller,
-        );
 
-        (merged_farm_token, locked_rewards_payment).into()
+        merged_farm_token
     }
 
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(
         &self,
+        get_rewards_unlocked: bool,
         opt_user: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_week_start_epoch = self.first_week_start_epoch().get();
+        require!(
+            first_week_start_epoch <= current_epoch,
+            "Cannot claim rewards yet"
+        );
+
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
             OptionalValue::Some(user) => user,
@@ -229,12 +245,17 @@ pub trait Farm:
             );
         }
 
+        let accumulated_boosted_rewards = self.accumulated_rewards_per_user(user).take();
         let boosted_rewards = self.claim_only_boosted_payment(user);
-        self.send_to_lock_contract_non_zero(
-            self.reward_token_id().get(),
-            boosted_rewards,
+        let total_boosted_rewards = accumulated_boosted_rewards + boosted_rewards;
+        let total_rewards_payment =
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, total_boosted_rewards);
+
+        self.claim_base_farm_rewards(
+            get_rewards_unlocked,
+            caller.clone(),
             user.clone(),
-            user.clone(),
+            total_rewards_payment,
         )
     }
 
@@ -279,13 +300,42 @@ pub trait Farm:
         let mut storage_cache = StorageCache::new(self);
         NoMintWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        NoMintWrapper::<Self>::calculate_rewards(
+        let rewards = NoMintWrapper::<Self>::calculate_rewards(
             self,
             &user,
             &farm_token_amount,
             &attributes,
             &storage_cache,
-        )
+        );
+
+        rewards.base
+    }
+
+    fn claim_base_farm_rewards(
+        &self,
+        get_rewards_unlocked: bool,
+        caller: ManagedAddress,
+        original_caller: ManagedAddress,
+        mut rewards_payment: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
+        match get_rewards_unlocked {
+            true => {
+                let unlocked_rewards_payment = self.claim_unlocked_rewards(
+                    original_caller,
+                    rewards_payment.token_identifier.clone(),
+                    rewards_payment.amount,
+                );
+                rewards_payment.amount = unlocked_rewards_payment.amount;
+
+                rewards_payment
+            }
+            false => self.send_to_lock_contract_non_zero(
+                rewards_payment.token_identifier,
+                rewards_payment.amount,
+                caller,
+                original_caller,
+            ),
+        }
     }
 
     fn send_to_lock_contract_non_zero(
@@ -301,6 +351,23 @@ pub trait Farm:
         }
 
         self.lock_virtual(token_id, amount, destination_address, energy_address)
+    }
+
+    fn claim_unlocked_rewards(
+        &self,
+        user: ManagedAddress,
+        rewards_token: TokenIdentifier,
+        amount: BigUint,
+    ) -> EsdtTokenPayment {
+        let own_sc_address = self.blockchain().get_sc_address();
+        let locked_tokens = self.send_to_lock_contract_non_zero(
+            rewards_token,
+            amount,
+            own_sc_address,
+            user.clone(),
+        );
+
+        self.unlock_early(user, locked_tokens)
     }
 }
 
@@ -327,15 +394,17 @@ where
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
         let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
-        if total_reward > 0u64 {
-            storage_cache.reward_reserve += &total_reward;
-            let split_rewards = sc.take_reward_slice(total_reward);
+        if total_reward == 0u64 {
+            return;
+        }
 
-            if storage_cache.farm_token_supply != 0u64 {
-                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
-                    / &storage_cache.farm_token_supply;
-                storage_cache.reward_per_share += &increase;
-            }
+        storage_cache.reward_reserve += &total_reward;
+        let split_rewards = sc.take_reward_slice(total_reward);
+
+        if storage_cache.farm_token_supply != 0u64 {
+            let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+                / &storage_cache.farm_token_supply;
+            storage_cache.reward_per_share += &increase;
         }
     }
 
@@ -345,7 +414,7 @@ where
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+    ) -> RewardPair<<Self::FarmSc as ContractBase>::Api> {
         Wrapper::<T>::calculate_rewards(
             sc,
             caller,

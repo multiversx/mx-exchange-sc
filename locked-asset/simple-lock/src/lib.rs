@@ -1,12 +1,16 @@
 #![no_std]
 
+use common_structs::Epoch;
+
 multiversx_sc::imports!();
 
 pub mod basic_lock_unlock;
 pub mod error_messages;
 pub mod farm_interactions;
+pub mod increase_lock_time;
 pub mod locked_token;
 pub mod lp_interactions;
+pub mod merge_tokens;
 pub mod proxy_farm;
 pub mod proxy_lp;
 pub mod token_attributes;
@@ -21,6 +25,9 @@ pub trait SimpleLock:
     + lp_interactions::LpInteractionsModule
     + farm_interactions::FarmInteractionsModule
     + token_attributes::TokenAttributesModule
+    + increase_lock_time::IncreaseLockTimeModule
+    + merge_tokens::MergeTokensModule
+    + utils::UtilsModule
 {
     #[init]
     fn init(&self) {}
@@ -42,9 +49,9 @@ pub trait SimpleLock:
     #[endpoint(lockTokens)]
     fn lock_tokens_endpoint(
         &self,
-        unlock_epoch: u64,
+        unlock_epoch: Epoch,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+    ) -> EgldOrEsdtTokenPayment {
         let payment = self.call_value().egld_or_single_esdt();
         let dest_address = self.dest_from_optional(opt_destination);
         self.lock_and_send(&dest_address, payment, unlock_epoch)
@@ -63,16 +70,9 @@ pub trait SimpleLock:
     fn unlock_tokens_endpoint(
         &self,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+    ) -> EgldOrEsdtTokenPayment {
         let payment = self.call_value().single_esdt();
         let dest_address = self.dest_from_optional(opt_destination);
         self.unlock_and_send(&dest_address, payment)
-    }
-
-    fn dest_from_optional(&self, opt_destination: OptionalValue<ManagedAddress>) -> ManagedAddress {
-        match opt_destination {
-            OptionalValue::Some(dest) => dest,
-            OptionalValue::None => self.blockchain().get_caller(),
-        }
     }
 }
