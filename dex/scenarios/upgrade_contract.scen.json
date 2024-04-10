@@ -14,7 +14,10 @@
                 "function": "upgradePair",
                 "arguments": [
                     "str:ALC-abcdef",
-                    "str:WEGLD-abcdef"
+                    "str:WEGLD-abcdef",
+                    "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "300",
+                    "100"
                 ],
                 "gasLimit": "1,000,000,000",
                 "gasPrice": "0"
