@@ -10,8 +10,8 @@ pub trait ConfigModule {
     }
 
     fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
-        let first_token_id = self.first_token_id().get_from_address(&pair_address);
-        let second_token_id = self.second_token_id().get_from_address(&pair_address);
+        let first_token_id = self.first_token_id().get_from_address(pair_address);
+        let second_token_id = self.second_token_id().get_from_address(pair_address);
 
         let pair_tokens = PairTokens {
             first_token_id: first_token_id.clone(),
