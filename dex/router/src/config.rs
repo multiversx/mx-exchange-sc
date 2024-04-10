@@ -10,10 +10,29 @@ pub trait ConfigModule {
     }
 
     fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
-        require!(
-            self.address_pair_map().contains_key(pair_address),
-            "Not a pair SC"
-        );
+        let first_token_id = self.first_token_id().get_from_address(&pair_address);
+        let second_token_id = self.second_token_id().get_from_address(&pair_address);
+
+        let pair_tokens = PairTokens {
+            first_token_id: first_token_id.clone(),
+            second_token_id: second_token_id.clone(),
+        };
+
+        let mut pair_map_address_opt = self.pair_map().get(&pair_tokens);
+        if pair_map_address_opt.is_none() {
+            let reverse_pair_tokens = PairTokens {
+                first_token_id: second_token_id.clone(),
+                second_token_id: first_token_id.clone(),
+            };
+            pair_map_address_opt = self.pair_map().get(&reverse_pair_tokens);
+        }
+
+        require!(pair_map_address_opt.is_some(), "Not a pair SC");
+
+        unsafe {
+            let pair_map_address = pair_map_address_opt.unwrap_unchecked();
+            require!(&pair_map_address == pair_address, "Not a pair SC");
+        }
     }
 
     #[view(getPairCreationEnabled)]
@@ -43,9 +62,6 @@ pub trait ConfigModule {
     #[storage_mapper("pair_map")]
     fn pair_map(&self) -> MapMapper<PairTokens<Self::Api>, ManagedAddress>;
 
-    #[storage_mapper("address_pair_map")]
-    fn address_pair_map(&self) -> MapMapper<ManagedAddress, PairTokens<Self::Api>>;
-
     #[view(getPairTemplateAddress)]
     #[storage_mapper("pair_template_address")]
     fn pair_template_address(&self) -> SingleValueMapper<ManagedAddress>;
@@ -66,4 +82,13 @@ pub trait ConfigModule {
     #[view(getCommonTokensForUserPairs)]
     #[storage_mapper("commonTokensForUserPairs")]
     fn common_tokens_for_user_pairs(&self) -> UnorderedSetMapper<TokenIdentifier>;
+
+    // read from other storage
+    #[view(getFirstTokenId)]
+    #[storage_mapper("first_token_id")]
+    fn first_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[view(getSecondTokenId)]
+    #[storage_mapper("second_token_id")]
+    fn second_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

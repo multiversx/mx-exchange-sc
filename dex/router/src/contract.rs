@@ -64,10 +64,6 @@ pub trait Router:
     #[endpoint]
     fn resume(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
-            require!(
-                self.pair_map().len() == self.address_pair_map().len(),
-                "The size of the 2 pair maps is not the same"
-            );
             self.state().set(true);
         } else {
             self.check_is_pair_sc(&address);
@@ -317,8 +313,6 @@ pub trait Router:
                 .unwrap_or_else(ManagedAddress::zero);
         }
 
-        self.address_pair_map().remove(&pair_address);
-
         pair_address
     }
 
@@ -384,24 +378,5 @@ pub trait Router:
     #[endpoint(setPairCreationEnabled)]
     fn set_pair_creation_enabled(&self, enabled: bool) {
         self.pair_creation_enabled().set(enabled);
-    }
-
-    #[only_owner]
-    #[endpoint(migratePairMap)]
-    fn migrate_pair_map(&self) {
-        let pair_map = self.pair_map();
-        let mut address_pair_map = self.address_pair_map();
-        require!(
-            address_pair_map.is_empty(),
-            "The destination mapper must be empty"
-        );
-        for (pair_tokens, address) in pair_map.iter() {
-            address_pair_map.insert(address, pair_tokens);
-        }
-
-        require!(
-            pair_map.len() == address_pair_map.len(),
-            "The size of the 2 pair maps is not the same"
-        );
     }
 }
