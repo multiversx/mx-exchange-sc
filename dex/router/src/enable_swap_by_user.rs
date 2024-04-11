@@ -83,6 +83,7 @@ pub trait EnableSwapByUserModule:
     #[payable("*")]
     #[endpoint(setSwapEnabledByUser)]
     fn set_swap_enabled_by_user(&self, pair_address: ManagedAddress) {
+        require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
         self.require_state_active_no_swaps(&pair_address);
 
