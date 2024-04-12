@@ -211,7 +211,7 @@ where
             original_owner: managed_address!(&user),
         };
         self.b_mock.check_nft_balance(
-            &user,
+            user,
             FARM_TOKEN_ID,
             expected_farm_token_nonce,
             &rust_biguint!(expected_total_out_amount),

@@ -83,7 +83,7 @@ fn farm_staking_other_user_enter_negative_test() {
 
     let farm_in_amount = 100_000_000;
     fs_setup
-        .stake_farm_for_other_user(&rand_user, &user_address, farm_in_amount, &vec![])
+        .stake_farm_for_other_user(&rand_user, &user_address, farm_in_amount, &[])
         .assert_error(4, "Item not whitelisted");
 
     let expected_farm_token_nonce = 1;

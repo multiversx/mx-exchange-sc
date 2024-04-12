@@ -117,44 +117,28 @@ pub trait FarmStaking:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let payments = self.get_non_empty_payments();
-        let token_mapper = self.farm_token();
-
-        for farm_position in &payments {
-            if self.is_old_farm_position(farm_position.token_nonce) {
-                continue;
-            }
-
-            let token_attributes: StakingFarmTokenAttributes<Self::Api> =
-                token_mapper.get_token_attributes(farm_position.token_nonce);
-
-            if token_attributes.original_owner != caller {
-                self.user_total_farm_position(&token_attributes.original_owner)
-                    .update(|user_total_farm_position| {
-                        if user_total_farm_position.total_farm_position > farm_position.amount {
-                            user_total_farm_position.total_farm_position -= &farm_position.amount;
-                        } else {
-                            user_total_farm_position.total_farm_position = BigUint::zero();
-                        }
-                    });
-                self.user_total_farm_position(&caller)
-                    .update(|user_total_farm_position| {
-                        user_total_farm_position.total_farm_position += &farm_position.amount;
-                    });
-            }
-        }
-
-        let mut output_attributes: StakingFarmTokenAttributes<Self::Api> =
-            self.merge_from_payments_and_burn(payments, &token_mapper);
+        let mut output_attributes = self.merge_farm_tokens::<FarmStakingWrapper<Self>>();
         output_attributes.original_owner = caller.clone();
 
         let new_token_amount = output_attributes.get_total_supply();
-
-        let merged_farm_token = token_mapper.nft_create(new_token_amount, &output_attributes);
+        let merged_farm_token = self
+            .farm_token()
+            .nft_create(new_token_amount, &output_attributes);
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
         (merged_farm_token, boosted_rewards_payment).into()
+    }
+
+    fn merge_farm_tokens<FC: FarmContract<FarmSc = Self>>(&self) -> FC::AttributesType {
+        let payments = self.get_non_empty_payments();
+        let token_mapper = self.farm_token();
+        token_mapper.require_all_same_token(&payments);
+
+        let caller = self.blockchain().get_caller();
+        FC::check_and_update_user_farm_position(self, &caller, &payments);
+
+        self.merge_from_payments_and_burn(payments, &token_mapper)
     }
 
     #[endpoint(setBoostedYieldsRewardsPercentage)]
