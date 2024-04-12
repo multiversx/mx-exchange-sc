@@ -409,7 +409,7 @@ where
 
     pub fn set_price_observation_as_old(&mut self, observation_index: usize) {
         let _ = self.b_mock.execute_query(&self.pair_wrapper, |sc| {
-            let price_observations = sc.price_observations();
+            let mut price_observations = sc.price_observations();
 
             let mut price_observation = price_observations.get(observation_index);
             price_observation.lp_supply_accumulated = BigUint::zero();
