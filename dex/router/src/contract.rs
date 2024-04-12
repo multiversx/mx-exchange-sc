@@ -41,7 +41,7 @@ pub trait Router:
         self.owner().set(&self.blockchain().get_caller());
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {
         self.state().set(false);
     }
