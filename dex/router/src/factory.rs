@@ -2,6 +2,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use crate::config;
+use pair::read_pair_storage;
 
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
@@ -19,7 +20,7 @@ pub struct PairContractMetadata<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::module]
-pub trait FactoryModule: config::ConfigModule {
+pub trait FactoryModule: config::ConfigModule + read_pair_storage::ReadPairStorageModule {
     #[proxy]
     fn pair_contract_deploy_proxy(&self) -> pair::Proxy<Self::Api>;
 

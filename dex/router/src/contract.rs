@@ -12,7 +12,7 @@ pub mod multi_pair_swap;
 use factory::PairTokens;
 use pair::config::ProxyTrait as _;
 use pair::fee::ProxyTrait as _;
-use pair::ProxyTrait as _;
+use pair::{read_pair_storage, ProxyTrait as _};
 use pausable::ProxyTrait as _;
 
 const LP_TOKEN_DECIMALS: usize = 18;
@@ -26,6 +26,7 @@ const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
 #[multiversx_sc::contract]
 pub trait Router:
     config::ConfigModule
+    + read_pair_storage::ReadPairStorageModule
     + factory::FactoryModule
     + events::EventsModule
     + multi_pair_swap::MultiPairSwap

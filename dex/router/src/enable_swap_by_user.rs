@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use pair::{config::ProxyTrait as _, pair_actions::views::ProxyTrait as _};
+use pair::{config::ProxyTrait as _, pair_actions::views::ProxyTrait as _, read_pair_storage};
 use pausable::{ProxyTrait as _, State};
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -27,7 +27,10 @@ pub struct SafePriceResult<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait EnableSwapByUserModule:
-    config::ConfigModule + crate::factory::FactoryModule + crate::events::EventsModule
+    config::ConfigModule
+    + read_pair_storage::ReadPairStorageModule
+    + crate::factory::FactoryModule
+    + crate::events::EventsModule
 {
     #[only_owner]
     #[endpoint(configEnableByUserParameters)]

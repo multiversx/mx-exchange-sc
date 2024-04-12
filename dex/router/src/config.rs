@@ -2,16 +2,17 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use crate::{enable_swap_by_user::EnableSwapByUserConfig, factory::PairTokens};
+use pair::read_pair_storage;
 
 #[multiversx_sc::module]
-pub trait ConfigModule {
+pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
     fn is_active(&self) -> bool {
         self.state().get()
     }
 
     fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
-        let first_token_id = self.first_token_id().get_from_address(pair_address);
-        let second_token_id = self.second_token_id().get_from_address(pair_address);
+        let first_token_id = self.get_first_token_id_mapper(pair_address.clone()).get();
+        let second_token_id = self.get_second_token_id_mapper(pair_address.clone()).get();
 
         let pair_tokens = PairTokens {
             first_token_id: first_token_id.clone(),
