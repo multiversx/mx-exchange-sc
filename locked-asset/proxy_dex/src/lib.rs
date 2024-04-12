@@ -58,7 +58,7 @@ pub trait ProxyDexImpl:
             .set_if_empty(&energy_factory_address);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self, old_locked_token_id: TokenIdentifier, old_factory_address: ManagedAddress) {
         require!(
             old_locked_token_id.is_valid_esdt_identifier(),

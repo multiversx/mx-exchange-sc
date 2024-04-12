@@ -8,13 +8,14 @@ multiversx_sc::derive_imports!();
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
+use fixed_supply_token::FixedSupplyToken;
 
 use farm::{
     base_functions::{BaseFunctionsModule, ClaimRewardsResultType, DoubleMultiPayment, Wrapper},
     exit_penalty::{
         DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     },
-    EnterFarmResultType, ExitFarmWithPartialPosResultType,
+    EnterFarmResultType, ExitFarmWithPartialPosResultType, MAX_PERCENT,
 };
 use farm_base_impl::base_traits_impl::FarmContract;
 
@@ -81,7 +82,7 @@ pub trait Farm:
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
@@ -198,7 +199,13 @@ pub trait Farm:
         self.migrate_old_farm_positions(&orig_caller);
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
 
-        let merged_farm_token = self.merge_farm_tokens::<NoMintWrapper<Self>>();
+        let mut output_attributes = self.merge_and_return_attributes::<NoMintWrapper<Self>>();
+        output_attributes.original_owner = orig_caller.clone();
+
+        let new_token_amount = output_attributes.get_total_supply();
+        let merged_farm_token = self
+            .farm_token()
+            .nft_create(new_token_amount, &output_attributes);
 
         self.send_payment_non_zero(&caller, &merged_farm_token);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
@@ -254,6 +261,17 @@ pub trait Farm:
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards::<NoMintWrapper<Self>>(per_block_amount);
+    }
+
+    #[endpoint(setBoostedYieldsRewardsPercentage)]
+    fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
+        self.require_caller_has_admin_permissions();
+        require!(percentage <= MAX_PERCENT, "Invalid percentage");
+
+        let mut storage_cache = StorageCache::new(self);
+        NoMintWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
+        self.boosted_yields_rewards_percentage().set(percentage);
     }
 
     #[view(calculateRewardsForGivenPosition)]

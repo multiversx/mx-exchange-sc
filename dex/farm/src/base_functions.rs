@@ -11,9 +11,8 @@ use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
-use fixed_supply_token::FixedSupplyToken;
 
-use crate::exit_penalty;
+use crate::{exit_penalty, MAX_PERCENT};
 
 pub type DoubleMultiPayment<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsResultType<M> = DoubleMultiPayment<M>;
@@ -183,7 +182,7 @@ pub trait BaseFunctionsModule:
         }
     }
 
-    fn merge_farm_tokens<FC: FarmContract<FarmSc = Self>>(&self) -> EsdtTokenPayment<Self::Api> {
+    fn merge_and_return_attributes<FC: FarmContract<FarmSc = Self>>(&self) -> FC::AttributesType {
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
         token_mapper.require_all_same_token(&payments);
@@ -191,10 +190,7 @@ pub trait BaseFunctionsModule:
         let caller = self.blockchain().get_caller();
         FC::check_and_update_user_farm_position(self, &caller, &payments);
 
-        let output_attributes: FC::AttributesType =
-            self.merge_from_payments_and_burn(payments, &token_mapper);
-        let new_token_amount = output_attributes.get_total_supply();
-        token_mapper.nft_create(new_token_amount, &output_attributes)
+        self.merge_from_payments_and_burn(payments, &token_mapper)
     }
 
     fn claim_only_boosted_payment(&self, caller: &ManagedAddress) -> BigUint {
@@ -346,7 +342,7 @@ where
         if user_farming_epochs >= min_farming_epochs {
             BigUint::zero()
         } else {
-            total_exit_amount * sc.penalty_percent().get() / exit_penalty::MAX_PERCENT
+            total_exit_amount * sc.penalty_percent().get() / MAX_PERCENT
         }
     }
 
