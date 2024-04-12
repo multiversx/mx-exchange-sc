@@ -33,6 +33,7 @@ pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 pub const DIV_SAFETY: u64 = 1_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
 pub const FARMING_TOKEN_BALANCE: u64 = 200_000_000;
+pub const MAX_PERCENTAGE: u64 = 10_000; // 100%
 pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
 pub const MAX_REWARDS_FACTOR: u64 = 10;
 pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
@@ -46,6 +47,11 @@ pub struct RawFarmTokenAttributes {
     pub compounded_reward_bytes: Vec<u8>,
     pub current_farm_amount_bytes: Vec<u8>,
     pub original_owner_bytes: [u8; 32],
+}
+
+pub struct NonceAmountPair {
+    pub nonce: u64,
+    pub amount: u64,
 }
 
 pub struct MultiUserFarmSetup<FarmObjBuilder, EnergyFactoryBuilder, EnergyUpdateObjBuilder>
@@ -310,28 +316,18 @@ where
         result
     }
 
-    pub fn merge_farm_tokens(
-        &mut self,
-        user: &Address,
-        first_token_nonce: u64,
-        first_token_amount: u64,
-        second_token_nonce: u64,
-        second_token_amount: u64,
-    ) {
+    pub fn merge_farm_tokens(&mut self, user: &Address, farm_tokens: Vec<NonceAmountPair>) {
         self.last_farm_token_nonce += 1;
-        let expected_farm_token_nonce = self.last_farm_token_nonce;
-        let expected_farm_token_amount = first_token_amount + second_token_amount;
+        let mut expected_farm_token_amount = 0;
         let mut payments = Vec::new();
-        payments.push(TxTokenTransfer {
-            token_identifier: FARM_TOKEN_ID.to_vec(),
-            nonce: first_token_nonce,
-            value: rust_biguint!(first_token_amount),
-        });
-        payments.push(TxTokenTransfer {
-            token_identifier: FARM_TOKEN_ID.to_vec(),
-            nonce: second_token_nonce,
-            value: rust_biguint!(second_token_amount),
-        });
+        for farm_token in farm_tokens {
+            expected_farm_token_amount += farm_token.amount;
+            payments.push(TxTokenTransfer {
+                token_identifier: FARM_TOKEN_ID.to_vec(),
+                nonce: farm_token.nonce,
+                value: rust_biguint!(farm_token.amount),
+            });
+        }
 
         self.b_mock
             .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
@@ -342,7 +338,7 @@ where
                     out_farm_token.token_identifier,
                     managed_token_id!(FARM_TOKEN_ID)
                 );
-                assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
+                assert_eq!(out_farm_token.token_nonce, self.last_farm_token_nonce);
                 assert_eq!(
                     out_farm_token.amount,
                     managed_biguint!(expected_farm_token_amount)
@@ -446,6 +442,54 @@ where
                     result = out_reward_token.amount.to_u64().unwrap();
                 },
             )
+            .assert_ok();
+
+        result
+    }
+
+    pub fn claim_rewards_with_multiple_payments(
+        &mut self,
+        user: &Address,
+        farm_token_payments: Vec<NonceAmountPair>,
+    ) -> u64 {
+        self.last_farm_token_nonce += 1;
+
+        let mut expected_farm_token_amount = 0;
+        let mut payments = vec![];
+
+        for farm_token_payment in farm_token_payments {
+            expected_farm_token_amount += farm_token_payment.amount;
+            payments.push(TxTokenTransfer {
+                token_identifier: FARM_TOKEN_ID.to_vec(),
+                nonce: farm_token_payment.nonce,
+                value: rust_biguint!(farm_token_payment.amount),
+            });
+        }
+
+        let expected_farm_token_nonce = self.last_farm_token_nonce;
+        let mut result = 0;
+        self.b_mock
+            .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
+                let (out_farm_token, out_reward_token) =
+                    sc.claim_rewards_endpoint(OptionalValue::None).into_tuple();
+                assert_eq!(
+                    out_farm_token.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
+                assert_eq!(
+                    out_farm_token.amount,
+                    managed_biguint!(expected_farm_token_amount)
+                );
+
+                assert_eq!(
+                    out_reward_token.token_identifier,
+                    managed_token_id!(REWARD_TOKEN_ID)
+                );
+                assert_eq!(out_reward_token.token_nonce, 0);
+
+                result = out_reward_token.amount.to_u64().unwrap();
+            })
             .assert_ok();
 
         result
@@ -690,5 +734,90 @@ where
                 }
             })
             .assert_ok();
+    }
+
+    // With the current checks, works only on full position sent (amount/nonce)
+    pub fn send_farm_position(
+        &mut self,
+        sender: &Address,
+        receiver: &Address,
+        nonce: u64,
+        amount: u64,
+        attr_reward_per_share: u64,
+        attr_entering_epoch: u64,
+    ) {
+        self.b_mock.check_nft_balance(
+            sender,
+            FARM_TOKEN_ID,
+            nonce,
+            &rust_biguint!(amount),
+            Some(&FarmTokenAttributes::<DebugApi> {
+                reward_per_share: managed_biguint!(attr_reward_per_share),
+                entering_epoch: attr_entering_epoch,
+                compounded_reward: managed_biguint!(0),
+                current_farm_amount: managed_biguint!(amount),
+                original_owner: managed_address!(&sender),
+            }),
+        );
+
+        self.b_mock
+            .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+                receiver,
+                FARM_TOKEN_ID,
+                nonce,
+                &rust_biguint!(0),
+                None,
+            );
+
+        self.b_mock.set_nft_balance(
+            sender,
+            FARM_TOKEN_ID,
+            nonce,
+            &rust_biguint!(0),
+            &FarmTokenAttributes::<DebugApi> {
+                reward_per_share: managed_biguint!(attr_reward_per_share),
+                entering_epoch: attr_entering_epoch,
+                compounded_reward: managed_biguint!(0),
+                current_farm_amount: managed_biguint!(amount),
+                original_owner: managed_address!(&sender),
+            },
+        );
+
+        self.b_mock.set_nft_balance(
+            receiver,
+            FARM_TOKEN_ID,
+            nonce,
+            &rust_biguint!(amount),
+            &FarmTokenAttributes::<DebugApi> {
+                reward_per_share: managed_biguint!(attr_reward_per_share),
+                entering_epoch: attr_entering_epoch,
+                compounded_reward: managed_biguint!(0),
+                current_farm_amount: managed_biguint!(amount),
+                original_owner: managed_address!(&sender),
+            },
+        );
+
+        self.b_mock
+            .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+                sender,
+                FARM_TOKEN_ID,
+                nonce,
+                &rust_biguint!(0),
+                None,
+            );
+
+        self.b_mock.check_nft_balance(
+            receiver,
+            FARM_TOKEN_ID,
+            nonce,
+            &rust_biguint!(amount),
+            Some(&FarmTokenAttributes::<DebugApi> {
+                reward_per_share: managed_biguint!(attr_reward_per_share),
+                entering_epoch: attr_entering_epoch,
+                compounded_reward: managed_biguint!(0),
+                current_farm_amount: managed_biguint!(amount),
+                original_owner: managed_address!(&sender),
+            }),
+        );
     }
 }
