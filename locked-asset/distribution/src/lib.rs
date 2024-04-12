@@ -47,7 +47,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
             .set_if_empty(&locked_asset_factory_address);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     #[only_owner]

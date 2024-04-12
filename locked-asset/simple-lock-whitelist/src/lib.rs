@@ -30,7 +30,7 @@ pub trait SimpleLockWhitelist:
         self.transfer_roles_not_set().set(true);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     /// Sets the transfer role for the given address. Defaults to own address.

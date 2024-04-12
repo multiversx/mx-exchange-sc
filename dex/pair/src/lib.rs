@@ -101,7 +101,7 @@ pub trait Pair<ContractReader>:
         };
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     #[endpoint(setLpTokenIdentifier)]
