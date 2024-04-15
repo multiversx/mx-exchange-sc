@@ -529,15 +529,20 @@ fn farm_total_position_on_claim_migration_test() {
     farm_setup.check_farm_token_supply(farm_in_amount * 2);
 
     // claim rewards with both positions
-    let total_farm_tokens = farm_in_amount * 2;
+    let first_payment_amount = farm_in_amount / 2;
+    let second_payment_amount = farm_in_amount / 4 * 3;
+    let total_farm_amount = farm_in_amount * 2;
+    let total_farm_position = farm_in_amount + first_payment_amount; // only the first is migrated by being an old position
+    let total_claim_payment = first_payment_amount + second_payment_amount;
+
     let payments = vec![
         NonceAmountPair {
             nonce: 1,
-            amount: farm_in_amount,
+            amount: first_payment_amount,
         },
         NonceAmountPair {
             nonce: 2,
-            amount: farm_in_amount,
+            amount: second_payment_amount,
         },
     ];
 
@@ -546,7 +551,7 @@ fn farm_total_position_on_claim_migration_test() {
 
     farm_setup.check_user_total_farm_position(&first_user, farm_in_amount);
     let _ = farm_setup.claim_rewards_with_multiple_payments(&first_user, payments);
-    farm_setup.check_user_total_farm_position(&first_user, total_farm_tokens);
+    farm_setup.check_user_total_farm_position(&first_user, total_farm_position);
 
     farm_setup
         .b_mock
@@ -554,7 +559,7 @@ fn farm_total_position_on_claim_migration_test() {
             &first_user,
             FARM_TOKEN_ID,
             3,
-            &rust_biguint!(total_farm_tokens),
+            &rust_biguint!(total_claim_payment),
             None,
         );
 
@@ -562,8 +567,8 @@ fn farm_total_position_on_claim_migration_test() {
     let expected_user_rewards = block_nonce
         * PER_BLOCK_REWARD_AMOUNT
         * (MAX_PERCENTAGE - BOOSTED_YIELDS_PERCENTAGE)
-        * farm_in_amount
-        / total_farm_tokens
+        * first_payment_amount
+        / total_farm_amount
         / MAX_PERCENTAGE;
     farm_setup.b_mock.check_esdt_balance(
         &first_user,
@@ -617,31 +622,38 @@ fn farm_total_position_on_merge_migration_test() {
     farm_setup.check_farm_token_supply(total_farm_tokens);
 
     // merge all 4 farm positions
+    let first_payment_amount = farm_in_amount / 2;
+    let second_payment_amount = farm_in_amount / 4 * 3;
+    let third_payment_amount = farm_in_amount / 2;
+    let forth_payment_amount = farm_in_amount / 4;
+    let total_payment_amount =
+        first_payment_amount + second_payment_amount + third_payment_amount + forth_payment_amount;
+    let total_user_position = farm_in_amount * 2 + first_payment_amount + second_payment_amount;
     let payments = vec![
         NonceAmountPair {
             nonce: 1,
-            amount: farm_in_amount,
+            amount: first_payment_amount,
         },
         NonceAmountPair {
             nonce: 2,
-            amount: farm_in_amount,
+            amount: second_payment_amount,
         },
         NonceAmountPair {
             nonce: 3,
-            amount: farm_in_amount,
+            amount: third_payment_amount,
         },
         NonceAmountPair {
             nonce: 4,
-            amount: farm_in_amount,
+            amount: forth_payment_amount,
         },
     ];
 
     let block_nonce = 10;
     farm_setup.b_mock.set_block_nonce(block_nonce);
 
-    farm_setup.check_user_total_farm_position(&first_user, farm_in_amount * 2);
+    farm_setup.check_user_total_farm_position(&first_user, farm_in_amount * 2); // last 2 positions
     farm_setup.merge_farm_tokens(&first_user, payments);
-    farm_setup.check_user_total_farm_position(&first_user, total_farm_tokens);
+    farm_setup.check_user_total_farm_position(&first_user, total_user_position);
 
     farm_setup
         .b_mock
@@ -649,7 +661,7 @@ fn farm_total_position_on_merge_migration_test() {
             &first_user,
             FARM_TOKEN_ID,
             5,
-            &rust_biguint!(total_farm_tokens),
+            &rust_biguint!(total_payment_amount),
             None,
         );
 
@@ -754,6 +766,7 @@ fn total_farm_position_owner_change_test() {
 
     // first user enters farm 6 times
     let farm_token_amount = 10_000_000;
+    let half_token_amount = farm_token_amount / 2;
     let first_user = farm_setup.first_user.clone();
     let second_user = farm_setup.second_user.clone();
     let third_user = farm_setup.third_user.clone();
@@ -766,8 +779,10 @@ fn total_farm_position_owner_change_test() {
     farm_setup.enter_farm(&first_user, farm_token_amount);
     farm_setup.enter_farm(&first_user, farm_token_amount);
 
-    farm_setup.check_user_total_farm_position(&first_user, farm_token_amount * 6);
-    farm_setup.check_user_total_farm_position(&second_user, 0);
+    let mut first_user_total_position = farm_token_amount * 6;
+    let mut second_user_total_position = 0;
+    farm_setup.check_user_total_farm_position(&first_user, first_user_total_position);
+    farm_setup.check_user_total_farm_position(&second_user, second_user_total_position);
 
     assert_eq!(farm_setup.last_farm_token_nonce, 6);
 
@@ -779,21 +794,23 @@ fn total_farm_position_owner_change_test() {
     farm_setup.send_farm_position(&first_user, &second_user, 5, farm_token_amount, 0, 2);
 
     // Total farm position unchanged as users only transfered the farm positions
-    farm_setup.check_user_total_farm_position(&first_user, farm_token_amount * 6);
-    farm_setup.check_user_total_farm_position(&second_user, 0);
+    farm_setup.check_user_total_farm_position(&first_user, first_user_total_position);
+    farm_setup.check_user_total_farm_position(&second_user, second_user_total_position);
 
-    // second user enter farm
+    // second user enter farm with LP token + 50% the position from another user
     farm_setup.set_user_energy(&second_user, 4_000, 2, 1);
     farm_setup.enter_farm_with_additional_payment(
         &second_user,
         farm_token_amount,
         1,
-        farm_token_amount,
+        half_token_amount,
     );
 
-    // 1 farm position was removed from first user and added to the second user (who entered the farm with a position of his own)
-    farm_setup.check_user_total_farm_position(&first_user, farm_token_amount * 5);
-    farm_setup.check_user_total_farm_position(&second_user, farm_token_amount * 2);
+    // 1 half farm position was removed from first user and added to the second user (who entered the farm with a position of his own)
+    first_user_total_position -= half_token_amount;
+    second_user_total_position += farm_token_amount + half_token_amount;
+    farm_setup.check_user_total_farm_position(&first_user, first_user_total_position);
+    farm_setup.check_user_total_farm_position(&second_user, second_user_total_position);
 
     // users claim rewards to get their energy registered
     let _ = farm_setup.claim_rewards(&first_user, 6, farm_token_amount);
@@ -813,12 +830,12 @@ fn total_farm_position_owner_change_test() {
     farm_setup.set_user_energy(&first_user, 1_000, 10, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 10, 1);
 
-    // Second user claims with a position from the first user
-    let base_rewards_amount = 1071;
-    let boosted_rewards_amount = 1485;
+    // Second user claims with half a position from the first user
+    let base_rewards_amount = 535;
+    let boosted_rewards_amount = 1414;
     let mut second_user_reward_balance = base_rewards_amount + boosted_rewards_amount;
 
-    let second_received_reward_amt = farm_setup.claim_rewards(&second_user, 2, farm_token_amount);
+    let second_received_reward_amt = farm_setup.claim_rewards(&second_user, 2, half_token_amount);
     assert_eq!(second_received_reward_amt, second_user_reward_balance);
 
     farm_setup.b_mock.check_esdt_balance(
@@ -826,24 +843,25 @@ fn total_farm_position_owner_change_test() {
         REWARD_TOKEN_ID,
         &rust_biguint!(second_user_reward_balance),
     );
-
     farm_setup.b_mock.check_nft_balance(
         &second_user,
         FARM_TOKEN_ID,
         11,
-        &rust_biguint!(farm_token_amount),
+        &rust_biguint!(half_token_amount),
         Some(&FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(107142857),
             entering_epoch: 2,
             compounded_reward: managed_biguint!(0),
-            current_farm_amount: managed_biguint!(farm_token_amount),
+            current_farm_amount: managed_biguint!(half_token_amount),
             original_owner: managed_address!(&second_user),
         }),
     );
 
     // Check users positions after claim
-    farm_setup.check_user_total_farm_position(&first_user, farm_token_amount * 4);
-    farm_setup.check_user_total_farm_position(&second_user, farm_token_amount * 3);
+    first_user_total_position -= half_token_amount;
+    second_user_total_position += half_token_amount;
+    farm_setup.check_user_total_farm_position(&first_user, first_user_total_position);
+    farm_setup.check_user_total_farm_position(&second_user, second_user_total_position);
 
     // random tx on end of week 2, to cummulate rewards
     farm_setup.b_mock.set_block_nonce(20);
@@ -859,17 +877,18 @@ fn total_farm_position_owner_change_test() {
     farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 15, 1);
 
-    // Second user exits farm with a position previously owned by user 1
-    second_user_reward_balance += 2142; // base rewards
-    second_user_reward_balance += 1630; // boosted rewards
-    farm_setup.exit_farm(&second_user, 3, farm_token_amount);
+    // Second user exits farm with half of a position previously owned by user 1
+    second_user_reward_balance += 1071; // base rewards
+    second_user_reward_balance += 1487; // boosted rewards
+    farm_setup.exit_farm(&second_user, 3, half_token_amount);
     farm_setup
         .b_mock
-        .check_esdt_balance(&second_user, REWARD_TOKEN_ID, &rust_biguint!(6328));
+        .check_esdt_balance(&second_user, REWARD_TOKEN_ID, &rust_biguint!(4507));
 
     // Check users positions after exit
-    farm_setup.check_user_total_farm_position(&first_user, farm_token_amount * 3);
-    farm_setup.check_user_total_farm_position(&second_user, farm_token_amount * 3);
+    first_user_total_position -= half_token_amount;
+    farm_setup.check_user_total_farm_position(&first_user, first_user_total_position);
+    farm_setup.check_user_total_farm_position(&second_user, second_user_total_position);
 
     // random tx on end of week 3, to cummulate rewards
     farm_setup.b_mock.set_block_nonce(30);
@@ -888,25 +907,25 @@ fn total_farm_position_owner_change_test() {
     // First user claims rewards
     let first_user_received_reward_amt =
         farm_setup.claim_rewards(&first_user, 8, farm_token_amount);
-    assert_eq!(first_user_received_reward_amt, 5642);
+    assert_eq!(first_user_received_reward_amt, 6167);
 
     // Check users positions after first user claim
-    farm_setup.check_user_total_farm_position(&first_user, farm_token_amount * 3);
-    farm_setup.check_user_total_farm_position(&second_user, farm_token_amount * 3);
+    farm_setup.check_user_total_farm_position(&first_user, first_user_total_position);
+    farm_setup.check_user_total_farm_position(&second_user, second_user_total_position);
 
-    // Second user merges his tokens with first user initial token
+    // Second user merges half from one of his original position with 2 position halves from the first user
     let farm_tokens = vec![
         NonceAmountPair {
             nonce: 4,
-            amount: farm_token_amount,
+            amount: half_token_amount,
         },
         NonceAmountPair {
             nonce: 5,
-            amount: farm_token_amount,
+            amount: half_token_amount,
         },
         NonceAmountPair {
             nonce: 11,
-            amount: farm_token_amount,
+            amount: half_token_amount,
         },
     ];
 
@@ -916,7 +935,7 @@ fn total_farm_position_owner_change_test() {
         &rust_biguint!(second_user_reward_balance),
     );
     farm_setup.merge_farm_tokens(&second_user, farm_tokens);
-    second_user_reward_balance += 1703; // boosted rewards
+    second_user_reward_balance += 1510; // boosted rewards
     farm_setup.b_mock.check_esdt_balance(
         &second_user,
         REWARD_TOKEN_ID,
@@ -926,19 +945,21 @@ fn total_farm_position_owner_change_test() {
         &second_user,
         FARM_TOKEN_ID,
         15,
-        &rust_biguint!(farm_token_amount * 3),
+        &rust_biguint!(half_token_amount * 3),
         Some(&FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(35714286),
             entering_epoch: 2,
             compounded_reward: managed_biguint!(0),
-            current_farm_amount: managed_biguint!(farm_token_amount * 3),
+            current_farm_amount: managed_biguint!(half_token_amount * 3),
             original_owner: managed_address!(&second_user),
         }),
     );
 
     // Check users positions after merge
-    farm_setup.check_user_total_farm_position(&first_user, farm_token_amount);
-    farm_setup.check_user_total_farm_position(&second_user, farm_token_amount * 5);
+    first_user_total_position -= 2 * half_token_amount;
+    second_user_total_position += 2 * half_token_amount;
+    farm_setup.check_user_total_farm_position(&first_user, first_user_total_position);
+    farm_setup.check_user_total_farm_position(&second_user, second_user_total_position);
 }
 
 #[test]
