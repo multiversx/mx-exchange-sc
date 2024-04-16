@@ -86,36 +86,11 @@ where
     To: TxTo<Env>,
     Gas: TxGas<Env>,
 {
-    pub fn upgrade<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg2: CodecInto<ManagedAddress<Env::Api>>,
-        Arg3: CodecInto<ManagedAddress<Env::Api>>,
-        Arg4: CodecInto<u64>,
-        Arg5: CodecInto<u64>,
-        Arg6: CodecInto<ManagedAddress<Env::Api>>,
-        Arg7: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
-    >(
+    pub fn upgrade(
         self,
-        first_token_id: Arg0,
-        second_token_id: Arg1,
-        router_address: Arg2,
-        router_owner_address: Arg3,
-        total_fee_percent: Arg4,
-        special_fee_percent: Arg5,
-        initial_liquidity_adder: Arg6,
-        admins: Arg7,
     ) -> TxProxyUpgrade<Env, From, To, Gas, ()> {
         self.wrapped_tx
             .raw_upgrade()
-            .argument(&first_token_id)
-            .argument(&second_token_id)
-            .argument(&router_address)
-            .argument(&router_owner_address)
-            .argument(&total_fee_percent)
-            .argument(&special_fee_percent)
-            .argument(&initial_liquidity_adder)
-            .argument(&admins)
             .original_result()
     }
 }
