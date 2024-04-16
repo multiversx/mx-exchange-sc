@@ -103,12 +103,15 @@ pub trait MetabondingStaking:
         };
 
         let locked_asset_token_id = self.locked_asset_token_id().get();
-        self.send().direct_esdt(
-            &caller,
-            &locked_asset_token_id,
-            user_entry.token_nonce,
-            &unstake_amount,
-        );
+
+        self.tx()
+            .to(&caller)
+            .single_esdt(
+                &locked_asset_token_id,
+                user_entry.token_nonce,
+                &unstake_amount,
+            )
+            .transfer();
 
         self.unbond_event(&caller, opt_entry_after_action);
     }

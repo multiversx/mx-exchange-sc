@@ -8,6 +8,7 @@ pub mod enable_swap_by_user;
 mod events;
 pub mod factory;
 pub mod multi_pair_swap;
+mod pair_proxy;
 
 use factory::PairTokens;
 use pair::config::ProxyTrait as _;
@@ -274,8 +275,7 @@ pub trait Router:
         self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
-            .async_call()
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
     #[only_owner]
@@ -374,7 +374,7 @@ pub trait Router:
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
-                    self.send().direct_egld(caller, &returned_tokens);
+                    self.tx().to(caller).egld(&returned_tokens).transfer();
                 }
             }
         }

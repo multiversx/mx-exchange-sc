@@ -54,7 +54,7 @@ pub trait CancelUnstakeModule:
 
         entries_mapper.clear();
 
-        self.send().direct_multi(&caller, &output_payments);
+        self.tx().to(&caller).payment(&output_payments).transfer();
 
         let sc_address = self.energy_factory_address().get();
         let _: IgnoreValue = self

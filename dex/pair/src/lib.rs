@@ -102,7 +102,28 @@ pub trait Pair<ContractReader>:
     }
 
     #[upgrade]
-    fn upgrade(&self) {}
+    fn upgrade(
+        &self,
+        first_token_id: TokenIdentifier,
+        second_token_id: TokenIdentifier,
+        router_address: ManagedAddress,
+        router_owner_address: ManagedAddress,
+        total_fee_percent: u64,
+        special_fee_percent: u64,
+        initial_liquidity_adder: ManagedAddress,
+        admins: MultiValueEncoded<ManagedAddress>,
+    ) {
+        self.init(
+            first_token_id,
+            second_token_id,
+            router_address,
+            router_owner_address,
+            total_fee_percent,
+            special_fee_percent,
+            initial_liquidity_adder,
+            admins,
+        );
+    }
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) {

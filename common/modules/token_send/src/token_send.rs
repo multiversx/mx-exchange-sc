@@ -18,7 +18,10 @@ pub trait TokenSendModule {
         }
 
         if !non_zero_payments.is_empty() {
-            self.send().direct_multi(destination, &non_zero_payments)
+            self.tx()
+                .to(destination)
+                .payment(non_zero_payments)
+                .transfer();
         }
     }
 
@@ -33,7 +36,10 @@ pub trait TokenSendModule {
             return;
         }
 
-        self.send().direct_esdt(to, token_id, token_nonce, amount);
+        self.tx()
+            .to(to)
+            .single_esdt(token_id, token_nonce, amount)
+            .transfer();
     }
 
     fn send_payment_non_zero(&self, to: &ManagedAddress, payment: &EsdtTokenPayment<Self::Api>) {

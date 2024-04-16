@@ -118,8 +118,10 @@ pub trait UnstakeFarmModule:
                 unlock_epoch: current_epoch + min_unbond_epochs,
             },
         );
-        self.send()
-            .direct_esdt(to, &farm_token_id, nft_nonce, &amount);
+        self.tx()
+            .to(to)
+            .single_esdt(&farm_token_id, nft_nonce, &amount)
+            .transfer();
 
         EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
     }

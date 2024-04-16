@@ -57,7 +57,7 @@ pub trait UnbondTokensModule:
             self.burn_penalty(token);
         }
 
-        self.send().direct_multi(&caller, &output_payments);
+        self.tx().to(&caller).payment(&output_payments).transfer();
 
         let new_unlocked_tokens = self.unlocked_tokens_for_user(&caller).get();
         self.emit_unlocked_tokens_event(&caller, new_unlocked_tokens);

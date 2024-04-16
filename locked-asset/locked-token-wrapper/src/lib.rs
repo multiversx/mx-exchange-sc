@@ -53,12 +53,14 @@ pub trait LockedTokenWrapper:
             &ManagedVec::from_single_item(original_locked_tokens.clone()),
         );
 
-        self.send().direct_esdt(
-            &caller,
-            &original_locked_tokens.token_identifier,
-            original_locked_tokens.token_nonce,
-            &original_locked_tokens.amount,
-        );
+        self.tx()
+            .to(&caller)
+            .single_esdt(
+                &original_locked_tokens.token_identifier,
+                original_locked_tokens.token_nonce,
+                &original_locked_tokens.amount,
+            )
+            .transfer();
 
         original_locked_tokens
     }

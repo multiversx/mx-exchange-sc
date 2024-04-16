@@ -133,12 +133,14 @@ pub trait EnableSwapByUserModule:
         self.set_fee_percents(pair_address.clone());
         self.pair_resume(pair_address.clone());
 
-        self.send().direct_esdt(
-            &caller,
-            &payment.token_identifier,
-            payment.token_nonce,
-            &payment.amount,
-        );
+        self.tx()
+            .to(&caller)
+            .single_esdt(
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+            )
+            .transfer();
 
         self.emit_user_swaps_enabled_event(
             caller,

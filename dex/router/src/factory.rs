@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::config;
+use crate::{config, pair_proxy};
 
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
@@ -20,9 +20,6 @@ pub struct PairContractMetadata<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait FactoryModule: config::ConfigModule {
-    #[proxy]
-    fn pair_contract_deploy_proxy(&self) -> pair::Proxy<Self::Api>;
-
     fn init_factory(&self, pair_template_address_opt: Option<ManagedAddress>) {
         if let Some(addr) = pair_template_address_opt {
             self.pair_template_address().set(&addr);
@@ -46,9 +43,9 @@ pub trait FactoryModule: config::ConfigModule {
             !self.pair_template_address().is_empty(),
             "pair contract template is empty"
         );
-
-        let (new_address, ()) = self
-            .pair_contract_deploy_proxy()
+        let new_address = self
+            .tx()
+            .typed(pair_proxy::PairProxy)
             .init(
                 first_token_id,
                 second_token_id,
@@ -59,10 +56,12 @@ pub trait FactoryModule: config::ConfigModule {
                 initial_liquidity_adder,
                 admins,
             )
-            .deploy_from_source(
-                &self.pair_template_address().get(),
+            .from_source(self.pair_template_address().get())
+            .code_metadata(
                 CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC,
-            );
+            )
+            .returns(ReturnsNewManagedAddress)
+            .sync_call();
 
         self.pair_map().insert(
             PairTokens {
@@ -98,9 +97,10 @@ pub trait FactoryModule: config::ConfigModule {
         total_fee_percent: u64,
         special_fee_percent: u64,
     ) {
-        self.pair_contract_deploy_proxy()
-            .contract(pair_address)
-            .init(
+        self.tx()
+            .to(pair_address)
+            .typed(pair_proxy::PairProxy)
+            .upgrade(
                 first_token_id,
                 second_token_id,
                 self.blockchain().get_sc_address(),
@@ -110,10 +110,11 @@ pub trait FactoryModule: config::ConfigModule {
                 ManagedAddress::zero(),
                 MultiValueEncoded::new(),
             )
-            .upgrade_from_source(
-                &self.pair_template_address().get(),
+            .from_source(self.pair_template_address().get())
+            .code_metadata(
                 CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC,
-            );
+            )
+            .upgrade_async_call_and_exit();
     }
 
     #[view(getAllPairsManagedAddresses)]

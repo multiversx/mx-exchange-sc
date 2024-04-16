@@ -94,12 +94,14 @@ pub trait UnlockWithPenaltyModule:
         energy.add_after_token_lock(&new_locked_tokens.amount, new_unlock_epoch, current_epoch);
         self.set_energy_entry(&caller, energy);
 
-        self.send().direct(
-            &caller,
-            &new_locked_tokens.token_identifier,
-            new_locked_tokens.token_nonce,
-            &new_locked_tokens.amount,
-        );
+        self.tx()
+            .to(&caller)
+            .egld_or_single_esdt(
+                &new_locked_tokens.token_identifier,
+                new_locked_tokens.token_nonce,
+                &new_locked_tokens.amount,
+            )
+            .transfer();
 
         self.to_esdt_payment(new_locked_tokens)
     }

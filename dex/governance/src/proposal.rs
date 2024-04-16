@@ -103,10 +103,11 @@ pub trait ProposalHelper: config::Config {
     }
 
     fn execute_action(&self, action: &Action<Self::Api>) -> Result<(), &'static [u8]> {
-        self.send()
-            .contract_call::<()>(action.dest_address.clone(), action.endpoint_name.clone())
-            .with_raw_arguments(ManagedArgBuffer::from(action.arguments.clone()))
-            .with_gas_limit(action.gas_limit)
+        self.tx()
+            .to(&action.dest_address)
+            .raw_call(action.endpoint_name.clone())
+            .arguments_raw(action.arguments.clone().into())
+            .gas(action.gas_limit)
             .transfer_execute();
         Result::Ok(())
         // ContractCallNoPayment::new()
