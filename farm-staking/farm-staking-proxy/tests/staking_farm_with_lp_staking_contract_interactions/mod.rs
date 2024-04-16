@@ -1,5 +1,6 @@
 #![allow(deprecated)]
 
+use config::{ConfigModule, UserTotalFarmPosition};
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
 use farm_with_locked_rewards::Farm;
@@ -9,6 +10,7 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
+    testing_framework::TxResult,
     whitebox_legacy::TxTokenTransfer,
     whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
@@ -111,8 +113,12 @@ where
             lp_farm_builder,
             USER_TOTAL_LP_TOKENS,
         );
-        let staking_farm_wrapper =
-            setup_staking_farm(&owner_addr, &mut b_mock, staking_farm_builder);
+        let staking_farm_wrapper = setup_staking_farm(
+            &owner_addr,
+            energy_factory_wrapper.address_ref(),
+            &mut b_mock,
+            staking_farm_builder,
+        );
         let proxy_wrapper = setup_proxy(
             &owner_addr,
             lp_farm_wrapper.address_ref(),
@@ -518,6 +524,85 @@ where
         new_farm_token_nonce
     }
 
+    pub fn stake_farm_for_other_user(
+        &mut self,
+        caller: &Address,
+        original_caller: &Address,
+        lp_farm_token_nonce: u64,
+        lp_farm_token_stake_amount: u64,
+    ) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            &caller,
+            &self.proxy_wrapper,
+            LP_FARM_TOKEN_ID,
+            lp_farm_token_nonce,
+            &rust_biguint!(lp_farm_token_stake_amount),
+            |sc| {
+                if caller == original_caller {
+                    sc.stake_farm_tokens(OptionalValue::None);
+                } else {
+                    sc.stake_farm_tokens(OptionalValue::Some(managed_address!(original_caller)));
+                }
+            },
+        )
+    }
+
+    pub fn claim_dual_yield_for_other_user(
+        &mut self,
+        caller: &Address,
+        original_caller: &Address,
+        dual_yield_token_nonce: u64,
+        dual_yield_token_amount: u64,
+    ) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            &caller,
+            &self.proxy_wrapper,
+            DUAL_YIELD_TOKEN_ID,
+            dual_yield_token_nonce,
+            &rust_biguint!(dual_yield_token_amount),
+            |sc| {
+                if caller == original_caller {
+                    sc.claim_dual_yield_endpoint(OptionalValue::None);
+                } else {
+                    sc.claim_dual_yield_endpoint(OptionalValue::Some(managed_address!(
+                        original_caller
+                    )));
+                }
+            },
+        )
+    }
+
+    pub fn unstake_dual_yield_for_other_user(
+        &mut self,
+        caller: &Address,
+        original_caller: &Address,
+        dual_yield_token_nonce: u64,
+        dual_yield_token_amount: u64,
+    ) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            &caller,
+            &self.proxy_wrapper,
+            DUAL_YIELD_TOKEN_ID,
+            dual_yield_token_nonce,
+            &rust_biguint!(dual_yield_token_amount),
+            |sc| {
+                if caller == original_caller {
+                    sc.unstake_farm_tokens(
+                        managed_biguint!(1u64),
+                        managed_biguint!(1u64),
+                        OptionalValue::None,
+                    );
+                } else {
+                    sc.unstake_farm_tokens(
+                        managed_biguint!(1u64),
+                        managed_biguint!(1u64),
+                        OptionalValue::Some(managed_address!(original_caller)),
+                    );
+                }
+            },
+        )
+    }
+
     pub fn set_user_energy(
         &mut self,
         user: &Address,
@@ -554,6 +639,106 @@ where
                     sc.set_boosted_yields_rewards_percentage(boosted_yields_rewards_percentage);
                 },
             )
+            .assert_ok();
+    }
+
+    pub fn set_staking_farm_migration_nonce(&mut self, migration_nonce: u64) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.staking_farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.farm_position_migration_nonce().set(migration_nonce);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn set_lp_farm_migration_nonce(&mut self, migration_nonce: u64) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.lp_farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.farm_position_migration_nonce().set(migration_nonce);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn set_user_total_staking_farm_position(
+        &mut self,
+        user_addr: &Address,
+        new_farm_position: u64,
+    ) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.staking_farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    let user_farm_position = UserTotalFarmPosition {
+                        total_farm_position: managed_biguint!(new_farm_position),
+                        ..Default::default()
+                    };
+                    sc.user_total_farm_position(&managed_address!(user_addr))
+                        .set(user_farm_position);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn set_user_total_lp_farm_position(&mut self, user_addr: &Address, new_farm_position: u64) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.lp_farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    let user_farm_position = UserTotalFarmPosition {
+                        total_farm_position: managed_biguint!(new_farm_position),
+                        ..Default::default()
+                    };
+                    sc.user_total_farm_position(&managed_address!(user_addr))
+                        .set(user_farm_position);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn check_user_total_staking_farm_position(
+        &mut self,
+        user_addr: &Address,
+        expected_amount: u64,
+    ) {
+        self.b_mock
+            .execute_query(&self.staking_farm_wrapper, |sc| {
+                let user_total_farm_position_mapper =
+                    sc.user_total_farm_position(&managed_address!(user_addr));
+                if expected_amount > 0 && !user_total_farm_position_mapper.is_empty() {
+                    assert_eq!(
+                        managed_biguint!(expected_amount),
+                        user_total_farm_position_mapper.get().total_farm_position
+                    );
+                }
+            })
+            .assert_ok();
+    }
+
+    pub fn check_user_total_lp_farm_position(&mut self, user_addr: &Address, expected_amount: u64) {
+        self.b_mock
+            .execute_query(&self.lp_farm_wrapper, |sc| {
+                let user_total_farm_position_mapper =
+                    sc.user_total_farm_position(&managed_address!(user_addr));
+                if expected_amount > 0 && !user_total_farm_position_mapper.is_empty() {
+                    assert_eq!(
+                        managed_biguint!(expected_amount),
+                        user_total_farm_position_mapper.get().total_farm_position
+                    );
+                }
+            })
             .assert_ok();
     }
 }
