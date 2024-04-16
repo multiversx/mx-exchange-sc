@@ -83,13 +83,4 @@ pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
     #[view(getCommonTokensForUserPairs)]
     #[storage_mapper("commonTokensForUserPairs")]
     fn common_tokens_for_user_pairs(&self) -> UnorderedSetMapper<TokenIdentifier>;
-
-    // read from other storage
-    #[view(getFirstTokenId)]
-    #[storage_mapper("first_token_id")]
-    fn first_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
-    #[view(getSecondTokenId)]
-    #[storage_mapper("second_token_id")]
-    fn second_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

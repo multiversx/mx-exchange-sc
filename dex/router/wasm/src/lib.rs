@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           32
+// Endpoints:                           30
 // Async Callback:                       1
-// Total number of exported functions:  34
+// Total number of exported functions:  32
 
 #![no_std]
 #![allow(internal_features)]
@@ -39,8 +39,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getPairTemplateAddress => pair_template_address
         getTemporaryOwnerPeriod => temporary_owner_period
         getCommonTokensForUserPairs => common_tokens_for_user_pairs
-        getFirstTokenId => first_token_id
-        getSecondTokenId => second_token_id
         getAllPairsManagedAddresses => get_all_pairs_addresses
         getAllPairTokens => get_all_token_pairs
         getAllPairContractMetadata => get_all_pair_contract_metadata
