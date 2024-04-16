@@ -53,7 +53,7 @@ pub trait GovernanceV2:
     }
 
     #[endpoint]
-    fn upgrade(&self) {
+    fn upgrade(
         &self,
         proposal_id: ProposalId,
         total_percentage: BigUint,
