@@ -117,17 +117,21 @@ pub trait FarmStaking:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let mut output_attributes = self.merge_farm_tokens::<FarmStakingWrapper<Self>>();
-        output_attributes.original_owner = caller.clone();
+        let merged_farm_token = self.merge_and_update_farm_tokens(caller.clone());
 
-        let new_token_amount = output_attributes.get_total_supply();
-        let merged_farm_token = self
-            .farm_token()
-            .nft_create(new_token_amount, &output_attributes);
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
         (merged_farm_token, boosted_rewards_payment).into()
+    }
+
+    fn merge_and_update_farm_tokens(&self, orig_caller: ManagedAddress) -> EsdtTokenPayment {
+        let mut output_attributes = self.merge_farm_tokens::<FarmStakingWrapper<Self>>();
+        output_attributes.original_owner = orig_caller;
+
+        let new_token_amount = output_attributes.get_total_supply();
+        self.farm_token()
+            .nft_create(new_token_amount, &output_attributes)
     }
 
     fn merge_farm_tokens<FC: FarmContract<FarmSc = Self>>(&self) -> FC::AttributesType {
