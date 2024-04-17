@@ -2,9 +2,8 @@ multiversx_sc::imports!();
 
 use common_errors::ERROR_PARAMETERS;
 use common_structs::Epoch;
-use pair::pair_actions::remove_liq::ProxyTrait as _;
 
-use crate::MAX_PERCENT;
+use crate::{pair_proxy, MAX_PERCENT};
 
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
 pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u64 = 3;
@@ -47,16 +46,16 @@ pub trait ExitPenaltyModule: permissions_module::PermissionsModule {
                 .esdt_local_burn(farming_token_id, 0, farming_amount);
         } else {
             let gas_limit = self.burn_gas_limit().get();
-            self.pair_contract_proxy(pair_contract_address)
+
+            self.tx()
+                .to(&pair_contract_address)
+                .typed(pair_proxy::PairProxy)
                 .remove_liquidity_and_burn_token(reward_token_id.clone())
-                .with_esdt_transfer((farming_token_id.clone(), 0, farming_amount.clone()))
-                .with_gas_limit(gas_limit)
+                .single_esdt(farming_token_id, 0, farming_amount)
+                .gas(gas_limit)
                 .transfer_execute();
         }
     }
-
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[view(getPenaltyPercent)]
     #[storage_mapper("penalty_percent")]

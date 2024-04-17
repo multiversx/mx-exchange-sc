@@ -16,6 +16,7 @@ pub mod pair_actions;
 pub mod read_pair_storage;
 pub mod safe_price;
 pub mod safe_price_view;
+pub mod self_proxy;
 
 use crate::errors::*;
 

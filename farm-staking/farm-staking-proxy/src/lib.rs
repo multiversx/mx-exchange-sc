@@ -5,6 +5,7 @@ multiversx_sc::imports!();
 pub mod dual_yield_token;
 pub mod external_contracts_interactions;
 pub mod lp_farm_token;
+pub mod pair_proxy;
 pub mod proxy_actions;
 pub mod result_types;
 

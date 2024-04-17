@@ -9,10 +9,8 @@ use farm_staking::{
     unstake_farm::ProxyTrait as _,
 };
 use farm_with_locked_rewards::ProxyTrait as _;
-use pair::{
-    pair_actions::{common_result_types::RemoveLiquidityResultType, remove_liq::ProxyTrait as _},
-    safe_price_view::ProxyTrait as _,
-};
+
+use crate::pair_proxy;
 
 use crate::result_types::*;
 
@@ -173,11 +171,15 @@ pub trait ExternalContractsInteractionsModule:
         pair_second_token_min_amount: BigUint,
     ) -> PairRemoveLiquidityResult<Self::Api> {
         let pair_address = self.pair_address().get();
-        let pair_withdraw_result: RemoveLiquidityResultType<Self::Api> = self
-            .pair_proxy_obj(pair_address)
+        let pair_withdraw_result = self
+            .tx()
+            .to(&pair_address)
+            .typed(pair_proxy::PairProxy)
             .remove_liquidity(pair_first_token_min_amount, pair_second_token_min_amount)
-            .with_esdt_transfer(lp_tokens)
-            .execute_on_dest_context();
+            .payment(lp_tokens)
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (pair_first_token_payment, pair_second_token_payment) =
             pair_withdraw_result.into_tuple();
 
@@ -199,10 +201,14 @@ pub trait ExternalContractsInteractionsModule:
 
     fn get_lp_tokens_safe_price(&self, lp_tokens_amount: BigUint) -> BigUint {
         let pair_address = self.pair_address().get();
-        let result: SafePriceResult<Self::Api> = self
-            .pair_proxy_obj(pair_address)
+        let result = self
+            .tx()
+            .to(&pair_address)
+            .typed(pair_proxy::PairProxy)
             .update_and_get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (first_token_info, second_token_info) = result.into_tuple();
         let staking_token_id = self.staking_token_id().get();
 
@@ -225,9 +231,6 @@ pub trait ExternalContractsInteractionsModule:
         &self,
         sc_address: ManagedAddress,
     ) -> farm_with_locked_rewards::Proxy<Self::Api>;
-
-    #[proxy]
-    fn pair_proxy_obj(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     // storage
 

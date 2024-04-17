@@ -7,6 +7,7 @@ multiversx_sc::derive_imports!();
 
 pub mod base_functions;
 pub mod exit_penalty;
+pub mod pair_proxy;
 
 use base_functions::{ClaimRewardsResultType, DoubleMultiPayment, Wrapper};
 use common_structs::FarmTokenAttributes;
