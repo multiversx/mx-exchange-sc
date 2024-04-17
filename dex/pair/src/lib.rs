@@ -6,6 +6,7 @@ multiversx_sc::derive_imports!();
 mod amm;
 pub mod config;
 mod contexts;
+mod energy_factory_lock_proxy;
 pub mod errors;
 mod events;
 pub mod fee;

@@ -1,3 +1,5 @@
+use crate::energy_factory_lock_proxy::{self, SimpleLockEnergyProxyMethods};
+
 multiversx_sc::imports!();
 
 #[multiversx_sc::module]
@@ -45,21 +47,25 @@ pub trait LockingModule {
         amount: BigUint,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let unlock_epoch = self.unlock_epoch().get();
-        let mut proxy_instance = self.get_locking_sc_proxy_instance();
+        let proxy_instance = self.get_locking_sc_proxy_instance();
 
-        proxy_instance
+        let tokens = proxy_instance
             .lock_tokens_endpoint(unlock_epoch, opt_dest)
-            .with_egld_or_single_esdt_transfer((token_id, 0, amount))
-            .execute_on_dest_context()
+            .egld_or_single_esdt(&token_id, 0, &amount)
+            .returns(ReturnsResult)
+            .sync_call();
+
+        EgldOrEsdtTokenPayment::from(tokens)
     }
 
-    fn get_locking_sc_proxy_instance(&self) -> simple_lock::ProxyTo<Self::Api> {
+    fn get_locking_sc_proxy_instance(
+        &self,
+    ) -> SimpleLockEnergyProxyMethods<TxScEnv<Self::Api>, (), ManagedAddress, ()> {
         let locking_sc_address = self.locking_sc_address().get();
-        self.locking_sc_proxy_obj(locking_sc_address)
+        self.tx()
+            .to(locking_sc_address)
+            .typed(energy_factory_lock_proxy::SimpleLockEnergyProxy)
     }
-
-    #[proxy]
-    fn locking_sc_proxy_obj(&self, sc_address: ManagedAddress) -> simple_lock::Proxy<Self::Api>;
 
     #[view(getLockingScAddress)]
     #[storage_mapper("lockingScAddress")]

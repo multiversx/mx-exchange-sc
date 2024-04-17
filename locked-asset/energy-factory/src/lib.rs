@@ -12,6 +12,7 @@ pub mod locked_token_transfer;
 pub mod migration;
 pub mod penalty;
 pub mod token_merging;
+mod token_unstake_proxy;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
 pub mod unstake;
