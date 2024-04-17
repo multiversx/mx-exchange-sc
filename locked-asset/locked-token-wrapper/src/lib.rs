@@ -20,6 +20,9 @@ pub trait LockedTokenWrapper:
         self.energy_factory_address().set(&energy_factory_address);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[payable("*")]
     #[endpoint(wrapLockedToken)]
     fn wrap_locked_token_endpoint(&self) -> EsdtTokenPayment {

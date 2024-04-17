@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(deprecated)]
 
 pub mod unbond_sc_mock;
 
@@ -14,8 +15,8 @@ use multiversx_sc::{
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox::TxResult,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::TxResult,
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 use simple_lock::locked_token::LockedTokenModule;
@@ -51,7 +52,7 @@ where
     ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub fn new(sc_builder: ScBuilder) -> Self {
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner = b_mock.create_user_account(&rust_zero);

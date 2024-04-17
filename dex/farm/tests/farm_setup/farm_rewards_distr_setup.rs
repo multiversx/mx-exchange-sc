@@ -1,11 +1,12 @@
 #![allow(dead_code)]
+#![allow(deprecated)]
 
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
-    whitebox::*, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    whitebox_legacy::TxTokenTransfer, whitebox_legacy::*, DebugApi,
 };
 pub type RustBigUint = num_bigint::BigUint;
 
@@ -182,12 +183,11 @@ where
                 &self.farm_wrapper,
                 FARM_TOKEN_ID,
                 farm_token_nonce,
-                &farm_out_amount.clone(),
+                &farm_out_amount,
                 |sc| {
-                    let exit_amount = to_managed_biguint(farm_out_amount);
-                    let multi_result = sc.exit_farm_endpoint(exit_amount, OptionalValue::None);
+                    let multi_result = sc.exit_farm_endpoint(OptionalValue::None);
 
-                    let (first_result, second_result, _third_result) = multi_result.into_tuple();
+                    let (first_result, second_result) = multi_result.into_tuple();
 
                     assert_eq!(
                         first_result.token_identifier,

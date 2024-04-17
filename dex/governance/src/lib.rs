@@ -49,6 +49,9 @@ pub trait Governance:
         self.try_change_price_providers(price_providers);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[payable("*")]
     #[endpoint]
     fn propose(&self, args: ProposalCreationArgs<Self::Api>) -> u64 {

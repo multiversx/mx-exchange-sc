@@ -1,7 +1,10 @@
+#![allow(deprecated)]
+
 mod energy_factory_setup;
 
 use energy_factory::energy::EnergyModule;
 use energy_factory_setup::*;
+use multiversx_sc::types::BigUint;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use multiversx_sc_scenario::{
@@ -442,14 +445,19 @@ fn energy_deplete_test() {
     assert_eq!(actual_energy, expected_energy);
 
     current_epoch = 10;
-    let expected_energy = managed_biguint!(LOCK_OPTIONS[0] - current_epoch) * half_balance;
+    let expected_energy: BigUint<DebugApi> =
+        managed_biguint!(LOCK_OPTIONS[0] - current_epoch) * half_balance;
+    let expected_energy_vec = expected_energy.to_bytes_be().as_slice().to_vec();
 
     setup
         .b_mock
         .execute_query(&setup.sc_wrapper, |sc| {
             let mut energy = sc.user_energy(&managed_address!(&first_user)).get();
             energy.deplete(current_epoch);
-            assert_eq!(energy.get_energy_amount(), expected_energy);
+            assert_eq!(
+                energy.get_energy_amount(),
+                BigUint::from_bytes_be(&expected_energy_vec)
+            );
         })
         .assert_ok();
 }

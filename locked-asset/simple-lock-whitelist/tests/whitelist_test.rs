@@ -1,7 +1,9 @@
+#![allow(deprecated)]
+
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::types::{EsdtLocalRole, MultiValueEncoded};
 use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
-use multiversx_sc_scenario::{managed_token_id_wrapped, whitebox::*};
+use multiversx_sc_scenario::{managed_token_id_wrapped, whitebox_legacy::*};
 
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use simple_lock::locked_token::*;
@@ -80,7 +82,7 @@ fn lock_whitelist_test() {
         )
         .assert_ok();
 
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     b_mock.check_nft_balance(
         &user_addr,
         LOCKED_TOKEN_ID,

@@ -1,22 +1,24 @@
+#![allow(deprecated)]
+
 mod farm_setup;
 
 use config::ConfigModule;
 use farm_setup::single_user_farm_setup::*;
 use multiversx_sc::types::EsdtLocalRole;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
-    DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    whitebox_legacy::TxTokenTransfer, DebugApi,
 };
 use sc_whitelist_module::SCWhitelistModule;
 
 #[test]
 fn test_farm_setup() {
-    let _ = SingleUserFarmSetup::new(farm::contract_obj);
+    let _ = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
 }
 
 #[test]
 fn test_enter_farm() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -26,7 +28,7 @@ fn test_enter_farm() {
 
 #[test]
 fn test_exit_farm() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -51,7 +53,7 @@ fn test_exit_farm() {
 
 #[test]
 fn test_exit_farm_with_penalty() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -79,7 +81,7 @@ fn test_exit_farm_with_penalty() {
 
 #[test]
 fn test_claim_rewards() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -104,13 +106,15 @@ fn test_claim_rewards() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 }
 
-fn steps_enter_farm_twice<FarmObjBuilder>(
+fn steps_enter_farm_twice<FarmObjBuilder, PairObjBuilder>(
     farm_builder: FarmObjBuilder,
-) -> SingleUserFarmSetup<FarmObjBuilder>
+    pair_builder: PairObjBuilder,
+) -> SingleUserFarmSetup<FarmObjBuilder, PairObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
-    let mut farm_setup = SingleUserFarmSetup::new(farm_builder);
+    let mut farm_setup = SingleUserFarmSetup::new(farm_builder, pair_builder);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -153,12 +157,12 @@ where
 
 #[test]
 fn test_enter_farm_twice() {
-    let _ = steps_enter_farm_twice(farm::contract_obj);
+    let _ = steps_enter_farm_twice(farm::contract_obj, pair::contract_obj);
 }
 
 #[test]
 fn test_exit_farm_after_enter_twice() {
-    let mut farm_setup = steps_enter_farm_twice(farm::contract_obj);
+    let mut farm_setup = steps_enter_farm_twice(farm::contract_obj, pair::contract_obj);
     let farm_in_amount = 100_000_000;
     let second_farm_in_amount = 200_000_000;
     let total_farm_token = farm_in_amount + second_farm_in_amount;
@@ -207,9 +211,9 @@ fn test_farm_through_simple_lock() {
     const LOCKED_LP_TOKEN_ID: &[u8] = b"LKLP-123456";
     const FARM_PROXY_TOKEN_ID: &[u8] = b"PROXY-123456";
 
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
     let b_mock = &mut farm_setup.blockchain_wrapper;
 
     // setup simple lock SC
@@ -394,7 +398,7 @@ fn test_farm_through_simple_lock() {
             2,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token(managed_biguint!(1_000_000_000));
+                let exit_farm_result = sc.exit_farm_locked_token();
                 let (locked_tokens, reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(
@@ -592,7 +596,7 @@ fn test_farm_through_simple_lock() {
             7,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token(managed_biguint!(1_000_000_000));
+                let exit_farm_result = sc.exit_farm_locked_token();
                 let (locked_tokens, _reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(

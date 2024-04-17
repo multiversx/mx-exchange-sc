@@ -57,6 +57,9 @@ pub trait LkmexTransfer:
     }
 
     #[endpoint]
+    fn upgrade(&self) {}
+
+    #[endpoint]
     fn withdraw(&self, sender: ManagedAddress) {
         let receiver = self.blockchain().get_caller();
         let receiver_last_transfer_mapper = self.receiver_last_transfer_epoch(&receiver);
@@ -122,7 +125,7 @@ pub trait LkmexTransfer:
         let sender_last_transfer_mapper = self.sender_last_transfer_epoch(&sender);
         self.check_address_on_cooldown(&sender_last_transfer_mapper);
 
-        let payments = self.call_value().all_esdt_transfers();
+        let payments = self.call_value().all_esdt_transfers().clone_value();
         let locked_token_id = self.locked_token_id().get();
         for payment in payments.iter() {
             require!(

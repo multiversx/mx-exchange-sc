@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
-use common_structs::Nonce;
-use energy_factory::locked_token_transfer::ProxyTrait as _;
+use common_structs::{Epoch, Nonce};
+use energy_factory::{locked_token_transfer::ProxyTrait as _, ProxyTrait as _};
 use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -49,6 +49,7 @@ pub trait EnergyUpdateModule:
             if self.blockchain().is_smart_contract(user) {
                 return;
             }
+
             let attributes = self.decode_legacy_token(token_id, token_nonce);
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(token_amount);
             for pair in epoch_amount_pairs.pairs {
@@ -60,6 +61,19 @@ pub trait EnergyUpdateModule:
 
         let energy_factory_addr = self.energy_factory_address().get();
         self.set_energy_in_factory(user.clone(), energy, energy_factory_addr);
+    }
+
+    fn call_increase_energy(
+        &self,
+        user: ManagedAddress,
+        old_tokens: EsdtTokenPayment,
+        lock_epochs: Epoch,
+        energy_factory_addr: ManagedAddress,
+    ) -> EsdtTokenPayment {
+        self.energy_factory_proxy(energy_factory_addr)
+            .extend_lock_period(lock_epochs, user)
+            .with_esdt_transfer(old_tokens)
+            .execute_on_dest_context()
     }
 
     fn set_energy_in_factory(

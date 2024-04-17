@@ -60,6 +60,13 @@ pub trait ConfigModule {
         self.all_tokens().set(&all_tokens_vec);
     }
 
+    #[endpoint(setAllowExternalClaimRewards)]
+    fn set_allow_external_claim_rewards(&self, allow_external_claim_rewards: bool) {
+        let caller = self.blockchain().get_caller();
+        self.allow_external_claim_rewards(&caller)
+            .set(allow_external_claim_rewards);
+    }
+
     #[view(getLockedTokenId)]
     #[storage_mapper("lockedTokenId")]
     fn locked_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
@@ -78,4 +85,8 @@ pub trait ConfigModule {
 
     #[storage_mapper("allTokens")]
     fn all_tokens(&self) -> SingleValueMapper<ManagedVec<TokenIdentifier>>;
+
+    #[view(getAllowExternalClaimRewards)]
+    #[storage_mapper("allowExternalClaimRewards")]
+    fn allow_external_claim_rewards(&self, user: &ManagedAddress) -> SingleValueMapper<bool>;
 }

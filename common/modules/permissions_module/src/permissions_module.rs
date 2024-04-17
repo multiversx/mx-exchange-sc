@@ -54,7 +54,7 @@ pub trait PermissionsModule {
         permissions: Permissions,
     ) {
         for address in addresses {
-            self.add_permissions(address, permissions);
+            self.add_permissions(address, permissions.clone());
         }
     }
 

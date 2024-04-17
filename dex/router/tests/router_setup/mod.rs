@@ -1,9 +1,9 @@
 use multiversx_sc::codec::multi_types::{MultiValue4, OptionalValue};
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint, whitebox::*,
-    DebugApi,
+    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
+    whitebox_legacy::*, DebugApi,
 };
 
 pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
@@ -27,9 +27,11 @@ pub const MIN_LOCKED_PERIOD_EPOCHS: u64 = 100;
 pub const USER_CUSTOM_TOKEN_BALANCE: u64 = 1_000_000_000;
 pub const USER_USDC_BALANCE: u64 = 1_000_000;
 
-use pair::config::*;
+use pair::config::ConfigModule as PairConfigModule;
+use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::*;
 use pausable::{PausableModule, State};
+use router::config::ConfigModule;
 use router::factory::*;
 use router::multi_pair_swap::*;
 use router::*;
@@ -278,6 +280,19 @@ where
                     }
 
                     sc.multi_pair_swap(swap_operations);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn migrate_pair_map(&mut self) {
+        self.blockchain_wrapper
+            .execute_tx(
+                &self.owner_address,
+                &self.router_wrapper,
+                &rust_biguint!(0u64),
+                |sc| {
+                    sc.migrate_pair_map();
                 },
             )
             .assert_ok();

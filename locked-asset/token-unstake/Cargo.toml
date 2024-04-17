@@ -7,8 +7,9 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
 [dependencies.multiversx-sc]
-version = "=0.39.4"
+version = "=0.46.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.mergeable]
@@ -38,7 +39,7 @@ num-traits = "0.2"
 hex = "0.4"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.39.4"
+version = "=0.46.1"
 
 [dev-dependencies.multiversx-sc-modules]
-version = "=0.39.4"
+version = "=0.46.1"

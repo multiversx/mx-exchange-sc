@@ -5,6 +5,7 @@ multiversx_sc::imports!();
 #[multiversx_sc::module]
 pub trait CompoundStakeFarmRewardsModule:
     crate::custom_rewards::CustomRewardsModule
+    + crate::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
@@ -32,6 +33,7 @@ pub trait CompoundStakeFarmRewardsModule:
     #[endpoint(compoundRewards)]
     fn compound_rewards(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
+        self.migrate_old_farm_positions(&caller);
         let payments = self.get_non_empty_payments();
         let compound_result =
             self.compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments);

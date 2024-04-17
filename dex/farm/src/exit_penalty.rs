@@ -2,6 +2,7 @@ multiversx_sc::imports!();
 
 use common_errors::ERROR_PARAMETERS;
 use common_structs::Epoch;
+use pair::pair_actions::remove_liq::ProxyTrait as _;
 
 pub const MAX_PERCENT: u64 = 10_000;
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;

@@ -35,11 +35,11 @@ impl UnbondScMock {
     pub fn send_to_user(&self) {
         let [locked_tokens, unlocked_tokens] = self.call_value().multi_esdt();
 
-        let locked_tokens_burn_amount = unlocked_tokens.amount.clone();
+        let locked_tokens_burn_amount = &unlocked_tokens.amount;
         self.send().esdt_local_burn(
             &locked_tokens.token_identifier,
             locked_tokens.token_nonce,
-            &locked_tokens_burn_amount,
+            locked_tokens_burn_amount,
         );
 
         let (dest_user, ()) =

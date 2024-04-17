@@ -12,14 +12,17 @@ path = "src/lib.rs"
 hex-literal = "0.3.1"
 
 [dependencies.multiversx-sc]
-version = "=0.39.4"
+version = "=0.46.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.39.4"
+version = "=0.46.1"
 
 [dependencies.farm]
 path = "../../dex/farm"
+
+[dependencies.farm-with-locked-rewards]
+path = "../../dex/farm-with-locked-rewards"
 
 [dependencies.farm-staking]
 path = "../farm-staking"
@@ -57,14 +60,26 @@ path = "../../common/traits/unwrappable"
 [dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
 
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.39.4"
+version = "=0.46.1"
 
 [dev-dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 
 [dev-dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"
+
+[dev-dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"
+
+[dev-dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
+
+[dev-dependencies.locking_module]
+path = "../../common/modules/locking_module"

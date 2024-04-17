@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod test {
+    #![allow(deprecated)]
 
     multiversx_sc::imports!();
     multiversx_sc::derive_imports!();

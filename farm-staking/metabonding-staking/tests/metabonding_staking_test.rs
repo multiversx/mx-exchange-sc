@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 pub mod metabonding_staking_setup;
 use metabonding_staking::{
     locked_asset_token::{LockedAssetTokenModule, UserEntry},
@@ -5,7 +7,7 @@ use metabonding_staking::{
 };
 use metabonding_staking_setup::*;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, rust_biguint, whitebox::TxTokenTransfer,
+    managed_address, managed_biguint, rust_biguint, whitebox_legacy::TxTokenTransfer,
 };
 
 #[test]

@@ -13,7 +13,7 @@ use fixed_supply_token::FixedSupplyToken;
 pub trait WrappedFarmTokenMerge:
     token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + crate::sc_whitelist::ScWhitelistModule
+    + crate::other_sc_whitelist::OtherScWhitelistModule
     + crate::proxy_common::ProxyCommonModule
     + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
     + utils::UtilsModule

@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_errors::{ERROR_NOT_AN_ESDT, ERROR_SAME_TOKEN_IDS, ERROR_ZERO_AMOUNT};
+use common_errors::{ERROR_NOT_AN_ESDT, ERROR_ZERO_AMOUNT};
 use pausable::State;
 use permissions_module::Permissions;
 
@@ -29,10 +29,6 @@ pub trait BaseFarmInitModule:
             ERROR_NOT_AN_ESDT
         );
         require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
-
-        let farm_token = self.farm_token().get_token_id();
-        require!(reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
-        require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
 
         self.state().set(State::Inactive);
         self.division_safety_constant()

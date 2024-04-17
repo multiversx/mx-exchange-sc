@@ -2,7 +2,6 @@
 
 multiversx_sc::imports!();
 
-pub mod caller_check;
 pub mod configurable;
 mod errors;
 pub mod events;
@@ -13,6 +12,7 @@ pub mod views;
 use proposal::*;
 use proposal_storage::VoteType;
 
+use crate::configurable::{FULL_PERCENTAGE, MAX_GAS_LIMIT_PER_BLOCK};
 use crate::errors::*;
 use crate::proposal_storage::ProposalVotes;
 
@@ -25,7 +25,6 @@ pub trait GovernanceV2:
     configurable::ConfigurablePropertiesModule
     + events::EventsModule
     + proposal_storage::ProposalStorageModule
-    + caller_check::CallerCheckModule
     + views::ViewsModule
 {
     /// - `min_fee_for_propose` - the minimum fee required for submitting a proposal;
@@ -38,7 +37,7 @@ pub trait GovernanceV2:
     fn init(
         &self,
         min_fee_for_propose: BigUint,
-        quorum_percentage: BigUint,
+        quorum_percentage: u64,
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
         withdraw_percentage_defeated: u64,
@@ -50,6 +49,17 @@ pub trait GovernanceV2:
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
         self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
         self.try_change_fee_token_id(fee_token);
+    }
+
+    #[endpoint]
+    fn upgrade(
+        &self,
+        proposal_id: ProposalId,
+        total_percentage: BigUint,
+    ) {
+        let mut proposal = self.proposals().get(proposal_id);
+        proposal.total_quorum = total_percentage;
+        self.proposals().set(proposal_id, &proposal);
     }
 
     /// Propose a list of actions.
@@ -207,13 +217,9 @@ pub trait GovernanceV2:
         }
     }
 
-    /// Cancel a proposed action. This can be done:
-    /// - by the proposer, at any time
-    /// - by anyone, if the proposal was defeated
+    /// Cancel a proposed action. This can be done only during Pending status
     #[endpoint]
     fn cancel(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-
         match self.get_proposal_status(proposal_id) {
             GovernanceProposalStatus::None => {
                 sc_panic!(NO_PROPOSAL);
@@ -234,10 +240,9 @@ pub trait GovernanceV2:
     }
 
     /// When a proposal was defeated, the proposer can withdraw
-    /// a part of the FEE.
+    /// If DefeatedWithVeto only part of the fee  can be withdrawn
     #[endpoint(withdrawDeposit)]
     fn withdraw_deposit(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
         let caller = self.blockchain().get_caller();
 
         match self.get_proposal_status(proposal_id) {

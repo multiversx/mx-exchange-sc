@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -5,7 +7,7 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    whitebox::TxResult, whitebox::*, DebugApi,
+    whitebox_legacy::TxResult, whitebox_legacy::*, DebugApi,
 };
 
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
@@ -106,7 +108,7 @@ where
             &rust_biguint!(USER_BALANCE * 2),
         );
 
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
 
         b_mock.set_nft_balance(
             &depositor_address,
@@ -223,7 +225,22 @@ where
     pub fn claim(&mut self, user: &Address) -> TxResult {
         self.b_mock
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
-                let _ = sc.claim_rewards(OptionalValue::None);
+                let _ = sc.claim_rewards_endpoint(OptionalValue::None);
+            })
+    }
+
+    pub fn claim_for_user(&mut self, owner: &Address, broker: &Address) -> TxResult {
+        self.b_mock
+            .execute_tx(broker, &self.fc_wrapper, &rust_biguint!(0), |sc| {
+                let _ = sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(owner)));
+            })
+    }
+
+    pub fn allow_external_claim_rewards(&mut self, user: &Address) -> TxResult {
+        self.b_mock
+            .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
+                sc.allow_external_claim_rewards(&managed_address!(user))
+                    .set(true);
             })
     }
 

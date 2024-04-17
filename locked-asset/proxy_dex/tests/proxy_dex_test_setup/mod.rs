@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use config::ConfigModule;
 use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
@@ -14,12 +16,14 @@ use multiversx_sc::{
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 use pair::{config::ConfigModule as OtherConfigModule, Pair};
 use pausable::{PausableModule, State};
-use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
+use proxy_dex::{
+    other_sc_whitelist::OtherScWhitelistModule, proxy_common::ProxyCommonModule, ProxyDexImpl,
+};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 
@@ -85,7 +89,7 @@ where
         farm_locked_builder: FarmLockedObjBuilder,
         simple_lock_builder: SimpleLockObjBuilder,
     ) -> Self {
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
 
         let rust_zero = rust_biguint!(0);
         let mut b_mock = BlockchainStateWrapper::new();
@@ -313,6 +317,8 @@ where
             );
             sc.set_locking_sc_address(managed_address!(simple_lock_addr));
             sc.set_lock_epochs(EPOCHS_IN_YEAR);
+            sc.energy_factory_address()
+                .set(managed_address!(simple_lock_addr));
         })
         .assert_ok();
 

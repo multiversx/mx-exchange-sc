@@ -25,6 +25,9 @@ pub trait SimpleLock:
     #[init]
     fn init(&self) {}
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     /// Locks any token (including EGLD) until `unlock_epoch` and receive meta ESDT LOCKED tokens.
     /// on a 1:1 ratio. If unlock epoch has already passed, the original tokens are sent instead.
     ///

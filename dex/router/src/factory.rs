@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use crate::config;
+
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
@@ -17,7 +19,7 @@ pub struct PairContractMetadata<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::module]
-pub trait FactoryModule {
+pub trait FactoryModule: config::ConfigModule {
     #[proxy]
     fn pair_contract_deploy_proxy(&self) -> pair::Proxy<Self::Api>;
 
@@ -68,6 +70,13 @@ pub trait FactoryModule {
                 second_token_id: second_token_id.clone(),
             },
             new_address.clone(),
+        );
+        self.address_pair_map().insert(
+            new_address.clone(),
+            PairTokens {
+                first_token_id: first_token_id.clone(),
+                second_token_id: second_token_id.clone(),
+            },
         );
         self.pair_temporary_owner().insert(
             new_address.clone(),
@@ -165,13 +174,11 @@ pub trait FactoryModule {
         address
     }
 
-    fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
-        require!(
-            self.pair_map()
-                .values()
-                .any(|address| &address == pair_address),
-            "Not a pair SC"
-        );
+    #[view(getPairTokens)]
+    fn get_pair_tokens(&self, pair_address: ManagedAddress) -> PairTokens<Self::Api> {
+        let pair_tokens_opt = self.address_pair_map().get(&pair_address);
+        require!(pair_tokens_opt.is_some(), "Pair address not found");
+        pair_tokens_opt.unwrap()
     }
 
     fn get_pair_temporary_owner(&self, pair_address: &ManagedAddress) -> Option<ManagedAddress> {
@@ -199,30 +206,4 @@ pub trait FactoryModule {
         self.pair_temporary_owner().clear();
         size
     }
-
-    #[only_owner]
-    #[endpoint(setTemporaryOwnerPeriod)]
-    fn set_temporary_owner_period(&self, period_blocks: u64) {
-        self.temporary_owner_period().set(period_blocks);
-    }
-
-    #[only_owner]
-    #[endpoint(setPairTemplateAddress)]
-    fn set_pair_template_address(&self, address: ManagedAddress) {
-        self.pair_template_address().set(&address);
-    }
-
-    #[storage_mapper("pair_map")]
-    fn pair_map(&self) -> MapMapper<PairTokens<Self::Api>, ManagedAddress>;
-
-    #[view(getPairTemplateAddress)]
-    #[storage_mapper("pair_template_address")]
-    fn pair_template_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getTemporaryOwnerPeriod)]
-    #[storage_mapper("temporary_owner_period")]
-    fn temporary_owner_period(&self) -> SingleValueMapper<u64>;
-
-    #[storage_mapper("pair_temporary_owner")]
-    fn pair_temporary_owner(&self) -> MapMapper<ManagedAddress, (ManagedAddress, u64)>;
 }

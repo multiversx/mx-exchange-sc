@@ -9,7 +9,9 @@ use crate::base_impl_wrapper::FarmStakingWrapper;
 
 pub const MAX_PERCENT: u64 = 10_000;
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
-const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
+pub const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
+pub const WITHDRAW_AMOUNT_TOO_HIGH: &str =
+    "Withdraw amount is higher than the remaining uncollected rewards!";
 
 #[multiversx_sc::module]
 pub trait CustomRewardsModule:
@@ -17,6 +19,7 @@ pub trait CustomRewardsModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
+    + utils::UtilsModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -40,6 +43,36 @@ pub trait CustomRewardsModule:
         require!(payment_token == reward_token_id, "Invalid token");
 
         self.reward_capacity().update(|r| *r += payment_amount);
+    }
+
+    #[payable("*")]
+    #[endpoint(withdrawRewards)]
+    fn withdraw_rewards(&self, withdraw_amount: BigUint) {
+        self.require_caller_has_admin_permissions();
+
+        let mut storage_cache = StorageCache::new(self);
+        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
+        let reward_capacity_mapper = self.reward_capacity();
+        let accumulated_rewards_mapper = self.accumulated_rewards();
+        let remaining_rewards = reward_capacity_mapper.get() - accumulated_rewards_mapper.get();
+        require!(
+            withdraw_amount <= remaining_rewards,
+            WITHDRAW_AMOUNT_TOO_HIGH
+        );
+
+        reward_capacity_mapper.update(|rewards| {
+            require!(
+                *rewards >= withdraw_amount,
+                "Not enough rewards to withdraw"
+            );
+
+            *rewards -= withdraw_amount.clone()
+        });
+
+        let caller = self.blockchain().get_caller();
+        let reward_token_id = self.reward_token_id().get();
+        self.send_tokens_non_zero(&caller, &reward_token_id, 0, &withdraw_amount);
     }
 
     #[endpoint(endProduceRewards)]

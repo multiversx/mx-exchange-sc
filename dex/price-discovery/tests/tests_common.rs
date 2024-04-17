@@ -1,8 +1,10 @@
+#![allow(deprecated)]
+
 use multiversx_sc::codec::Empty;
 use multiversx_sc::types::{Address, EsdtLocalRole};
-use multiversx_sc_scenario::whitebox::TxResult;
+use multiversx_sc_scenario::whitebox_legacy::TxResult;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id_wrapped, whitebox::*,
+    managed_address, managed_biguint, managed_token_id_wrapped, whitebox_legacy::*,
 };
 use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 

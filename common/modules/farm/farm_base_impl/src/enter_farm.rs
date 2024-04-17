@@ -44,6 +44,18 @@ pub trait BaseEnterFarmModule:
             &storage_cache.farm_token_id,
         );
 
+        // The order is important - first check and update, then increase position
+        FC::check_and_update_user_farm_position(
+            self,
+            &caller,
+            &enter_farm_context.additional_farm_tokens,
+        );
+        FC::increase_user_farm_position(
+            self,
+            &caller,
+            &enter_farm_context.farming_token_payment.amount,
+        );
+
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         storage_cache.farm_token_supply += &enter_farm_context.farming_token_payment.amount;

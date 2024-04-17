@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
@@ -7,9 +9,9 @@ use metabonding_staking::MetabondingStaking;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedVec};
 use multiversx_sc_modules::pause::PauseModule;
-use multiversx_sc_scenario::whitebox::{TxResult, TxTokenTransfer};
+use multiversx_sc_scenario::whitebox_legacy::{TxResult, TxTokenTransfer};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 
 pub const METABONDING_STAKING_WASM_PATH: &str = "1.wasm";
@@ -45,7 +47,7 @@ where
         mbs_builder: MetabondingStakingObjBuilder,
         laf_builder: LockedAssetFactoryObjBuilder,
     ) -> Self {
-        let _ = DebugApi::dummy();
+        DebugApi::dummy();
 
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();

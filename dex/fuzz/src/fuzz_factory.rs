@@ -1,10 +1,11 @@
 #[cfg(test)]
 pub mod fuzz_factory_test {
+    #![allow(deprecated)]
 
     multiversx_sc::imports!();
     multiversx_sc::derive_imports!();
 
-    use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+    use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
     use multiversx_sc_scenario::{rust_biguint, DebugApi};
 
     use crate::fuzz_data::fuzz_data_tests::*;

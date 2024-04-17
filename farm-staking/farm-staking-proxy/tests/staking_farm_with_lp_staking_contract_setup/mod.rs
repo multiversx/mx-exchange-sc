@@ -1,8 +1,10 @@
+#![allow(deprecated)]
+
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 
@@ -117,6 +119,7 @@ where
     b_mock
         .execute_tx(owner_addr, &proxy_wrapper, &rust_zero, |sc| {
             sc.init(
+                managed_address!(staking_farm_address), // TODO - replace with energy factory address when needed
                 managed_address!(lp_farm_address),
                 managed_address!(staking_farm_address),
                 managed_address!(pair_address),
