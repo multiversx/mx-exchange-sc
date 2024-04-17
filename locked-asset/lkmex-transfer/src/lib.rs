@@ -5,6 +5,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub mod constants;
+pub mod energy_factory_token_transfer_proxy;
 pub mod energy_transfer;
 pub mod events;
 

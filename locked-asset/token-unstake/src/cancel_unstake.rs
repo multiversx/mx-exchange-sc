@@ -1,9 +1,8 @@
 multiversx_sc::imports!();
 
-use energy_factory::unstake::ProxyTrait as _;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::events;
+use crate::{energy_factory_unstake_proxy, events};
 
 #[multiversx_sc::module]
 pub trait CancelUnstakeModule:
@@ -57,10 +56,11 @@ pub trait CancelUnstakeModule:
         self.tx().to(&caller).payment(&output_payments).transfer();
 
         let sc_address = self.energy_factory_address().get();
-        let _: IgnoreValue = self
-            .energy_factory_proxy(sc_address)
+        self.tx()
+            .to(&sc_address)
+            .typed(energy_factory_unstake_proxy::SimpleLockEnergyProxy)
             .revert_unstake(caller.clone(), energy)
-            .execute_on_dest_context();
+            .sync_call();
 
         self.emit_unlocked_tokens_event(&caller, ManagedVec::new());
         output_payments.into()
