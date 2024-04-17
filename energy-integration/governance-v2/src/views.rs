@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
 use crate::{
-    proposal::{GovernanceProposalStatus, ProposalId},
+    proposal::{GovernanceProposalStatus, ProposalId, HASH_LENGTH},
     FULL_PERCENTAGE,
 };
 
@@ -9,8 +9,7 @@ use crate::{
 pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
     + crate::configurable::ConfigurablePropertiesModule
-    + permissions_module::PermissionsModule
-    + energy_query::EnergyQueryModule
+    + crate::caller_check::CallerCheckModule
 {
     #[view(getProposalStatus)]
     fn get_proposal_status(&self, proposal_id: ProposalId) -> GovernanceProposalStatus {
@@ -44,11 +43,26 @@ pub trait ViewsModule:
         }
     }
 
-    // private
+    #[view(getProposalRootHash)]
+    fn get_root_hash(
+        &self,
+        proposal_id: ProposalId,
+    ) -> OptionalValue<ManagedByteArray<HASH_LENGTH>> {
+        if !self.proposal_exists(proposal_id) {
+            return OptionalValue::None;
+        }
+
+        OptionalValue::Some(self.proposals().get(proposal_id).root_hash)
+    }
 
     fn vote_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
+
+        if total_votes == 0u64 {
+            return false;
+        }
+
         let total_up_votes = proposal_votes.up_votes;
         let total_down_veto_votes = proposal_votes.down_veto_votes;
         let third_total_votes = &total_votes / 3u64;
@@ -64,6 +78,11 @@ pub trait ViewsModule:
     fn vote_down_with_veto(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
+
+        if total_votes == 0u64 {
+            return false;
+        }
+
         let total_down_veto_votes = proposal_votes.down_veto_votes;
         let third_total_votes = &total_votes / 3u64;
 
@@ -72,11 +91,18 @@ pub trait ViewsModule:
 
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal = self.proposals().get(proposal_id);
-        let total_quorum_for_proposal = proposal.total_quorum;
-        let required_minimum_percentage = BigUint::from(proposal.minimum_quorum);
-        let current_quorum = self.proposal_votes(proposal_id).get().quorum;
+        let total_quorum = proposal.total_quorum;
 
-        current_quorum * FULL_PERCENTAGE >= required_minimum_percentage * total_quorum_for_proposal
+        if total_quorum == 0u64 {
+            return false;
+        }
+
+        let required_minimum_percentage = proposal.minimum_quorum;
+
+        let current_quorum = self.proposal_votes(proposal_id).get().quorum;
+        let current_quorum_percentage = current_quorum * FULL_PERCENTAGE / total_quorum;
+
+        current_quorum_percentage >= required_minimum_percentage
     }
 
     fn require_valid_proposal_id(&self, proposal_id: ProposalId) {
@@ -93,17 +119,4 @@ pub trait ViewsModule:
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {
         self.is_valid_proposal_id(proposal_id) && !self.proposals().item_is_empty(proposal_id)
     }
-
-    #[only_owner]
-    #[endpoint(changeFeesCollectorAddress)]
-    fn change_fees_collector_address(&self, new_value: ManagedAddress) {
-        self.fees_collector_address().set(new_value);
-    }
-
-    #[proxy]
-    fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
-
-    #[view(getFeesCollectorAddress)]
-    #[storage_mapper("feesCollectorAddress")]
-    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 }
