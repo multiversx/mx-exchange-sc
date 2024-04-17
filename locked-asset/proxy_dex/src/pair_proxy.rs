@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use multiversx_sc::proxy_imports::*;
 
 pub struct PairProxy;
