@@ -305,13 +305,13 @@ pub trait GovernanceV2:
         proposal: &GovernanceProposal<Self::Api>,
         refund_amount: &BigUint,
     ) {
-        self.send().direct_non_zero_esdt_payment(
-            &proposal.proposer,
-            &EsdtTokenPayment::new(
-                proposal.fee_payment.token_identifier.clone(),
+        self.tx()
+            .to(&proposal.proposer)
+            .single_esdt(
+                &proposal.fee_payment.token_identifier,
                 proposal.fee_payment.token_nonce,
-                refund_amount.clone(),
-            ),
-        );
+                refund_amount,
+            )
+            .transfer();
     }
 }

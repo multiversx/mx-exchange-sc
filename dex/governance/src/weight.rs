@@ -44,12 +44,10 @@ pub trait Lib: config::Config {
     }
 
     fn send_back(&self, payment: EsdtTokenPayment<Self::Api>) {
-        self.send().direct_esdt(
-            &self.blockchain().get_caller(),
-            &payment.token_identifier,
-            payment.token_nonce,
-            &payment.amount,
-        );
+        self.tx()
+            .to(&self.blockchain().get_caller())
+            .payment(payment)
+            .transfer();
     }
 
     #[proxy]

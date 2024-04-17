@@ -69,7 +69,7 @@ pub trait MultiPairSwap:
         }
 
         payments.push(last_payment);
-        self.send().direct_multi(&caller, &payments);
+        self.tx().to(&caller).payment(&payments).transfer();
 
         payments
     }

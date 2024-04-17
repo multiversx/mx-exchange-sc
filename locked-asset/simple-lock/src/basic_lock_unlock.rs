@@ -47,12 +47,14 @@ pub trait BasicLockUnlock:
         unlock_epoch: u64,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let out_payment = self.lock_tokens(payment, unlock_epoch);
-        self.send().direct(
-            to,
-            &out_payment.token_identifier,
-            out_payment.token_nonce,
-            &out_payment.amount,
-        );
+        self.tx()
+            .to(to)
+            .egld_or_single_esdt(
+                &out_payment.token_identifier,
+                out_payment.token_nonce,
+                &out_payment.amount,
+            )
+            .transfer();
 
         out_payment
     }
@@ -97,12 +99,14 @@ pub trait BasicLockUnlock:
         payment: EsdtTokenPayment<Self::Api>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let out_payment = self.unlock_tokens(payment);
-        self.send().direct(
-            to,
-            &out_payment.token_identifier,
-            out_payment.token_nonce,
-            &out_payment.amount,
-        );
+        self.tx()
+            .to(to)
+            .egld_or_single_esdt(
+                &out_payment.token_identifier,
+                out_payment.token_nonce,
+                &out_payment.amount,
+            )
+            .transfer();
 
         out_payment
     }

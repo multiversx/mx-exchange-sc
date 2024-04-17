@@ -8,6 +8,7 @@ pub mod enable_swap_by_user;
 mod events;
 pub mod factory;
 pub mod multi_pair_swap;
+mod pair_proxy;
 
 use factory::PairTokens;
 use pair::config::ProxyTrait as _;
@@ -159,9 +160,6 @@ pub trait Router:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        initial_liquidity_adder: ManagedAddress,
-        total_fee_percent_requested: u64,
-        special_fee_percent_requested: u64,
     ) {
         require!(self.is_active(), "Not active");
 
@@ -177,21 +175,7 @@ pub trait Router:
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(!pair_address.is_zero(), "Pair does not exists");
 
-        require!(
-            total_fee_percent_requested >= special_fee_percent_requested
-                && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
-            "Bad percents"
-        );
-
-        self.upgrade_pair(
-            pair_address,
-            &first_token_id,
-            &second_token_id,
-            &self.owner().get(),
-            &initial_liquidity_adder,
-            total_fee_percent_requested,
-            special_fee_percent_requested,
-        );
+        self.upgrade_pair(pair_address);
     }
 
     #[payable("EGLD")]
@@ -274,8 +258,7 @@ pub trait Router:
         self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
-            .async_call()
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
     #[only_owner]
@@ -374,7 +357,7 @@ pub trait Router:
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
-                    self.send().direct_egld(caller, &returned_tokens);
+                    self.tx().to(caller).egld(&returned_tokens).transfer();
                 }
             }
         }
