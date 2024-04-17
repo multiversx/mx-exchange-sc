@@ -649,7 +649,7 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, permissions_module::permissions::Permissions> {
+    ) -> TxProxyCall<Env, From, To, Gas, permissions_module::Permissions> {
         self.wrapped_tx
             .raw_call("getPermissions")
             .argument(&address)

@@ -18,3 +18,7 @@ add-labels = ["safe-price-view"]
 
 [[proxy]]
 path = "../router/src/pair_proxy.rs"
+
+[[proxy.path-rename]]
+from = "permissions::Permissions"
+to = "Permissions"
