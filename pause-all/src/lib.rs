@@ -5,20 +5,8 @@ use ongoing_pause_operation::{OngoingOperation, MIN_GAS_TO_SAVE_PROGRESS};
 
 multiversx_sc::imports!();
 
-mod pause_proxy {
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait Pausable {
-        #[endpoint]
-        fn pause(&self);
-
-        #[endpoint]
-        fn resume(&self);
-    }
-}
-
 pub mod ongoing_pause_operation;
+pub mod pause_proxy;
 
 #[multiversx_sc::contract]
 pub trait PauseAll:
@@ -95,7 +83,11 @@ pub trait PauseAll:
     }
 
     fn call_pause(&self, sc_addr: ManagedAddress) {
-        let _: IgnoreValue = self.pause_proxy(sc_addr).pause().execute_on_dest_context();
+        self.tx()
+            .to(&sc_addr)
+            .typed(pause_proxy::PausableProxy)
+            .pause()
+            .sync_call();
     }
 
     /// Will unpause the given list of contracts.
@@ -143,11 +135,12 @@ pub trait PauseAll:
     }
 
     fn call_resume(&self, sc_addr: ManagedAddress) {
-        let _: IgnoreValue = self.pause_proxy(sc_addr).resume().execute_on_dest_context();
+        self.tx()
+            .to(&sc_addr)
+            .typed(pause_proxy::PausableProxy)
+            .resume()
+            .sync_call();
     }
-
-    #[proxy]
-    fn pause_proxy(&self, addr: ManagedAddress) -> pause_proxy::Proxy<Self::Api>;
 
     #[view(getPausableContracts)]
     #[storage_mapper("pausableContracts")]

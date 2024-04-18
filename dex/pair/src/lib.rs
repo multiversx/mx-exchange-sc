@@ -10,6 +10,7 @@ mod energy_factory_lock_proxy;
 pub mod errors;
 mod events;
 pub mod fee;
+pub mod fees_collector_proxy;
 mod liquidity_pool;
 pub mod locking_wrapper;
 pub mod pair_actions;

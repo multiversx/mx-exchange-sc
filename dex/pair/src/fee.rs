@@ -9,9 +9,9 @@ use crate::config::MAX_PERCENTAGE;
 use crate::contexts::base::StorageCache;
 use crate::contexts::base::SwapTokensOrder;
 
+use crate::fees_collector_proxy;
 use crate::self_proxy;
 use common_structs::TokenPair;
-use fees_collector::fees_accumulation::ProxyTrait as _;
 
 #[multiversx_sc::module]
 pub trait FeeModule:
@@ -162,11 +162,13 @@ pub trait FeeModule:
 
     fn send_fees_collector_cut(&self, token: TokenIdentifier, cut_amount: BigUint) {
         let fees_collector_address = self.fees_collector_address().get();
-        let _: IgnoreValue = self
-            .fees_collector_proxy(fees_collector_address)
+
+        self.tx()
+            .to(&fees_collector_address)
+            .typed(fees_collector_proxy::FeesCollectorProxy)
             .deposit_swap_fees()
-            .with_esdt_transfer((token, 0, cut_amount))
-            .execute_on_dest_context();
+            .single_esdt(&token, 0, &cut_amount)
+            .sync_call();
     }
 
     fn send_fee_slice(
@@ -386,9 +388,6 @@ pub trait FeeModule:
         }
         result
     }
-
-    #[proxy]
-    fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
 
     #[view(getFeesCollectorAddress)]
     #[storage_mapper("feesCollectorAddress")]

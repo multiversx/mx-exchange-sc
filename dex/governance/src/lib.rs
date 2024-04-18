@@ -9,6 +9,7 @@ multiversx_sc::derive_imports!();
 pub mod config;
 pub mod errors;
 mod events;
+pub mod price_provider_proxy;
 pub mod proposal;
 mod validation;
 pub mod vote;

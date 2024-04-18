@@ -100,9 +100,6 @@ pub trait ViewsModule:
         self.fees_collector_address().set(new_value);
     }
 
-    #[proxy]
-    fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
-
     #[view(getFeesCollectorAddress)]
     #[storage_mapper("feesCollectorAddress")]
     fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
