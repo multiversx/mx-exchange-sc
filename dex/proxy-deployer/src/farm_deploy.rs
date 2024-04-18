@@ -1,6 +1,6 @@
-multiversx_sc::imports!();
+use crate::farm_proxy;
 
-use farm::ProxyTrait as _;
+multiversx_sc::imports!();
 
 const DIVISION_SAFETY_CONST: u64 = 1_000_000_000_000_000_000;
 
@@ -21,8 +21,10 @@ pub trait FarmDeployModule {
         let farm_template = self.farm_template_address().get();
         let code_metadata =
             CodeMetadata::PAYABLE_BY_SC | CodeMetadata::READABLE | CodeMetadata::UPGRADEABLE;
-        let (new_farm_address, ()) = self
-            .farm_deploy_proxy()
+
+        let new_farm_address = self
+            .tx()
+            .typed(farm_proxy::FarmProxy)
             .init(
                 reward_token_id,
                 farming_token_id,
@@ -31,7 +33,10 @@ pub trait FarmDeployModule {
                 owner,
                 admins_list,
             )
-            .deploy_from_source(&farm_template, code_metadata);
+            .from_source(farm_template)
+            .code_metadata(code_metadata)
+            .returns(ReturnsNewManagedAddress)
+            .sync_call();
 
         self.deployer_farm_addresses(&caller)
             .update(|farm_addresses| {
@@ -51,15 +56,13 @@ pub trait FarmDeployModule {
         args: MultiValueEncoded<ManagedBuffer>,
     ) {
         let gas_left = self.blockchain().get_gas_left();
-        let mut contract_call = self
-            .send()
-            .contract_call::<()>(farm_address, function_name)
-            .with_gas_limit(gas_left);
 
-        for arg in args {
-            contract_call.push_raw_argument(arg);
-        }
-        let _: IgnoreValue = contract_call.execute_on_dest_context();
+        self.tx()
+            .to(&farm_address)
+            .raw_call(function_name)
+            .gas(gas_left)
+            .arguments_raw(args.to_arg_buffer())
+            .sync_call();
     }
 
     #[view(getAllDeployedFarms)]
@@ -70,9 +73,6 @@ pub trait FarmDeployModule {
         }
         all_farm_addresses
     }
-
-    #[proxy]
-    fn farm_deploy_proxy(&self) -> farm::Proxy<Self::Api>;
 
     #[storage_mapper("farmTemplateAddress")]
     fn farm_template_address(&self) -> SingleValueMapper<ManagedAddress>;

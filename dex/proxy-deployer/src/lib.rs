@@ -3,6 +3,7 @@
 multiversx_sc::imports!();
 
 pub mod farm_deploy;
+pub mod farm_proxy;
 
 #[multiversx_sc::contract]
 pub trait ProxyDeployer: farm_deploy::FarmDeployModule {

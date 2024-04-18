@@ -1,17 +1,10 @@
 multiversx_sc::imports!();
 
-use farm::{
-    base_functions::{ClaimRewardsResultType, DoubleMultiPayment},
-    EnterFarmResultType, ExitFarmWithPartialPosResultType,
-};
-use farm_staking::{
-    claim_stake_farm_rewards::ProxyTrait as _, stake_farm::ProxyTrait as _,
-    unstake_farm::ProxyTrait as _,
-};
-use farm_with_locked_rewards::ProxyTrait as _;
+use farm::base_functions::DoubleMultiPayment;
 
+use crate::farm_staking_proxy_methods;
+use crate::farm_with_locked_rewards_proxy;
 use crate::pair_proxy;
-
 use crate::result_types::*;
 
 pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
@@ -30,11 +23,19 @@ pub trait ExternalContractsInteractionsModule:
         lp_farm_token_amount: BigUint,
     ) -> LpFarmClaimRewardsResult<Self::Api> {
         let lp_farm_address = self.lp_farm_address().get();
-        let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
-            .lp_farm_proxy_obj(lp_farm_address)
+        let lp_farm_result = self
+            .tx()
+            .to(&lp_farm_address)
+            .typed(farm_with_locked_rewards_proxy::FarmProxy)
             .claim_rewards_endpoint(orig_caller)
-            .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
-            .execute_on_dest_context();
+            .single_esdt(
+                &lp_farm_token_id,
+                lp_farm_token_nonce,
+                &lp_farm_token_amount,
+            )
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (new_lp_farm_tokens, lp_farm_rewards) = lp_farm_result.into_tuple();
 
         LpFarmClaimRewardsResult {
@@ -51,11 +52,19 @@ pub trait ExternalContractsInteractionsModule:
     ) -> LpFarmExitResult<Self::Api> {
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_address = self.lp_farm_address().get();
-        let exit_farm_result: ExitFarmWithPartialPosResultType<Self::Api> = self
-            .lp_farm_proxy_obj(lp_farm_address)
+        let exit_farm_result = self
+            .tx()
+            .to(&lp_farm_address)
+            .typed(farm_with_locked_rewards_proxy::FarmProxy)
             .exit_farm_endpoint(orig_caller)
-            .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
-            .execute_on_dest_context();
+            .single_esdt(
+                &lp_farm_token_id,
+                lp_farm_token_nonce,
+                &lp_farm_token_amount,
+            )
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (lp_tokens, lp_farm_rewards) = exit_farm_result.into_tuple();
 
         LpFarmExitResult {
@@ -79,10 +88,13 @@ pub trait ExternalContractsInteractionsModule:
         additional_lp_farm_tokens.push(base_lp_farm_token);
 
         let lp_farm_address = self.lp_farm_address().get();
-        self.lp_farm_proxy_obj(lp_farm_address)
+        self.tx()
+            .to(lp_farm_address)
+            .typed(farm_with_locked_rewards_proxy::FarmProxy)
             .merge_farm_tokens_endpoint(orig_caller)
-            .with_multi_token_transfer(additional_lp_farm_tokens)
-            .execute_on_dest_context()
+            .payment(additional_lp_farm_tokens)
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     // staking farm
@@ -94,11 +106,15 @@ pub trait ExternalContractsInteractionsModule:
         staking_farm_tokens: PaymentsVec<Self::Api>,
     ) -> StakingFarmEnterResult<Self::Api> {
         let staking_farm_address = self.staking_farm_address().get();
-        let enter_result: EnterFarmResultType<Self::Api> = self
-            .staking_farm_proxy_obj(staking_farm_address)
+        let enter_result = self
+            .tx()
+            .to(&staking_farm_address)
+            .typed(farm_staking_proxy_methods::FarmStakingProxy)
             .stake_farm_through_proxy(staking_token_amount, orig_caller)
-            .with_multi_token_transfer(staking_farm_tokens)
-            .execute_on_dest_context();
+            .payment(staking_farm_tokens)
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (received_staking_farm_token, boosted_rewards) = enter_result.into_tuple();
 
         StakingFarmEnterResult {
@@ -116,15 +132,19 @@ pub trait ExternalContractsInteractionsModule:
         new_staking_farm_value: BigUint,
     ) -> StakingFarmClaimRewardsResult<Self::Api> {
         let staking_farm_address = self.staking_farm_address().get();
-        let staking_farm_result: ClaimRewardsResultType<Self::Api> = self
-            .staking_farm_proxy_obj(staking_farm_address)
+        let staking_farm_result = self
+            .tx()
+            .to(&staking_farm_address)
+            .typed(farm_staking_proxy_methods::FarmStakingProxy)
             .claim_rewards_with_new_value(new_staking_farm_value, orig_caller)
-            .with_esdt_transfer((
-                staking_farm_token_id,
+            .single_esdt(
+                &staking_farm_token_id,
                 staking_farm_token_nonce,
-                staking_farm_token_amount,
-            ))
-            .execute_on_dest_context();
+                &staking_farm_token_amount,
+            )
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (new_staking_farm_tokens, staking_farm_rewards) = staking_farm_result.into_tuple();
 
         StakingFarmClaimRewardsResult {
@@ -149,11 +169,15 @@ pub trait ExternalContractsInteractionsModule:
         ));
 
         let staking_farm_address = self.staking_farm_address().get();
-        let unstake_result: ExitFarmWithPartialPosResultType<Self::Api> = self
-            .staking_farm_proxy_obj(staking_farm_address)
+        let unstake_result = self
+            .tx()
+            .to(&staking_farm_address)
+            .typed(farm_staking_proxy_methods::FarmStakingProxy)
             .unstake_farm_through_proxy(orig_caller)
-            .with_multi_token_transfer(payments)
-            .execute_on_dest_context();
+            .payment(payments)
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (unbond_staking_farm_token, staking_rewards) = unstake_result.into_tuple();
 
         StakingFarmExitResult {
@@ -220,17 +244,6 @@ pub trait ExternalContractsInteractionsModule:
             sc_panic!("Invalid Pair contract called");
         }
     }
-
-    // proxies
-
-    #[proxy]
-    fn staking_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_staking::Proxy<Self::Api>;
-
-    #[proxy]
-    fn lp_farm_proxy_obj(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> farm_with_locked_rewards::Proxy<Self::Api>;
 
     // storage
 

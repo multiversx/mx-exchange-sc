@@ -10,6 +10,7 @@ pub mod energy_update;
 pub mod events;
 pub mod external_merging;
 pub mod farm_interactions;
+pub mod farm_with_locked_rewards_proxy;
 pub mod other_sc_whitelist;
 pub mod pair_interactions;
 pub mod pair_proxy;
