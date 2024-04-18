@@ -532,7 +532,7 @@ where
         lp_farm_token_stake_amount: u64,
     ) -> TxResult {
         self.b_mock.execute_esdt_transfer(
-            &caller,
+            caller,
             &self.proxy_wrapper,
             LP_FARM_TOKEN_ID,
             lp_farm_token_nonce,
@@ -555,7 +555,7 @@ where
         dual_yield_token_amount: u64,
     ) -> TxResult {
         self.b_mock.execute_esdt_transfer(
-            &caller,
+            caller,
             &self.proxy_wrapper,
             DUAL_YIELD_TOKEN_ID,
             dual_yield_token_nonce,
@@ -580,7 +580,7 @@ where
         dual_yield_token_amount: u64,
     ) -> TxResult {
         self.b_mock.execute_esdt_transfer(
-            &caller,
+            caller,
             &self.proxy_wrapper,
             DUAL_YIELD_TOKEN_ID,
             dual_yield_token_nonce,
