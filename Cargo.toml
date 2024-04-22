@@ -59,4 +59,6 @@ members = [
 
   "pause-all",
   "pause-all/meta",
+
+  "dex/interactor"
 ]

@@ -1,0 +1,33 @@
+[package]
+name = "interactor"
+version = "0.0.0"
+authors = [""]
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "interactor"
+path = "src/dex_interact.rs"
+
+[dependencies]
+clap = { version = "4.4.7", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8.6"
+
+[dependencies.multiversx-sc-modules]
+version = "=0.49.0-alpha.3"
+
+[dependencies.multiversx-sc-snippets]
+version = "=0.49.0-alpha.3"
+
+[dependencies.multiversx-sc-scenario]
+version = "=0.49.0-alpha.3"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
+
+[dependencies.pausable]
+path = "../../common/modules/pausable"
