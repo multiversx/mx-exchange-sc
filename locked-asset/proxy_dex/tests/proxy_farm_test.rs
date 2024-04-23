@@ -1486,3 +1486,102 @@ fn increase_proxy_farm_proxy_lp_energy() {
         }),
     );
 }
+
+
+
+#[test]
+fn original_caller_negative_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
+    let user_balance = rust_biguint!(USER_BALANCE);
+    setup
+        .b_mock
+        .set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
+
+    // users lock tokens
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.simple_lock_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &user_balance,
+            |sc| {
+                let user_payment = sc.lock_tokens_endpoint(LOCK_OPTIONS[1], OptionalValue::None);
+                assert_eq!(user_payment.token_nonce, 2);
+                assert_eq!(user_payment.amount, managed_biguint!(USER_BALANCE));
+            },
+        )
+        .assert_ok();
+
+    //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), Some(managed_address!(&first_user)).into());
+            },
+        )
+        .assert_error(4, "Item not whitelisted");
+
+        setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+
+        // claim rewards with half position
+        setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE / 2),
+            |sc| {
+                sc.claim_rewards_proxy(managed_address!(&farm_addr), Some(managed_address!(&first_user)).into());
+            },
+        )
+        .assert_error(4, "Item not whitelisted");
+
+        setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                let output = sc.exit_farm_proxy(managed_address!(&farm_addr), Some(managed_address!(&first_user)).into());
+                let output_lp_token = output.0 .0;
+                assert_eq!(output_lp_token.token_nonce, 1);
+                assert_eq!(output_lp_token.amount, USER_BALANCE);
+            },
+        )
+        .assert_error(4, "Item not whitelisted");
+
+}
