@@ -12,11 +12,11 @@ path = "src/lib.rs"
 hex-literal = "0.3.1"
 
 [dependencies.multiversx-sc]
-version = "=0.49.0-alpha.3"
+version = "=0.49.0-alpha.4"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.49.0-alpha.3"
+version = "=0.49.0-alpha.4"
 
 [dependencies.farm]
 path = "../../dex/farm"
@@ -67,7 +67,7 @@ path = "../../energy-integration/common-modules/energy-query"
 num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.49.0-alpha.3"
+version = "=0.49.0-alpha.4"
 
 [dev-dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"

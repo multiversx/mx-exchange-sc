@@ -16,6 +16,9 @@ pub struct State {
     router: Option<Bech32Address>,
     farm_staking: Option<Bech32Address>,
     farm_staking_proxy: Option<Bech32Address>,
+    energy_factory: Option<Bech32Address>,
+    first_token_id: Option<String>,
+    second_token_id: Option<String>,
 }
 
 impl State {
@@ -31,7 +34,7 @@ impl State {
         }
     }
 
-    pub fn _current_farm_with_locked_rewards_address(&self) -> &Bech32Address {
+    pub fn current_farm_with_locked_rewards_address(&self) -> &Bech32Address {
         self.farm_with_locked_rewards
             .as_ref()
             .expect("no known farm with locked rewards contract, set first")
@@ -59,6 +62,24 @@ impl State {
         self.farm_staking_proxy
             .as_ref()
             .expect("no known farm staking proxy contract, set first")
+    }
+
+    pub fn _current_energy_factory_address(&self) -> &Bech32Address {
+        self.energy_factory
+            .as_ref()
+            .expect("no known energy factory contract, set first")
+    }
+
+    pub fn first_token_id(&self) -> &String {
+        self.first_token_id
+            .as_ref()
+            .expect("no knows first token id, set first")
+    }
+
+    pub fn second_token_id(&self) -> &String {
+        self.second_token_id
+            .as_ref()
+            .expect("no knows second token id, set first")
     }
 }
 

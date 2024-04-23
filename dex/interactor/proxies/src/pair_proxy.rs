@@ -7,8 +7,8 @@
 #![allow(dead_code)]
 #![allow(clippy::all)]
 
-use multiversx_sc_scenario::multiversx_sc;
 use multiversx_sc::proxy_imports::*;
+use multiversx_sc_scenario::multiversx_sc;
 
 pub struct PairProxy;
 

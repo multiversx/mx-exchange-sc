@@ -1,15 +1,15 @@
 mod dex_interact_cli;
 mod dex_interact_config;
+mod dex_interact_farm_locked;
 mod dex_interact_pair;
 mod dex_interact_state;
-mod pair_proxy;
 
+use proxies::*;
 use clap::Parser;
+use dex_interact_cli::AddArgs;
 use dex_interact_config::Config;
 use dex_interact_state::State;
 use multiversx_sc_snippets::imports::*;
-
-const INTERACTOR_SCENARIO_TRACE_PATH: &str = "interactor_trace.scen.json";
 
 #[tokio::main]
 async fn main() {
@@ -25,8 +25,21 @@ async fn main() {
         }
         Some(dex_interact_cli::InteractCliCommand::Swap(args)) => {
             dex_interact
-                .swap_tokens_fixed_input(args.amount, &args.token_identifier, args.min_amount)
+                .swap_tokens_fixed_input(args.amount, args.min_amount)
                 .await;
+        }
+        Some(dex_interact_cli::InteractCliCommand::Add(args)) => {
+            dex_interact
+                .add_liquidity(
+                    args.first_payment_amount,
+                    args.second_payment_amount,
+                    args.first_token_amount_min,
+                    args.second_token_amount_min,
+                )
+                .await;
+        }
+        Some(dex_interact_cli::InteractCliCommand::FullFarm(args)) => {
+            dex_interact.full_farm_scenario(args).await;
         }
         None => {}
     }
@@ -41,10 +54,8 @@ struct DexInteract {
 impl DexInteract {
     async fn init() -> Self {
         let config = Config::load_config();
-        let mut interactor = Interactor::new(config.gateway())
-            .await
-            .with_tracer(INTERACTOR_SCENARIO_TRACE_PATH)
-            .await;
+        let mut interactor = Interactor::new(config.gateway()).await;
+
         let test_address = test_wallets::mike();
         let wallet_address = interactor.register_wallet(test_address);
         println!("wallet address: {:#?}", test_address.address());
@@ -64,6 +75,19 @@ impl DexInteract {
         for wallet in &[carol, dan, eve] {
             self.interactor.register_wallet(*wallet);
         }
+    }
+
+    async fn full_farm_scenario(&mut self, args: &AddArgs) {
+        let (_, _, lp_token) = self
+            .add_liquidity(
+                args.first_payment_amount,
+                args.second_payment_amount,
+                args.first_token_amount_min,
+                args.second_token_amount_min,
+            )
+            .await;
+        let _result = self.enter_farm(lp_token).await;
+        //TODO
     }
 
     async fn pause(&mut self) {

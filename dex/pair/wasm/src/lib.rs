@@ -8,7 +8,7 @@
 // Upgrade:                              1
 // Endpoints:                           54
 // Async Callback (empty):               1
-// Total number of exported functions:  56
+// Total number of exported functions:  57
 
 #![no_std]
 #![allow(internal_features)]

@@ -1,0 +1,2 @@
+[[proxy]]
+path = "../../dex/interactor/src/farm_staking_proxy_sc_proxy.rs"

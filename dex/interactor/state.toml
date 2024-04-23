@@ -1,6 +1,8 @@
-# SC addresses on the devnet
 farm_with_locked_rewards = "erd1qqqqqqqqqqqqqpgql7rysqgxxzhykg3j6vccnx4003z2mcl80n4ste3jh8"
 pair = "erd1qqqqqqqqqqqqqpgq4zafu6rzdw7fj07hjh5tkm68jsaj7hl60n4s8py4ra"
 router = "erd1qqqqqqqqqqqqqpgqa7hv0nahgsl8tz0psat46x0tchm0wuyc0n4s6q28ad"
 farm_staking = "erd1qqqqqqqqqqqqqpgquvklwltnlgyn5w5cd65ey36nw8sc008d0n4s0xpr25"
 farm_staking_proxy = "erd1qqqqqqqqqqqqqpgqqwn0qa7ft4tew05r0zcd0c5hay5mp6np0n4ss8jm86"
+energy_factory = "erd1qqqqqqqqqqqqqpgqs7qnuvj2t0m40xmgrrh88wc7qdx286c60n4spvrzzk"
+first_token_id = "UTK-14d57d"
+second_token_id = "WEGLD-a28c59"

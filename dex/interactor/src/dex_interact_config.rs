@@ -4,7 +4,7 @@ use std::io::Read;
 /// Config file
 const CONFIG_FILE: &str = "config.toml";
 
-/// Multisig Interact configuration
+/// Dex Interact configuration
 #[derive(Debug, Deserialize)]
 pub struct Config {
     gateway: String,
