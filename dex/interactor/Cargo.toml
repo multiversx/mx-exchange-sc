@@ -25,3 +25,6 @@ version = "=0.49.0-alpha.4"
 
 [dependencies.proxies]
 path = "proxies"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"

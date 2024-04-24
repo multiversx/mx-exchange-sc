@@ -1404,6 +1404,7 @@ name = "interactor"
 version = "0.0.0"
 dependencies = [
  "clap",
+ "common_structs",
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "multiversx-sc-snippets",

@@ -1,16 +1,22 @@
+use common_structs::FarmTokenAttributes;
 use multiversx_sc_scenario::{
     api::StaticApi,
     imports::{
-        Address, EsdtTokenPayment, ManagedAddress, ManagedVec, OptionalValue, ReturnsResult,
+        Address, BigUint, EsdtTokenPayment, ManagedAddress, ManagedVec, ReturnsResult, RustBigUint,
     },
 };
 use multiversx_sc_snippets::InteractorPrepareAsync;
 
-use crate::{farm_with_locked_rewards_proxy, structs::InteractorToken, DexInteract};
+use crate::{
+    farm_with_locked_rewards_proxy,
+    structs::{extract_caller, to_rust_biguint, InteractorFarmTokenAttributes, InteractorToken},
+    DexInteract,
+};
 
 pub struct FarmLocked;
 
 pub trait FarmLockedTrait {
+    // endpoints
     async fn enter_farm(
         dex_interact: &mut DexInteract,
         lp_token: InteractorToken,
@@ -30,6 +36,17 @@ pub trait FarmLockedTrait {
         payment: Vec<InteractorToken>,
         opt_original_caller: Option<Address>,
     ) -> (InteractorToken, InteractorToken);
+    async fn claim_boosted_rewards(
+        dex_interact: &mut DexInteract,
+        opt_original_caller: Option<Address>,
+    ) -> InteractorToken;
+    // views
+    async fn calculate_rewards_for_given_position(
+        dex_interact: &mut DexInteract,
+        user: Address,
+        farm_token_amount: u128,
+        attributes: InteractorFarmTokenAttributes,
+    ) -> RustBigUint;
 }
 
 impl FarmLockedTrait for FarmLocked {
@@ -74,10 +91,7 @@ impl FarmLockedTrait for FarmLocked {
             .map(EsdtTokenPayment::from)
             .collect::<ManagedVec<StaticApi, EsdtTokenPayment<StaticApi>>>();
 
-        let caller =
-            opt_original_caller.unwrap_or_else(|| dex_interact.wallet_address.to_address());
-        let caller_arg: OptionalValue<ManagedAddress<StaticApi>> =
-            OptionalValue::Some(ManagedAddress::from(caller));
+        let caller_arg = extract_caller(dex_interact, opt_original_caller);
 
         let result_token = dex_interact
             .interactor
@@ -108,10 +122,7 @@ impl FarmLockedTrait for FarmLocked {
     ) -> (InteractorToken, InteractorToken) {
         println!("Attempting to exit farm with locked rewards...");
 
-        let caller =
-            opt_original_caller.unwrap_or_else(|| dex_interact.wallet_address.to_address());
-        let caller_arg: OptionalValue<ManagedAddress<StaticApi>> =
-            OptionalValue::Some(ManagedAddress::from(caller));
+        let caller_arg = extract_caller(dex_interact, opt_original_caller);
 
         let result_token = dex_interact
             .interactor
@@ -147,10 +158,7 @@ impl FarmLockedTrait for FarmLocked {
             .map(EsdtTokenPayment::from)
             .collect::<ManagedVec<StaticApi, EsdtTokenPayment<StaticApi>>>();
 
-        let caller =
-            opt_original_caller.unwrap_or_else(|| dex_interact.wallet_address.to_address());
-        let caller_arg: OptionalValue<ManagedAddress<StaticApi>> =
-            OptionalValue::Some(ManagedAddress::from(caller));
+        let caller_arg = extract_caller(dex_interact, opt_original_caller);
 
         let result_token = dex_interact
             .interactor
@@ -172,5 +180,63 @@ impl FarmLockedTrait for FarmLocked {
             InteractorToken::from(result_token.0 .0),
             InteractorToken::from(result_token.0 .1),
         )
+    }
+
+    async fn claim_boosted_rewards(
+        dex_interact: &mut DexInteract,
+        opt_original_caller: Option<Address>,
+    ) -> InteractorToken {
+        let caller_arg = extract_caller(dex_interact, opt_original_caller);
+
+        let result_token = dex_interact
+            .interactor
+            .tx()
+            .from(&dex_interact.wallet_address)
+            .to(dex_interact
+                .state
+                .current_farm_with_locked_rewards_address())
+            .gas(100_000_000u64)
+            .typed(farm_with_locked_rewards_proxy::FarmProxy)
+            .claim_boosted_rewards(caller_arg)
+            .returns(ReturnsResult)
+            .prepare_async()
+            .run()
+            .await;
+
+        InteractorToken::from(result_token)
+    }
+
+    async fn calculate_rewards_for_given_position(
+        dex_interact: &mut DexInteract,
+        user: Address,
+        farm_token_amount: u128,
+        attributes: InteractorFarmTokenAttributes,
+    ) -> RustBigUint {
+        let attributes_arg: FarmTokenAttributes<StaticApi> = FarmTokenAttributes {
+            reward_per_share: BigUint::from(attributes.reward_per_share),
+            entering_epoch: attributes.entering_epoch,
+            compounded_reward: BigUint::from(attributes.compounded_reward),
+            current_farm_amount: BigUint::from(attributes.current_farm_amount),
+            original_owner: ManagedAddress::from(attributes.original_owner),
+        };
+
+        let result_token = dex_interact
+            .interactor
+            .query()
+            .to(dex_interact
+                .state
+                .current_farm_with_locked_rewards_address())
+            .typed(farm_with_locked_rewards_proxy::FarmProxy)
+            .calculate_rewards_for_given_position(
+                ManagedAddress::from(user),
+                BigUint::from(farm_token_amount),
+                attributes_arg,
+            )
+            .returns(ReturnsResult)
+            .prepare_async()
+            .run()
+            .await;
+
+        to_rust_biguint(result_token)
     }
 }

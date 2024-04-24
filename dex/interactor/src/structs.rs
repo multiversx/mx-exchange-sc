@@ -1,7 +1,8 @@
 use multiversx_sc_scenario::{
     api::StaticApi,
     imports::{
-        BigUint, EsdtTokenPayment, ManagedTypeApi, ManagedVec, RustBigUint, TokenIdentifier,
+        Address, BigUint, EsdtTokenPayment, ManagedAddress, ManagedTypeApi, ManagedVec,
+        OptionalValue, RustBigUint, TokenIdentifier,
     },
 };
 
@@ -10,6 +11,15 @@ use crate::{
     DexInteract,
 };
 
+pub struct InteractorFarmTokenAttributes {
+    pub reward_per_share: RustBigUint,
+    pub entering_epoch: u64,
+    pub compounded_reward: RustBigUint,
+    pub current_farm_amount: RustBigUint,
+    pub original_owner: Address,
+}
+
+#[derive(Debug)]
 pub struct InteractorToken {
     pub token_id: String,
     pub nonce: u64,
@@ -21,7 +31,7 @@ impl<M: ManagedTypeApi> From<EsdtTokenPayment<M>> for InteractorToken {
         InteractorToken {
             token_id: value.token_identifier.to_string(),
             nonce: value.token_nonce,
-            amount: RustBigUint::from_bytes_be(value.amount.to_bytes_be().as_slice()),
+            amount: to_rust_biguint(value.amount),
         }
     }
 }
@@ -77,4 +87,18 @@ impl SwapArgs {
             BigUint::from(self.amount),
         )
     }
+}
+
+// helpers
+
+pub fn extract_caller(
+    dex_interact: &mut DexInteract,
+    opt_original_caller: Option<Address>,
+) -> OptionalValue<ManagedAddress<StaticApi>> {
+    let caller = opt_original_caller.unwrap_or_else(|| dex_interact.wallet_address.to_address());
+    OptionalValue::<ManagedAddress<StaticApi>>::Some(ManagedAddress::from(caller))
+}
+
+pub fn to_rust_biguint<M: ManagedTypeApi>(value: BigUint<M>) -> RustBigUint {
+    RustBigUint::from_bytes_be(value.to_bytes_be().as_slice())
 }
