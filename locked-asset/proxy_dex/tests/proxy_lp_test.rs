@@ -1263,8 +1263,8 @@ fn increase_proxy_lp_legacy_token_energy() {
     // set the price to 1 EGLD = 2 MEX
     let payments = vec![
         TxTokenTransfer {
-            token_identifier: LOCKED_TOKEN_ID.to_vec(),
-            nonce: 1,
+            token_identifier: LEGACY_LOCKED_TOKEN_ID.to_vec(),
+            nonce: 3,
             value: locked_token_amount.clone(),
         },
         TxTokenTransfer {
@@ -1290,8 +1290,8 @@ fn increase_proxy_lp_legacy_token_energy() {
     // check user's balance
     setup.b_mock.check_nft_balance::<Empty>(
         &first_user,
-        LOCKED_TOKEN_ID,
-        1,
+        LEGACY_LOCKED_TOKEN_ID,
+        3,
         &(&full_balance - &locked_token_amount),
         None,
     );
@@ -1307,8 +1307,8 @@ fn increase_proxy_lp_legacy_token_energy() {
         &expected_lp_token_amount,
         Some(&WrappedLpTokenAttributes::<DebugApi> {
             locked_tokens: EsdtTokenPayment {
-                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
-                token_nonce: 1,
+                token_identifier: managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
+                token_nonce: 3,
                 amount: managed_biguint!(locked_token_amount.to_u64().unwrap()),
             },
             lp_token_id: managed_token_id!(LP_TOKEN_ID),
@@ -1317,7 +1317,6 @@ fn increase_proxy_lp_legacy_token_energy() {
     );
 
     let block_epoch = 1;
-    let user_locked_tokens_in_lp = locked_token_amount.to_u64().unwrap();
 
     // check user energy before
     setup
@@ -1349,42 +1348,5 @@ fn increase_proxy_lp_legacy_token_energy() {
                 let _ = sc.increase_proxy_pair_token_energy_endpoint(LOCK_OPTIONS[1]);
             },
         )
-        .assert_ok();
-
-    // chceck new wrapped lp token
-    setup.b_mock.check_nft_balance(
-        &first_user,
-        WRAPPED_LP_TOKEN_ID,
-        2,
-        &expected_lp_token_amount,
-        Some(&WrappedLpTokenAttributes::<DebugApi> {
-            locked_tokens: EsdtTokenPayment {
-                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
-                token_nonce: 2,
-                amount: managed_biguint!(locked_token_amount.to_u64().unwrap()),
-            },
-            lp_token_id: managed_token_id!(LP_TOKEN_ID),
-            lp_token_amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
-        }),
-    );
-
-    // check user energy after
-    setup
-        .b_mock
-        .execute_query(&setup.simple_lock_wrapper, |sc| {
-            let first_lock_epochs = LOCK_OPTIONS[1] - block_epoch;
-            let second_lock_epochs = LOCK_OPTIONS[0] - block_epoch;
-            let expected_energy_amount = BigInt::from((user_locked_tokens_in_lp) as i64)
-                * BigInt::from(first_lock_epochs as i64)
-                + BigInt::from((USER_BALANCE - user_locked_tokens_in_lp) as i64)
-                    * BigInt::from(second_lock_epochs as i64);
-            let expected_energy = Energy::new(
-                expected_energy_amount,
-                block_epoch,
-                managed_biguint!(USER_BALANCE),
-            );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
-            assert_eq!(expected_energy, actual_energy);
-        })
-        .assert_ok();
+        .assert_error(4, "Invalid payment");
 }
