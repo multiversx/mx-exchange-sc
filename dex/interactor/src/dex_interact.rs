@@ -3,13 +3,16 @@ mod dex_interact_config;
 mod dex_interact_farm_locked;
 mod dex_interact_pair;
 mod dex_interact_state;
+mod structs;
 
-use proxies::*;
 use clap::Parser;
 use dex_interact_cli::AddArgs;
 use dex_interact_config::Config;
+use dex_interact_farm_locked::{FarmLocked, FarmLockedTrait};
+use dex_interact_pair::{Pair, PairTrait};
 use dex_interact_state::State;
 use multiversx_sc_snippets::imports::*;
+use proxies::*;
 
 #[tokio::main]
 async fn main() {
@@ -20,23 +23,11 @@ async fn main() {
 
     let cli = dex_interact_cli::InteractCli::parse();
     match &cli.command {
-        Some(dex_interact_cli::InteractCliCommand::Pause) => {
-            dex_interact.pause().await;
-        }
         Some(dex_interact_cli::InteractCliCommand::Swap(args)) => {
-            dex_interact
-                .swap_tokens_fixed_input(args.amount, args.min_amount)
-                .await;
+            Pair::swap_tokens_fixed_input(&mut dex_interact, args).await;
         }
         Some(dex_interact_cli::InteractCliCommand::Add(args)) => {
-            dex_interact
-                .add_liquidity(
-                    args.first_payment_amount,
-                    args.second_payment_amount,
-                    args.first_token_amount_min,
-                    args.second_token_amount_min,
-                )
-                .await;
+            Pair::add_liquidity(&mut dex_interact, args).await;
         }
         Some(dex_interact_cli::InteractCliCommand::FullFarm(args)) => {
             dex_interact.full_farm_scenario(args).await;
@@ -78,29 +69,8 @@ impl DexInteract {
     }
 
     async fn full_farm_scenario(&mut self, args: &AddArgs) {
-        let (_, _, lp_token) = self
-            .add_liquidity(
-                args.first_payment_amount,
-                args.second_payment_amount,
-                args.first_token_amount_min,
-                args.second_token_amount_min,
-            )
-            .await;
-        let _result = self.enter_farm(lp_token).await;
+        let (_, _, lp_token) = Pair::add_liquidity(self, args).await;
+        let _result = FarmLocked::enter_farm(self, lp_token).await;
         //TODO
-    }
-
-    async fn pause(&mut self) {
-        println!("Attempting to pause pair contract...");
-
-        self.interactor
-            .tx()
-            .from(&self.wallet_address)
-            .to(self.state.current_pair_address())
-            .typed(pair_proxy::PairProxy)
-            .pause()
-            .prepare_async()
-            .run()
-            .await;
     }
 }

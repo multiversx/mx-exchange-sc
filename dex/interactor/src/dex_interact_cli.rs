@@ -12,8 +12,6 @@ pub struct InteractCli {
 /// Dex Interact CLI Commands
 #[derive(Clone, PartialEq, Eq, Debug, Subcommand)]
 pub enum InteractCliCommand {
-    #[command(name = "pause", about = "Pause pair contract")]
-    Pause,
     #[command(name = "swap", about = "Swaps token with a minimum return amount")]
     Swap(SwapArgs),
     #[command(name = "add_liquidity", about = "Adds liquidity to a pair")]

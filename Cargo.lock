@@ -1404,12 +1404,10 @@ name = "interactor"
 version = "0.0.0"
 dependencies = [
  "clap",
- "common_structs",
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "multiversx-sc-snippets",
- "pausable",
- "permissions_module",
+ "proxies",
  "serde",
  "toml",
 ]
@@ -1681,9 +1679,9 @@ checksum = "b59072fa0624b55ae5ae3fa6bfa91515bbeb4ac440214bc4a509e2c8806d6e9f"
 
 [[package]]
 name = "multiversx-sc"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3294c0d990001b56d4b6a9fdecbc5a9bc0f9c49f9b5650c0ebc7535ed1949f3f"
+checksum = "c86c9822909c32b10ad50f376d2a710ff465b806aa710874c0417053fdc16530"
 dependencies = [
  "bitflags 2.4.2",
  "hex-literal 0.4.1",
@@ -1717,9 +1715,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-derive"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74c63eebab4c614574ec02fb380da77edf49c8af01881f0d7543fb4b56dc6ef6"
+checksum = "bc4fe5b47d3d7e51b8c2ed6a7c6d656885875cd3d41931193c364fe8ec7814d8"
 dependencies = [
  "hex",
  "proc-macro2",
@@ -1730,9 +1728,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-meta"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e9a23a7ad8f945474ecce36641cbbe20baa6945ee281dafa467b75495206c4f"
+checksum = "226c52919dfc89df47817ee053c6ea4eddaeca15e1cd3d927c65b805d1d3b6a6"
 dependencies = [
  "clap",
  "colored",
@@ -1757,18 +1755,18 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-modules"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6abecca08ba936b66dbb841f08d95550c20d0dcbbe5a0022a23d31d662bd0447"
+checksum = "ddb52421af0c8c451b023a13671f7a9bda3e934d41bfe0a9a8296c4ffc991b1a"
 dependencies = [
  "multiversx-sc",
 ]
 
 [[package]]
 name = "multiversx-sc-scenario"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9acdd0442fa078d6374f65e04a1eaa2d29bf5ef601972384ba3399689eb6173"
+checksum = "cd56212a3d90aedeb217203d76e28da52b3b5cd46aab5fc62998256aa3bbaf77"
 dependencies = [
  "base64",
  "bech32",
@@ -1794,9 +1792,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-snippets"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5721598414c1867204596d88826fad4923c41b3f927867967095d0a20e6709af"
+checksum = "3770569d5c943a4be1c9e81188e52f984eb16c49b06851cec07893cb3d0e811a"
 dependencies = [
  "base64",
  "env_logger",
@@ -1805,14 +1803,15 @@ dependencies = [
  "log",
  "multiversx-sc-scenario",
  "multiversx-sdk",
+ "rand 0.8.5",
  "tokio",
 ]
 
 [[package]]
 name = "multiversx-sdk"
-version = "0.3.2"
+version = "0.4.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46d709ddf46c50a407ce4b90ff487e854926d47f80de6abfe4a4adca3eaa7964"
+checksum = "f898859f51bfcb010bad5cb9080f8872bd023a78db2a523cdc6af083a400d328"
 dependencies = [
  "anyhow",
  "base64",
@@ -2155,6 +2154,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2422ad645d89c99f8f3e6b88a9fdeca7fabeac836b1002371c4367c8f984aae"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "proxies"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "config",
+ "energy-factory",
+ "farm-boosted-yields",
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "pausable",
+ "permissions_module",
+ "weekly-rewards-splitting",
 ]
 
 [[package]]
