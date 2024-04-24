@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 pub mod farm_staking_setup;
+use config::ConfigModule;
 use farm_staking::{
     claim_stake_farm_rewards::ClaimStakeFarmRewardsModule,
     stake_farm::StakeFarmModule,
@@ -127,8 +128,8 @@ fn farm_staking_boosted_rewards_with_energy_test() {
     fs_setup.set_boosted_yields_factors();
     fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
 
-    fs_setup.set_user_energy(&user_address, 10_000, 0, 10);
-    fs_setup.set_user_energy(&user_address2, 5_000, 0, 10);
+    fs_setup.set_user_energy(&user_address, 9_800, 0, 100);
+    fs_setup.set_user_energy(&user_address2, 4_900, 0, 350);
 
     let farm_in_amount = 100_000_000;
     fs_setup.stake_farm(&user_address, farm_in_amount, &[], 1, 0, 0);
@@ -164,10 +165,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
         )
         .assert_ok();
 
-    fs_setup.set_block_nonce(10);
-
-    // random user tx to collect rewards
-
+    // random user tx to collect rewards - week 1
     let rand_user = fs_setup.b_mock.create_user_account(&rust_biguint!(0));
     fs_setup.b_mock.set_esdt_balance(
         &rand_user,
@@ -175,8 +173,9 @@ fn farm_staking_boosted_rewards_with_energy_test() {
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
     );
 
-    fs_setup.set_user_energy(&rand_user, 1, 5, 1);
-    fs_setup.set_block_epoch(5);
+    fs_setup.set_user_energy(&rand_user, 1, 6, 1);
+    fs_setup.set_block_epoch(6);
+    fs_setup.set_block_nonce(10);
 
     fs_setup
         .b_mock
@@ -206,21 +205,119 @@ fn farm_staking_boosted_rewards_with_energy_test() {
         )
         .assert_ok();
 
-    fs_setup.set_block_epoch(8);
+    // random user tx to collect rewards - week 2
+    fs_setup.set_user_energy(&rand_user, 1, 13, 1);
+    fs_setup.set_block_epoch(13);
+    fs_setup.set_block_nonce(20);
 
-    fs_setup.set_user_energy(&user_address, 10_000, 8, 10);
-    fs_setup.set_user_energy(&user_address2, 5_000, 8, 10);
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARMING_TOKEN_ID,
+            0,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+            },
+        )
+        .assert_ok();
 
-    let base_rewards = 34;
-    let boosted_rewards_user = 13;
-    let boosted_rewards_user2 = 8;
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            7,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.unstake_farm(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // random user tx to collect rewards - week 3
+    fs_setup.set_user_energy(&rand_user, 1, 20, 1);
+    fs_setup.set_block_epoch(20);
+    fs_setup.set_block_nonce(30);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARMING_TOKEN_ID,
+            0,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            9,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.unstake_farm(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // random user tx to collect rewards - week 4
+    fs_setup.set_user_energy(&rand_user, 1, 27, 1);
+    fs_setup.set_block_epoch(27);
+    fs_setup.set_block_nonce(40);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARMING_TOKEN_ID,
+            0,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            11,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.unstake_farm(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup.set_block_epoch(28);
+    fs_setup.update_energy_for_user(&user_address);
+    fs_setup.update_energy_for_user(&user_address2);
+
+    let base_rewards = 136;
+    let boosted_rewards_user = 61;
+    let boosted_rewards_user2 = 15; // ~ 1/4 rewards than user1 (half the energy for only 2 weeks)
     let expected_reward_token_out_user = base_rewards + boosted_rewards_user;
     let expected_reward_token_out_user2 = base_rewards + boosted_rewards_user2;
     let expected_farming_token_balance_user =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_token_out_user);
     let expected_farming_token_balance_user2 =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_token_out_user2);
-    let expected_reward_per_share = 340_000;
+    let expected_reward_per_share = 1_360_000;
     fs_setup.claim_rewards(
         &user_address,
         farm_in_amount,
@@ -228,7 +325,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
         expected_reward_token_out_user,
         &expected_farming_token_balance_user,
         &expected_farming_token_balance_user,
-        7,
+        13,
         expected_reward_per_share,
     );
     fs_setup.claim_rewards(
@@ -238,7 +335,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
         expected_reward_token_out_user2,
         &expected_farming_token_balance_user2,
         &expected_farming_token_balance_user2,
-        8,
+        14,
         expected_reward_per_share,
     );
     fs_setup.check_farm_token_supply(farm_in_amount * 2);
@@ -925,4 +1022,412 @@ fn position_owner_change_test() {
 
     fs_setup.check_user_total_farm_position(&first_user, half_farm_in_amount * 5);
     fs_setup.check_user_total_farm_position(&second_user, farm_in_amount + half_farm_in_amount * 4);
+}
+
+#[test]
+fn farm_staking_farm_position_migration_test() {
+    DebugApi::dummy();
+    let mut fs_setup =
+        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let user = fs_setup.user_address.clone();
+
+    let farm_in_amount = 10_000_000;
+    let half_farm_in_amount = farm_in_amount / 2;
+    fs_setup.stake_farm(&user, farm_in_amount, &[], 1, 0, 0);
+    fs_setup.stake_farm(&user, farm_in_amount, &[], 2, 0, 0);
+    fs_setup.stake_farm(&user, farm_in_amount, &[], 3, 0, 0);
+    fs_setup.stake_farm(&user, farm_in_amount, &[], 4, 0, 0);
+    fs_setup.check_user_total_farm_position(&user, farm_in_amount * 4);
+
+    // Simulate migration by resetting the user total farm position
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &user,
+            &fs_setup.farm_wrapper,
+            FARMING_TOKEN_ID,
+            0,
+            &rust_biguint!(10),
+            |sc| {
+                let mut user_total_farm_position =
+                    sc.get_user_total_farm_position(&managed_address!(&user));
+                user_total_farm_position.total_farm_position = managed_biguint!(0u64);
+                let _ = sc
+                    .user_total_farm_position(&managed_address!(&user))
+                    .set(user_total_farm_position);
+
+                sc.farm_position_migration_nonce().set(5);
+            },
+        )
+        .assert_ok();
+
+    fs_setup.check_user_total_farm_position(&user, 0);
+
+    let mut expected_total_farm_position = 0u64;
+    let additional_farm_tokens = [TxTokenTransfer {
+        token_identifier: FARM_TOKEN_ID.to_vec(),
+        nonce: 1,
+        value: rust_biguint!(half_farm_in_amount),
+    }];
+
+    // Check enter farm with half old position additional payment
+    fs_setup.stake_farm(&user, farm_in_amount, &additional_farm_tokens, 5, 0, 0);
+    expected_total_farm_position += farm_in_amount + half_farm_in_amount;
+    fs_setup.check_user_total_farm_position(&user, expected_total_farm_position);
+
+    // Check claim with half old position
+    let expected_farming_token_balance = rust_biguint!(4_949_999_990u64);
+    fs_setup.claim_rewards(
+        &user,
+        half_farm_in_amount,
+        2,
+        0,
+        &expected_farming_token_balance,
+        &expected_farming_token_balance,
+        6,
+        0,
+    );
+    expected_total_farm_position += half_farm_in_amount;
+    fs_setup.check_user_total_farm_position(&user, expected_total_farm_position);
+
+    // Check exit with half old position
+    fs_setup.unstake_farm(
+        &user,
+        half_farm_in_amount,
+        3,
+        0,
+        &expected_farming_token_balance,
+        &expected_farming_token_balance,
+        7,
+        half_farm_in_amount,
+        &UnbondSftAttributes {
+            unlock_epoch: MIN_UNBOND_EPOCHS,
+        },
+    );
+    fs_setup.check_user_total_farm_position(&user, expected_total_farm_position);
+
+    // Check compound with half old position
+    fs_setup.compound_rewards(
+        &user,
+        4,
+        half_farm_in_amount,
+        &[],
+        8,
+        half_farm_in_amount,
+        0,
+        0,
+    );
+    expected_total_farm_position += half_farm_in_amount;
+    fs_setup.check_user_total_farm_position(&user, expected_total_farm_position);
+}
+
+#[test]
+fn boosted_rewards_config_change_test() {
+    DebugApi::dummy();
+    let mut fs_setup =
+        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let first_user = fs_setup.user_address.clone();
+    let second_user = fs_setup.user_address2.clone();
+    let third_user = fs_setup
+        .b_mock
+        .create_user_account(&rust_biguint!(100_000_000));
+    fs_setup.b_mock.set_esdt_balance(
+        &third_user,
+        FARMING_TOKEN_ID,
+        &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
+    );
+
+    let mut first_user_total_rewards = 0u64;
+    let mut second_user_total_rewards = 0u64;
+    let mut third_user_total_rewards = 0u64;
+
+    let farm_in_amount = 10_000_000;
+    fs_setup.stake_farm(&first_user, farm_in_amount, &[], 1, 0, 0);
+    fs_setup.stake_farm(&second_user, farm_in_amount, &[], 2, 0, 0);
+    fs_setup.stake_farm(&third_user, farm_in_amount, &[], 3, 0, 0);
+
+    fs_setup.set_user_energy(&first_user, 10_000, 0, 10);
+    fs_setup.set_user_energy(&second_user, 10_000, 0, 10);
+    fs_setup.set_user_energy(&third_user, 10_000, 0, 10);
+
+    // claim to get energy registered
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            1,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &second_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            2,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &third_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            3,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // random user tx to collect rewards
+    let rand_user = fs_setup.b_mock.create_user_account(&rust_biguint!(0));
+    fs_setup.b_mock.set_esdt_balance(
+        &rand_user,
+        FARMING_TOKEN_ID,
+        &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
+    );
+
+    fs_setup.set_user_energy(&rand_user, 1, 6, 1);
+    fs_setup.set_block_epoch(6);
+    fs_setup.set_block_nonce(100);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARMING_TOKEN_ID,
+            0,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            7,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.unstake_farm(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup.set_block_epoch(7);
+    fs_setup.set_user_energy(&first_user, 10_000, 7, 10);
+    fs_setup.set_user_energy(&second_user, 10_000, 7, 10);
+    fs_setup.set_user_energy(&third_user, 10_000, 7, 10);
+
+    // First user claims
+    let mut base_rewards1 = 33;
+    let mut boosted_rewards1 = 0;
+    let mut expected_reward_token_out = base_rewards1 + boosted_rewards1;
+    first_user_total_rewards += expected_reward_token_out;
+    let mut expected_farming_token_balance =
+        rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_token_out);
+    let mut expected_reward_per_share = 3_333_333u64;
+    fs_setup.claim_rewards(
+        &first_user,
+        farm_in_amount,
+        4,
+        expected_reward_token_out,
+        &expected_farming_token_balance,
+        &expected_farming_token_balance,
+        9,
+        expected_reward_per_share,
+    );
+
+    // Boosted rewards config is added
+    fs_setup.set_boosted_yields_factors();
+    fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+
+    // random user tx to collect rewards
+    fs_setup.set_user_energy(&rand_user, 1, 13, 1);
+    fs_setup.set_block_epoch(13);
+    fs_setup.set_block_nonce(200);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARMING_TOKEN_ID,
+            0,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            10,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.unstake_farm(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup.set_block_epoch(14);
+    fs_setup.set_user_energy(&first_user, 10_000, 14, 10);
+    fs_setup.set_user_energy(&second_user, 10_000, 14, 10);
+    fs_setup.set_user_energy(&third_user, 10_000, 14, 10);
+
+    // First and second users claim
+    base_rewards1 = 25;
+    boosted_rewards1 = 8;
+    expected_reward_token_out = base_rewards1 + boosted_rewards1;
+    first_user_total_rewards += expected_reward_token_out;
+    expected_farming_token_balance += expected_reward_token_out;
+    expected_reward_per_share = 5_833_333u64;
+    fs_setup.claim_rewards(
+        &first_user,
+        farm_in_amount,
+        9,
+        expected_reward_token_out,
+        &expected_farming_token_balance,
+        &expected_farming_token_balance,
+        12,
+        expected_reward_per_share,
+    );
+
+    let mut base_rewards2 = 33 + 25;
+    let mut boosted_rewards2 = 8;
+    let mut expected_reward_token_out2 = base_rewards2 + boosted_rewards2;
+    second_user_total_rewards += expected_reward_token_out2;
+    let mut expected_farming_token_balance2 =
+        rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_token_out2);
+    fs_setup.claim_rewards(
+        &second_user,
+        farm_in_amount,
+        5,
+        expected_reward_token_out2,
+        &expected_farming_token_balance2,
+        &expected_farming_token_balance2,
+        13,
+        expected_reward_per_share,
+    );
+
+    // Boosted rewards config is updated
+    fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE * 2); // 50%
+
+    // random user tx to collect rewards
+    fs_setup.set_user_energy(&rand_user, 1, 20, 1);
+    fs_setup.set_block_epoch(20);
+    fs_setup.set_block_nonce(300);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARMING_TOKEN_ID,
+            0,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            14,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.unstake_farm(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup.set_block_epoch(21);
+    fs_setup.set_user_energy(&first_user, 10_000, 21, 10);
+    fs_setup.set_user_energy(&second_user, 10_000, 21, 10);
+    fs_setup.set_user_energy(&third_user, 10_000, 21, 10);
+
+    // All users claim - boosted rewards 50%
+    base_rewards1 = 16;
+    boosted_rewards1 = 16;
+    expected_reward_token_out = base_rewards1 + boosted_rewards1;
+    first_user_total_rewards += expected_reward_token_out;
+    expected_farming_token_balance += expected_reward_token_out;
+    expected_reward_per_share = 7_499_999u64;
+    fs_setup.claim_rewards(
+        &first_user,
+        farm_in_amount,
+        12,
+        expected_reward_token_out,
+        &expected_farming_token_balance,
+        &expected_farming_token_balance,
+        16,
+        expected_reward_per_share,
+    );
+
+    base_rewards2 = 16;
+    boosted_rewards2 = 16;
+    expected_reward_token_out2 = base_rewards2 + boosted_rewards2;
+    second_user_total_rewards += expected_reward_token_out2;
+    expected_farming_token_balance2 += expected_reward_token_out2;
+    fs_setup.claim_rewards(
+        &second_user,
+        farm_in_amount,
+        13,
+        expected_reward_token_out2,
+        &expected_farming_token_balance2,
+        &expected_farming_token_balance2,
+        17,
+        expected_reward_per_share,
+    );
+
+    let base_rewards3 = 74;
+    let boosted_rewards3 = 24;
+    let expected_reward_token_out3 = base_rewards3 + boosted_rewards3;
+    third_user_total_rewards += expected_reward_token_out3;
+    let expected_farming_token_balance3 =
+        rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_token_out3);
+    fs_setup.claim_rewards(
+        &third_user,
+        farm_in_amount,
+        6,
+        expected_reward_token_out3,
+        &expected_farming_token_balance3,
+        &expected_farming_token_balance3,
+        18,
+        expected_reward_per_share,
+    );
+
+    assert!(
+        first_user_total_rewards == second_user_total_rewards
+            && first_user_total_rewards == third_user_total_rewards
+    );
 }
