@@ -1,5 +1,6 @@
 mod dex_interact_cli;
 mod dex_interact_config;
+mod dex_interact_energy_factory;
 mod dex_interact_farm_locked;
 mod dex_interact_pair;
 mod dex_interact_state;

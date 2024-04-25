@@ -1,15 +1,19 @@
 use multiversx_sc_scenario::{
     api::StaticApi,
     imports::{
-        Address, BigUint, EsdtTokenPayment, ManagedAddress, ManagedTypeApi, ManagedVec,
-        OptionalValue, RustBigUint, TokenIdentifier,
+        Address, BigInt, BigUint, EsdtTokenPayment, ManagedAddress, ManagedTypeApi, ManagedVec,
+        OptionalValue, RustBigUint, Sign, TokenIdentifier,
     },
+    num_bigint,
 };
+use proxies::Energy;
 
 use crate::{
     dex_interact_cli::{AddArgs, SwapArgs},
     DexInteract,
 };
+
+pub type RustBigInt = num_bigint::BigInt;
 
 pub struct InteractorFarmTokenAttributes {
     pub reward_per_share: RustBigUint,
@@ -24,6 +28,22 @@ pub struct InteractorToken {
     pub token_id: String,
     pub nonce: u64,
     pub amount: RustBigUint,
+}
+
+pub struct InteractorEnergy {
+    pub amount: RustBigInt,
+    pub last_update_epoch: u64,
+    pub total_locked_tokens: RustBigUint,
+}
+
+impl<M: ManagedTypeApi> From<Energy<M>> for InteractorEnergy {
+    fn from(value: Energy<M>) -> Self {
+        InteractorEnergy {
+            amount: to_rust_bigint(value.amount),
+            last_update_epoch: value.last_update_epoch,
+            total_locked_tokens: to_rust_biguint(value.total_locked_tokens),
+        }
+    }
 }
 
 impl<M: ManagedTypeApi> From<EsdtTokenPayment<M>> for InteractorToken {
@@ -101,4 +121,18 @@ pub fn extract_caller(
 
 pub fn to_rust_biguint<M: ManagedTypeApi>(value: BigUint<M>) -> RustBigUint {
     RustBigUint::from_bytes_be(value.to_bytes_be().as_slice())
+}
+
+pub fn to_rust_bigint<M: ManagedTypeApi>(value: BigInt<M>) -> RustBigInt {
+    let sign = value.sign();
+
+    RustBigInt::from_bytes_be(to_rust_sign(sign), value.to_signed_bytes_be().as_slice())
+}
+
+pub fn to_rust_sign(value: Sign) -> num_bigint::Sign {
+    match value {
+        Sign::Minus => num_bigint::Sign::Minus,
+        Sign::Plus => num_bigint::Sign::Plus,
+        Sign::NoSign => num_bigint::Sign::NoSign,
+    }
 }
