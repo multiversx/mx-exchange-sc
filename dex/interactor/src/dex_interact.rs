@@ -2,6 +2,7 @@ mod dex_interact_cli;
 mod dex_interact_config;
 mod dex_interact_energy_factory;
 mod dex_interact_farm_locked;
+mod dex_interact_farm_staking_proxy;
 mod dex_interact_pair;
 mod dex_interact_state;
 mod structs;
@@ -70,7 +71,7 @@ impl DexInteract {
     }
 
     async fn full_farm_scenario(&mut self, args: &AddArgs) {
-        let (_, _, lp_token) = Pair::add_liquidity(self, args).await;
+        let (_, _, lp_token) = Pair::add_liquidity(self, args).await.0;
         let _result = FarmLocked::enter_farm(self, lp_token).await;
         //TODO
     }

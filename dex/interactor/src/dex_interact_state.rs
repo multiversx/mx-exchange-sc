@@ -58,7 +58,7 @@ impl State {
             .expect("no known farm staking contract, set first")
     }
 
-    pub fn _current_farm_staking_proxy_address(&self) -> &Bech32Address {
+    pub fn current_farm_staking_proxy_address(&self) -> &Bech32Address {
         self.farm_staking_proxy
             .as_ref()
             .expect("no known farm staking proxy contract, set first")

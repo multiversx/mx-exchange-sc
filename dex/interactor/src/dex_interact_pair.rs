@@ -2,13 +2,14 @@ use multiversx_sc_scenario::imports::{BigUint, ReturnsResult, TokenIdentifier};
 use multiversx_sc_snippets::InteractorPrepareAsync;
 
 use crate::dex_interact_cli::{AddArgs, SwapArgs};
-use crate::structs::InteractorToken;
+use crate::structs::{InteractorAddLiquidityResultType, InteractorToken};
 use crate::DexInteract;
 use proxies::pair_proxy;
 
 pub struct Pair;
 
 pub trait PairTrait {
+    // endpoints
     async fn swap_tokens_fixed_input(
         dex_interact: &mut DexInteract,
         args: &SwapArgs,
@@ -16,7 +17,7 @@ pub trait PairTrait {
     async fn add_liquidity(
         dex_interact: &mut DexInteract,
         args: &AddArgs,
-    ) -> (InteractorToken, InteractorToken, InteractorToken);
+    ) -> InteractorAddLiquidityResultType;
 }
 
 impl PairTrait for Pair {
@@ -56,7 +57,7 @@ impl PairTrait for Pair {
     async fn add_liquidity(
         dex_interact: &mut DexInteract,
         args: &AddArgs,
-    ) -> (InteractorToken, InteractorToken, InteractorToken) {
+    ) -> InteractorAddLiquidityResultType {
         println!("Attempting to add liquidity to pair...");
         let payments = args.as_payment_vec(dex_interact);
 
@@ -76,11 +77,8 @@ impl PairTrait for Pair {
             .prepare_async()
             .run()
             .await;
-        (
-            InteractorToken::from(result_token.0 .0),
-            InteractorToken::from(result_token.0 .1),
-            InteractorToken::from(result_token.0 .2),
-        )
+
+        InteractorAddLiquidityResultType::from(result_token)
     }
 }
 

@@ -103,7 +103,7 @@ impl FarmLockedTrait for FarmLocked {
             .gas(100_000_000u64)
             .typed(farm_with_locked_rewards_proxy::FarmProxy)
             .claim_rewards_endpoint(caller_arg)
-            .payment(&payments)
+            .payment(payments)
             .returns(ReturnsResult)
             .prepare_async()
             .run()

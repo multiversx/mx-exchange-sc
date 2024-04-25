@@ -2,18 +2,95 @@ use multiversx_sc_scenario::{
     api::StaticApi,
     imports::{
         Address, BigInt, BigUint, EsdtTokenPayment, ManagedAddress, ManagedTypeApi, ManagedVec,
-        OptionalValue, RustBigUint, Sign, TokenIdentifier,
+        MultiValue3, OptionalValue, RustBigUint, Sign, TokenIdentifier,
     },
     num_bigint,
 };
-use proxies::Energy;
+use proxies::{ClaimDualYieldResult, Energy, StakeProxyResult, UnstakeResult};
 
 use crate::{
     dex_interact_cli::{AddArgs, SwapArgs},
     DexInteract,
 };
 
+pub struct InteractorMultiValue3<T0, T1, T2>(pub (T0, T1, T2));
+
+impl<T0, T1, T2> InteractorMultiValue3<T0, T1, T2> {
+    pub fn new(first: T0, second: T1, third: T2) -> Self {
+        InteractorMultiValue3((first, second, third))
+    }
+}
+pub type InteractorAddLiquidityResultType =
+    InteractorMultiValue3<InteractorToken, InteractorToken, InteractorToken>;
+
+impl<M: ManagedTypeApi>
+    From<MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>>
+    for InteractorAddLiquidityResultType
+{
+    fn from(
+        value: MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>,
+    ) -> Self {
+        let extracted = value.0;
+
+        InteractorMultiValue3::new(
+            InteractorToken::from(extracted.0),
+            InteractorToken::from(extracted.1),
+            InteractorToken::from(extracted.2),
+        )
+    }
+}
+
 pub type RustBigInt = num_bigint::BigInt;
+
+pub struct InteractorUnstakeResult {
+    pub other_token_payment: InteractorToken,
+    pub lp_farm_rewards: InteractorToken,
+    pub staking_rewards: InteractorToken,
+    pub unbond_staking_farm_token: InteractorToken,
+}
+
+impl<M: ManagedTypeApi> From<UnstakeResult<M>> for InteractorUnstakeResult {
+    fn from(value: UnstakeResult<M>) -> Self {
+        InteractorUnstakeResult {
+            other_token_payment: InteractorToken::from(value.other_token_payment),
+            lp_farm_rewards: InteractorToken::from(value.lp_farm_rewards),
+            staking_rewards: InteractorToken::from(value.staking_rewards),
+            unbond_staking_farm_token: InteractorToken::from(value.unbond_staking_farm_token),
+        }
+    }
+}
+
+pub struct InteractorStakeProxyResult {
+    pub dual_yield_tokens: InteractorToken,
+    pub staking_boosted_rewards: InteractorToken,
+    pub lp_farm_boosted_rewards: InteractorToken,
+}
+
+impl<M: ManagedTypeApi> From<StakeProxyResult<M>> for InteractorStakeProxyResult {
+    fn from(value: StakeProxyResult<M>) -> Self {
+        InteractorStakeProxyResult {
+            dual_yield_tokens: InteractorToken::from(value.dual_yield_tokens),
+            staking_boosted_rewards: InteractorToken::from(value.staking_boosted_rewards),
+            lp_farm_boosted_rewards: InteractorToken::from(value.lp_farm_boosted_rewards),
+        }
+    }
+}
+
+pub struct InteractorClaimDualYieldResult {
+    pub lp_farm_rewards: InteractorToken,
+    pub staking_farm_rewards: InteractorToken,
+    pub new_dual_yield_tokens: InteractorToken,
+}
+
+impl<M: ManagedTypeApi> From<ClaimDualYieldResult<M>> for InteractorClaimDualYieldResult {
+    fn from(value: ClaimDualYieldResult<M>) -> Self {
+        InteractorClaimDualYieldResult {
+            lp_farm_rewards: InteractorToken::from(value.lp_farm_rewards),
+            staking_farm_rewards: InteractorToken::from(value.staking_farm_rewards),
+            new_dual_yield_tokens: InteractorToken::from(value.new_dual_yield_tokens),
+        }
+    }
+}
 
 pub struct InteractorFarmTokenAttributes {
     pub reward_per_share: RustBigUint,
