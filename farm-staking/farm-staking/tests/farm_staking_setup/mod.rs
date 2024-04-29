@@ -390,6 +390,7 @@ where
             .assert_error(4, "Cannot claim rewards for this address");
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn compound_rewards(
         &mut self,
         user: &Address,
