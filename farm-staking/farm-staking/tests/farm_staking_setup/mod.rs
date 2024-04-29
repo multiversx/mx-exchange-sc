@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 use farm_staking::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
+use farm_staking::compound_stake_farm_rewards::CompoundStakeFarmRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
@@ -390,6 +391,61 @@ where
     }
 
     #[allow(clippy::too_many_arguments)]
+    pub fn compound_rewards(
+        &mut self,
+        user: &Address,
+        farm_in_nonce: u64,
+        farm_in_amount: u64,
+        additional_farm_tokens: &[TxTokenTransfer],
+        expected_farm_token_nonce: u64,
+        expected_farm_token_amount: u64,
+        expected_reward_per_share: u64,
+        expected_compounded_reward: u64,
+    ) {
+        let mut payments = Vec::with_capacity(1 + additional_farm_tokens.len());
+        payments.push(TxTokenTransfer {
+            token_identifier: FARM_TOKEN_ID.to_vec(),
+            nonce: farm_in_nonce,
+            value: rust_biguint!(farm_in_amount),
+        });
+        payments.extend_from_slice(additional_farm_tokens);
+
+        self.b_mock
+            .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
+                let new_farm_token_payment = sc.compound_rewards();
+                assert_eq!(
+                    new_farm_token_payment.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(
+                    new_farm_token_payment.token_nonce,
+                    expected_farm_token_nonce
+                );
+                assert_eq!(
+                    new_farm_token_payment.amount,
+                    managed_biguint!(expected_farm_token_amount)
+                );
+            })
+            .assert_ok();
+
+        let expected_attributes = StakingFarmTokenAttributes::<DebugApi> {
+            reward_per_share: managed_biguint!(expected_reward_per_share),
+            compounded_reward: managed_biguint!(expected_compounded_reward),
+            current_farm_amount: managed_biguint!(
+                expected_farm_token_amount + expected_compounded_reward
+            ),
+            original_owner: managed_address!(&user),
+        };
+        self.b_mock.check_nft_balance(
+            user,
+            FARM_TOKEN_ID,
+            expected_farm_token_nonce,
+            &rust_biguint!(expected_farm_token_amount + expected_compounded_reward),
+            Some(&expected_attributes),
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
     pub fn unstake_farm(
         &mut self,
         user: &Address,
@@ -703,6 +759,21 @@ where
                     );
                 }
             })
+            .assert_ok();
+    }
+
+    pub fn update_energy_for_user(&mut self, user_addr: &Address) {
+        self.b_mock
+            .execute_tx(
+                user_addr,
+                &self.energy_factory_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    let user_energy =
+                        sc.get_updated_energy_entry_for_user(&managed_address!(user_addr));
+                    sc.set_energy_entry(&managed_address!(user_addr), user_energy);
+                },
+            )
             .assert_ok();
     }
 }

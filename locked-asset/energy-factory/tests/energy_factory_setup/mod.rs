@@ -173,6 +173,7 @@ where
         token_nonce: u64,
         amount: u64,
         lock_epochs: u64,
+        opt_address: Option<Address>,
     ) -> TxResult {
         self.b_mock.execute_esdt_transfer(
             caller,
@@ -181,7 +182,15 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.lock_tokens_endpoint(lock_epochs, OptionalValue::None);
+                if opt_address.is_some() {
+                    let address = opt_address.unwrap();
+                    sc.lock_tokens_endpoint(
+                        lock_epochs,
+                        OptionalValue::Some(managed_address!(&address)),
+                    );
+                } else {
+                    sc.lock_tokens_endpoint(lock_epochs, OptionalValue::None);
+                }
             },
         )
     }

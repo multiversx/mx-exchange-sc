@@ -213,7 +213,8 @@ pub trait Farm:
     }
 
     fn merge_and_update_farm_tokens(&self, orig_caller: ManagedAddress) -> EsdtTokenPayment {
-        let mut output_attributes = self.merge_and_return_attributes::<NoMintWrapper<Self>>();
+        let mut output_attributes =
+            self.merge_and_return_attributes::<NoMintWrapper<Self>>(&orig_caller);
         output_attributes.original_owner = orig_caller;
 
         let new_token_amount = output_attributes.get_total_supply();
