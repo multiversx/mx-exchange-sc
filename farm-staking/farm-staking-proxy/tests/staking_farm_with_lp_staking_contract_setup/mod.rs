@@ -1,5 +1,7 @@
 #![allow(deprecated)]
 
+use energy_query::EnergyQueryModule;
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::{
@@ -24,6 +26,7 @@ use crate::constants::*;
 
 pub fn setup_staking_farm<StakingContractObjBuilder>(
     owner_addr: &Address,
+    energy_factory_address: &Address,
     b_mock: &mut BlockchainStateWrapper,
     builder: StakingContractObjBuilder,
 ) -> ContractObjWrapper<farm_staking::ContractObj<DebugApi>, StakingContractObjBuilder>
@@ -49,6 +52,8 @@ where
                 MultiValueEncoded::new(),
             );
 
+            sc.energy_factory_address()
+                .set(managed_address!(energy_factory_address));
             sc.farm_token()
                 .set_token_id(managed_token_id!(STAKING_FARM_TOKEN_ID));
 
@@ -59,6 +64,18 @@ where
             sc.last_reward_block_nonce()
                 .set(BLOCK_NONCE_AFTER_PAIR_SETUP);
             sc.reward_capacity().set(&managed_biguint!(REWARD_CAPACITY));
+        })
+        .assert_ok();
+
+    b_mock
+        .execute_tx(owner_addr, &farm_staking_wrapper, &rust_zero, |sc| {
+            sc.set_boosted_yields_factors(
+                managed_biguint!(USER_REWARDS_BASE_CONST),
+                managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                managed_biguint!(USER_REWARDS_FARM_CONST),
+                managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+            );
         })
         .assert_ok();
 
