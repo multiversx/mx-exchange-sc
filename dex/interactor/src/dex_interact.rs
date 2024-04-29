@@ -1,17 +1,15 @@
 mod dex_interact_cli;
 mod dex_interact_config;
-mod dex_interact_energy_factory;
-mod dex_interact_farm_locked;
-mod dex_interact_farm_staking_proxy;
-mod dex_interact_pair;
 mod dex_interact_state;
+mod energy_factory;
+mod farm_locked;
+mod farm_staking_proxy;
+mod pair;
 mod structs;
 
 use clap::Parser;
 use dex_interact_cli::AddArgs;
 use dex_interact_config::Config;
-use dex_interact_farm_locked::{FarmLocked, FarmLockedTrait};
-use dex_interact_pair::{Pair, PairTrait};
 use dex_interact_state::State;
 use multiversx_sc_snippets::imports::*;
 use proxies::*;
@@ -26,10 +24,10 @@ async fn main() {
     let cli = dex_interact_cli::InteractCli::parse();
     match &cli.command {
         Some(dex_interact_cli::InteractCliCommand::Swap(args)) => {
-            Pair::swap_tokens_fixed_input(&mut dex_interact, args).await;
+            pair::swap_tokens_fixed_input(&mut dex_interact, args).await;
         }
         Some(dex_interact_cli::InteractCliCommand::Add(args)) => {
-            Pair::add_liquidity(&mut dex_interact, args).await;
+            pair::add_liquidity(&mut dex_interact, args).await;
         }
         Some(dex_interact_cli::InteractCliCommand::FullFarm(args)) => {
             dex_interact.full_farm_scenario(args).await;
@@ -70,21 +68,20 @@ impl DexInteract {
         }
     }
 
+    // mock
     async fn full_farm_scenario(&mut self, args: &AddArgs) {
-        let (_, _, lp_token) = Pair::add_liquidity(self, args).await.0;
-        let _result = FarmLocked::enter_farm(self, lp_token).await;
-        //TODO
+        let (_, _, lp_token) = pair::add_liquidity(self, args).await.0;
+        let _result = farm_locked::enter_farm(self, lp_token).await;
+        let _query = energy_factory::get_energy_amount_for_user(self, Address::zero()).await;
+        let _farm_token = farm_staking_proxy::stake_farm_tokens(self, Vec::new(), None).await;
+        // TODO
     }
 }
 
 // Just for demo, still TODO
 #[cfg(test)]
 pub mod integration_tests {
-    use crate::{
-        dex_interact_cli::SwapArgs,
-        dex_interact_pair::{Pair, PairTrait},
-        DexInteract,
-    };
+    use crate::{dex_interact_cli::SwapArgs, pair, DexInteract};
 
     #[test]
     fn test_full_farm_scenario() {
@@ -97,9 +94,9 @@ pub mod integration_tests {
                 amount: 10_000_000_000_000_000_000u128,
                 min_amount: 1_000_000_000_000u128,
             };
-            let result = Pair::swap_tokens_fixed_input(&mut dex_interact, &args).await;
+            let result = pair::swap_tokens_fixed_input(&mut dex_interact, &args).await;
             println!("result {:#?}", result);
-            // let args = AddArgs {
+            // let args =PairArgs {
             //     first_payment_amount: 0u128,
             //     second_payment_amount: 0u128,
             //     first_token_amount_min: 0u128,
