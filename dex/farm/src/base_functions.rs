@@ -182,13 +182,15 @@ pub trait BaseFunctionsModule:
         }
     }
 
-    fn merge_and_return_attributes<FC: FarmContract<FarmSc = Self>>(&self) -> FC::AttributesType {
+    fn merge_and_return_attributes<FC: FarmContract<FarmSc = Self>>(
+        &self,
+        orig_caller: &ManagedAddress,
+    ) -> FC::AttributesType {
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
         token_mapper.require_all_same_token(&payments);
 
-        let caller = self.blockchain().get_caller();
-        FC::check_and_update_user_farm_position(self, &caller, &payments);
+        FC::check_and_update_user_farm_position(self, orig_caller, &payments);
 
         self.merge_from_payments_and_burn(payments, &token_mapper)
     }
