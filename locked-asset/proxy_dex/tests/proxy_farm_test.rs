@@ -1181,6 +1181,186 @@ fn different_farm_locked_token_nonce_merging_test() {
     );
 }
 
+
+
+#[test]
+fn total_farm_mechanism_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
+    let user_balance = rust_biguint!(USER_BALANCE);
+    setup
+        .b_mock
+        .set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
+
+    // users lock tokens
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.simple_lock_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &user_balance,
+            |sc| {
+                let user_payment = sc.lock_tokens_endpoint(LOCK_OPTIONS[1], OptionalValue::None);
+                assert_eq!(user_payment.token_nonce, 2);
+                assert_eq!(user_payment.amount, managed_biguint!(USER_BALANCE));
+            },
+        )
+        .assert_ok();
+
+    let mut block_epoch = 1;
+    setup.b_mock.set_block_epoch(block_epoch);
+
+    //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    block_epoch += 7;
+    setup.b_mock.set_block_epoch(block_epoch);
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        1,
+        &rust_biguint!(USER_BALANCE),
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+        }),
+    );
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        2,
+        &rust_biguint!(USER_BALANCE),
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 2,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 2,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+        }),
+    );
+
+    //////////////////////////////////////////// CLAIM REWARDS /////////////////////////////////////
+
+    // claim rewards
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.claim_rewards_proxy(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // check user balance
+    setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_TOKEN_ID,
+    2,
+    &rust_biguint!(0),
+    None,
+    );
+    setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(0),
+        None,
+    );
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        3,
+        &rust_biguint!(USER_BALANCE),
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 3,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+        }),
+    );
+    // new NFT
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        2,
+        &rust_biguint!(USER_BALANCE),
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 2,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 2,
+                amount: managed_biguint!(USER_BALANCE),
+            },
+        }),
+    );
+}
+
 #[test]
 fn increase_proxy_farm_lkmex_energy() {
     let mut setup = ProxySetup::new(
@@ -1485,4 +1665,569 @@ fn increase_proxy_farm_proxy_lp_energy() {
             },
         }),
     );
+}
+
+#[test]
+fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner,
+            &setup.farm_locked_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.farming_token_id().set(&managed_token_id!(LP_TOKEN_ID));
+
+                // set produce rewards to false for easier calculation
+                sc.produce_rewards_enabled().set(false);
+            },
+        )
+        .assert_ok();
+
+    setup.b_mock.set_esdt_local_roles(
+        setup.farm_locked_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &[EsdtLocalRole::Burn],
+    );
+
+    let first_user = setup.first_user.clone();
+    let locked_token_amount = rust_biguint!(1_000_000_000);
+    let other_token_amount = rust_biguint!(500_000_000);
+    let expected_lp_token_amount = rust_biguint!(499_999_000);
+
+    // set the price to 1 EGLD = 2 MEX
+    let payments = vec![
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: locked_token_amount.clone(),
+        },
+        TxTokenTransfer {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: other_token_amount.clone(),
+        },
+    ];
+
+    // add liquidity twice, to have 2 nonces
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount.to_u64().unwrap() / 2),
+                managed_biguint!(other_token_amount.to_u64().unwrap() / 2),
+            );
+        })
+        .assert_ok();
+
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount.to_u64().unwrap() / 2),
+                managed_biguint!(other_token_amount.to_u64().unwrap() / 2),
+            );
+        })
+        .assert_ok();
+
+    let mut block_epoch = 1u64;
+    let user_balance = USER_BALANCE;
+
+    // check energy before
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let unlock_epoch = LOCK_OPTIONS[0];
+            let lock_epochs = unlock_epoch - block_epoch;
+            let expected_energy_amount =
+                BigInt::from((user_balance) as i64) * BigInt::from(lock_epochs as i64);
+            let expected_energy = Energy::new(
+                expected_energy_amount,
+                block_epoch,
+                managed_biguint!(user_balance),
+            );
+            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            assert_eq!(expected_energy, actual_energy);
+        })
+        .assert_ok();
+
+    let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
+
+    //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
+
+    // Enter multiple times, to distribute the nonces
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            1,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            2,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            1,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            2,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
+
+        ////////////////////////////// Wait for tokens to unlock /////////////////////////////////////
+        block_epoch += LOCK_OPTIONS[0];
+        setup.b_mock.set_block_epoch(block_epoch);
+    
+
+    //////////////////////////////////////////// INCREASE ENERGY /////////////////////////////////////
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            4,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.increase_proxy_farm_token_energy_endpoint(LOCK_OPTIONS[1]);
+            },
+        )
+        .assert_ok();
+
+    // check energy after
+    // lp tokens recharged = total tokens / 4 - 500
+    let user_locked_tokens_in_lp = locked_token_amount.to_u64().unwrap() / 4 - 500;
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let first_lock_epochs = LOCK_OPTIONS[1] - 1u64;
+            let second_lock_epochs = BigInt::from(LOCK_OPTIONS[0] as i64) - BigInt::from(block_epoch as i64);
+            let expected_energy_amount = BigInt::from((user_locked_tokens_in_lp) as i64)
+                * BigInt::from(first_lock_epochs as i64)
+                + BigInt::from((USER_BALANCE - user_locked_tokens_in_lp) as i64)
+                    * second_lock_epochs;
+            let expected_energy = Energy::new(
+                expected_energy_amount,
+                block_epoch,
+                managed_biguint!(USER_BALANCE),
+            );
+            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            assert_eq!(expected_energy, actual_energy);
+        })
+        .assert_ok();
+
+    // check user token after increase energy
+    // new farm token was created
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        5,
+        &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(WRAPPED_LP_TOKEN_ID),
+                token_nonce: 3,
+                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap() / 4u64),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 4,
+                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap() / 4u64),
+            },
+        }),
+    );
+}
+
+
+
+#[test]
+fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner,
+            &setup.farm_locked_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.farming_token_id().set(&managed_token_id!(LP_TOKEN_ID));
+
+                // set produce rewards to false for easier calculation
+                sc.produce_rewards_enabled().set(false);
+            },
+        )
+        .assert_ok();
+
+    setup.b_mock.set_esdt_local_roles(
+        setup.farm_locked_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &[EsdtLocalRole::Burn],
+    );
+
+    let first_user = setup.first_user.clone();
+    let locked_token_amount = rust_biguint!(1_000_000_000);
+    let other_token_amount = rust_biguint!(500_000_000);
+    let expected_lp_token_amount = rust_biguint!(499_999_000);
+
+    // set the price to 1 EGLD = 2 MEX
+    let payments = vec![
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: locked_token_amount.clone(),
+        },
+        TxTokenTransfer {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: other_token_amount.clone(),
+        },
+    ];
+
+    // add liquidity twice, to have 2 nonces
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount.to_u64().unwrap() / 2),
+                managed_biguint!(other_token_amount.to_u64().unwrap() / 2),
+            );
+        })
+        .assert_ok();
+
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount.to_u64().unwrap() / 2),
+                managed_biguint!(other_token_amount.to_u64().unwrap() / 2),
+            );
+        })
+        .assert_ok();
+
+    let mut block_epoch = 1u64;
+    let user_balance = USER_BALANCE;
+
+    // check energy before
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let unlock_epoch = LOCK_OPTIONS[0];
+            let lock_epochs = unlock_epoch - block_epoch;
+            let expected_energy_amount =
+                BigInt::from((user_balance) as i64) * BigInt::from(lock_epochs as i64);
+            let expected_energy = Energy::new(
+                expected_energy_amount,
+                block_epoch,
+                managed_biguint!(user_balance),
+            );
+            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            assert_eq!(expected_energy, actual_energy);
+        })
+        .assert_ok();
+
+    let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
+
+    //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
+
+    // Enter multiple times, to distribute the nonces
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            1,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            2,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            1,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            2,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
+
+        ////////////////////////////// Wait for tokens to unlock /////////////////////////////////////
+        block_epoch += LOCK_OPTIONS[0] / 2;
+        setup.b_mock.set_block_epoch(block_epoch);
+    
+
+    //////////////////////////////////////////// INCREASE ENERGY /////////////////////////////////////
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            4,
+            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            |sc| {
+                sc.increase_proxy_farm_token_energy_endpoint(LOCK_OPTIONS[1]);
+            },
+        )
+        .assert_ok();
+
+    // check energy after
+    // lp tokens recharged = total tokens / 4 - 500
+    let user_locked_tokens_in_lp = locked_token_amount.to_u64().unwrap() / 4 - 500;
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let first_lock_epochs = LOCK_OPTIONS[1] - 1u64;
+            let second_lock_epochs = BigInt::from(LOCK_OPTIONS[0] as i64) - BigInt::from(block_epoch as i64);
+            let expected_energy_amount = BigInt::from((user_locked_tokens_in_lp) as i64)
+                * BigInt::from(first_lock_epochs as i64)
+                + BigInt::from((USER_BALANCE - user_locked_tokens_in_lp) as i64)
+                    * second_lock_epochs;
+            let expected_energy = Energy::new(
+                expected_energy_amount,
+                block_epoch,
+                managed_biguint!(USER_BALANCE),
+            );
+            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            assert_eq!(expected_energy, actual_energy);
+        })
+        .assert_ok();
+
+    // check user token after increase energy
+    // new farm token was created
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        5,
+        &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(WRAPPED_LP_TOKEN_ID),
+                token_nonce: 3,
+                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap() / 4u64),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 4,
+                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap() / 4u64),
+            },
+        }),
+    );
+}
+
+
+
+#[test]
+fn original_caller_negative_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
+    let user_balance = rust_biguint!(USER_BALANCE);
+    setup
+        .b_mock
+        .set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
+
+    // users lock tokens
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.simple_lock_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &user_balance,
+            |sc| {
+                let user_payment = sc.lock_tokens_endpoint(LOCK_OPTIONS[1], OptionalValue::None);
+                assert_eq!(user_payment.token_nonce, 2);
+                assert_eq!(user_payment.amount, managed_biguint!(USER_BALANCE));
+            },
+        )
+        .assert_ok();
+
+    //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), Some(managed_address!(&first_user)).into());
+            },
+        )
+        .assert_error(4, "Item not whitelisted");
+
+        setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+
+        // claim rewards with half position
+        setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE / 2),
+            |sc| {
+                sc.claim_rewards_proxy(managed_address!(&farm_addr), Some(managed_address!(&first_user)).into());
+            },
+        )
+        .assert_error(4, "Item not whitelisted");
+
+        setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                let output = sc.exit_farm_proxy(managed_address!(&farm_addr), Some(managed_address!(&first_user)).into());
+                let output_lp_token = output.0 .0;
+                assert_eq!(output_lp_token.token_nonce, 1);
+                assert_eq!(output_lp_token.amount, USER_BALANCE);
+            },
+        )
+        .assert_error(4, "Item not whitelisted");
+
 }
