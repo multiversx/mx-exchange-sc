@@ -1181,8 +1181,6 @@ fn different_farm_locked_token_nonce_merging_test() {
     );
 }
 
-
-
 #[test]
 fn total_farm_mechanism_test() {
     let mut setup = ProxySetup::new(
@@ -1310,9 +1308,9 @@ fn total_farm_mechanism_test() {
     setup.b_mock.check_nft_balance::<Empty>(
         &first_user,
         LOCKED_TOKEN_ID,
-    2,
-    &rust_biguint!(0),
-    None,
+        2,
+        &rust_biguint!(0),
+        None,
     );
     setup.b_mock.check_nft_balance::<Empty>(
         &first_user,
@@ -1835,10 +1833,9 @@ fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
         )
         .assert_ok();
 
-        ////////////////////////////// Wait for tokens to unlock /////////////////////////////////////
-        block_epoch += LOCK_OPTIONS[0];
-        setup.b_mock.set_block_epoch(block_epoch);
-    
+    ////////////////////////////// Wait for tokens to unlock /////////////////////////////////////
+    block_epoch += LOCK_OPTIONS[0];
+    setup.b_mock.set_block_epoch(block_epoch);
 
     //////////////////////////////////////////// INCREASE ENERGY /////////////////////////////////////
     setup
@@ -1862,7 +1859,8 @@ fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
         .b_mock
         .execute_query(&setup.simple_lock_wrapper, |sc| {
             let first_lock_epochs = LOCK_OPTIONS[1] - 1u64;
-            let second_lock_epochs = BigInt::from(LOCK_OPTIONS[0] as i64) - BigInt::from(block_epoch as i64);
+            let second_lock_epochs =
+                BigInt::from(LOCK_OPTIONS[0] as i64) - BigInt::from(block_epoch as i64);
             let expected_energy_amount = BigInt::from((user_locked_tokens_in_lp) as i64)
                 * BigInt::from(first_lock_epochs as i64)
                 + BigInt::from((USER_BALANCE - user_locked_tokens_in_lp) as i64)
@@ -1898,8 +1896,6 @@ fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
         }),
     );
 }
-
-
 
 #[test]
 fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
@@ -2069,10 +2065,9 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
         )
         .assert_ok();
 
-        ////////////////////////////// Wait for tokens to unlock /////////////////////////////////////
-        block_epoch += LOCK_OPTIONS[0] / 2;
-        setup.b_mock.set_block_epoch(block_epoch);
-    
+    ////////////////////////////// Wait for tokens to unlock /////////////////////////////////////
+    block_epoch += LOCK_OPTIONS[0] / 2;
+    setup.b_mock.set_block_epoch(block_epoch);
 
     //////////////////////////////////////////// INCREASE ENERGY /////////////////////////////////////
     setup
@@ -2096,7 +2091,8 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
         .b_mock
         .execute_query(&setup.simple_lock_wrapper, |sc| {
             let first_lock_epochs = LOCK_OPTIONS[1] - 1u64;
-            let second_lock_epochs = BigInt::from(LOCK_OPTIONS[0] as i64) - BigInt::from(block_epoch as i64);
+            let second_lock_epochs =
+                BigInt::from(LOCK_OPTIONS[0] as i64) - BigInt::from(block_epoch as i64);
             let expected_energy_amount = BigInt::from((user_locked_tokens_in_lp) as i64)
                 * BigInt::from(first_lock_epochs as i64)
                 + BigInt::from((USER_BALANCE - user_locked_tokens_in_lp) as i64)
@@ -2132,8 +2128,6 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
         }),
     );
 }
-
-
 
 #[test]
 fn original_caller_negative_test() {
@@ -2178,12 +2172,15 @@ fn original_caller_negative_test() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), Some(managed_address!(&first_user)).into());
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_addr),
+                    Some(managed_address!(&first_user)).into(),
+                );
             },
         )
         .assert_error(4, "Item not whitelisted");
 
-        setup
+    setup
         .b_mock
         .execute_esdt_transfer(
             &first_user,
@@ -2197,9 +2194,8 @@ fn original_caller_negative_test() {
         )
         .assert_ok();
 
-
-        // claim rewards with half position
-        setup
+    // claim rewards with half position
+    setup
         .b_mock
         .execute_esdt_transfer(
             &first_user,
@@ -2208,12 +2204,15 @@ fn original_caller_negative_test() {
             1,
             &rust_biguint!(USER_BALANCE / 2),
             |sc| {
-                sc.claim_rewards_proxy(managed_address!(&farm_addr), Some(managed_address!(&first_user)).into());
+                sc.claim_rewards_proxy(
+                    managed_address!(&farm_addr),
+                    Some(managed_address!(&first_user)).into(),
+                );
             },
         )
         .assert_error(4, "Item not whitelisted");
 
-        setup
+    setup
         .b_mock
         .execute_esdt_transfer(
             &first_user,
@@ -2222,12 +2221,153 @@ fn original_caller_negative_test() {
             1,
             &rust_biguint!(USER_BALANCE),
             |sc| {
-                let output = sc.exit_farm_proxy(managed_address!(&farm_addr), Some(managed_address!(&first_user)).into());
+                let output = sc.exit_farm_proxy(
+                    managed_address!(&farm_addr),
+                    Some(managed_address!(&first_user)).into(),
+                );
                 let output_lp_token = output.0 .0;
                 assert_eq!(output_lp_token.token_nonce, 1);
                 assert_eq!(output_lp_token.amount, USER_BALANCE);
             },
         )
         .assert_error(4, "Item not whitelisted");
+}
 
+#[test]
+fn total_farm_position_migration_through_proxy_dex_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
+    let user_balance = rust_biguint!(USER_BALANCE);
+    setup
+        .b_mock
+        .set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
+
+    // user locks tokens
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.simple_lock_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &user_balance,
+            |sc| {
+                let user_payment = sc.lock_tokens_endpoint(LOCK_OPTIONS[1], OptionalValue::None);
+                assert_eq!(user_payment.token_nonce, 2);
+                assert_eq!(user_payment.amount, managed_biguint!(USER_BALANCE));
+            },
+        )
+        .assert_ok();
+
+    // User enter farm before migration
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // Simulate contract upgrade - total farm position is reset and migration nonce set
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner,
+            &setup.farm_locked_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut first_user_total_farm_position =
+                    sc.get_user_total_farm_position(&managed_address!(&first_user));
+                first_user_total_farm_position.total_farm_position = managed_biguint!(0u64);
+
+                sc.user_total_farm_position(&managed_address!(&first_user))
+                    .set(first_user_total_farm_position);
+                sc.farm_position_migration_nonce().set(2u64);
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(0)
+            );
+        })
+        .assert_ok();
+
+    // User enters farm again after migration
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(USER_BALANCE)
+            );
+        })
+        .assert_ok();
+
+    // Merge user tokens
+    let payments = vec![
+        TxTokenTransfer {
+            token_identifier: WRAPPED_FARM_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(USER_BALANCE),
+        },
+        TxTokenTransfer {
+            token_identifier: WRAPPED_FARM_TOKEN_ID.to_vec(),
+            nonce: 2,
+            value: rust_biguint!(USER_BALANCE),
+        },
+    ];
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.merge_wrapped_farm_tokens_endpoint(managed_address!(&farm_addr));
+        })
+        .assert_ok();
+
+    // Total farm position should be correct
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(USER_BALANCE * 2)
+            );
+        })
+        .assert_ok();
 }
