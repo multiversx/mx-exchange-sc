@@ -21,6 +21,7 @@ use multiversx_sc::codec::Empty;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, DebugApi,
 };
+use pair::pair_actions::swap::SwapModule;
 use simple_lock::locked_token::LockedTokenAttributes;
 use staking_farm_with_lp_staking_contract_interactions::*;
 
@@ -1002,4 +1003,214 @@ fn stake_farm_through_proxy_migration_test() {
     // Total positions should remain the same
     setup.check_user_total_staking_farm_position(&user, user_total_staking_farm_position);
     setup.check_user_total_lp_farm_position(&user, user_total_lp_farm_position);
+}
+
+#[test]
+fn total_farm_position_after_claim_and_exit_metastaking_test() {
+    let mut setup = FarmStakingSetup::new(
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        farm_staking::contract_obj,
+        farm_staking_proxy::contract_obj,
+    );
+
+    // Boosted rewards setup
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_addr,
+            &setup.staking_farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+            },
+        )
+        .assert_ok();
+
+    setup.set_lp_farm_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    let farm_amount = 100_000_000u64;
+    let user_address = setup.user_addr.clone();
+    let temp_user = setup
+        .b_mock
+        .create_user_account(&rust_biguint!(farm_amount));
+    setup.exit_lp_farm(&user_address, 1, USER_TOTAL_LP_TOKENS);
+    setup
+        .b_mock
+        .set_esdt_balance(&setup.user_addr, LP_TOKEN_ID, &rust_biguint!(farm_amount));
+    setup
+        .b_mock
+        .set_esdt_balance(&temp_user, LP_TOKEN_ID, &rust_biguint!(1));
+
+    setup.b_mock.set_block_epoch(2);
+
+    setup.set_user_energy(&user_address, 1_000, 2, 1);
+    let farm_token_nonce = setup.enter_lp_farm(&user_address, farm_amount);
+
+    setup.check_user_total_staking_farm_position(&user_address, 0);
+
+    // User enters Metastaking
+    setup.stake_farm_lp_proxy(farm_token_nonce, farm_amount, 1, farm_amount);
+
+    // User has his total position saved
+    setup.check_user_total_staking_farm_position(&user_address, farm_amount);
+
+    // User claims rewards to get his energy registered
+    setup
+        .claim_dual_yield_for_other_user(&user_address, &user_address, 1, farm_amount)
+        .assert_ok();
+
+    // User total farm position should be the same, as no swaps happened
+    setup.check_user_total_staking_farm_position(&user_address, farm_amount);
+
+    // Random swaps to change the LP ratio
+    setup
+        .b_mock
+        .set_esdt_balance(&temp_user, WEGLD_TOKEN_ID, &rust_biguint!(300_000_000u64));
+
+    setup.b_mock.set_block_nonce(700);
+    setup.b_mock.set_block_round(700);
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &temp_user,
+            &setup.pair_wrapper,
+            WEGLD_TOKEN_ID,
+            0,
+            &rust_biguint!(100_000_000u64),
+            |sc| {
+                sc.swap_tokens_fixed_input(managed_token_id!(RIDE_TOKEN_ID), managed_biguint!(1));
+            },
+        )
+        .assert_ok();
+
+    setup.b_mock.set_block_nonce(800);
+    setup.b_mock.set_block_round(800);
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &temp_user,
+            &setup.pair_wrapper,
+            WEGLD_TOKEN_ID,
+            0,
+            &rust_biguint!(100_000_000u64),
+            |sc| {
+                sc.swap_tokens_fixed_input(managed_token_id!(RIDE_TOKEN_ID), managed_biguint!(1));
+            },
+        )
+        .assert_ok();
+
+    setup.b_mock.set_block_nonce(1250);
+    setup.b_mock.set_block_round(1250);
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &temp_user,
+            &setup.pair_wrapper,
+            WEGLD_TOKEN_ID,
+            0,
+            &rust_biguint!(100_000_000u64),
+            |sc| {
+                sc.swap_tokens_fixed_input(managed_token_id!(RIDE_TOKEN_ID), managed_biguint!(1));
+            },
+        )
+        .assert_ok();
+
+    // random tx on end of week 1, to cummulate rewards
+    setup.b_mock.set_block_epoch(6);
+    setup.set_user_energy(&user_address, 1_000, 6, 1);
+    setup.set_user_energy(&temp_user, 1, 6, 1);
+    let temp_user_farm_token_nonce = setup.enter_lp_farm(&temp_user, 1);
+    setup.exit_lp_farm(&temp_user, temp_user_farm_token_nonce, 1);
+
+    setup.stake_farm(9000000, 9000000);
+    setup.staking_farm_unstake(3, 9000000, 0, 9000000);
+
+    // advance 1 week
+    setup.b_mock.set_block_epoch(10);
+    setup.set_user_energy(&user_address, 1_000, 10, 1);
+
+    // User total farm position should still be the same
+    setup.check_user_total_staking_farm_position(&user_address, farm_amount);
+
+    // User claims rewards
+    setup
+        .b_mock
+        .check_nft_balance::<DualYieldTokenAttributes<DebugApi>>(
+            &user_address,
+            DUAL_YIELD_TOKEN_ID,
+            2,
+            &rust_biguint!(farm_amount),
+            None,
+        );
+
+    setup
+        .claim_dual_yield_for_other_user(&user_address, &user_address, 2, farm_amount)
+        .assert_ok();
+
+    // Total farm position should be updated after claim, as a few swaps happened
+    let new_expected_token_amount = 92_416_406u64;
+    setup.check_user_total_staking_farm_position(&user_address, new_expected_token_amount);
+
+    // User does not have any dual yield tokens with the before the claim token nonce
+    setup
+        .b_mock
+        .check_nft_balance::<DualYieldTokenAttributes<DebugApi>>(
+            &user_address,
+            DUAL_YIELD_TOKEN_ID,
+            2,
+            &rust_biguint!(0),
+            None,
+        );
+
+    setup
+        .b_mock
+        .check_nft_balance::<DualYieldTokenAttributes<DebugApi>>(
+            &user_address,
+            DUAL_YIELD_TOKEN_ID,
+            3,
+            &rust_biguint!(new_expected_token_amount),
+            None,
+        );
+
+    // User exits with partial position
+    let user_remaining_position = 50_000_000u64;
+    setup
+        .unstake_dual_yield_for_other_user(
+            &user_address,
+            &user_address,
+            3,
+            new_expected_token_amount - user_remaining_position,
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .check_nft_balance::<DualYieldTokenAttributes<DebugApi>>(
+            &user_address,
+            DUAL_YIELD_TOKEN_ID,
+            3,
+            &rust_biguint!(user_remaining_position),
+            None,
+        );
+
+    setup.check_user_total_staking_farm_position(&user_address, user_remaining_position);
+
+    // User exits with remaining position
+    setup
+        .unstake_dual_yield_for_other_user(&user_address, &user_address, 3, user_remaining_position)
+        .assert_ok();
+
+    setup
+        .b_mock
+        .check_nft_balance::<DualYieldTokenAttributes<DebugApi>>(
+            &user_address,
+            DUAL_YIELD_TOKEN_ID,
+            3,
+            &rust_biguint!(0),
+            None,
+        );
+
+    // Total farm position should be 0 after full unstake
+    setup.check_user_total_staking_farm_position(&user_address, 0);
 }
