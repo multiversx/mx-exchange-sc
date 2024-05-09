@@ -496,7 +496,6 @@ fn energy_deplete_test() {
 fn extend_lock_period_endpoint_test() {
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
-    let random_user = setup.b_mock.create_user_account(&rust_biguint!(0u64));
 
     let current_epoch = 1;
     setup.b_mock.set_block_epoch(current_epoch);
