@@ -49,7 +49,7 @@ pub trait LockedAssetTokenMergeModule:
         &self,
         payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
     ) -> (BigUint, LockedAssetTokenAttributesEx<Self::Api>) {
-        require!(!payments.is_empty(), "Cannot merge with 0 tokens");
+        require!(payments.len() > 0, "Cannot merge with 0 tokens");
 
         let mut tokens = ManagedVec::new();
         let mut sum_amount = BigUint::zero();
