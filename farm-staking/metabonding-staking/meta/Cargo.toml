@@ -10,4 +10,4 @@ authors = ["MultiversX <contact@multiversx.com>"]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "0.39.4"
+version = "=0.39.4"
