@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(clippy::from_over_into)]
-#![feature(trait_alias)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();

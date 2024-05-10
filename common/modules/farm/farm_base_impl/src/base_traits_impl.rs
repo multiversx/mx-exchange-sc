@@ -4,18 +4,31 @@ use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
 use config::ConfigModule;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
+use farm_token::FarmTokenModule;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
 use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 use rewards::RewardsModule;
 
-pub trait AllBaseFarmImplTraits =
+pub trait AllBaseFarmImplTraits:
     rewards::RewardsModule
+    + config::ConfigModule
+    + farm_token::FarmTokenModule
+    + permissions_module::PermissionsModule
+    + pausable::PausableModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+{
+}
+
+impl<T> AllBaseFarmImplTraits for T where
+    T: rewards::RewardsModule
         + config::ConfigModule
         + farm_token::FarmTokenModule
         + permissions_module::PermissionsModule
         + pausable::PausableModule
-        + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
+        + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+{
+}
 
 pub trait FarmContract {
     type FarmSc: AllBaseFarmImplTraits;

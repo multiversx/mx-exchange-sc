@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(trait_alias)]
 #![feature(int_roundings)]
 
 multiversx_sc::imports!();
