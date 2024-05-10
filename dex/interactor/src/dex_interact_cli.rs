@@ -17,7 +17,7 @@ pub enum InteractCliCommand {
     #[command(name = "add_liquidity", about = "Adds liquidity to a pair")]
     Add(AddArgs),
     #[command(name = "full_farm", about = "Creates a full farm scenario")]
-    FullFarm(AddArgs)
+    FullFarm(AddArgs),
 }
 
 // Second token id is taken from the state

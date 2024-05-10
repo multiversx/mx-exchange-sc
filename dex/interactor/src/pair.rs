@@ -2,7 +2,11 @@ use multiversx_sc_scenario::imports::{BigUint, ReturnsResult, TokenIdentifier};
 use multiversx_sc_snippets::InteractorPrepareAsync;
 use proxies::pair_proxy;
 
-use crate::{dex_interact_cli::{AddArgs, SwapArgs}, structs::{InteractorAddLiquidityResultType, InteractorToken}, DexInteract};
+use crate::{
+    dex_interact_cli::{AddArgs, SwapArgs},
+    structs::{InteractorAddLiquidityResultType, InteractorToken},
+    DexInteract,
+};
 
 pub(crate) async fn swap_tokens_fixed_input(
     dex_interact: &mut DexInteract,

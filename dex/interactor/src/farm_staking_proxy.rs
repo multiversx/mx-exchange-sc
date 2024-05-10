@@ -1,12 +1,7 @@
 #![allow(unused)]
 
-use multiversx_sc_scenario::{
-    api::StaticApi,
-    imports::{
-        Address, BigUint, EsdtTokenPayment, ManagedAddress, ManagedVec, ReturnsResult, RustBigUint,
-    },
-};
-use multiversx_sc_snippets::InteractorPrepareAsync;
+use multiversx_sc_snippets::imports::*;
+
 use proxies::farm_staking_proxy_sc_proxy;
 
 use crate::{
@@ -18,7 +13,10 @@ use crate::{
 };
 
 // views
-pub(crate) async fn is_sc_address_whitelisted(dex_interact: &mut DexInteract, address: Address) -> bool {
+pub(crate) async fn is_sc_address_whitelisted(
+    dex_interact: &mut DexInteract,
+    address: Address,
+) -> bool {
     dex_interact
         .interactor
         .query()

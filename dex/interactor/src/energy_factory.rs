@@ -1,9 +1,6 @@
 #![allow(unused)]
 
-use multiversx_sc_scenario::imports::{
-    Address, BigUint, ManagedAddress, ReturnsResult, RustBigUint,
-};
-use multiversx_sc_snippets::InteractorPrepareAsync;
+use multiversx_sc_snippets::imports::*;
 use proxies::energy_factory_proxy;
 
 use crate::{
