@@ -36,7 +36,7 @@ where
     Gas: TxGas<Env>,
 {
     pub fn deposit_user_tokens<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         user: Arg0,

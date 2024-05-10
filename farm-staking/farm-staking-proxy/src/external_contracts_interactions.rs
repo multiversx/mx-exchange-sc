@@ -27,7 +27,7 @@ pub trait ExternalContractsInteractionsModule:
             .tx()
             .to(&lp_farm_address)
             .typed(farm_with_locked_rewards_proxy::FarmProxy)
-            .claim_rewards_endpoint(orig_caller)
+            .claim_rewards_endpoint(OptionalValue::Some(orig_caller))
             .single_esdt(
                 &lp_farm_token_id,
                 lp_farm_token_nonce,
@@ -56,7 +56,7 @@ pub trait ExternalContractsInteractionsModule:
             .tx()
             .to(&lp_farm_address)
             .typed(farm_with_locked_rewards_proxy::FarmProxy)
-            .exit_farm_endpoint(orig_caller)
+            .exit_farm_endpoint(OptionalValue::Some(orig_caller))
             .single_esdt(
                 &lp_farm_token_id,
                 lp_farm_token_nonce,
@@ -91,7 +91,7 @@ pub trait ExternalContractsInteractionsModule:
         self.tx()
             .to(lp_farm_address)
             .typed(farm_with_locked_rewards_proxy::FarmProxy)
-            .merge_farm_tokens_endpoint(orig_caller)
+            .merge_farm_tokens_endpoint(OptionalValue::Some(orig_caller))
             .payment(additional_lp_farm_tokens)
             .returns(ReturnsResult)
             .sync_call()

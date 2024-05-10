@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use multiversx_sc_scenario::{
     api::StaticApi,
     imports::{

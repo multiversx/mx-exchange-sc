@@ -1,11 +1,8 @@
+#![allow(unused)]
+
 use common_structs::FarmTokenAttributes;
-use multiversx_sc_scenario::{
-    api::StaticApi,
-    imports::{
-        Address, BigUint, EsdtTokenPayment, ManagedAddress, ManagedVec, ReturnsResult, RustBigUint,
-    },
-};
-use multiversx_sc_snippets::InteractorPrepareAsync;
+
+use multiversx_sc_snippets::imports::*;
 
 use crate::{
     farm_with_locked_rewards_proxy,
@@ -28,9 +25,9 @@ pub(crate) async fn enter_farm(
             .current_farm_with_locked_rewards_address())
         .gas(100_000_000u64)
         .typed(farm_with_locked_rewards_proxy::FarmProxy)
-        .enter_farm_endpoint(ManagedAddress::from(
+        .enter_farm_endpoint(OptionalValue::Some(ManagedAddress::from(
             dex_interact.wallet_address.as_address(),
-        ))
+        )))
         .payment::<EsdtTokenPayment<StaticApi>>(lp_token.into())
         .returns(ReturnsResult)
         .prepare_async()

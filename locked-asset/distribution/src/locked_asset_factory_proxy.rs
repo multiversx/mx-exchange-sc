@@ -36,10 +36,10 @@ where
     Gas: TxGas<Env>,
 {
     pub fn create_and_forward_custom_period<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
-        Arg2: CodecInto<u64>,
-        Arg3: CodecInto<common_structs::locked_token_types::UnlockSchedule<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg2: ProxyArg<u64>,
+        Arg3: ProxyArg<common_structs::locked_token_types::UnlockSchedule<Env::Api>>,
     >(
         self,
         amount: Arg0,

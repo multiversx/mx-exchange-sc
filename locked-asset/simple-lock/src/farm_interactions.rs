@@ -48,7 +48,7 @@ pub trait FarmInteractionsModule {
             .tx()
             .to(&farm_address)
             .typed(farm_proxy::FarmProxy)
-            .enter_farm(caller)
+            .enter_farm(OptionalValue::Some(caller))
             .payment(payment)
             .returns(ReturnsRawResult)
             .sync_call();
@@ -77,7 +77,7 @@ pub trait FarmInteractionsModule {
             .tx()
             .to(&farm_address)
             .typed(farm_proxy::FarmProxy)
-            .exit_farm(caller)
+            .exit_farm(OptionalValue::Some(caller))
             .single_esdt(&farm_token, farm_token_nonce, &farm_token_amount)
             .returns(ReturnsRawResult)
             .sync_call();
@@ -106,7 +106,7 @@ pub trait FarmInteractionsModule {
             .tx()
             .to(&farm_address)
             .typed(farm_proxy::FarmProxy)
-            .claim_rewards(caller)
+            .claim_rewards(OptionalValue::Some(caller))
             .single_esdt(&farm_token, farm_token_nonce, &farm_token_amount)
             .returns(ReturnsRawResult)
             .sync_call();

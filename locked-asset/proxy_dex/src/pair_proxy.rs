@@ -36,7 +36,7 @@ where
     To: TxTo<Env>,
     Gas: TxGas<Env>,
 {
-    pub fn add_liquidity<Arg0: CodecInto<BigUint<Env::Api>>, Arg1: CodecInto<BigUint<Env::Api>>>(
+    pub fn add_liquidity<Arg0: ProxyArg<BigUint<Env::Api>>, Arg1: ProxyArg<BigUint<Env::Api>>>(
         self,
         first_token_amount_min: Arg0,
         second_token_amount_min: Arg1,
@@ -59,8 +59,8 @@ where
     }
 
     pub fn remove_liquidity<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         first_token_amount_min: Arg0,

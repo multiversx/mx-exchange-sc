@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use multiversx_sc_scenario::imports::{
     Address, BigUint, ManagedAddress, ReturnsResult, RustBigUint,
 };

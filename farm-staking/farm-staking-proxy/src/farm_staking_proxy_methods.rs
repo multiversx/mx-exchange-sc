@@ -37,8 +37,8 @@ where
     Gas: TxGas<Env>,
 {
     pub fn stake_farm_through_proxy<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         staked_token_amount: Arg0,
@@ -58,8 +58,8 @@ where
     }
 
     pub fn claim_rewards_with_new_value<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         new_farming_amount: Arg0,
@@ -78,7 +78,7 @@ where
             .original_result()
     }
 
-    pub fn unstake_farm_through_proxy<Arg0: CodecInto<ManagedAddress<Env::Api>>>(
+    pub fn unstake_farm_through_proxy<Arg0: ProxyArg<ManagedAddress<Env::Api>>>(
         self,
         original_caller: Arg0,
     ) -> TxProxyCall<
