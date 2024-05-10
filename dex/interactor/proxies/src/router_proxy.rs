@@ -48,8 +48,9 @@ where
     >(
         self,
         pair_template_address_opt: Arg0,
-    ) -> TxProxyDeploy<Env, From, Gas, ()> {
+    ) -> TxTypedDeploy<Env, From, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_deploy()
             .argument(&pair_template_address_opt)
             .original_result()
@@ -67,8 +68,9 @@ where
 {
     pub fn upgrade(
         self,
-    ) -> TxProxyUpgrade<Env, From, To, Gas, ()> {
+    ) -> TxTypedUpgrade<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_upgrade()
             .original_result()
     }
@@ -88,8 +90,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("pause")
             .argument(&address)
             .original_result()
@@ -100,8 +103,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("resume")
             .argument(&address)
             .original_result()
@@ -120,8 +124,9 @@ where
         initial_liquidity_adder: Arg2,
         opt_fee_percents: Arg3,
         admins: Arg4,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("createPair")
             .argument(&first_token_id)
             .argument(&second_token_id)
@@ -138,8 +143,9 @@ where
         self,
         first_token_id: Arg0,
         second_token_id: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("upgradePair")
             .argument(&first_token_id)
             .argument(&second_token_id)
@@ -155,7 +161,7 @@ where
         pair_address: Arg0,
         lp_token_display_name: Arg1,
         lp_token_ticker: Arg2,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
         self.wrapped_tx
             .raw_call("issueLpToken")
             .argument(&pair_address)
@@ -169,8 +175,9 @@ where
     >(
         self,
         pair_address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setLocalRoles")
             .argument(&pair_address)
             .original_result()
@@ -183,8 +190,9 @@ where
         self,
         first_token_id: Arg0,
         second_token_id: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("removePair")
             .argument(&first_token_id)
             .argument(&second_token_id)
@@ -200,8 +208,9 @@ where
         pair_address: Arg0,
         fee_to_address: Arg1,
         fee_token: Arg2,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setFeeOn")
             .argument(&pair_address)
             .argument(&fee_to_address)
@@ -218,8 +227,9 @@ where
         pair_address: Arg0,
         fee_to_address: Arg1,
         fee_token: Arg2,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setFeeOff")
             .argument(&pair_address)
             .argument(&fee_to_address)
@@ -232,8 +242,9 @@ where
     >(
         self,
         enabled: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setPairCreationEnabled")
             .argument(&enabled)
             .original_result()
@@ -241,32 +252,36 @@ where
 
     pub fn migrate_pair_map(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("migratePairMap")
             .original_result()
     }
 
     pub fn pair_creation_enabled(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, bool> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, bool> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getPairCreationEnabled")
             .original_result()
     }
 
     pub fn state(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, bool> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, bool> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getState")
             .original_result()
     }
 
     pub fn owner(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getOwner")
             .original_result()
     }
@@ -276,8 +291,9 @@ where
     >(
         self,
         period_blocks: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setTemporaryOwnerPeriod")
             .argument(&period_blocks)
             .original_result()
@@ -288,8 +304,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setPairTemplateAddress")
             .argument(&address)
             .original_result()
@@ -297,48 +314,54 @@ where
 
     pub fn pair_template_address(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getPairTemplateAddress")
             .original_result()
     }
 
     pub fn temporary_owner_period(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, u64> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, u64> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getTemporaryOwnerPeriod")
             .original_result()
     }
 
     pub fn common_tokens_for_user_pairs(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValueEncoded<Env::Api, TokenIdentifier<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, MultiValueEncoded<Env::Api, TokenIdentifier<Env::Api>>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getCommonTokensForUserPairs")
             .original_result()
     }
 
     pub fn get_all_pairs_addresses(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getAllPairsManagedAddresses")
             .original_result()
     }
 
     pub fn get_all_token_pairs(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValueEncoded<Env::Api, PairTokens<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, MultiValueEncoded<Env::Api, PairTokens<Env::Api>>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getAllPairTokens")
             .original_result()
     }
 
     pub fn get_all_pair_contract_metadata(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValueEncoded<Env::Api, PairContractMetadata<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, MultiValueEncoded<Env::Api, PairContractMetadata<Env::Api>>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getAllPairContractMetadata")
             .original_result()
     }
@@ -350,8 +373,9 @@ where
         self,
         first_token_id: Arg0,
         second_token_id: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getPair")
             .argument(&first_token_id)
             .argument(&second_token_id)
@@ -363,8 +387,9 @@ where
     >(
         self,
         pair_address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, PairTokens<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, PairTokens<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getPairTokens")
             .argument(&pair_address)
             .original_result()
@@ -372,8 +397,9 @@ where
 
     pub fn clear_pair_temporary_owner_storage(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, usize> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, usize> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("clearPairTemporaryOwnerStorage")
             .original_result()
     }
@@ -383,7 +409,7 @@ where
     >(
         self,
         swap_operations: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedVec<Env::Api, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ManagedVec<Env::Api, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
             .raw_call("multiPairSwap")
             .argument(&swap_operations)
@@ -401,8 +427,9 @@ where
         locked_token_id: Arg1,
         min_locked_token_value: Arg2,
         min_lock_period_epochs: Arg3,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("configEnableByUserParameters")
             .argument(&common_token_id)
             .argument(&locked_token_id)
@@ -416,8 +443,9 @@ where
     >(
         self,
         tokens: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("addCommonTokensForUserPairs")
             .argument(&tokens)
             .original_result()
@@ -428,8 +456,9 @@ where
     >(
         self,
         tokens: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("removeCommonTokensForUserPairs")
             .argument(&tokens)
             .original_result()
@@ -440,7 +469,7 @@ where
     >(
         self,
         pair_address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
         self.wrapped_tx
             .raw_call("setSwapEnabledByUser")
             .argument(&pair_address)
@@ -452,14 +481,16 @@ where
     >(
         self,
         token_id: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, EnableSwapByUserConfig<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, EnableSwapByUserConfig<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getEnableSwapByUserConfig")
             .argument(&token_id)
             .original_result()
     }
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct PairTokens<Api>
 where
@@ -469,6 +500,7 @@ where
     pub second_token_id: TokenIdentifier<Api>,
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct PairContractMetadata<Api>
 where
@@ -479,6 +511,7 @@ where
     pub address: ManagedAddress<Api>,
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct CreatePairEvent<Api>
 where
@@ -495,6 +528,7 @@ where
     pub timestamp: u64,
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct UserPairSwapEnabledEvent<Api>
 where
@@ -506,6 +540,7 @@ where
     pub pair_address: ManagedAddress<Api>,
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct EnableSwapByUserConfig<Api>
 where

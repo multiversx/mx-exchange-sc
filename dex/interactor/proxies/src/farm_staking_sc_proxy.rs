@@ -8,7 +8,6 @@
 #![allow(clippy::all)]
 
 use multiversx_sc::proxy_imports::*;
-use multiversx_sc_scenario::multiversx_sc;
 
 pub struct FarmStakingProxy;
 
@@ -59,8 +58,9 @@ where
         min_unbond_epochs: Arg3,
         owner: Arg4,
         admins: Arg5,
-    ) -> TxProxyDeploy<Env, From, Gas, ()> {
+    ) -> TxTypedDeploy<Env, From, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_deploy()
             .argument(&farming_token_id)
             .argument(&division_safety_constant)
@@ -83,8 +83,9 @@ where
 {
     pub fn upgrade(
         self,
-    ) -> TxProxyUpgrade<Env, From, To, Gas, ()> {
+    ) -> TxTypedUpgrade<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_upgrade()
             .original_result()
     }
@@ -101,7 +102,7 @@ where
 {
     pub fn merge_farm_tokens_endpoint(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
             .raw_call("mergeFarmTokens")
             .original_result()
@@ -112,8 +113,9 @@ where
     >(
         self,
         percentage: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setBoostedYieldsRewardsPercentage")
             .argument(&percentage)
             .original_result()
@@ -126,8 +128,9 @@ where
         self,
         farm_token_amount: Arg0,
         attributes: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("calculateRewardsForGivenPosition")
             .argument(&farm_token_amount)
             .argument(&attributes)
@@ -136,7 +139,7 @@ where
 
     pub fn top_up_rewards(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
         self.wrapped_tx
             .raw_call("topUpRewards")
             .original_result()
@@ -147,7 +150,7 @@ where
     >(
         self,
         withdraw_amount: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
         self.wrapped_tx
             .raw_call("withdrawRewards")
             .argument(&withdraw_amount)
@@ -156,8 +159,9 @@ where
 
     pub fn end_produce_rewards(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("endProduceRewards")
             .original_result()
     }
@@ -167,8 +171,9 @@ where
     >(
         self,
         per_block_amount: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setPerBlockRewardAmount")
             .argument(&per_block_amount)
             .original_result()
@@ -179,8 +184,9 @@ where
     >(
         self,
         max_apr: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setMaxApr")
             .argument(&max_apr)
             .original_result()
@@ -191,8 +197,9 @@ where
     >(
         self,
         min_unbond_epochs: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setMinUnbondEpochs")
             .argument(&min_unbond_epochs)
             .original_result()
@@ -200,56 +207,63 @@ where
 
     pub fn start_produce_rewards_endpoint(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("startProduceRewards")
             .original_result()
     }
 
     pub fn accumulated_rewards(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getAccumulatedRewards")
             .original_result()
     }
 
     pub fn reward_capacity(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getRewardCapacity")
             .original_result()
     }
 
     pub fn max_annual_percentage_rewards(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getAnnualPercentageRewards")
             .original_result()
     }
 
     pub fn min_unbond_epochs(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, u64> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, u64> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getMinUnbondEpochs")
             .original_result()
     }
 
     pub fn reward_per_share(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getRewardPerShare")
             .original_result()
     }
 
     pub fn reward_reserve(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getRewardReserve")
             .original_result()
     }
@@ -259,8 +273,9 @@ where
     >(
         self,
         allow_external_claim: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("allowExternalClaimBoostedRewards")
             .argument(&allow_external_claim)
             .original_result()
@@ -271,8 +286,9 @@ where
     >(
         self,
         user: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, bool> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, bool> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getAllowExternalClaimRewards")
             .argument(&user)
             .original_result()
@@ -280,40 +296,45 @@ where
 
     pub fn farming_token_id(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getFarmingTokenId")
             .original_result()
     }
 
     pub fn reward_token_id(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getRewardTokenId")
             .original_result()
     }
 
     pub fn per_block_reward_amount(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getPerBlockRewardAmount")
             .original_result()
     }
 
     pub fn last_reward_block_nonce(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, u64> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, u64> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getLastRewardBlockNonce")
             .original_result()
     }
 
     pub fn division_safety_constant(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getDivisionSafetyConstant")
             .original_result()
     }
@@ -323,8 +344,9 @@ where
     >(
         self,
         user: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, config::UserTotalFarmPosition<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, config::UserTotalFarmPosition<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getUserTotalFarmPosition")
             .argument(&user)
             .original_result()
@@ -332,8 +354,9 @@ where
 
     pub fn farm_position_migration_nonce(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, u64> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, u64> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getFarmPositionMigrationNonce")
             .original_result()
     }
@@ -347,7 +370,7 @@ where
         token_display_name: Arg0,
         token_ticker: Arg1,
         num_decimals: Arg2,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
         self.wrapped_tx
             .raw_call("registerFarmToken")
             .argument(&token_display_name)
@@ -358,16 +381,18 @@ where
 
     pub fn farm_token(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getFarmTokenId")
             .original_result()
     }
 
     pub fn farm_token_supply(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getFarmTokenSupply")
             .original_result()
     }
@@ -377,8 +402,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("addSCAddressToWhitelist")
             .argument(&address)
             .original_result()
@@ -389,8 +415,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("removeSCAddressFromWhitelist")
             .argument(&address)
             .original_result()
@@ -401,8 +428,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, bool> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, bool> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("isSCAddressWhitelisted")
             .argument(&address)
             .original_result()
@@ -413,8 +441,9 @@ where
     >(
         self,
         address_list: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("addToPauseWhitelist")
             .argument(&address_list)
             .original_result()
@@ -425,8 +454,9 @@ where
     >(
         self,
         address_list: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("removeFromPauseWhitelist")
             .argument(&address_list)
             .original_result()
@@ -434,24 +464,27 @@ where
 
     pub fn pause(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("pause")
             .original_result()
     }
 
     pub fn resume(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("resume")
             .original_result()
     }
 
     pub fn state(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, pausable::State> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, pausable::State> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getState")
             .original_result()
     }
@@ -461,8 +494,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("addAdmin")
             .argument(&address)
             .original_result()
@@ -473,8 +507,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("removeAdmin")
             .argument(&address)
             .original_result()
@@ -485,8 +520,9 @@ where
     >(
         self,
         previous_owner: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("updateOwnerOrAdmin")
             .argument(&previous_owner)
             .original_result()
@@ -497,8 +533,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, permissions_module::permissions::Permissions> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, u32> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getPermissions")
             .argument(&address)
             .original_result()
@@ -509,8 +546,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setBurnRoleForAddress")
             .argument(&address)
             .original_result()
@@ -523,7 +561,7 @@ where
         self,
         staked_token_amount: Arg0,
         original_caller: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
             .raw_call("stakeFarmThroughProxy")
             .argument(&staked_token_amount)
@@ -536,7 +574,7 @@ where
     >(
         self,
         opt_original_caller: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
             .raw_call("stakeFarm")
             .argument(&opt_original_caller)
@@ -548,7 +586,7 @@ where
     >(
         self,
         opt_original_caller: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
             .raw_call("claimRewards")
             .argument(&opt_original_caller)
@@ -562,7 +600,7 @@ where
         self,
         new_farming_amount: Arg0,
         original_caller: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
             .raw_call("claimRewardsWithNewValue")
             .argument(&new_farming_amount)
@@ -572,7 +610,7 @@ where
 
     pub fn compound_rewards(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, EsdtTokenPayment<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, EsdtTokenPayment<Env::Api>> {
         self.wrapped_tx
             .raw_call("compoundRewards")
             .original_result()
@@ -583,7 +621,7 @@ where
     >(
         self,
         opt_original_caller: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
             .raw_call("unstakeFarm")
             .argument(&opt_original_caller)
@@ -595,7 +633,7 @@ where
     >(
         self,
         original_caller: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, MultiValue2<EsdtTokenPayment<Env::Api>, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
             .raw_call("unstakeFarmThroughProxy")
             .argument(&original_caller)
@@ -604,7 +642,7 @@ where
 
     pub fn unbond_farm(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, EsdtTokenPayment<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, EsdtTokenPayment<Env::Api>> {
         self.wrapped_tx
             .raw_call("unbondFarm")
             .original_result()
@@ -615,8 +653,9 @@ where
     >(
         self,
         opt_user: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, EsdtTokenPayment<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, EsdtTokenPayment<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("claimBoostedRewards")
             .argument(&opt_user)
             .original_result()
@@ -624,16 +663,18 @@ where
 
     pub fn collect_undistributed_boosted_rewards(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("collectUndistributedBoostedRewards")
             .original_result()
     }
 
     pub fn boosted_yields_rewards_percentage(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, u64> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, u64> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getBoostedYieldsRewardsPercentage")
             .original_result()
     }
@@ -643,8 +684,9 @@ where
     >(
         self,
         week: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getAccumulatedRewardsForWeek")
             .argument(&week)
             .original_result()
@@ -655,8 +697,9 @@ where
     >(
         self,
         week: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getFarmSupplyForWeek")
             .argument(&week)
             .original_result()
@@ -667,8 +710,9 @@ where
     >(
         self,
         week: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getRemainingBoostedRewardsToDistribute")
             .argument(&week)
             .original_result()
@@ -676,8 +720,9 @@ where
 
     pub fn undistributed_boosted_rewards(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getUndistributedBoostedRewards")
             .original_result()
     }
@@ -695,8 +740,9 @@ where
         user_rewards_farm_const: Arg2,
         min_energy_amount: Arg3,
         min_farm_amount: Arg4,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setBoostedYieldsFactors")
             .argument(&max_rewards_factor)
             .argument(&user_rewards_energy_const)
@@ -708,8 +754,9 @@ where
 
     pub fn get_boosted_yields_factors(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactors<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactors<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getBoostedYieldsFactors")
             .original_result()
     }
@@ -717,16 +764,18 @@ where
     /// Week starts from 1 
     pub fn get_current_week(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, usize> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, usize> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getCurrentWeek")
             .original_result()
     }
 
     pub fn first_week_start_epoch(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, u64> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, u64> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getFirstWeekStartEpoch")
             .original_result()
     }
@@ -736,8 +785,9 @@ where
     >(
         self,
         user: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, usize> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, usize> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getLastActiveWeekForUser")
             .argument(&user)
             .original_result()
@@ -750,8 +800,9 @@ where
         self,
         user: Arg0,
         week: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, OptionalValue<energy_factory::energy::Energy<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, OptionalValue<energy_factory::energy::Energy<Env::Api>>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getUserEnergyForWeek")
             .argument(&user)
             .argument(&week)
@@ -760,8 +811,9 @@ where
 
     pub fn last_global_update_week(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, usize> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, usize> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getLastGlobalUpdateWeek")
             .original_result()
     }
@@ -771,8 +823,9 @@ where
     >(
         self,
         week: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedVec<Env::Api, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedVec<Env::Api, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getTotalRewardsForWeek")
             .argument(&week)
             .original_result()
@@ -783,8 +836,9 @@ where
     >(
         self,
         week: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getTotalEnergyForWeek")
             .argument(&week)
             .original_result()
@@ -795,8 +849,9 @@ where
     >(
         self,
         week: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getTotalLockedTokensForWeek")
             .argument(&week)
             .original_result()
@@ -807,8 +862,9 @@ where
     >(
         self,
         user: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("updateEnergyForUser")
             .argument(&user)
             .original_result()
@@ -819,8 +875,9 @@ where
     >(
         self,
         user: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, weekly_rewards_splitting::ClaimProgress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, weekly_rewards_splitting::ClaimProgress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getCurrentClaimProgress")
             .argument(&user)
             .original_result()
@@ -831,8 +888,9 @@ where
     >(
         self,
         sc_address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setEnergyFactoryAddress")
             .argument(&sc_address)
             .original_result()
@@ -840,13 +898,15 @@ where
 
     pub fn energy_factory_address(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getEnergyFactoryAddress")
             .original_result()
     }
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct StakingFarmTokenAttributes<Api>
 where

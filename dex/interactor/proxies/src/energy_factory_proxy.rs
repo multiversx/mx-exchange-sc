@@ -8,7 +8,6 @@
 #![allow(clippy::all)]
 
 use multiversx_sc::proxy_imports::*;
-use multiversx_sc_scenario::multiversx_sc;
 
 pub struct SimpleLockEnergyProxy;
 
@@ -66,8 +65,9 @@ where
         old_locked_asset_factory_address: Arg2,
         min_migrated_token_locked_period: Arg3,
         lock_options: Arg4,
-    ) -> TxProxyDeploy<Env, From, Gas, ()> {
+    ) -> TxTypedDeploy<Env, From, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_deploy()
             .argument(&base_asset_token_id)
             .argument(&legacy_token_id)
@@ -89,8 +89,9 @@ where
 {
     pub fn upgrade(
         self,
-    ) -> TxProxyUpgrade<Env, From, To, Gas, ()> {
+    ) -> TxTypedUpgrade<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_upgrade()
             .original_result()
     }
@@ -125,7 +126,7 @@ where
         self,
         lock_epochs: Arg0,
         opt_destination: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, EsdtTokenPayment<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, EsdtTokenPayment<Env::Api>> {
         self.wrapped_tx
             .raw_call("lockTokens")
             .argument(&lock_epochs)
@@ -140,7 +141,7 @@ where
     /// Output payments: the originally locked tokens 
     pub fn unlock_tokens_endpoint(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, EsdtTokenPayment<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, EsdtTokenPayment<Env::Api>> {
         self.wrapped_tx
             .raw_call("unlockTokens")
             .original_result()
@@ -154,7 +155,7 @@ where
         self,
         lock_epochs: Arg0,
         user: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, EsdtTokenPayment<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, EsdtTokenPayment<Env::Api>> {
         self.wrapped_tx
             .raw_call("extendLockPeriod")
             .argument(&lock_epochs)
@@ -171,7 +172,7 @@ where
         token_display_name: Arg0,
         token_ticker: Arg1,
         num_decimals: Arg2,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
         self.wrapped_tx
             .raw_call("issueLockedToken")
             .argument(&token_display_name)
@@ -182,24 +183,27 @@ where
 
     pub fn locked_token(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getLockedTokenId")
             .original_result()
     }
 
     pub fn base_asset_token_id(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getBaseAssetTokenId")
             .original_result()
     }
 
     pub fn legacy_locked_token_id(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getLegacyLockedTokenId")
             .original_result()
     }
@@ -209,8 +213,9 @@ where
     >(
         self,
         user: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, Energy<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, Energy<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getEnergyEntryForUser")
             .argument(&user)
             .original_result()
@@ -221,8 +226,9 @@ where
     >(
         self,
         user: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getEnergyAmountForUser")
             .argument(&user)
             .original_result()
@@ -244,8 +250,9 @@ where
     >(
         self,
         new_lock_options: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("addLockOptions")
             .argument(&new_lock_options)
             .original_result()
@@ -253,8 +260,9 @@ where
 
     pub fn get_lock_options_view(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ArrayVec<LockOption, 10usize>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ArrayVec<LockOption, 10usize>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getLockOptions")
             .original_result()
     }
@@ -264,7 +272,7 @@ where
     /// Tokens can be unlocked through another SC after the unbond period has passed. 
     pub fn unlock_early(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
         self.wrapped_tx
             .raw_call("unlockEarly")
             .original_result()
@@ -278,7 +286,7 @@ where
     >(
         self,
         new_lock_period: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, EsdtTokenPayment<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, EsdtTokenPayment<Env::Api>> {
         self.wrapped_tx
             .raw_call("reduceLockPeriod")
             .argument(&new_lock_period)
@@ -297,8 +305,9 @@ where
         token_amount: Arg0,
         prev_lock_epochs: Arg1,
         new_lock_epochs: Arg2,
-    ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getPenaltyAmount")
             .argument(&token_amount)
             .argument(&prev_lock_epochs)
@@ -313,8 +322,9 @@ where
     >(
         self,
         sc_address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setTokenUnstakeAddress")
             .argument(&sc_address)
             .original_result()
@@ -327,7 +337,7 @@ where
         self,
         user: Arg0,
         new_energy: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
         self.wrapped_tx
             .raw_call("revertUnstake")
             .argument(&user)
@@ -337,8 +347,9 @@ where
 
     pub fn token_unstake_sc_address(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getTokenUnstakeScAddress")
             .original_result()
     }
@@ -350,8 +361,9 @@ where
     >(
         self,
         users_energy: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setEnergyForOldTokens")
             .argument(&users_energy)
             .original_result()
@@ -366,8 +378,9 @@ where
         original_caller: Arg0,
         initial_epoch_amount_pairs: Arg1,
         final_epoch_amount_pairs: Arg2,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("updateEnergyAfterOldTokenUnlock")
             .argument(&original_caller)
             .argument(&initial_epoch_amount_pairs)
@@ -377,7 +390,7 @@ where
 
     pub fn migrate_old_tokens(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, MultiValueEncoded<Env::Api, EsdtTokenPayment<Env::Api>>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, MultiValueEncoded<Env::Api, EsdtTokenPayment<Env::Api>>> {
         self.wrapped_tx
             .raw_call("migrateOldTokens")
             .original_result()
@@ -385,24 +398,27 @@ where
 
     pub fn pause_endpoint(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("pause")
             .original_result()
     }
 
     pub fn unpause_endpoint(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("unpause")
             .original_result()
     }
 
     pub fn paused_status(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, bool> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, bool> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("isPaused")
             .original_result()
     }
@@ -413,8 +429,9 @@ where
     >(
         self,
         opt_address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setTransferRoleLockedToken")
             .argument(&opt_address)
             .original_result()
@@ -426,8 +443,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setBurnRoleLockedToken")
             .argument(&address)
             .original_result()
@@ -438,7 +456,7 @@ where
     >(
         self,
         opt_original_caller: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, EsdtTokenPayment<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, EsdtTokenPayment<Env::Api>> {
         self.wrapped_tx
             .raw_call("mergeTokens")
             .argument(&opt_original_caller)
@@ -458,8 +476,9 @@ where
         lock_epochs: Arg2,
         dest_address: Arg3,
         energy_address: Arg4,
-    ) -> TxProxyCall<Env, From, To, Gas, EsdtTokenPayment<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, EsdtTokenPayment<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("lockVirtual")
             .argument(&token_id)
             .argument(&amount)
@@ -474,8 +493,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("addSCAddressToWhitelist")
             .argument(&address)
             .original_result()
@@ -486,8 +506,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("removeSCAddressFromWhitelist")
             .argument(&address)
             .original_result()
@@ -498,8 +519,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, bool> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, bool> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("isSCAddressWhitelisted")
             .argument(&address)
             .original_result()
@@ -510,8 +532,9 @@ where
     >(
         self,
         sc_addresses: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("addToTokenTransferWhitelist")
             .argument(&sc_addresses)
             .original_result()
@@ -522,8 +545,9 @@ where
     >(
         self,
         sc_addresses: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("removeFromTokenTransferWhitelist")
             .argument(&sc_addresses)
             .original_result()
@@ -536,8 +560,9 @@ where
         self,
         user: Arg0,
         energy: Arg1,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setUserEnergyAfterLockedTokenTransfer")
             .argument(&user)
             .argument(&energy)
@@ -545,6 +570,7 @@ where
     }
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug)]
 pub struct Energy<Api>
 where
@@ -555,12 +581,14 @@ where
     pub total_locked_tokens: BigUint<Api>,
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct LockOption {
     pub lock_epochs: u64,
     pub penalty_start_percentage: u64,
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct EnergyUpdatedEvent<Api>
 where

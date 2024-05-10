@@ -8,7 +8,6 @@
 #![allow(clippy::all)]
 
 use multiversx_sc::proxy_imports::*;
-use multiversx_sc_scenario::multiversx_sc;
 
 pub struct FarmStakingProxyProxy;
 
@@ -63,8 +62,9 @@ where
         lp_farm_token_id: Arg5,
         staking_farm_token_id: Arg6,
         lp_token_id: Arg7,
-    ) -> TxProxyDeploy<Env, From, Gas, ()> {
+    ) -> TxTypedDeploy<Env, From, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_deploy()
             .argument(&energy_factory_address)
             .argument(&lp_farm_address)
@@ -89,8 +89,9 @@ where
 {
     pub fn upgrade(
         self,
-    ) -> TxProxyUpgrade<Env, From, To, Gas, ()> {
+    ) -> TxTypedUpgrade<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_upgrade()
             .original_result()
     }
@@ -114,7 +115,7 @@ where
         token_display_name: Arg0,
         token_ticker: Arg1,
         num_decimals: Arg2,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
         self.wrapped_tx
             .raw_call("registerDualYieldToken")
             .argument(&token_display_name)
@@ -125,64 +126,72 @@ where
 
     pub fn dual_yield_token(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getDualYieldTokenId")
             .original_result()
     }
 
     pub fn lp_farm_address(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getLpFarmAddress")
             .original_result()
     }
 
     pub fn staking_farm_address(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getStakingFarmAddress")
             .original_result()
     }
 
     pub fn pair_address(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getPairAddress")
             .original_result()
     }
 
     pub fn staking_token_id(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getStakingTokenId")
             .original_result()
     }
 
     pub fn staking_farm_token_id(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getFarmTokenId")
             .original_result()
     }
 
     pub fn lp_token_id(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getLpTokenId")
             .original_result()
     }
 
     pub fn lp_farm_token_id(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, TokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, TokenIdentifier<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getLpFarmTokenId")
             .original_result()
     }
@@ -192,8 +201,9 @@ where
     >(
         self,
         sc_address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("setEnergyFactoryAddress")
             .argument(&sc_address)
             .original_result()
@@ -201,8 +211,9 @@ where
 
     pub fn energy_factory_address(
         self,
-    ) -> TxProxyCall<Env, From, To, Gas, ManagedAddress<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedAddress<Env::Api>> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("getEnergyFactoryAddress")
             .original_result()
     }
@@ -212,8 +223,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("addSCAddressToWhitelist")
             .argument(&address)
             .original_result()
@@ -224,8 +236,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ()> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("removeSCAddressFromWhitelist")
             .argument(&address)
             .original_result()
@@ -236,8 +249,9 @@ where
     >(
         self,
         address: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, bool> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, bool> {
         self.wrapped_tx
+            .payment(NotPayable)
             .raw_call("isSCAddressWhitelisted")
             .argument(&address)
             .original_result()
@@ -248,7 +262,7 @@ where
     >(
         self,
         opt_orig_caller: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, StakeProxyResult<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, StakeProxyResult<Env::Api>> {
         self.wrapped_tx
             .raw_call("stakeFarmTokens")
             .argument(&opt_orig_caller)
@@ -260,7 +274,7 @@ where
     >(
         self,
         opt_orig_caller: Arg0,
-    ) -> TxProxyCall<Env, From, To, Gas, ClaimDualYieldResult<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, ClaimDualYieldResult<Env::Api>> {
         self.wrapped_tx
             .raw_call("claimDualYield")
             .argument(&opt_orig_caller)
@@ -276,7 +290,7 @@ where
         pair_first_token_min_amount: Arg0,
         pair_second_token_min_amount: Arg1,
         opt_orig_caller: Arg2,
-    ) -> TxProxyCall<Env, From, To, Gas, UnstakeResult<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, (), Gas, UnstakeResult<Env::Api>> {
         self.wrapped_tx
             .raw_call("unstakeFarmTokens")
             .argument(&pair_first_token_min_amount)
@@ -286,6 +300,7 @@ where
     }
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct StakeProxyResult<Api>
 where
@@ -296,6 +311,7 @@ where
     pub lp_farm_boosted_rewards: EsdtTokenPayment<Api>,
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct ClaimDualYieldResult<Api>
 where
@@ -306,6 +322,7 @@ where
     pub new_dual_yield_tokens: EsdtTokenPayment<Api>,
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode)]
 pub struct UnstakeResult<Api>
 where
