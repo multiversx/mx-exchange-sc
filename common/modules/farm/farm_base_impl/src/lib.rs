@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
-#![feature(associated_type_defaults)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();

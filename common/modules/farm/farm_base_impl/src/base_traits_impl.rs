@@ -43,8 +43,7 @@ pub trait FarmContract {
         + FixedSupplyToken<<Self::FarmSc as ContractBase>::Api>
         + FarmToken<<Self::FarmSc as ContractBase>::Api>
         + From<FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>>
-        + Into<FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>> =
-        FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
+        + Into<FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>>;
 
     #[inline]
     fn mint_rewards(
@@ -272,4 +271,6 @@ where
     T: AllBaseFarmImplTraits,
 {
     type FarmSc = T;
+
+    type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
 }
