@@ -52,9 +52,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle"
-version = "1.0.4"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7079075b41f533b8c61d2a4d073c4676e1f8b249ff94a393b0595db304e0dd87"
+checksum = "8901269c6307e8d93993578286ac0edf7f195079ffff5ebdeea6a59ffb7e36bc"
 
 [[package]]
 name = "anstyle-parse"
@@ -649,6 +649,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "env_filter"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a009aa4810eb158359dda09d0c87378e4bbb89b5a801f016885a4707ba24f7ea"
+dependencies = [
+ "log",
+ "regex",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38b35839ba51819680ba087cd351788c9a3c476841207e0b8cee0b04722343b9"
+dependencies = [
+ "anstream",
+ "anstyle",
+ "env_filter",
+ "humantime",
+ "log",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -997,12 +1020,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures"
+version = "0.3.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "645c6916888f6cb6350d2550b80fb63e734897a8498abe35cfb732b6487804b0"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-executor",
+ "futures-io",
+ "futures-sink",
+ "futures-task",
+ "futures-util",
+]
+
+[[package]]
 name = "futures-channel"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eac8f7d7865dcb88bd4373ab671c8cf4508703796caa2b1985a9ca867b3fcb78"
 dependencies = [
  "futures-core",
+ "futures-sink",
 ]
 
 [[package]]
@@ -1012,10 +1051,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfc6580bb841c5a68e9ef15c77ccc837b40a7504914d52e47b8b0e9bbda25a1d"
 
 [[package]]
+name = "futures-executor"
+version = "0.3.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a576fc72ae164fca6b9db127eaa9a9dda0d61316034f33a0a0d4eda41f02b01d"
+dependencies = [
+ "futures-core",
+ "futures-task",
+ "futures-util",
+]
+
+[[package]]
 name = "futures-io"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a44623e20b9681a318efdd71c299b6b222ed6f231972bfe2f224ebad6311f0c1"
+
+[[package]]
+name = "futures-macro"
+version = "0.3.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87750cf4b7a4c0625b1529e4c543c2182106e4dedc60a2a6455e00d212c489ac"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "futures-sink"
@@ -1035,8 +1096,11 @@ version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d6401deb83407ab3da39eba7e33987a73c3df0c82b4bb5813ee871c19c41d48"
 dependencies = [
+ "futures-channel",
  "futures-core",
  "futures-io",
+ "futures-macro",
+ "futures-sink",
  "futures-task",
  "memchr",
  "pin-project-lite",
@@ -1257,6 +1321,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
+name = "humantime"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
+
+[[package]]
 name = "hyper"
 version = "0.14.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1327,6 +1397,20 @@ checksum = "d530e1a18b1cb4c484e6e34556a0d948706958449fca0cab753d649f2bce3d1f"
 dependencies = [
  "equivalent",
  "hashbrown",
+]
+
+[[package]]
+name = "interactor"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "common_structs",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "multiversx-sc-snippets",
+ "proxies",
+ "serde",
+ "toml",
 ]
 
 [[package]]
@@ -1476,9 +1560,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.20"
+version = "0.4.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
+checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
 
 [[package]]
 name = "math"
@@ -1596,9 +1680,9 @@ checksum = "b59072fa0624b55ae5ae3fa6bfa91515bbeb4ac440214bc4a509e2c8806d6e9f"
 
 [[package]]
 name = "multiversx-sc"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3294c0d990001b56d4b6a9fdecbc5a9bc0f9c49f9b5650c0ebc7535ed1949f3f"
+checksum = "c86c9822909c32b10ad50f376d2a710ff465b806aa710874c0417053fdc16530"
 dependencies = [
  "bitflags 2.4.2",
  "hex-literal 0.4.1",
@@ -1632,9 +1716,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-derive"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74c63eebab4c614574ec02fb380da77edf49c8af01881f0d7543fb4b56dc6ef6"
+checksum = "bc4fe5b47d3d7e51b8c2ed6a7c6d656885875cd3d41931193c364fe8ec7814d8"
 dependencies = [
  "hex",
  "proc-macro2",
@@ -1645,9 +1729,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-meta"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e9a23a7ad8f945474ecce36641cbbe20baa6945ee281dafa467b75495206c4f"
+checksum = "226c52919dfc89df47817ee053c6ea4eddaeca15e1cd3d927c65b805d1d3b6a6"
 dependencies = [
  "clap",
  "colored",
@@ -1672,18 +1756,18 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-modules"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6abecca08ba936b66dbb841f08d95550c20d0dcbbe5a0022a23d31d662bd0447"
+checksum = "ddb52421af0c8c451b023a13671f7a9bda3e934d41bfe0a9a8296c4ffc991b1a"
 dependencies = [
  "multiversx-sc",
 ]
 
 [[package]]
 name = "multiversx-sc-scenario"
-version = "0.49.0-alpha.3"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9acdd0442fa078d6374f65e04a1eaa2d29bf5ef601972384ba3399689eb6173"
+checksum = "cd56212a3d90aedeb217203d76e28da52b3b5cd46aab5fc62998256aa3bbaf77"
 dependencies = [
  "base64",
  "bech32",
@@ -1708,10 +1792,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "multiversx-sdk"
-version = "0.3.2"
+name = "multiversx-sc-snippets"
+version = "0.49.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46d709ddf46c50a407ce4b90ff487e854926d47f80de6abfe4a4adca3eaa7964"
+checksum = "3770569d5c943a4be1c9e81188e52f984eb16c49b06851cec07893cb3d0e811a"
+dependencies = [
+ "base64",
+ "env_logger",
+ "futures",
+ "hex",
+ "log",
+ "multiversx-sc-scenario",
+ "multiversx-sdk",
+ "rand 0.8.5",
+ "tokio",
+]
+
+[[package]]
+name = "multiversx-sdk"
+version = "0.4.0-alpha.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f898859f51bfcb010bad5cb9080f8872bd023a78db2a523cdc6af083a400d328"
 dependencies = [
  "anyhow",
  "base64",
@@ -2054,6 +2155,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2422ad645d89c99f8f3e6b88a9fdeca7fabeac836b1002371c4367c8f984aae"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "proxies"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "config",
+ "energy-factory",
+ "farm-boosted-yields",
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "pausable",
+ "permissions_module",
+ "weekly-rewards-splitting",
 ]
 
 [[package]]

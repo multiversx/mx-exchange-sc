@@ -1,0 +1,2 @@
+[[proxy]]
+path = "../../dex/interactor/src/energy_factory_proxy.rs"

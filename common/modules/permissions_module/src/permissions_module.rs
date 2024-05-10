@@ -1,6 +1,6 @@
 #![no_std]
 
-mod permissions;
+pub mod permissions;
 
 use common_errors::ERROR_PERMISSION_DENIED;
 
