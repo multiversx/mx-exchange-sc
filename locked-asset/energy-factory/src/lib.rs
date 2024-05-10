@@ -17,11 +17,13 @@ pub mod token_whitelist;
 pub mod unlock_with_penalty;
 pub mod unstake;
 pub mod virtual_lock;
+pub mod energy_factory_proxy;
 
 use common_structs::{Epoch, Percent};
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 use unwrappable::Unwrappable;
+pub use energy_factory_proxy::SimpleLockEnergyProxy;
 
 use crate::energy::Energy;
 
