@@ -26,7 +26,7 @@ pub trait FarmInteractionsModule {
             .tx()
             .to(&farm_address)
             .typed(farm_with_locked_rewards_proxy::FarmProxy)
-            .enter_farm_endpoint(user)
+            .enter_farm_endpoint(OptionalValue::Some(user))
             .single_esdt(&farming_token_id, 0, &farming_token_amount)
             .returns(ReturnsResult)
             .sync_call();
@@ -49,7 +49,7 @@ pub trait FarmInteractionsModule {
             .tx()
             .to(&farm_address)
             .typed(farm_with_locked_rewards_proxy::FarmProxy)
-            .exit_farm_endpoint(user)
+            .exit_farm_endpoint(OptionalValue::Some(user))
             .payment(farm_token)
             .returns(ReturnsResult)
             .sync_call();
@@ -72,7 +72,7 @@ pub trait FarmInteractionsModule {
             .tx()
             .to(&farm_address)
             .typed(farm_with_locked_rewards_proxy::FarmProxy)
-            .claim_rewards_endpoint(user)
+            .claim_rewards_endpoint(OptionalValue::Some(user))
             .payment(farm_token)
             .returns(ReturnsResult)
             .sync_call();

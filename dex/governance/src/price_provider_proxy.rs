@@ -34,7 +34,7 @@ where
     To: TxTo<Env>,
     Gas: TxGas<Env>,
 {
-    pub fn get_tokens_for_given_position_with_safe_price<Arg0: CodecInto<BigUint<Env::Api>>>(
+    pub fn get_tokens_for_given_position_with_safe_price<Arg0: ProxyArg<BigUint<Env::Api>>>(
         self,
         liquidity: Arg0,
     ) -> TxProxyCall<

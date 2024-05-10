@@ -36,9 +36,9 @@ where
     Gas: TxGas<Env>,
 {
     pub fn update_energy_after_old_token_unlock<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<common_structs::locked_token_types::UnlockEpochAmountPairs<Env::Api>>,
-        Arg2: CodecInto<common_structs::locked_token_types::UnlockEpochAmountPairs<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<common_structs::locked_token_types::UnlockEpochAmountPairs<Env::Api>>,
+        Arg2: ProxyArg<common_structs::locked_token_types::UnlockEpochAmountPairs<Env::Api>>,
     >(
         self,
         original_caller: Arg0,

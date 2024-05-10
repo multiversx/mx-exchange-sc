@@ -45,14 +45,14 @@ where
     Gas: TxGas<Env>,
 {
     pub fn init<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
-        Arg2: CodecInto<ManagedAddress<Env::Api>>,
-        Arg3: CodecInto<ManagedAddress<Env::Api>>,
-        Arg4: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg5: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg6: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg7: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg2: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg3: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg4: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg5: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg6: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg7: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         energy_factory_address: Arg0,
@@ -106,9 +106,9 @@ where
     Gas: TxGas<Env>,
 {
     pub fn register_dual_yield_token<
-        Arg0: CodecInto<ManagedBuffer<Env::Api>>,
-        Arg1: CodecInto<ManagedBuffer<Env::Api>>,
-        Arg2: CodecInto<usize>,
+        Arg0: ProxyArg<ManagedBuffer<Env::Api>>,
+        Arg1: ProxyArg<ManagedBuffer<Env::Api>>,
+        Arg2: ProxyArg<usize>,
     >(
         self,
         token_display_name: Arg0,
@@ -188,7 +188,7 @@ where
     }
 
     pub fn set_energy_factory_address<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         sc_address: Arg0,
@@ -208,7 +208,7 @@ where
     }
 
     pub fn add_sc_address_to_whitelist<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -220,7 +220,7 @@ where
     }
 
     pub fn remove_sc_address_from_whitelist<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -232,7 +232,7 @@ where
     }
 
     pub fn is_sc_address_whitelisted<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -244,7 +244,7 @@ where
     }
 
     pub fn stake_farm_tokens<
-        Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         opt_orig_caller: Arg0,
@@ -256,7 +256,7 @@ where
     }
 
     pub fn claim_dual_yield_endpoint<
-        Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         opt_orig_caller: Arg0,
@@ -268,9 +268,9 @@ where
     }
 
     pub fn unstake_farm_tokens<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
-        Arg2: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
+        Arg2: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         pair_first_token_min_amount: Arg0,

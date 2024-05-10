@@ -45,12 +45,12 @@ where
     Gas: TxGas<Env>,
 {
     pub fn init<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
-        Arg2: CodecInto<BigUint<Env::Api>>,
-        Arg3: CodecInto<u64>,
-        Arg4: CodecInto<ManagedAddress<Env::Api>>,
-        Arg5: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
+        Arg2: ProxyArg<BigUint<Env::Api>>,
+        Arg3: ProxyArg<u64>,
+        Arg4: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg5: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         farming_token_id: Arg0,
@@ -108,7 +108,7 @@ where
     }
 
     pub fn set_boosted_yields_rewards_percentage<
-        Arg0: CodecInto<u64>,
+        Arg0: ProxyArg<u64>,
     >(
         self,
         percentage: Arg0,
@@ -120,8 +120,8 @@ where
     }
 
     pub fn calculate_rewards_for_given_position<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<StakingFarmTokenAttributes<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<StakingFarmTokenAttributes<Env::Api>>,
     >(
         self,
         farm_token_amount: Arg0,
@@ -143,7 +143,7 @@ where
     }
 
     pub fn withdraw_rewards<
-        Arg0: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         withdraw_amount: Arg0,
@@ -163,7 +163,7 @@ where
     }
 
     pub fn set_per_block_rewards<
-        Arg0: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         per_block_amount: Arg0,
@@ -175,7 +175,7 @@ where
     }
 
     pub fn set_max_apr<
-        Arg0: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         max_apr: Arg0,
@@ -187,7 +187,7 @@ where
     }
 
     pub fn set_min_unbond_epochs_endpoint<
-        Arg0: CodecInto<u64>,
+        Arg0: ProxyArg<u64>,
     >(
         self,
         min_unbond_epochs: Arg0,
@@ -255,7 +255,7 @@ where
     }
 
     pub fn allow_external_claim_boosted_rewards<
-        Arg0: CodecInto<bool>,
+        Arg0: ProxyArg<bool>,
     >(
         self,
         allow_external_claim: Arg0,
@@ -267,7 +267,7 @@ where
     }
 
     pub fn get_allow_external_claim_rewards<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         user: Arg0,
@@ -319,7 +319,7 @@ where
     }
 
     pub fn user_total_farm_position<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         user: Arg0,
@@ -339,9 +339,9 @@ where
     }
 
     pub fn register_farm_token<
-        Arg0: CodecInto<ManagedBuffer<Env::Api>>,
-        Arg1: CodecInto<ManagedBuffer<Env::Api>>,
-        Arg2: CodecInto<usize>,
+        Arg0: ProxyArg<ManagedBuffer<Env::Api>>,
+        Arg1: ProxyArg<ManagedBuffer<Env::Api>>,
+        Arg2: ProxyArg<usize>,
     >(
         self,
         token_display_name: Arg0,
@@ -373,7 +373,7 @@ where
     }
 
     pub fn add_sc_address_to_whitelist<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -385,7 +385,7 @@ where
     }
 
     pub fn remove_sc_address_from_whitelist<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -397,7 +397,7 @@ where
     }
 
     pub fn is_sc_address_whitelisted<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -409,7 +409,7 @@ where
     }
 
     pub fn add_to_pause_whitelist<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         address_list: Arg0,
@@ -421,7 +421,7 @@ where
     }
 
     pub fn remove_from_pause_whitelist<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         address_list: Arg0,
@@ -457,7 +457,7 @@ where
     }
 
     pub fn add_admin_endpoint<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -469,7 +469,7 @@ where
     }
 
     pub fn remove_admin_endpoint<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -481,7 +481,7 @@ where
     }
 
     pub fn update_owner_or_admin_endpoint<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         previous_owner: Arg0,
@@ -493,7 +493,7 @@ where
     }
 
     pub fn permissions<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -505,7 +505,7 @@ where
     }
 
     pub fn set_burn_role_for_address<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -517,8 +517,8 @@ where
     }
 
     pub fn stake_farm_through_proxy<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         staked_token_amount: Arg0,
@@ -532,7 +532,7 @@ where
     }
 
     pub fn stake_farm_endpoint<
-        Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         opt_original_caller: Arg0,
@@ -544,7 +544,7 @@ where
     }
 
     pub fn claim_rewards<
-        Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         opt_original_caller: Arg0,
@@ -556,8 +556,8 @@ where
     }
 
     pub fn claim_rewards_with_new_value<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         new_farming_amount: Arg0,
@@ -579,7 +579,7 @@ where
     }
 
     pub fn unstake_farm<
-        Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         opt_original_caller: Arg0,
@@ -591,7 +591,7 @@ where
     }
 
     pub fn unstake_farm_through_proxy<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         original_caller: Arg0,
@@ -611,7 +611,7 @@ where
     }
 
     pub fn claim_boosted_rewards<
-        Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         opt_user: Arg0,
@@ -639,7 +639,7 @@ where
     }
 
     pub fn accumulated_rewards_for_week<
-        Arg0: CodecInto<usize>,
+        Arg0: ProxyArg<usize>,
     >(
         self,
         week: Arg0,
@@ -651,7 +651,7 @@ where
     }
 
     pub fn farm_supply_for_week<
-        Arg0: CodecInto<usize>,
+        Arg0: ProxyArg<usize>,
     >(
         self,
         week: Arg0,
@@ -663,7 +663,7 @@ where
     }
 
     pub fn remaining_boosted_rewards_to_distribute<
-        Arg0: CodecInto<usize>,
+        Arg0: ProxyArg<usize>,
     >(
         self,
         week: Arg0,
@@ -683,11 +683,11 @@ where
     }
 
     pub fn set_boosted_yields_factors<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
-        Arg2: CodecInto<BigUint<Env::Api>>,
-        Arg3: CodecInto<BigUint<Env::Api>>,
-        Arg4: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
+        Arg2: ProxyArg<BigUint<Env::Api>>,
+        Arg3: ProxyArg<BigUint<Env::Api>>,
+        Arg4: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         max_rewards_factor: Arg0,
@@ -732,7 +732,7 @@ where
     }
 
     pub fn get_last_active_week_for_user_view<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         user: Arg0,
@@ -744,8 +744,8 @@ where
     }
 
     pub fn get_user_energy_for_week_view<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<usize>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<usize>,
     >(
         self,
         user: Arg0,
@@ -767,7 +767,7 @@ where
     }
 
     pub fn total_rewards_for_week<
-        Arg0: CodecInto<usize>,
+        Arg0: ProxyArg<usize>,
     >(
         self,
         week: Arg0,
@@ -779,7 +779,7 @@ where
     }
 
     pub fn total_energy_for_week<
-        Arg0: CodecInto<usize>,
+        Arg0: ProxyArg<usize>,
     >(
         self,
         week: Arg0,
@@ -791,7 +791,7 @@ where
     }
 
     pub fn total_locked_tokens_for_week<
-        Arg0: CodecInto<usize>,
+        Arg0: ProxyArg<usize>,
     >(
         self,
         week: Arg0,
@@ -803,7 +803,7 @@ where
     }
 
     pub fn update_energy_for_user<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         user: Arg0,
@@ -815,7 +815,7 @@ where
     }
 
     pub fn current_claim_progress<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         user: Arg0,
@@ -827,7 +827,7 @@ where
     }
 
     pub fn set_energy_factory_address<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         sc_address: Arg0,

@@ -35,12 +35,12 @@ where
     Gas: TxGas<Env>,
 {
     pub fn init<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg2: CodecInto<BigUint<Env::Api>>,
-        Arg3: CodecInto<ManagedAddress<Env::Api>>,
-        Arg4: CodecInto<ManagedAddress<Env::Api>>,
-        Arg5: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg2: ProxyArg<BigUint<Env::Api>>,
+        Arg3: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg4: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg5: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         reward_token_id: Arg0,

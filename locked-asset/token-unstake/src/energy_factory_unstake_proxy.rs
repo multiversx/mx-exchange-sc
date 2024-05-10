@@ -37,8 +37,8 @@ where
     Gas: TxGas<Env>,
 {
     pub fn revert_unstake<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<Energy<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<Energy<Env::Api>>,
     >(
         self,
         user: Arg0,

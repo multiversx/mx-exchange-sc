@@ -44,14 +44,14 @@ where
     Gas: TxGas<Env>,
 {
     pub fn init<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg2: CodecInto<ManagedAddress<Env::Api>>,
-        Arg3: CodecInto<ManagedAddress<Env::Api>>,
-        Arg4: CodecInto<u64>,
-        Arg5: CodecInto<u64>,
-        Arg6: CodecInto<ManagedAddress<Env::Api>>,
-        Arg7: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg2: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg3: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg4: ProxyArg<u64>,
+        Arg5: ProxyArg<u64>,
+        Arg6: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg7: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         first_token_id: Arg0,
@@ -105,7 +105,7 @@ where
     Gas: TxGas<Env>,
 {
     pub fn set_lp_token_identifier<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         token_identifier: Arg0,
@@ -125,7 +125,7 @@ where
     }
 
     pub fn whitelist_endpoint<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -137,7 +137,7 @@ where
     }
 
     pub fn remove_whitelist<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -149,9 +149,9 @@ where
     }
 
     pub fn add_trusted_swap_pair<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg2: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg2: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -167,8 +167,8 @@ where
     }
 
     pub fn remove_trusted_swap_pair<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         first_token: Arg0,
@@ -186,8 +186,8 @@ where
     /// For example, if special fees is 5%, and fees_collector_cut_percentage is 10%, 
     /// then of the 5%, 10% are reserved, and only the rest are split between other pair contracts. 
     pub fn setup_fees_collector<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<u64>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<u64>,
     >(
         self,
         fees_collector_address: Arg0,
@@ -201,9 +201,9 @@ where
     }
 
     pub fn set_fee_on<
-        Arg0: CodecInto<bool>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
-        Arg2: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<bool>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg2: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         enabled: Arg0,
@@ -267,8 +267,8 @@ where
     }
 
     pub fn set_fee_percent<
-        Arg0: CodecInto<u64>,
-        Arg1: CodecInto<u64>,
+        Arg0: ProxyArg<u64>,
+        Arg1: ProxyArg<u64>,
     >(
         self,
         total_fee_percent: Arg0,
@@ -346,7 +346,7 @@ where
     }
 
     pub fn pair_reserve<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         token_id: Arg0,
@@ -366,8 +366,8 @@ where
     }
 
     pub fn get_lp_tokens_safe_price_by_default_offset<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -381,9 +381,9 @@ where
     }
 
     pub fn get_lp_tokens_safe_price_by_round_offset<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<u64>,
-        Arg2: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<u64>,
+        Arg2: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -399,9 +399,9 @@ where
     }
 
     pub fn get_lp_tokens_safe_price_by_timestamp_offset<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<u64>,
-        Arg2: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<u64>,
+        Arg2: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -417,10 +417,10 @@ where
     }
 
     pub fn get_lp_tokens_safe_price<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<u64>,
-        Arg2: CodecInto<u64>,
-        Arg3: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<u64>,
+        Arg2: ProxyArg<u64>,
+        Arg3: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -438,8 +438,8 @@ where
     }
 
     pub fn get_safe_price_by_default_offset<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<EsdtTokenPayment<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<EsdtTokenPayment<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -453,9 +453,9 @@ where
     }
 
     pub fn get_safe_price_by_round_offset<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<u64>,
-        Arg2: CodecInto<EsdtTokenPayment<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<u64>,
+        Arg2: ProxyArg<EsdtTokenPayment<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -471,9 +471,9 @@ where
     }
 
     pub fn get_safe_price_by_timestamp_offset<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<u64>,
-        Arg2: CodecInto<EsdtTokenPayment<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<u64>,
+        Arg2: ProxyArg<EsdtTokenPayment<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -489,10 +489,10 @@ where
     }
 
     pub fn get_safe_price<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<u64>,
-        Arg2: CodecInto<u64>,
-        Arg3: CodecInto<EsdtTokenPayment<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<u64>,
+        Arg2: ProxyArg<u64>,
+        Arg3: ProxyArg<EsdtTokenPayment<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -510,8 +510,8 @@ where
     }
 
     pub fn get_price_observation_view<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<u64>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<u64>,
     >(
         self,
         pair_address: Arg0,
@@ -525,7 +525,7 @@ where
     }
 
     pub fn update_and_get_tokens_for_given_position_with_safe_price<
-        Arg0: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         liquidity: Arg0,
@@ -537,7 +537,7 @@ where
     }
 
     pub fn update_and_get_safe_price<
-        Arg0: CodecInto<EsdtTokenPayment<Env::Api>>,
+        Arg0: ProxyArg<EsdtTokenPayment<Env::Api>>,
     >(
         self,
         input: Arg0,
@@ -549,7 +549,7 @@ where
     }
 
     pub fn set_locking_deadline_epoch<
-        Arg0: CodecInto<u64>,
+        Arg0: ProxyArg<u64>,
     >(
         self,
         new_deadline: Arg0,
@@ -561,7 +561,7 @@ where
     }
 
     pub fn set_locking_sc_address<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         new_address: Arg0,
@@ -573,7 +573,7 @@ where
     }
 
     pub fn set_unlock_epoch<
-        Arg0: CodecInto<u64>,
+        Arg0: ProxyArg<u64>,
     >(
         self,
         new_epoch: Arg0,
@@ -609,7 +609,7 @@ where
     }
 
     pub fn add_admin_endpoint<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -621,7 +621,7 @@ where
     }
 
     pub fn remove_admin_endpoint<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -633,7 +633,7 @@ where
     }
 
     pub fn update_owner_or_admin_endpoint<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         previous_owner: Arg0,
@@ -645,7 +645,7 @@ where
     }
 
     pub fn permissions<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -657,7 +657,7 @@ where
     }
 
     pub fn add_to_pause_whitelist<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         address_list: Arg0,
@@ -669,7 +669,7 @@ where
     }
 
     pub fn remove_from_pause_whitelist<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         address_list: Arg0,
@@ -713,8 +713,8 @@ where
     }
 
     pub fn add_liquidity<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         first_token_amount_min: Arg0,
@@ -728,8 +728,8 @@ where
     }
 
     pub fn remove_liquidity<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         first_token_amount_min: Arg0,
@@ -743,7 +743,7 @@ where
     }
 
     pub fn remove_liquidity_and_burn_token<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         token_to_buyback_and_burn: Arg0,
@@ -755,8 +755,8 @@ where
     }
 
     pub fn swap_no_fee<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         token_out: Arg0,
@@ -770,8 +770,8 @@ where
     }
 
     pub fn swap_tokens_fixed_input<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         token_out: Arg0,
@@ -785,8 +785,8 @@ where
     }
 
     pub fn swap_tokens_fixed_output<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         token_out: Arg0,
@@ -800,7 +800,7 @@ where
     }
 
     pub fn get_tokens_for_given_position<
-        Arg0: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         liquidity: Arg0,
@@ -820,8 +820,8 @@ where
     }
 
     pub fn get_amount_out_view<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         token_in: Arg0,
@@ -835,8 +835,8 @@ where
     }
 
     pub fn get_amount_in_view<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         token_wanted: Arg0,
@@ -850,8 +850,8 @@ where
     }
 
     pub fn get_equivalent<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         token_in: Arg0,

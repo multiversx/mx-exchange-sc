@@ -37,8 +37,8 @@ where
     Gas: TxGas<Env>,
 {
     pub fn remove_liquidity<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         first_token_amount_min: Arg0,
@@ -58,7 +58,7 @@ where
     }
 
     pub fn update_and_get_tokens_for_given_position_with_safe_price<
-        Arg0: CodecInto<BigUint<Env::Api>>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
     >(
         self,
         liquidity: Arg0,

@@ -35,8 +35,8 @@ where
     Gas: TxGas<Env>,
 {
     pub fn swap_no_fee<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         token_out: Arg0,

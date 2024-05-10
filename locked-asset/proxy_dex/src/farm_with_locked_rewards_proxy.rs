@@ -36,7 +36,7 @@ where
     To: TxTo<Env>,
     Gas: TxGas<Env>,
 {
-    pub fn enter_farm_endpoint<Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>>(
+    pub fn enter_farm_endpoint<Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>>(
         self,
         opt_orig_caller: Arg0,
     ) -> TxProxyCall<
@@ -52,7 +52,7 @@ where
             .original_result()
     }
 
-    pub fn exit_farm_endpoint<Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>>(
+    pub fn exit_farm_endpoint<Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>>(
         self,
         opt_orig_caller: Arg0,
     ) -> TxProxyCall<
@@ -68,7 +68,7 @@ where
             .original_result()
     }
 
-    pub fn claim_rewards_endpoint<Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>>(
+    pub fn claim_rewards_endpoint<Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>>(
         self,
         opt_orig_caller: Arg0,
     ) -> TxProxyCall<

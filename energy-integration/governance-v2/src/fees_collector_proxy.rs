@@ -40,7 +40,7 @@ where
             .original_result()
     }
 
-    pub fn total_energy_for_week<Arg0: CodecInto<usize>>(
+    pub fn total_energy_for_week<Arg0: ProxyArg<usize>>(
         self,
         week: Arg0,
     ) -> TxProxyCall<Env, From, To, Gas, BigUint<Env::Api>> {

@@ -34,7 +34,7 @@ where
     To: TxTo<Env>,
     Gas: TxGas<Env>,
 {
-    pub fn update_energy_for_user<Arg0: CodecInto<ManagedAddress<Env::Api>>>(
+    pub fn update_energy_for_user<Arg0: ProxyArg<ManagedAddress<Env::Api>>>(
         self,
         user: Arg0,
     ) -> TxProxyCall<Env, From, To, Gas, ()> {

@@ -44,7 +44,7 @@ where
     Gas: TxGas<Env>,
 {
     pub fn init<
-        Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         pair_template_address_opt: Arg0,
@@ -84,7 +84,7 @@ where
     Gas: TxGas<Env>,
 {
     pub fn pause<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -96,7 +96,7 @@ where
     }
 
     pub fn resume<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -108,11 +108,11 @@ where
     }
 
     pub fn create_pair_endpoint<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg2: CodecInto<ManagedAddress<Env::Api>>,
-        Arg3: CodecInto<OptionalValue<MultiValue2<u64, u64>>>,
-        Arg4: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg2: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg3: ProxyArg<OptionalValue<MultiValue2<u64, u64>>>,
+        Arg4: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         first_token_id: Arg0,
@@ -132,8 +132,8 @@ where
     }
 
     pub fn upgrade_pair_endpoint<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         first_token_id: Arg0,
@@ -147,9 +147,9 @@ where
     }
 
     pub fn issue_lp_token<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<ManagedBuffer<Env::Api>>,
-        Arg2: CodecInto<ManagedBuffer<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<ManagedBuffer<Env::Api>>,
+        Arg2: ProxyArg<ManagedBuffer<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -165,7 +165,7 @@ where
     }
 
     pub fn set_local_roles<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -177,8 +177,8 @@ where
     }
 
     pub fn remove_pair<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         first_token_id: Arg0,
@@ -192,9 +192,9 @@ where
     }
 
     pub fn set_fee_on<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
-        Arg2: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg2: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -210,9 +210,9 @@ where
     }
 
     pub fn set_fee_off<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
-        Arg2: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg2: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -228,7 +228,7 @@ where
     }
 
     pub fn set_pair_creation_enabled<
-        Arg0: CodecInto<bool>,
+        Arg0: ProxyArg<bool>,
     >(
         self,
         enabled: Arg0,
@@ -272,7 +272,7 @@ where
     }
 
     pub fn set_temporary_owner_period<
-        Arg0: CodecInto<u64>,
+        Arg0: ProxyArg<u64>,
     >(
         self,
         period_blocks: Arg0,
@@ -284,7 +284,7 @@ where
     }
 
     pub fn set_pair_template_address<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -344,8 +344,8 @@ where
     }
 
     pub fn get_pair<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         first_token_id: Arg0,
@@ -359,7 +359,7 @@ where
     }
 
     pub fn get_pair_tokens<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -379,7 +379,7 @@ where
     }
 
     pub fn multi_pair_swap<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, MultiValue4<ManagedAddress<Env::Api>, ManagedBuffer<Env::Api>, TokenIdentifier<Env::Api>, BigUint<Env::Api>>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, MultiValue4<ManagedAddress<Env::Api>, ManagedBuffer<Env::Api>, TokenIdentifier<Env::Api>, BigUint<Env::Api>>>>,
     >(
         self,
         swap_operations: Arg0,
@@ -391,10 +391,10 @@ where
     }
 
     pub fn config_enable_by_user_parameters<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg2: CodecInto<BigUint<Env::Api>>,
-        Arg3: CodecInto<u64>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg2: ProxyArg<BigUint<Env::Api>>,
+        Arg3: ProxyArg<u64>,
     >(
         self,
         common_token_id: Arg0,
@@ -412,7 +412,7 @@ where
     }
 
     pub fn add_common_tokens_for_user_pairs<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, TokenIdentifier<Env::Api>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, TokenIdentifier<Env::Api>>>,
     >(
         self,
         tokens: Arg0,
@@ -424,7 +424,7 @@ where
     }
 
     pub fn remove_common_tokens_for_user_pairs<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, TokenIdentifier<Env::Api>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, TokenIdentifier<Env::Api>>>,
     >(
         self,
         tokens: Arg0,
@@ -436,7 +436,7 @@ where
     }
 
     pub fn set_swap_enabled_by_user<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         pair_address: Arg0,
@@ -448,7 +448,7 @@ where
     }
 
     pub fn try_get_config<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
     >(
         self,
         token_id: Arg0,

@@ -54,11 +54,11 @@ where
     ///     a migrated old LKMEX token will be locked for after the average is calculated 
     /// - lock_options: See `addLockOptions` endpoint doc for details. 
     pub fn init<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg2: CodecInto<ManagedAddress<Env::Api>>,
-        Arg3: CodecInto<u64>,
-        Arg4: CodecInto<MultiValueEncoded<Env::Api, MultiValue2<u64, u64>>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg2: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg3: ProxyArg<u64>,
+        Arg4: ProxyArg<MultiValueEncoded<Env::Api, MultiValue2<u64, u64>>>,
     >(
         self,
         base_asset_token_id: Arg0,
@@ -119,8 +119,8 @@ where
     ///  
     /// Output payment: LOCKED tokens 
     pub fn lock_tokens_endpoint<
-        Arg0: CodecInto<u64>,
-        Arg1: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<u64>,
+        Arg1: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         lock_epochs: Arg0,
@@ -148,8 +148,8 @@ where
 
     /// Used internally by proxy-dex 
     pub fn extend_lock_period<
-        Arg0: CodecInto<u64>,
-        Arg1: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<u64>,
+        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         lock_epochs: Arg0,
@@ -163,9 +163,9 @@ where
     }
 
     pub fn issue_locked_token<
-        Arg0: CodecInto<ManagedBuffer<Env::Api>>,
-        Arg1: CodecInto<ManagedBuffer<Env::Api>>,
-        Arg2: CodecInto<usize>,
+        Arg0: ProxyArg<ManagedBuffer<Env::Api>>,
+        Arg1: ProxyArg<ManagedBuffer<Env::Api>>,
+        Arg2: ProxyArg<usize>,
     >(
         self,
         token_display_name: Arg0,
@@ -205,7 +205,7 @@ where
     }
 
     pub fn get_updated_energy_entry_for_user<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         user: Arg0,
@@ -217,7 +217,7 @@ where
     }
 
     pub fn get_energy_amount_for_user<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         user: Arg0,
@@ -240,7 +240,7 @@ where
     /// When calling lockTokens, or reducing lock periods, 
     /// users may only pick one of the whitelisted lock options. 
     pub fn add_lock_options<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, MultiValue2<u64, u64>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, MultiValue2<u64, u64>>>,
     >(
         self,
         new_lock_options: Arg0,
@@ -274,7 +274,7 @@ where
     /// The longer the reduction, the bigger the penalty. 
     /// new_lock_period must be one of the available lock options 
     pub fn reduce_lock_period<
-        Arg0: CodecInto<u64>,
+        Arg0: ProxyArg<u64>,
     >(
         self,
         new_lock_period: Arg0,
@@ -289,9 +289,9 @@ where
     /// were to have their lock epochs reduced from `prev_lock_epochs` to 
     /// `new_lock_epochs`. For full unlock, `new_lock_epochs` should be 0. 
     pub fn calculate_penalty_amount<
-        Arg0: CodecInto<BigUint<Env::Api>>,
-        Arg1: CodecInto<u64>,
-        Arg2: CodecInto<u64>,
+        Arg0: ProxyArg<BigUint<Env::Api>>,
+        Arg1: ProxyArg<u64>,
+        Arg2: ProxyArg<u64>,
     >(
         self,
         token_amount: Arg0,
@@ -309,7 +309,7 @@ where
     /// - token_unstake_address - The address of the SC that will handle the unbond logic 
     ///     By default, all tokens go through an unbond period after unlock 
     pub fn set_token_unstake_address<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         sc_address: Arg0,
@@ -321,8 +321,8 @@ where
     }
 
     pub fn revert_unstake<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<Energy<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<Energy<Env::Api>>,
     >(
         self,
         user: Arg0,
@@ -346,7 +346,7 @@ where
     /// Sets the energy amounts and token amounts for users. Overwrites any existing values. 
     /// Expects any number of pairs of (user address, token amount, energy amount). 
     pub fn set_energy_for_old_tokens<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, MultiValue3<ManagedAddress<Env::Api>, BigUint<Env::Api>, BigInt<Env::Api>>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, MultiValue3<ManagedAddress<Env::Api>, BigUint<Env::Api>, BigInt<Env::Api>>>>,
     >(
         self,
         users_energy: Arg0,
@@ -358,9 +358,9 @@ where
     }
 
     pub fn update_energy_after_old_token_unlock<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<common_structs::locked_token_types::UnlockEpochAmountPairs<Env::Api>>,
-        Arg2: CodecInto<common_structs::locked_token_types::UnlockEpochAmountPairs<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<common_structs::locked_token_types::UnlockEpochAmountPairs<Env::Api>>,
+        Arg2: ProxyArg<common_structs::locked_token_types::UnlockEpochAmountPairs<Env::Api>>,
     >(
         self,
         original_caller: Arg0,
@@ -409,7 +409,7 @@ where
 
     /// Sets the transfer role for the given address. Defaults to own address. 
     pub fn set_transfer_role<
-        Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         opt_address: Arg0,
@@ -422,7 +422,7 @@ where
 
     /// Sets the burn role for the given address 
     pub fn set_burn_role<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -434,7 +434,7 @@ where
     }
 
     pub fn merge_tokens_endpoint<
-        Arg0: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         opt_original_caller: Arg0,
@@ -446,11 +446,11 @@ where
     }
 
     pub fn lock_virtual<
-        Arg0: CodecInto<TokenIdentifier<Env::Api>>,
-        Arg1: CodecInto<BigUint<Env::Api>>,
-        Arg2: CodecInto<u64>,
-        Arg3: CodecInto<ManagedAddress<Env::Api>>,
-        Arg4: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
+        Arg2: ProxyArg<u64>,
+        Arg3: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg4: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         token_id: Arg0,
@@ -470,7 +470,7 @@ where
     }
 
     pub fn add_sc_address_to_whitelist<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -482,7 +482,7 @@ where
     }
 
     pub fn remove_sc_address_from_whitelist<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -494,7 +494,7 @@ where
     }
 
     pub fn is_sc_address_whitelisted<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         address: Arg0,
@@ -506,7 +506,7 @@ where
     }
 
     pub fn add_to_token_transfer_whitelist<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         sc_addresses: Arg0,
@@ -518,7 +518,7 @@ where
     }
 
     pub fn remove_from_token_transfer_whitelist<
-        Arg0: CodecInto<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<MultiValueEncoded<Env::Api, ManagedAddress<Env::Api>>>,
     >(
         self,
         sc_addresses: Arg0,
@@ -530,8 +530,8 @@ where
     }
 
     pub fn set_user_energy_after_locked_token_transfer<
-        Arg0: CodecInto<ManagedAddress<Env::Api>>,
-        Arg1: CodecInto<Energy<Env::Api>>,
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<Energy<Env::Api>>,
     >(
         self,
         user: Arg0,

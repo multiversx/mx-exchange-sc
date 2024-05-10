@@ -49,8 +49,8 @@ where
     ///  
     /// Output payment: LOCKED tokens 
     pub fn lock_tokens_endpoint<
-        Arg0: CodecInto<u64>,
-        Arg1: CodecInto<OptionalValue<ManagedAddress<Env::Api>>>,
+        Arg0: ProxyArg<u64>,
+        Arg1: ProxyArg<OptionalValue<ManagedAddress<Env::Api>>>,
     >(
         self,
         lock_epochs: Arg0,
