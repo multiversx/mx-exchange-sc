@@ -35,6 +35,7 @@ pub const USER_ENERGY: u64 = 1_000_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct Payment {
     pub token: Vec<u8>,
     pub nonce: u64,
