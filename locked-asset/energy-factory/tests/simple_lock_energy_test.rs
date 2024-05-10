@@ -315,6 +315,7 @@ fn reduce_lock_period_test() {
 fn extend_locking_period_test() {
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
+    let random_user = setup.b_mock.create_user_account(&rust_biguint!(0u64));
     let half_balance = USER_BALANCE / 2;
 
     let current_epoch = 1;
@@ -329,7 +330,7 @@ fn extend_locking_period_test() {
         )
         .assert_ok();
 
-    // extend to 3 years - unsupported option
+    // extend to a random period - unsupported option
     setup
         .extend_locking_period(
             &first_user,
@@ -337,10 +338,11 @@ fn extend_locking_period_test() {
             1,
             half_balance,
             3 * EPOCHS_IN_YEAR,
+            None,
         )
         .assert_user_error("Invalid lock choice");
 
-    // extend to 10 years
+    // extend to a whitelisted period, but for a different user
     setup
         .extend_locking_period(
             &first_user,
@@ -348,8 +350,33 @@ fn extend_locking_period_test() {
             1,
             half_balance,
             LOCK_OPTIONS[1],
+            Some(random_user),
+        )
+        .assert_user_error("May not use the optional destination argument here");
+
+    // extend to the second option - should work as intended
+    // 1 epoch has passed
+    let energy_per_epoch = rust_biguint!(500_000_000_000_000_000u64);
+    let energy_before = setup.get_user_energy(&first_user); // 179_500_000_000_000_000_000
+    assert_eq!(
+        energy_before,
+        LOCK_OPTIONS[0] * energy_per_epoch.clone() - energy_per_epoch.clone()
+    );
+    setup
+        .extend_locking_period(
+            &first_user,
+            LOCKED_TOKEN_ID,
+            1,
+            half_balance,
+            LOCK_OPTIONS[1],
+            None,
         )
         .assert_ok();
+    let energy_after = setup.get_user_energy(&first_user); // 359_500_000_000_000_000_000
+    assert_eq!(
+        energy_after,
+        LOCK_OPTIONS[1] * energy_per_epoch.clone() - energy_per_epoch.clone()
+    );
 
     let new_unlock_epoch = to_start_of_month(current_epoch + LOCK_OPTIONS[1]);
     setup.b_mock.check_nft_balance(
@@ -376,6 +403,7 @@ fn extend_locking_period_test() {
             2,
             half_balance,
             LOCK_OPTIONS[0],
+            None,
         )
         .assert_user_error("New lock period must be longer than the current one");
 }

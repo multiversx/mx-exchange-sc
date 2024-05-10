@@ -13,7 +13,10 @@ pub const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 
 #[multiversx_sc::module]
 pub trait MultiPairSwap:
-    config::ConfigModule + factory::FactoryModule + token_send::TokenSendModule
+    config::ConfigModule
+    + crate::read_pair_storage::ReadPairStorageModule
+    + factory::FactoryModule
+    + token_send::TokenSendModule
 {
     #[payable("*")]
     #[endpoint(multiPairSwap)]

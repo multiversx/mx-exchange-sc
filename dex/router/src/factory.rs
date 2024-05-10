@@ -19,7 +19,9 @@ pub struct PairContractMetadata<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::module]
-pub trait FactoryModule: config::ConfigModule {
+pub trait FactoryModule:
+    config::ConfigModule + crate::read_pair_storage::ReadPairStorageModule
+{
     fn init_factory(&self, pair_template_address_opt: Option<ManagedAddress>) {
         if let Some(addr) = pair_template_address_opt {
             self.pair_template_address().set(&addr);
@@ -69,13 +71,6 @@ pub trait FactoryModule: config::ConfigModule {
                 second_token_id: second_token_id.clone(),
             },
             new_address.clone(),
-        );
-        self.address_pair_map().insert(
-            new_address.clone(),
-            PairTokens {
-                first_token_id: first_token_id.clone(),
-                second_token_id: second_token_id.clone(),
-            },
         );
         self.pair_temporary_owner().insert(
             new_address.clone(),
@@ -155,13 +150,6 @@ pub trait FactoryModule: config::ConfigModule {
                 .unwrap_or_else(ManagedAddress::zero);
         }
         address
-    }
-
-    #[view(getPairTokens)]
-    fn get_pair_tokens(&self, pair_address: ManagedAddress) -> PairTokens<Self::Api> {
-        let pair_tokens_opt = self.address_pair_map().get(&pair_address);
-        require!(pair_tokens_opt.is_some(), "Pair address not found");
-        pair_tokens_opt.unwrap()
     }
 
     fn get_pair_temporary_owner(&self, pair_address: &ManagedAddress) -> Option<ManagedAddress> {
