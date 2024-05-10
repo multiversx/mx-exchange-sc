@@ -11,5 +11,5 @@ path = "src/sc_whitelist_module.rs"
 path = "../../common_errors"
 
 [dependencies.multiversx-sc]
-version = "=0.49.0-alpha.4"
+version = "=0.49.0"
 features = ["esdt-token-payment-legacy-decode"]
