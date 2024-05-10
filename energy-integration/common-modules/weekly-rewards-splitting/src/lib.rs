@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(int_roundings)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
