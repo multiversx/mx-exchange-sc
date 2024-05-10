@@ -140,9 +140,7 @@ dependencies = [
 name = "locking_module"
 version = "0.0.0"
 dependencies = [
- "energy-factory",
  "multiversx-sc",
- "simple-lock",
 ]
 
 [[package]]

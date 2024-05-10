@@ -5,12 +5,15 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+pub mod energy_factory_token_transfer_proxy;
 pub mod energy_update;
 pub mod events;
 pub mod external_merging;
 pub mod farm_interactions;
+pub mod farm_with_locked_rewards_proxy;
 pub mod other_sc_whitelist;
 pub mod pair_interactions;
+pub mod pair_proxy;
 pub mod proxy_common;
 pub mod proxy_farm;
 pub mod proxy_pair;

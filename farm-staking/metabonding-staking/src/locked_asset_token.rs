@@ -1,7 +1,7 @@
+use crate::locked_asset_factory_proxy;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
-
-use factory::locked_asset_token_merge::ProxyTrait as _;
 
 pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
 
@@ -81,16 +81,14 @@ pub trait LockedAssetTokenModule {
         }
 
         let locked_asset_factory_address = self.locked_asset_factory_address().get();
-        self.locked_asset_factory_proxy(locked_asset_factory_address)
+        self.tx()
+            .to(&locked_asset_factory_address)
+            .typed(locked_asset_factory_proxy::LockedAssetFactoryProxy)
             .merge_tokens()
-            .with_multi_token_transfer(tokens)
-            .execute_on_dest_context()
+            .payment(tokens)
+            .returns(ReturnsResult)
+            .sync_call()
     }
-
-    // proxies
-
-    #[proxy]
-    fn locked_asset_factory_proxy(&self, sc_address: ManagedAddress) -> factory::Proxy<Self::Api>;
 
     // storage
 

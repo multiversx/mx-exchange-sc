@@ -3,7 +3,9 @@
 multiversx_sc::imports!();
 
 pub mod cancel_unstake;
+pub mod energy_factory_unstake_proxy;
 pub mod events;
+pub mod fees_collector_proxy;
 pub mod fees_handler;
 pub mod tokens_per_user;
 pub mod unbond_tokens;

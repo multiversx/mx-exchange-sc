@@ -3,6 +3,7 @@
 multiversx_sc::imports!();
 
 pub mod events;
+pub mod locked_asset_factory_proxy;
 pub mod locked_asset_token;
 
 use locked_asset_token::UserEntry;

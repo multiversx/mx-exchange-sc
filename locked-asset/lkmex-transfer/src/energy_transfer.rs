@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
+use crate::energy_factory_token_transfer_proxy;
 use common_structs::PaymentsVec;
-use energy_factory::locked_token_transfer::ProxyTrait as _;
 use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -62,9 +62,10 @@ pub trait EnergyTransferModule:
 
     fn set_energy_in_factory(&self, user: ManagedAddress, energy: Energy<Self::Api>) {
         let sc_address = self.energy_factory_address().get();
-        let _: () = self
-            .energy_factory_proxy(sc_address)
+        self.tx()
+            .to(&sc_address)
+            .typed(energy_factory_token_transfer_proxy::SimpleLockEnergyProxy)
             .set_user_energy_after_locked_token_transfer(user, energy)
-            .execute_on_dest_context();
+            .sync_call();
     }
 }

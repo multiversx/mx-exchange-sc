@@ -1,10 +1,6 @@
 multiversx_sc::imports!();
 
-use pair::pair_actions::{
-    add_liq::ProxyTrait as _,
-    common_result_types::{AddLiquidityResultType, RemoveLiquidityResultType},
-    remove_liq::ProxyTrait as _,
-};
+use crate::pair_proxy;
 
 pub struct AddLiquidityResultWrapper<M: ManagedTypeApi> {
     pub lp_tokens_received: EsdtTokenPayment<M>,
@@ -38,11 +34,15 @@ pub trait PairInteractionsModule {
         all_token_payments.push(first_payment);
         all_token_payments.push(second_payment);
 
-        let raw_result: AddLiquidityResultType<Self::Api> = self
-            .pair_contract_proxy(pair_address)
+        let raw_result = self
+            .tx()
+            .to(&pair_address)
+            .typed(pair_proxy::PairProxy)
             .add_liquidity(first_token_amount_min, second_token_amount_min)
-            .with_multi_token_transfer(all_token_payments)
-            .execute_on_dest_context();
+            .payment(all_token_payments)
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (lp_tokens_received, first_tokens_used, second_tokens_used) = raw_result.into_tuple();
         let first_token_leftover_amount = &first_token_amount_desired - &first_tokens_used.amount;
         let second_token_leftover_amount =
@@ -74,11 +74,15 @@ pub trait PairInteractionsModule {
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> RemoveLiqudityResultWrapper<Self::Api> {
-        let raw_result: RemoveLiquidityResultType<Self::Api> = self
-            .pair_contract_proxy(pair_address)
+        let raw_result = self
+            .tx()
+            .to(&pair_address)
+            .typed(pair_proxy::PairProxy)
             .remove_liquidity(first_token_amount_min, second_token_amount_min)
-            .with_esdt_transfer((lp_token_id, 0, lp_token_amount))
-            .execute_on_dest_context();
+            .single_esdt(&lp_token_id, 0, &lp_token_amount)
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (first_token_received, second_token_received) = raw_result.into_tuple();
 
         RemoveLiqudityResultWrapper {
@@ -86,7 +90,4 @@ pub trait PairInteractionsModule {
             second_token_received,
         }
     }
-
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 }

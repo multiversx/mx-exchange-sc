@@ -10,9 +10,3 @@ path = "src/lib.rs"
 [dependencies.multiversx-sc]
 version = "=0.49.0-alpha.3"
 features = ["esdt-token-payment-legacy-decode"]
-
-[dependencies.simple-lock]
-path = "../../../locked-asset/simple-lock"
-
-[dependencies.energy-factory]
-path = "../../../locked-asset/energy-factory"

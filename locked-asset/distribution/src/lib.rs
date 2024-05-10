@@ -7,6 +7,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 mod global_op;
+mod locked_asset_factory_proxy;
 
 const GAS_THRESHOLD: u64 = 100_000;
 const MAX_CLAIMABLE_DISTRIBUTION_ROUNDS: usize = 4;
@@ -32,9 +33,6 @@ pub struct CommunityDistribution<M: ManagedTypeApi> {
 
 #[multiversx_sc::contract]
 pub trait Distribution: global_op::GlobalOperationModule {
-    #[proxy]
-    fn locked_asset_factory_proxy(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
-
     #[init]
     fn init(&self, asset_token_id: TokenIdentifier, locked_asset_factory_address: ManagedAddress) {
         require!(
@@ -112,16 +110,17 @@ pub trait Distribution: global_op::GlobalOperationModule {
         for elem in locked_assets.iter() {
             let amount = elem.biguint;
             let spread_epoch = elem.epoch;
-            let _: IgnoreValue = self
-                .locked_asset_factory_proxy(to.clone())
+            self.tx()
+                .to(&to)
+                .typed(locked_asset_factory_proxy::LockedAssetFactoryProxy)
                 .create_and_forward_custom_period(
                     amount.clone(),
                     caller.clone(),
                     spread_epoch,
                     unlock_period.clone(),
                 )
-                .with_gas_limit(gas_limit_per_execute)
-                .execute_on_dest_context();
+                .gas(gas_limit_per_execute)
+                .sync_call();
 
             cummulated_amount += amount;
         }
