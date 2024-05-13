@@ -142,7 +142,7 @@ pub trait EventsModule {
     fn emit_claim_rewards_event<
         'a,
         C: FarmContracTraitBounds<Api = Self::Api>,
-        AttributesType: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
+        AttributesType: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode + ManagedVecItem,
     >(
         &self,
         original_caller: &ManagedAddress,
@@ -189,7 +189,7 @@ pub trait EventsModule {
     fn emit_compound_rewards_event<
         'a,
         C: FarmContracTraitBounds<Api = Self::Api>,
-        AttributesType: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
+        AttributesType: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode + ManagedVecItem,
     >(
         self,
         original_caller: &ManagedAddress,

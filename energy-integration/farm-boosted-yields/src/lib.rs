@@ -123,8 +123,8 @@ pub trait FarmBoostedYieldsModule:
 
     fn clear_user_energy_if_needed(&self, original_caller: &ManagedAddress) {
         let opt_config = self.try_get_boosted_yields_config();
-        let user_total_farm_position = self.get_user_total_farm_position(original_caller);
         if let Some(config) = opt_config {
+            let user_total_farm_position = self.get_user_total_farm_position(original_caller);
             let boosted_yields_factors = config.get_latest_factors();
             self.clear_user_energy(
                 original_caller,

@@ -57,7 +57,7 @@ pub trait UtilsModule {
     }
 
     fn merge_from_payments_and_burn<
-        T: FixedSupplyToken<Self::Api> + Mergeable<Self::Api> + TopDecode,
+        T: FixedSupplyToken<Self::Api> + Mergeable<Self::Api> + TopDecode + ManagedVecItem,
     >(
         &self,
         mut payments: PaymentsVec<Self::Api>,
@@ -68,23 +68,29 @@ pub trait UtilsModule {
             self.get_attributes_as_part_of_fixed_supply(&first_payment, mapper);
         mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
 
+        let mut other_attributes = ManagedVec::new();
+        for payment in &payments {
+            let attr = mapper.get_token_attributes(payment.token_nonce);
+            other_attributes.push(attr);
+        }
+
         let output_attributes =
-            self.merge_attributes_from_payments(base_attributes, &payments, mapper);
+            self.merge_attributes_from_payments(base_attributes, &other_attributes, &payments);
         self.send().esdt_local_burn_multi(&payments);
 
         output_attributes
     }
 
     fn merge_attributes_from_payments<
-        T: FixedSupplyToken<Self::Api> + Mergeable<Self::Api> + TopDecode,
+        T: FixedSupplyToken<Self::Api> + Mergeable<Self::Api> + TopDecode + ManagedVecItem,
     >(
         &self,
         mut base_attributes: T,
+        other_attributes: &ManagedVec<T>,
         payments: &PaymentsVec<Self::Api>,
-        mapper: &NonFungibleTokenMapper,
     ) -> T {
-        for payment in payments {
-            let attributes: T = self.get_attributes_as_part_of_fixed_supply(&payment, mapper);
+        for (attr, payment) in other_attributes.into_iter().zip(payments.iter()) {
+            let attributes = attr.into_part(&payment.amount);
             base_attributes.merge_with(attributes);
         }
 
@@ -98,15 +104,17 @@ pub trait UtilsModule {
             + TopEncode
             + TopDecode
             + NestedEncode
-            + NestedDecode,
+            + NestedDecode
+            + ManagedVecItem,
     >(
         &self,
         base_attributes: T,
+        other_attributes: &ManagedVec<T>,
         payments: &PaymentsVec<Self::Api>,
         mapper: &NonFungibleTokenMapper,
     ) -> PaymentAttributesPair<Self::Api, T> {
         let output_attributes =
-            self.merge_attributes_from_payments(base_attributes, payments, mapper);
+            self.merge_attributes_from_payments(base_attributes, other_attributes, payments);
         let new_token_amount = output_attributes.get_total_supply();
         let new_token_payment = mapper.nft_create(new_token_amount, &output_attributes);
 

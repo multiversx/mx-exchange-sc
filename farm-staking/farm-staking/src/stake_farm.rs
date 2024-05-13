@@ -31,6 +31,7 @@ pub trait StakeFarmModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + crate::delete_energy::DeleteEnergyModule
 {
     #[payable("*")]
     #[endpoint(stakeFarmThroughProxy)]
@@ -85,6 +86,10 @@ pub trait StakeFarmModule:
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
         self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
+
+        self.delete_user_energy_if_needed::<FarmStakingWrapper<Self>>(
+            &enter_result.context.additional_attributes,
+        );
 
         self.update_energy_and_progress(&original_caller);
 
