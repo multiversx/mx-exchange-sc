@@ -1,4 +1,4 @@
-use common_structs::FarmToken;
+use common_structs::{FarmToken, PaymentsVec};
 use farm_base_impl::base_traits_impl::FarmContract;
 
 multiversx_sc::imports!();
@@ -26,12 +26,15 @@ pub trait DeleteEnergyModule:
 {
     fn delete_user_energy_if_needed<FC: FarmContract<FarmSc = Self>>(
         &self,
+        payments: &PaymentsVec<Self::Api>,
         all_attributes: &ManagedVec<FC::AttributesType>,
     ) {
         let mut processed_users = ManagedMap::new();
-        for attr in all_attributes {
+        for (payment, attr) in payments.iter().zip(all_attributes.into_iter()) {
             let original_owner = attr.get_original_owner();
-            if processed_users.contains(original_owner.as_managed_buffer()) {
+            if processed_users.contains(original_owner.as_managed_buffer())
+                || self.is_old_farm_position(payment.token_nonce)
+            {
                 continue;
             }
 

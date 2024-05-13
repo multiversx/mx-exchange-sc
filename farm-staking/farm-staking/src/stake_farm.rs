@@ -88,6 +88,7 @@ pub trait StakeFarmModule:
         self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
 
         self.delete_user_energy_if_needed::<FarmStakingWrapper<Self>>(
+            &enter_result.context.additional_farm_tokens,
             &enter_result.context.additional_attributes,
         );
 

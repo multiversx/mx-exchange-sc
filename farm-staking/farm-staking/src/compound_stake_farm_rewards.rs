@@ -35,9 +35,10 @@ pub trait CompoundStakeFarmRewardsModule:
     fn compound_rewards(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         self.migrate_old_farm_positions(&caller);
+
         let payments = self.get_non_empty_payments();
-        let compound_result =
-            self.compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments);
+        let compound_result = self
+            .compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments.clone());
 
         let new_farm_token = compound_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &new_farm_token);
@@ -45,6 +46,7 @@ pub trait CompoundStakeFarmRewardsModule:
         self.set_farm_supply_for_current_week(&compound_result.storage_cache.farm_token_supply);
 
         self.delete_user_energy_if_needed::<FarmStakingWrapper<Self>>(
+            &payments,
             &compound_result.context.all_attributes,
         );
 

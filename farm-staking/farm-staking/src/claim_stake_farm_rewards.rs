@@ -63,11 +63,12 @@ pub trait ClaimStakeFarmRewardsModule:
         opt_new_farming_amount: Option<BigUint>,
     ) -> ClaimRewardsResultType<Self::Api> {
         self.migrate_old_farm_positions(&original_caller);
+
         let payment = self.call_value().single_esdt();
         let mut claim_result = self
             .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
                 original_caller.clone(),
-                ManagedVec::from_single_item(payment),
+                ManagedVec::from_single_item(payment.clone()),
             );
 
         let mut virtual_farm_token = claim_result.new_farm_token.clone();
@@ -88,6 +89,7 @@ pub trait ClaimStakeFarmRewardsModule:
         }
 
         self.delete_user_energy_if_needed::<FarmStakingWrapper<Self>>(
+            &ManagedVec::from_single_item(payment),
             &claim_result.context.all_attributes,
         );
 

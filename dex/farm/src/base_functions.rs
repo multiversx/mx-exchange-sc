@@ -9,6 +9,7 @@ use core::marker::PhantomData;
 use common_errors::ERROR_ZERO_AMOUNT;
 use common_structs::FarmToken;
 use common_structs::FarmTokenAttributes;
+use common_structs::PaymentsVec;
 use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
@@ -83,6 +84,7 @@ pub trait BaseFunctionsModule:
         );
 
         self.delete_user_energy_if_needed::<FC>(
+            &base_enter_farm_result.context.additional_farm_tokens,
             &base_enter_farm_result.context.additional_attributes,
         );
 
@@ -102,7 +104,8 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
     ) -> ClaimRewardsResultWrapper<Self::Api> {
         let payments = self.call_value().all_esdt_transfers().clone_value();
-        let base_claim_rewards_result = self.claim_rewards_base::<FC>(caller.clone(), payments);
+        let base_claim_rewards_result =
+            self.claim_rewards_base::<FC>(caller.clone(), payments.clone());
 
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         let rewards_payment = base_claim_rewards_result.rewards;
@@ -111,7 +114,10 @@ pub trait BaseFunctionsModule:
             &base_claim_rewards_result.storage_cache.farm_token_supply,
         );
 
-        self.delete_user_energy_if_needed::<FC>(&base_claim_rewards_result.context.all_attributes);
+        self.delete_user_energy_if_needed::<FC>(
+            &payments,
+            &base_claim_rewards_result.context.all_attributes,
+        );
 
         self.emit_claim_rewards_event(
             &caller,
@@ -134,7 +140,7 @@ pub trait BaseFunctionsModule:
     ) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_compound_rewards_result =
-            self.compound_rewards_base::<FC>(caller.clone(), payments);
+            self.compound_rewards_base::<FC>(caller.clone(), payments.clone());
 
         let output_farm_token_payment = base_compound_rewards_result.new_farm_token.payment.clone();
 
@@ -143,6 +149,7 @@ pub trait BaseFunctionsModule:
         );
 
         self.delete_user_energy_if_needed::<FC>(
+            &payments,
             &base_compound_rewards_result.context.all_attributes,
         );
 
@@ -163,7 +170,7 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
         payment: EsdtTokenPayment,
     ) -> ExitFarmResultWrapper<Self::Api> {
-        let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment);
+        let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment.clone());
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
         let reward_payment = base_exit_farm_result.reward_payment;
@@ -172,9 +179,12 @@ pub trait BaseFunctionsModule:
             &base_exit_farm_result.storage_cache.farm_token_supply,
         );
 
-        self.delete_user_energy_if_needed::<FC>(&ManagedVec::from_single_item(
-            base_exit_farm_result.context.farm_token.attributes.clone(),
-        ));
+        self.delete_user_energy_if_needed::<FC>(
+            &ManagedVec::from_single_item(payment),
+            &ManagedVec::from_single_item(
+                base_exit_farm_result.context.farm_token.attributes.clone(),
+            ),
+        );
 
         FC::apply_penalty(
             self,
@@ -212,7 +222,7 @@ pub trait BaseFunctionsModule:
             all_attributes.push(attr);
         }
 
-        self.delete_user_energy_if_needed::<FC>(&all_attributes);
+        self.delete_user_energy_if_needed::<FC>(&payments, &all_attributes);
 
         FC::check_and_update_user_farm_position(self, orig_caller, &payments, &all_attributes);
 
@@ -279,12 +289,15 @@ pub trait BaseFunctionsModule:
 
     fn delete_user_energy_if_needed<FC: FarmContract<FarmSc = Self>>(
         &self,
+        payments: &PaymentsVec<Self::Api>,
         all_attributes: &ManagedVec<FC::AttributesType>,
     ) {
         let mut processed_users = ManagedMap::new();
-        for attr in all_attributes {
+        for (payment, attr) in payments.iter().zip(all_attributes.into_iter()) {
             let original_owner = attr.get_original_owner();
-            if processed_users.contains(original_owner.as_managed_buffer()) {
+            if processed_users.contains(original_owner.as_managed_buffer())
+                || self.is_old_farm_position(payment.token_nonce)
+            {
                 continue;
             }
 

@@ -75,8 +75,8 @@ pub trait UnstakeFarmModule:
     ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let migrated_amount = self.migrate_old_farm_positions(&original_caller);
 
-        let exit_result =
-            self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment);
+        let exit_result = self
+            .exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment.clone());
 
         self.decrease_old_farm_positions(migrated_amount, &original_caller);
 
@@ -93,6 +93,7 @@ pub trait UnstakeFarmModule:
         self.set_farm_supply_for_current_week(&exit_result.storage_cache.farm_token_supply);
 
         self.delete_user_energy_if_needed::<FarmStakingWrapper<Self>>(
+            &ManagedVec::from_single_item(payment),
             &ManagedVec::from_single_item(exit_result.context.farm_token.attributes.clone()),
         );
 

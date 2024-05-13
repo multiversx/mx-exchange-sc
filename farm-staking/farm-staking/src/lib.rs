@@ -152,7 +152,7 @@ pub trait FarmStaking:
             all_attributes.push(attr);
         }
 
-        self.delete_user_energy_if_needed::<FC>(&all_attributes);
+        self.delete_user_energy_if_needed::<FC>(&payments, &all_attributes);
 
         FC::check_and_update_user_farm_position(self, orig_caller, &payments, &all_attributes);
 
