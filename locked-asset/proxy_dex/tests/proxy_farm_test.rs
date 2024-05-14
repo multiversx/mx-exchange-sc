@@ -355,7 +355,8 @@ fn farm_with_wrapped_lp_test() {
                 block_epoch,
                 managed_biguint!(user_balance),
             );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
@@ -1216,6 +1217,19 @@ fn total_farm_mechanism_test() {
     let mut block_epoch = 1;
     setup.b_mock.set_block_epoch(block_epoch);
 
+    // Check total farm position
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(0)
+            );
+        })
+        .assert_ok();
+
     //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
 
     setup
@@ -1230,6 +1244,19 @@ fn total_farm_mechanism_test() {
                 sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
             },
         )
+        .assert_ok();
+
+    // Check total farm position
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(USER_BALANCE)
+            );
+        })
         .assert_ok();
 
     block_epoch += 7;
@@ -1247,6 +1274,19 @@ fn total_farm_mechanism_test() {
                 sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
             },
         )
+        .assert_ok();
+
+    // Check total farm position
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(USER_BALANCE * 2)
+            );
+        })
         .assert_ok();
 
     setup.b_mock.check_nft_balance(
@@ -1302,6 +1342,19 @@ fn total_farm_mechanism_test() {
                 sc.claim_rewards_proxy(managed_address!(&farm_addr), OptionalValue::None);
             },
         )
+        .assert_ok();
+
+    // Check total farm position
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(USER_BALANCE * 2)
+            );
+        })
         .assert_ok();
 
     // check user balance
@@ -1400,7 +1453,8 @@ fn increase_proxy_farm_lkmex_energy() {
                 block_epoch,
                 managed_biguint!(USER_BALANCE),
             );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
@@ -1432,7 +1486,8 @@ fn increase_proxy_farm_lkmex_energy() {
                 block_epoch,
                 managed_biguint!(USER_BALANCE),
             );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
@@ -1528,7 +1583,8 @@ fn increase_proxy_farm_proxy_lp_energy() {
                 block_epoch,
                 managed_biguint!(user_balance),
             );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
@@ -1621,6 +1677,17 @@ fn increase_proxy_farm_proxy_lp_energy() {
         )
         .assert_ok();
 
+    // check old tokens were burned
+    setup
+        .b_mock
+        .check_nft_balance::<WrappedFarmTokenAttributes<DebugApi>>(
+            setup.proxy_wrapper.address_ref(),
+            WRAPPED_FARM_TOKEN_ID,
+            4,
+            &rust_biguint!(0u64),
+            None,
+        );
+
     // check energy after
     // lp tokens recharged = total tokens / 4 - 500
     let user_locked_tokens_in_lp = locked_token_amount.to_u64().unwrap() / 4 - 500;
@@ -1638,7 +1705,8 @@ fn increase_proxy_farm_proxy_lp_energy() {
                 block_epoch,
                 managed_biguint!(USER_BALANCE),
             );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
@@ -1755,7 +1823,8 @@ fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
                 block_epoch,
                 managed_biguint!(user_balance),
             );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
@@ -1852,6 +1921,17 @@ fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
         )
         .assert_ok();
 
+    // check old tokens were burned
+    setup
+        .b_mock
+        .check_nft_balance::<WrappedFarmTokenAttributes<DebugApi>>(
+            setup.proxy_wrapper.address_ref(),
+            WRAPPED_FARM_TOKEN_ID,
+            4,
+            &rust_biguint!(0u64),
+            None,
+        );
+
     // check energy after
     // lp tokens recharged = total tokens / 4 - 500
     let user_locked_tokens_in_lp = locked_token_amount.to_u64().unwrap() / 4 - 500;
@@ -1870,7 +1950,8 @@ fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
                 block_epoch,
                 managed_biguint!(USER_BALANCE),
             );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
@@ -1971,7 +2052,7 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
         })
         .assert_ok();
 
-    let mut block_epoch = 1u64;
+    let block_epoch = 1u64;
     let user_balance = USER_BALANCE;
 
     // check energy before
@@ -1987,7 +2068,8 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
                 block_epoch,
                 managed_biguint!(user_balance),
             );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
@@ -2065,10 +2147,6 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
         )
         .assert_ok();
 
-    ////////////////////////////// Wait for tokens to unlock /////////////////////////////////////
-    block_epoch += LOCK_OPTIONS[0] / 2;
-    setup.b_mock.set_block_epoch(block_epoch);
-
     //////////////////////////////////////////// INCREASE ENERGY /////////////////////////////////////
     setup
         .b_mock
@@ -2083,6 +2161,17 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
             },
         )
         .assert_ok();
+
+    // check old tokens were burned
+    setup
+        .b_mock
+        .check_nft_balance::<WrappedFarmTokenAttributes<DebugApi>>(
+            setup.proxy_wrapper.address_ref(),
+            WRAPPED_FARM_TOKEN_ID,
+            4,
+            &rust_biguint!(0u64),
+            None,
+        );
 
     // check energy after
     // lp tokens recharged = total tokens / 4 - 500
@@ -2102,7 +2191,8 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
                 block_epoch,
                 managed_biguint!(USER_BALANCE),
             );
-            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
@@ -2367,6 +2457,310 @@ fn total_farm_position_migration_through_proxy_dex_test() {
             assert_eq!(
                 first_user_total_farm_position.total_farm_position,
                 managed_biguint!(USER_BALANCE * 2)
+            );
+        })
+        .assert_ok();
+}
+
+#[test]
+fn increase_proxy_farm_legacy_token_energy_negative_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
+
+    //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LEGACY_LOCKED_TOKEN_ID,
+            3,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    //////////////////////////////////////////// INCREASE ENERGY /////////////////////////////////////
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.increase_proxy_farm_token_energy_endpoint(LOCK_OPTIONS[1]);
+            },
+        )
+        .assert_user_error("Invalid payments");
+}
+
+#[test]
+fn total_farm_position_migration_mechanism_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
+    let user_balance = rust_biguint!(USER_BALANCE * 6);
+    setup
+        .b_mock
+        .set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
+
+    // user locks tokens
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.simple_lock_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &user_balance,
+            |sc| {
+                let user_payment = sc.lock_tokens_endpoint(LOCK_OPTIONS[1], OptionalValue::None);
+                assert_eq!(user_payment.token_nonce, 2);
+                assert_eq!(user_payment.amount, managed_biguint!(USER_BALANCE * 6));
+            },
+        )
+        .assert_ok();
+
+    // User enter farm 5 times before migration
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            LOCKED_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // Simulate contract upgrade - total farm position is reset and migration nonce set
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner,
+            &setup.farm_locked_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut first_user_total_farm_position =
+                    sc.get_user_total_farm_position(&managed_address!(&first_user));
+                first_user_total_farm_position.total_farm_position = managed_biguint!(0u64);
+
+                sc.user_total_farm_position(&managed_address!(&first_user))
+                    .set(first_user_total_farm_position);
+                sc.farm_position_migration_nonce().set(6u64);
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(0)
+            );
+        })
+        .assert_ok();
+
+    // User enters farm again after migration
+    let enter_payments = vec![
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 2,
+            value: rust_biguint!(USER_BALANCE),
+        },
+        TxTokenTransfer {
+            token_identifier: WRAPPED_FARM_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(USER_BALANCE / 2),
+        },
+    ];
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &enter_payments, |sc| {
+            sc.enter_farm_proxy_endpoint(managed_address!(&farm_addr), OptionalValue::None);
+        })
+        .assert_ok();
+
+    // Check total farm position
+    let mut user_total_farm_position = USER_BALANCE + (USER_BALANCE / 2);
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(user_total_farm_position)
+            );
+        })
+        .assert_ok();
+
+    // Claim rewards with half old position
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            2,
+            &rust_biguint!(USER_BALANCE / 2),
+            |sc| {
+                sc.claim_rewards_proxy(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // Check total farm position
+    user_total_farm_position += USER_BALANCE / 2;
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(user_total_farm_position)
+            );
+        })
+        .assert_ok();
+
+    // Exit farm with half old position
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            3,
+            &rust_biguint!(USER_BALANCE / 2),
+            |sc| {
+                sc.exit_farm_proxy(managed_address!(&farm_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // Total farm position stays the same
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(user_total_farm_position)
+            );
+        })
+        .assert_ok();
+
+    // Merge 2 partial old farm positions
+    let merge_payments = vec![
+        TxTokenTransfer {
+            token_identifier: WRAPPED_FARM_TOKEN_ID.to_vec(),
+            nonce: 4,
+            value: rust_biguint!(USER_BALANCE / 2),
+        },
+        TxTokenTransfer {
+            token_identifier: WRAPPED_FARM_TOKEN_ID.to_vec(),
+            nonce: 5,
+            value: rust_biguint!(USER_BALANCE / 4 * 3),
+        },
+    ];
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &merge_payments, |sc| {
+            sc.merge_wrapped_farm_tokens_endpoint(managed_address!(&farm_addr));
+        })
+        .assert_ok();
+
+    // Check final total farm position
+    user_total_farm_position += USER_BALANCE / 2;
+    user_total_farm_position += USER_BALANCE / 4 * 3;
+    setup
+        .b_mock
+        .execute_query(&setup.farm_locked_wrapper, |sc| {
+            let first_user_total_farm_position =
+                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            assert_eq!(
+                first_user_total_farm_position.total_farm_position,
+                managed_biguint!(user_total_farm_position)
             );
         })
         .assert_ok();
