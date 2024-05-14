@@ -2155,7 +2155,7 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
             &setup.proxy_wrapper,
             WRAPPED_FARM_TOKEN_ID,
             4,
-            &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+            &(&expected_lp_token_amount / &rust_biguint!(8u64)),
             |sc| {
                 sc.increase_proxy_farm_token_energy_endpoint(LOCK_OPTIONS[1]);
             },
@@ -2182,10 +2182,11 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
             let first_lock_epochs = LOCK_OPTIONS[1] - 1u64;
             let second_lock_epochs =
                 BigInt::from(LOCK_OPTIONS[0] as i64) - BigInt::from(block_epoch as i64);
-            let expected_energy_amount = BigInt::from((user_locked_tokens_in_lp) as i64)
+            let expected_energy_amount = BigInt::from((user_locked_tokens_in_lp / 2) as i64)
                 * BigInt::from(first_lock_epochs as i64)
-                + BigInt::from((USER_BALANCE - user_locked_tokens_in_lp) as i64)
-                    * second_lock_epochs;
+                + BigInt::from((USER_BALANCE) as i64) * second_lock_epochs.clone()
+                - BigInt::from((user_locked_tokens_in_lp / 2u64) as i64) * second_lock_epochs;
+
             let expected_energy = Energy::new(
                 expected_energy_amount,
                 block_epoch,
@@ -2203,17 +2204,17 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
         &first_user,
         WRAPPED_FARM_TOKEN_ID,
         5,
-        &(&expected_lp_token_amount / &rust_biguint!(4u64)),
+        &(&expected_lp_token_amount / &rust_biguint!(8u64)),
         Some(&WrappedFarmTokenAttributes::<DebugApi> {
             proxy_farming_token: EsdtTokenPayment {
                 token_identifier: managed_token_id!(WRAPPED_LP_TOKEN_ID),
                 token_nonce: 3,
-                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap() / 4u64),
+                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap() / 8u64),
             },
             farm_token: EsdtTokenPayment {
                 token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
                 token_nonce: 4,
-                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap() / 4u64),
+                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap() / 8u64),
             },
         }),
     );
