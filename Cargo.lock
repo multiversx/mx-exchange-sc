@@ -1910,6 +1910,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pair-hooks-sample"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "pair",
+]
+
+[[package]]
+name = "pair-hooks-sample-meta"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-meta",
+ "pair-hooks-sample",
+]
+
+[[package]]
 name = "pair-mock"
 version = "0.0.0"
 dependencies = [
