@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 
 pub mod farm_staking_setup;
-use farm_staking::{
+use farm_staking::farm_actions::{
     claim_stake_farm_rewards::ClaimStakeFarmRewardsModule, stake_farm::StakeFarmModule,
     unstake_farm::UnstakeFarmModule,
 };

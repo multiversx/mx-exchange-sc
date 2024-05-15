@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           71
+// Endpoints:                           75
 // Async Callback:                       1
-// Total number of exported functions:  73
+// Total number of exported functions:  77
 
 #![no_std]
 #![allow(internal_features)]
@@ -91,6 +91,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         getCurrentClaimProgress => current_claim_progress
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
+        addBannedAddress => add_banned_address
+        removeBannedAddress => remove_banned_address
+        addHook => add_hook
+        removeHook => remove_hook
     )
 }
 
