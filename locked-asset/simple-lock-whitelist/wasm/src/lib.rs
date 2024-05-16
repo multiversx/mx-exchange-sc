@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           26
+// Endpoints:                           27
 // Async Callback:                       1
-// Total number of exported functions:  28
+// Total number of exported functions:  29
 
 #![no_std]
 #![allow(internal_features)]
@@ -46,6 +46,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         farmClaimRewardsLockedToken => farm_claim_rewards_locked_token
         getKnownFarms => known_farms
         getFarmProxyTokenId => farm_proxy_token
+        exitFarmOldToken => exit_farm_old_token
     )
 }
 

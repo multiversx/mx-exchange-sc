@@ -17,6 +17,7 @@ pub trait SimpleLockWhitelist:
     + simple_lock::farm_interactions::FarmInteractionsModule
     + simple_lock::token_attributes::TokenAttributesModule
     + utils::UtilsModule
+    + old_farms_exit::OldFarmsExitModule
 {
     /// Args: Token IDs that are accepted for the `lock` endpoint.
     /// Any other token is rejected.
