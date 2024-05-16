@@ -4,6 +4,8 @@ use simple_lock::error_messages::INVALID_PAYMENTS_ERR_MSG;
 
 multiversx_sc::imports!();
 
+pub mod old_farms_exit;
+
 #[multiversx_sc::contract]
 pub trait SimpleLockWhitelist:
     simple_lock::basic_lock_unlock::BasicLockUnlock
