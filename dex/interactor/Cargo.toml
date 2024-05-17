@@ -1,3 +1,7 @@
+[[bin]]
+name = "interactor"
+path = "src/dex_interact.rs"
+
 [package]
 name = "interactor"
 version = "0.0.0"
@@ -5,26 +9,28 @@ authors = [""]
 edition = "2021"
 publish = false
 
-[[bin]]
-name = "interactor"
-path = "src/dex_interact.rs"
-
 [dependencies]
-clap = { version = "4.4.7", features = ["derive"] }
-serde = { version = "1.0", features = ["derive"] }
 toml = "0.8.6"
 
+[dependencies.clap]
+version = "4.4.7"
+features = ["derive"]
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
 [dependencies.multiversx-sc]
-version = "=0.50.0"
+version = "=0.50.1"
 
 [dependencies.multiversx-sc-modules]
-version = "=0.50.0"
+version = "=0.50.1"
 
 [dependencies.multiversx-sc-snippets]
-version = "=0.50.0"
+version = "=0.50.1"
 
 [dependencies.multiversx-sc-scenario]
-version = "=0.50.0"
+version = "=0.50.1"
 
 [dependencies.proxies]
 path = "proxies"

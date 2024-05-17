@@ -11,5 +11,5 @@ path = "src/lib.rs"
 path = "../../common_errors"
 
 [dependencies.multiversx-sc]
-version = "=0.50.0"
+version = "=0.50.1"
 features = ["esdt-token-payment-legacy-decode"]
