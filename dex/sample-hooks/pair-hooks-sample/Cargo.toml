@@ -1,0 +1,21 @@
+[package]
+name = "pair-hooks-sample"
+version = "0.0.0"
+authors = ["you"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "=0.46.1"
+
+[dependencies.pair]
+path = "../../pair"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.46.1"

@@ -1,6 +1,6 @@
 #![allow(deprecated)]
 
-use farm_staking::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
+use farm_staking::farm_actions::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
@@ -16,12 +16,12 @@ use energy_factory::energy::EnergyModule;
 use energy_query::{Energy, EnergyQueryModule};
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_boosted_yields::FarmBoostedYieldsModule;
-use farm_staking::claim_stake_farm_rewards::ClaimStakeFarmRewardsModule;
 use farm_staking::custom_rewards::CustomRewardsModule;
-use farm_staking::stake_farm::StakeFarmModule;
+use farm_staking::farm_actions::claim_stake_farm_rewards::ClaimStakeFarmRewardsModule;
+use farm_staking::farm_actions::stake_farm::StakeFarmModule;
+use farm_staking::farm_actions::unbond_farm::UnbondFarmModule;
+use farm_staking::farm_actions::unstake_farm::UnstakeFarmModule;
 use farm_staking::token_attributes::{StakingFarmTokenAttributes, UnbondSftAttributes};
-use farm_staking::unbond_farm::UnbondFarmModule;
-use farm_staking::unstake_farm::UnstakeFarmModule;
 use farm_staking::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};

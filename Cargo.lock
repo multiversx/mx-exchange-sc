@@ -118,6 +118,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "banned_addresses"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "permissions_module",
+]
+
+[[package]]
 name = "base64"
 version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -781,6 +789,7 @@ dependencies = [
 name = "farm-staking"
 version = "0.0.0"
 dependencies = [
+ "banned_addresses",
  "common_errors",
  "common_structs",
  "config",
@@ -815,6 +824,46 @@ name = "farm-staking-abi"
 version = "0.0.0"
 dependencies = [
  "farm-staking",
+ "multiversx-sc-meta",
+]
+
+[[package]]
+name = "farm-staking-nft"
+version = "0.0.0"
+dependencies = [
+ "banned_addresses",
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "energy-factory",
+ "energy-query",
+ "farm",
+ "farm-boosted-yields",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "math",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "pair",
+ "pausable",
+ "permissions_module",
+ "rewards",
+ "token_send",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
+name = "farm-staking-nft-abi"
+version = "0.0.0"
+dependencies = [
+ "farm-staking-nft",
  "multiversx-sc-meta",
 ]
 
@@ -1878,6 +1927,7 @@ dependencies = [
 name = "pair"
 version = "0.0.0"
 dependencies = [
+ "banned_addresses",
  "common_errors",
  "common_structs",
  "fees-collector",
@@ -1898,6 +1948,24 @@ version = "0.0.0"
 dependencies = [
  "multiversx-sc-meta",
  "pair",
+]
+
+[[package]]
+name = "pair-hooks-sample"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "pair",
+]
+
+[[package]]
+name = "pair-hooks-sample-meta"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-meta",
+ "pair-hooks-sample",
 ]
 
 [[package]]

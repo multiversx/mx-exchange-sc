@@ -15,15 +15,11 @@ use token_attributes::StakingFarmTokenAttributes;
 use crate::custom_rewards::MAX_MIN_UNBOND_EPOCHS;
 
 pub mod base_impl_wrapper;
-pub mod claim_only_boosted_staking_rewards;
-pub mod claim_stake_farm_rewards;
-pub mod compound_stake_farm_rewards;
 pub mod custom_rewards;
+pub mod farm_actions;
+pub mod farm_hooks;
 pub mod farm_token_roles;
-pub mod stake_farm;
 pub mod token_attributes;
-pub mod unbond_farm;
-pub mod unstake_farm;
 
 #[multiversx_sc::contract]
 pub trait FarmStaking:
@@ -45,12 +41,12 @@ pub trait FarmStaking:
     + farm_base_impl::exit_farm::BaseExitFarmModule
     + utils::UtilsModule
     + farm_token_roles::FarmTokenRolesModule
-    + stake_farm::StakeFarmModule
-    + claim_stake_farm_rewards::ClaimStakeFarmRewardsModule
-    + compound_stake_farm_rewards::CompoundStakeFarmRewardsModule
-    + unstake_farm::UnstakeFarmModule
-    + unbond_farm::UnbondFarmModule
-    + claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
+    + farm_actions::stake_farm::StakeFarmModule
+    + farm_actions::claim_stake_farm_rewards::ClaimStakeFarmRewardsModule
+    + farm_actions::compound_stake_farm_rewards::CompoundStakeFarmRewardsModule
+    + farm_actions::unstake_farm::UnstakeFarmModule
+    + farm_actions::unbond_farm::UnbondFarmModule
+    + farm_actions::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
     + week_timekeeping::WeekTimekeepingModule
@@ -60,6 +56,9 @@ pub trait FarmStaking:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + banned_addresses::BannedAddressModule
+    + farm_hooks::change_hooks::ChangeHooksModule
+    + farm_hooks::call_hook::CallHookModule
 {
     #[init]
     fn init(
