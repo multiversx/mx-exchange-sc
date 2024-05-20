@@ -30,7 +30,6 @@ pub trait UnstakeFarmModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
-    + crate::delete_energy::DeleteEnergyModule
 {
     #[payable("*")]
     #[endpoint(unstakeFarm)]
@@ -75,8 +74,8 @@ pub trait UnstakeFarmModule:
     ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let migrated_amount = self.migrate_old_farm_positions(&original_caller);
 
-        let exit_result = self
-            .exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment.clone());
+        let exit_result =
+            self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment);
 
         self.decrease_old_farm_positions(migrated_amount, &original_caller);
 
@@ -90,12 +89,8 @@ pub trait UnstakeFarmModule:
 
         self.send_payment_non_zero(&caller, &exit_result.reward_payment);
 
+        self.clear_user_energy_if_needed(&original_caller);
         self.set_farm_supply_for_current_week(&exit_result.storage_cache.farm_token_supply);
-
-        self.delete_user_energy_if_needed::<FarmStakingWrapper<Self>>(
-            &ManagedVec::from_single_item(payment),
-            &ManagedVec::from_single_item(exit_result.context.farm_token.attributes.clone()),
-        );
 
         self.emit_exit_farm_event(
             &caller,
