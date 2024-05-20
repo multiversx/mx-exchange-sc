@@ -7,7 +7,9 @@ multiversx_sc::derive_imports!();
 use core::marker::PhantomData;
 
 use common_errors::ERROR_ZERO_AMOUNT;
+use common_structs::FarmToken;
 use common_structs::FarmTokenAttributes;
+use common_structs::PaymentsVec;
 use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
@@ -81,6 +83,11 @@ pub trait BaseFunctionsModule:
             &base_enter_farm_result.storage_cache.farm_token_supply,
         );
 
+        self.delete_user_energy_if_needed::<FC>(
+            &base_enter_farm_result.context.additional_farm_tokens,
+            &base_enter_farm_result.context.additional_attributes,
+        );
+
         self.emit_enter_farm_event(
             &caller,
             base_enter_farm_result.context.farming_token_payment,
@@ -97,13 +104,19 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
     ) -> ClaimRewardsResultWrapper<Self::Api> {
         let payments = self.call_value().all_esdt_transfers().clone_value();
-        let base_claim_rewards_result = self.claim_rewards_base::<FC>(caller.clone(), payments);
+        let base_claim_rewards_result =
+            self.claim_rewards_base::<FC>(caller.clone(), payments.clone());
 
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         let rewards_payment = base_claim_rewards_result.rewards;
 
         self.set_farm_supply_for_current_week(
             &base_claim_rewards_result.storage_cache.farm_token_supply,
+        );
+
+        self.delete_user_energy_if_needed::<FC>(
+            &payments,
+            &base_claim_rewards_result.context.all_attributes,
         );
 
         self.emit_claim_rewards_event(
@@ -127,12 +140,17 @@ pub trait BaseFunctionsModule:
     ) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers().clone_value();
         let base_compound_rewards_result =
-            self.compound_rewards_base::<FC>(caller.clone(), payments);
+            self.compound_rewards_base::<FC>(caller.clone(), payments.clone());
 
         let output_farm_token_payment = base_compound_rewards_result.new_farm_token.payment.clone();
 
         self.set_farm_supply_for_current_week(
             &base_compound_rewards_result.storage_cache.farm_token_supply,
+        );
+
+        self.delete_user_energy_if_needed::<FC>(
+            &payments,
+            &base_compound_rewards_result.context.all_attributes,
         );
 
         self.emit_compound_rewards_event(
@@ -152,13 +170,20 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
         payment: EsdtTokenPayment,
     ) -> ExitFarmResultWrapper<Self::Api> {
-        let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment);
+        let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment.clone());
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
         let reward_payment = base_exit_farm_result.reward_payment;
 
         self.set_farm_supply_for_current_week(
             &base_exit_farm_result.storage_cache.farm_token_supply,
+        );
+
+        self.delete_user_energy_if_needed::<FC>(
+            &ManagedVec::from_single_item(payment),
+            &ManagedVec::from_single_item(
+                base_exit_farm_result.context.farm_token.attributes.clone(),
+            ),
         );
 
         FC::apply_penalty(
@@ -188,9 +213,18 @@ pub trait BaseFunctionsModule:
     ) -> FC::AttributesType {
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
-        token_mapper.require_all_same_token(&payments);
 
-        FC::check_and_update_user_farm_position(self, orig_caller, &payments);
+        let mut all_attributes = ManagedVec::new();
+        for payment in &payments {
+            token_mapper.require_same_token(&payment.token_identifier);
+
+            let attr = token_mapper.get_token_attributes(payment.token_nonce);
+            all_attributes.push(attr);
+        }
+
+        self.delete_user_energy_if_needed::<FC>(&payments, &all_attributes);
+
+        FC::check_and_update_user_farm_position(self, orig_caller, &payments, &all_attributes);
 
         self.merge_from_payments_and_burn(payments, &token_mapper)
     }
@@ -251,6 +285,26 @@ pub trait BaseFunctionsModule:
         FC::generate_aggregated_rewards(self, &mut storage);
 
         self.per_block_reward_amount().set(&per_block_amount);
+    }
+
+    fn delete_user_energy_if_needed<FC: FarmContract<FarmSc = Self>>(
+        &self,
+        payments: &PaymentsVec<Self::Api>,
+        all_attributes: &ManagedVec<FC::AttributesType>,
+    ) {
+        let mut processed_users = ManagedMap::new();
+        for (payment, attr) in payments.iter().zip(all_attributes.into_iter()) {
+            let original_owner = attr.get_original_owner();
+            if processed_users.contains(original_owner.as_managed_buffer())
+                || self.is_old_farm_position(payment.token_nonce)
+            {
+                continue;
+            }
+
+            self.clear_user_energy_if_needed(&original_owner);
+
+            processed_users.put(original_owner.as_managed_buffer(), &ManagedBuffer::new());
+        }
     }
 
     fn require_queried(&self) {

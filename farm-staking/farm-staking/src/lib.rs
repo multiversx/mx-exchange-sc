@@ -19,6 +19,7 @@ pub mod claim_only_boosted_staking_rewards;
 pub mod claim_stake_farm_rewards;
 pub mod compound_stake_farm_rewards;
 pub mod custom_rewards;
+pub mod delete_energy;
 pub mod farm_token_roles;
 pub mod stake_farm;
 pub mod token_attributes;
@@ -60,6 +61,7 @@ pub trait FarmStaking:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + delete_energy::DeleteEnergyModule
 {
     #[init]
     fn init(
@@ -141,9 +143,18 @@ pub trait FarmStaking:
     ) -> FC::AttributesType {
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
-        token_mapper.require_all_same_token(&payments);
 
-        FC::check_and_update_user_farm_position(self, orig_caller, &payments);
+        let mut all_attributes = ManagedVec::new();
+        for payment in &payments {
+            token_mapper.require_same_token(&payment.token_identifier);
+
+            let attr = token_mapper.get_token_attributes(payment.token_nonce);
+            all_attributes.push(attr);
+        }
+
+        self.delete_user_energy_if_needed::<FC>(&payments, &all_attributes);
+
+        FC::check_and_update_user_farm_position(self, orig_caller, &payments, &all_attributes);
 
         self.merge_from_payments_and_burn(payments, &token_mapper)
     }

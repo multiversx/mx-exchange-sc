@@ -12,7 +12,7 @@ use fixed_supply_token::FixedSupplyToken;
 pub struct InternalCompoundRewardsResult<'a, C, T>
 where
     C: FarmContracTraitBounds,
-    T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
+    T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode + ManagedVecItem,
 {
     pub context: CompoundRewardsContext<C::Api, T>,
     pub storage_cache: StorageCache<'a, C>,
@@ -70,7 +70,12 @@ pub trait BaseCompoundRewardsModule:
         storage_cache.reward_reserve -= &reward;
         storage_cache.farm_token_supply += &reward;
 
-        FC::check_and_update_user_farm_position(self, &caller, &payments);
+        FC::check_and_update_user_farm_position(
+            self,
+            &caller,
+            &payments,
+            &compound_rewards_context.all_attributes,
+        );
 
         let farm_token_mapper = self.farm_token();
         let base_attributes = FC::create_compound_rewards_initial_attributes(
@@ -82,6 +87,7 @@ pub trait BaseCompoundRewardsModule:
         );
         let new_farm_token = self.merge_and_create_token(
             base_attributes,
+            &compound_rewards_context.additional_attributes,
             &compound_rewards_context.additional_payments,
             &farm_token_mapper,
         );
