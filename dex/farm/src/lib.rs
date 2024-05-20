@@ -177,8 +177,6 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
 
-        self.clear_user_energy_if_needed(&orig_caller);
-
         (exit_farm_result.farming_tokens, exit_farm_result.rewards).into()
     }
 
