@@ -9,5 +9,5 @@ authors = ["Dorin Iancu <dorin.iancu@multiversx.com>"]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "0.46.1"
+version = "0.48.1"
 default-features = false
