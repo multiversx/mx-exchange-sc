@@ -6,6 +6,7 @@ use core::cmp::Ordering;
 use crate::{
     amm, config,
     errors::{ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST, ERROR_SAFE_PRICE_SAME_ROUNDS},
+    read_pair_storage,
     safe_price::{self, PriceObservation, Round, MAX_OBSERVATIONS},
 };
 
@@ -26,7 +27,7 @@ pub trait SafePriceViewModule:
     + amm::AmmModule
     + permissions_module::PermissionsModule
     + pausable::PausableModule
-    + crate::read_pair_storage::ReadPairStorageModule
+    + read_pair_storage::ReadPairStorageModule
 {
     #[label("safe-price-view")]
     #[view(getLpTokensSafePriceByDefaultOffset)]
