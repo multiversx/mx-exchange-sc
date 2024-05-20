@@ -10,9 +10,9 @@ use contexts::{
 pub struct InternalEnterFarmResult<'a, C, T>
 where
     C: FarmContracTraitBounds,
-    T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode + ManagedVecItem,
+    T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
 {
-    pub context: EnterFarmContext<C::Api, T>,
+    pub context: EnterFarmContext<C::Api>,
     pub storage_cache: StorageCache<'a, C>,
     pub new_farm_token: PaymentAttributesPair<C::Api, T>,
     pub created_with_merge: bool,
@@ -42,7 +42,6 @@ pub trait BaseEnterFarmModule:
             payments,
             &storage_cache.farming_token_id,
             &storage_cache.farm_token_id,
-            self.blockchain(),
         );
 
         // The order is important - first check and update, then increase position
@@ -50,7 +49,6 @@ pub trait BaseEnterFarmModule:
             self,
             &caller,
             &enter_farm_context.additional_farm_tokens,
-            &enter_farm_context.additional_attributes,
         );
         FC::increase_user_farm_position(
             self,
@@ -71,7 +69,6 @@ pub trait BaseEnterFarmModule:
         );
         let new_farm_token = self.merge_and_create_token(
             base_attributes,
-            &enter_farm_context.additional_attributes,
             &enter_farm_context.additional_farm_tokens,
             &farm_token_mapper,
         );

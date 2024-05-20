@@ -62,7 +62,7 @@ pub trait BaseExitFarmModule:
         );
         storage_cache.reward_reserve -= &reward;
 
-        FC::decrease_user_farm_position(self, &payment, &exit_farm_context.farm_token.attributes);
+        FC::decrease_user_farm_position(self, &payment);
 
         let farming_token_amount = token_attributes.get_total_supply();
         let farming_token_payment = EsdtTokenPayment::new(

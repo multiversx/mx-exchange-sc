@@ -182,6 +182,8 @@ pub trait Farm:
             orig_caller.clone(),
         );
 
+        self.clear_user_energy_if_needed(&orig_caller);
+
         (exit_farm_result.farming_tokens, locked_rewards_payment).into()
     }
 

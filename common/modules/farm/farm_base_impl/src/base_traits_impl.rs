@@ -1,11 +1,12 @@
 multiversx_sc::imports!();
 
-use common_structs::{FarmToken, FarmTokenAttributes, Nonce, PaymentsVec};
+use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
 use config::ConfigModule;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
+use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 use rewards::RewardsModule;
 
 pub trait AllBaseFarmImplTraits =
@@ -29,8 +30,8 @@ pub trait FarmContract {
         + FixedSupplyToken<<Self::FarmSc as ContractBase>::Api>
         + FarmToken<<Self::FarmSc as ContractBase>::Api>
         + From<FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>>
-        + Into<FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>>
-        + ManagedVecItem = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
+        + Into<FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>> =
+        FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
 
     #[inline]
     fn mint_rewards(
@@ -191,21 +192,27 @@ pub trait FarmContract {
     fn check_and_update_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        farm_tokens: &PaymentsVec<<Self::FarmSc as ContractBase>::Api>,
-        farm_attributes: &ManagedVec<<Self::FarmSc as ContractBase>::Api, Self::AttributesType>,
+        farm_positions: &PaymentsVec<<Self::FarmSc as ContractBase>::Api>,
     ) {
-        for (attr, farm_token) in farm_attributes.into_iter().zip(farm_tokens.iter()) {
-            if sc.is_old_farm_position(farm_token.token_nonce) {
+        let farm_token_mapper = sc.farm_token();
+        for farm_position in farm_positions {
+            farm_token_mapper.require_same_token(&farm_position.token_identifier);
+
+            if sc.is_old_farm_position(farm_position.token_nonce) {
                 continue;
             }
 
-            if &attr.get_original_owner() != user {
-                Self::decrease_user_farm_position(sc, &farm_token, &attr);
-                Self::increase_user_farm_position(sc, user, &farm_token.amount);
+            let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
+                farm_token_mapper.get_token_attributes(farm_position.token_nonce);
+
+            if &token_attributes.original_owner != user {
+                Self::decrease_user_farm_position(sc, &farm_position);
+                Self::increase_user_farm_position(sc, user, &farm_position.amount);
             }
         }
     }
 
+    #[inline]
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
@@ -220,13 +227,16 @@ pub trait FarmContract {
     fn decrease_user_farm_position(
         sc: &Self::FarmSc,
         farm_position: &EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
-        attributes: &Self::AttributesType,
     ) {
         if sc.is_old_farm_position(farm_position.token_nonce) {
             return;
         }
 
-        sc.user_total_farm_position(&attributes.get_original_owner())
+        let farm_token_mapper = sc.farm_token();
+        let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
+            farm_token_mapper.get_token_attributes(farm_position.token_nonce);
+
+        sc.user_total_farm_position(&token_attributes.original_owner)
             .update(|user_total_farm_position| {
                 if user_total_farm_position.total_farm_position > farm_position.amount {
                     user_total_farm_position.total_farm_position -= &farm_position.amount;
