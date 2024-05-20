@@ -8,7 +8,7 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.47.5"
+version = "=0.48.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.energy-factory]

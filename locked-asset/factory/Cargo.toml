@@ -26,11 +26,11 @@ path = "../../common/modules/token_merge_helper"
 path = "../energy-factory"
 
 [dependencies.multiversx-sc]
-version = "=0.47.5"
+version = "=0.48.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.47.5"
+version = "=0.48.1"
 
 [dependencies.arrayvec]
 version = "0.7.1"
@@ -49,4 +49,4 @@ hex = "0.4"
 path = "../simple-lock"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.47.5"
+version = "=0.48.1"
