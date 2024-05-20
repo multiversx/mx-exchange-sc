@@ -15,7 +15,6 @@ use weekly_rewards_splitting::{
 pub mod boosted_yields_factors;
 
 const MAX_PERCENT: u64 = 10_000;
-const DEFAULT_MIN_FARM_AMT: u64 = 1;
 
 pub struct SplitReward<M: ManagedTypeApi> {
     pub base_farm: BigUint<M>,
@@ -125,19 +124,14 @@ pub trait FarmBoostedYieldsModule:
     fn clear_user_energy_if_needed(&self, original_caller: &ManagedAddress) {
         let opt_config = self.try_get_boosted_yields_config();
         let user_total_farm_position = self.get_user_total_farm_position(original_caller);
-        let min_farm_amount = match opt_config {
-            Some(config) => {
-                let boosted_yields_factors = config.get_latest_factors();
-                boosted_yields_factors.min_farm_amount.clone()
-            }
-            None => BigUint::from(DEFAULT_MIN_FARM_AMT),
-        };
-
-        self.clear_user_energy(
-            original_caller,
-            &user_total_farm_position.total_farm_position,
-            &min_farm_amount,
-        );
+        if let Some(config) = opt_config {
+            let boosted_yields_factors = config.get_latest_factors();
+            self.clear_user_energy(
+                original_caller,
+                &user_total_farm_position.total_farm_position,
+                &boosted_yields_factors.min_farm_amount,
+            );
+        }
     }
 
     #[view(getBoostedYieldsRewardsPercentage)]

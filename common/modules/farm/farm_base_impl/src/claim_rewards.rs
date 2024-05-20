@@ -11,7 +11,7 @@ use fixed_supply_token::FixedSupplyToken;
 pub struct InternalClaimRewardsResult<'a, C, T>
 where
     C: FarmContracTraitBounds,
-    T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode + ManagedVecItem,
+    T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
 {
     pub context: ClaimRewardsContext<C::Api, T>,
     pub storage_cache: StorageCache<'a, C>,
@@ -81,12 +81,7 @@ pub trait BaseClaimRewardsModule:
         );
         storage_cache.reward_reserve -= &reward;
 
-        FC::check_and_update_user_farm_position(
-            self,
-            &caller,
-            &payments,
-            &claim_rewards_context.all_attributes,
-        );
+        FC::check_and_update_user_farm_position(self, &caller, &payments);
 
         let farm_token_mapper = self.farm_token();
         let base_attributes = FC::create_claim_rewards_initial_attributes(
@@ -95,11 +90,10 @@ pub trait BaseClaimRewardsModule:
             token_attributes,
             storage_cache.reward_per_share.clone(),
         );
-
         let new_token_attributes = self.merge_attributes_from_payments(
             base_attributes,
-            &claim_rewards_context.additional_attributes,
             &claim_rewards_context.additional_payments,
+            &farm_token_mapper,
         );
         let new_farm_token = PaymentAttributesPair {
             payment: EsdtTokenPayment::new(

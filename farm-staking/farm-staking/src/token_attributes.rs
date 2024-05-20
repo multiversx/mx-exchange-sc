@@ -82,10 +82,6 @@ impl<M: ManagedTypeApi> FarmToken<M> for StakingFarmTokenAttributes<M> {
     fn get_initial_farming_tokens(&self) -> BigUint<M> {
         &self.current_farm_amount - &self.compounded_reward
     }
-
-    fn get_original_owner(&self) -> ManagedAddress<M> {
-        self.original_owner.clone()
-    }
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for StakingFarmTokenAttributes<M> {
