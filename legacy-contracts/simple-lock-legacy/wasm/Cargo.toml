@@ -5,7 +5,7 @@
 # ##########################################
 
 [package]
-name = "simple-lock-whitelist-wasm"
+name = "simple-lock-legacy-wasm"
 version = "0.0.0"
 edition = "2021"
 publish = false
@@ -21,7 +21,7 @@ debug = false
 panic = "abort"
 overflow-checks = false
 
-[dependencies.simple-lock-whitelist]
+[dependencies.simple-lock-legacy]
 path = ".."
 
 [dependencies.multiversx-sc-wasm-adapter]

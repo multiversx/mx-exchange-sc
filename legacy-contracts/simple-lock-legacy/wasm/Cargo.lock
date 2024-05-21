@@ -183,7 +183,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "simple-lock"
+name = "simple-lock-legacy"
 version = "0.0.0"
 dependencies = [
  "common_structs",
@@ -192,21 +192,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "simple-lock-whitelist"
-version = "0.0.0"
-dependencies = [
- "multiversx-sc",
- "multiversx-sc-modules",
- "simple-lock",
- "utils",
-]
-
-[[package]]
-name = "simple-lock-whitelist-wasm"
+name = "simple-lock-legacy-wasm"
 version = "0.0.0"
 dependencies = [
  "multiversx-sc-wasm-adapter",
- "simple-lock-whitelist",
+ "simple-lock-legacy",
 ]
 
 [[package]]
@@ -236,15 +226,5 @@ checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
 name = "unwrappable"
 version = "0.0.0"
 dependencies = [
- "multiversx-sc",
-]
-
-[[package]]
-name = "utils"
-version = "0.0.0"
-dependencies = [
- "common_structs",
- "fixed-supply-token",
- "mergeable",
  "multiversx-sc",
 ]

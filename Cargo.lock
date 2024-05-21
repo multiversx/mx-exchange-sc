@@ -2568,33 +2568,32 @@ dependencies = [
 ]
 
 [[package]]
-name = "simple-lock-meta"
+name = "simple-lock-legacy"
 version = "0.0.0"
 dependencies = [
- "multiversx-sc-meta",
- "simple-lock",
-]
-
-[[package]]
-name = "simple-lock-whitelist"
-version = "0.0.0"
-dependencies = [
+ "common_structs",
  "hex",
  "multiversx-sc",
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
  "num-traits",
- "simple-lock",
- "utils",
 ]
 
 [[package]]
-name = "simple-lock-whitelist-meta"
+name = "simple-lock-legacy-meta"
 version = "0.0.0"
 dependencies = [
  "multiversx-sc-meta",
- "simple-lock-whitelist",
+ "simple-lock-legacy",
+]
+
+[[package]]
+name = "simple-lock-meta"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-meta",
+ "simple-lock",
 ]
 
 [[package]]
