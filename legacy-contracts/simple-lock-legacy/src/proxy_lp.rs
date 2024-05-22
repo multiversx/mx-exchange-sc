@@ -30,7 +30,6 @@ pub trait ProxyLpModule: crate::locked_token::LockedTokenModule {
         );
 
         let output_token_payment = EsdtTokenPayment::new(unlocked_lp_token_id, 0, payment.amount);
-
         self.send().direct_esdt(
             &caller,
             &output_token_payment.token_identifier,
@@ -59,7 +58,7 @@ pub trait ProxyLpModule: crate::locked_token::LockedTokenModule {
                 .get_token_attributes(lp_proxy_token_attributes.first_token_locked_nonce);
 
             require!(
-                token_attributes.unlock_epoch >= current_epoch,
+                current_epoch >= token_attributes.unlock_epoch,
                 CANNOT_UNLOCK_YET_ERR_MSG
             );
         }

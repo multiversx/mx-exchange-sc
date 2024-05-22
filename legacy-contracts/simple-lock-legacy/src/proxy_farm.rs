@@ -45,12 +45,6 @@ pub trait ProxyFarmModule:
             &payment.amount,
         );
 
-        self.send().esdt_local_burn(
-            &payment.token_identifier,
-            payment.token_nonce,
-            &payment.amount,
-        );
-
         let output_token_payment = EsdtTokenPayment::new(
             farm_proxy_token_attributes.farm_token_id,
             farm_proxy_token_attributes.farm_token_nonce,

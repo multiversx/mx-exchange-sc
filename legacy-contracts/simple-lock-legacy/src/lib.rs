@@ -9,7 +9,7 @@ pub mod proxy_farm;
 pub mod proxy_lp;
 
 #[multiversx_sc::contract]
-pub trait SimpleLock:
+pub trait SimpleLockLegacy:
     basic_lock_unlock::BasicLockUnlock
     + locked_token::LockedTokenModule
     + proxy_lp::ProxyLpModule
