@@ -273,7 +273,7 @@ fn exit_lp_test() {
             lock_token_nonce,
             &lock_amount,
             |sc| {
-                sc.remove_liquidity_locked_token();
+                sc.remove_liquidity_locked_token(managed_biguint!(0u64), managed_biguint!(0u64));
             },
         )
         .assert_user_error("Cannot unlock yet");
@@ -288,7 +288,7 @@ fn exit_lp_test() {
             lock_token_nonce,
             &lock_amount,
             |sc| {
-                sc.remove_liquidity_locked_token();
+                sc.remove_liquidity_locked_token(managed_biguint!(0u64), managed_biguint!(0u64));
             },
         )
         .assert_ok();

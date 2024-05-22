@@ -16,7 +16,11 @@ pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
 pub trait ProxyLpModule: crate::locked_token::LockedTokenModule {
     #[payable("*")]
     #[endpoint(removeLiquidityLockedToken)]
-    fn remove_liquidity_locked_token(&self) -> EsdtTokenPayment {
+    fn remove_liquidity_locked_token(
+        &self,
+        _first_token_amount_min: BigUint,
+        _second_token_amount_min: BigUint,
+    ) -> EsdtTokenPayment {
         let payment = self.call_value().single_esdt();
         let caller = self.blockchain().get_caller();
 
