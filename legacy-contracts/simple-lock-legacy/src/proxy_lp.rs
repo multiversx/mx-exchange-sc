@@ -72,7 +72,7 @@ pub trait ProxyLpModule: crate::locked_token::LockedTokenModule {
                 .get_token_attributes(lp_proxy_token_attributes.second_token_locked_nonce);
 
             require!(
-                token_attributes.unlock_epoch >= current_epoch,
+                current_epoch >= token_attributes.unlock_epoch,
                 CANNOT_UNLOCK_YET_ERR_MSG
             );
         }
