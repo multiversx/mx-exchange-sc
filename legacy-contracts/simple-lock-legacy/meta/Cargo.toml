@@ -1,11 +1,11 @@
 [package]
-name = "simple-lock-whitelist-meta"
+name = "simple-lock-legacy-meta"
 version = "0.0.0"
 edition = "2021"
 publish = false
-authors = ["Dorin Iancu <dorin.iancu@multiversx.com>"]
+authors = ["MultiversX <contact@multiversx.com>"]
 
-[dependencies.simple-lock-whitelist]
+[dependencies.simple-lock-legacy]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
