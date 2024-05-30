@@ -1,5 +1,3 @@
-#[allow(dead_code)]
-
 use multiversx_sc_scenario::{
     api::StaticApi,
     imports::{
@@ -44,6 +42,7 @@ impl<M: ManagedTypeApi>
 
 pub type RustBigInt = num_bigint::BigInt;
 
+#[allow(dead_code)]
 pub struct InteractorUnstakeResult {
     pub other_token_payment: InteractorToken,
     pub lp_farm_rewards: InteractorToken,
@@ -62,6 +61,7 @@ impl<M: ManagedTypeApi> From<UnstakeResult<M>> for InteractorUnstakeResult {
     }
 }
 
+#[allow(dead_code)]
 pub struct InteractorStakeProxyResult {
     pub dual_yield_tokens: InteractorToken,
     pub staking_boosted_rewards: InteractorToken,
@@ -78,6 +78,7 @@ impl<M: ManagedTypeApi> From<StakeProxyResult<M>> for InteractorStakeProxyResult
     }
 }
 
+#[allow(dead_code)]
 pub struct InteractorClaimDualYieldResult {
     pub lp_farm_rewards: InteractorToken,
     pub staking_farm_rewards: InteractorToken,
@@ -109,6 +110,7 @@ pub struct InteractorToken {
     pub amount: RustBigUint,
 }
 
+#[allow(dead_code)]
 pub struct InteractorEnergy {
     pub amount: RustBigInt,
     pub last_update_epoch: u64,
