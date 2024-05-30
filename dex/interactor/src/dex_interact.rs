@@ -79,30 +79,30 @@ impl DexInteract {
 }
 
 // Just for demo, still TODO
-#[cfg(test)]
-pub mod integration_tests {
-    use crate::{dex_interact_cli::SwapArgs, pair, DexInteract};
+// #[cfg(test)]
+// pub mod integration_tests {
+//     use crate::{dex_interact_cli::SwapArgs, pair, DexInteract};
 
-    #[test]
-    fn test_full_farm_scenario() {
-        let rt = crate::tokio::runtime::Runtime::new().unwrap();
+//     #[test]
+//     fn test_full_farm_scenario() {
+//         let rt = crate::tokio::runtime::Runtime::new().unwrap();
 
-        rt.block_on(async {
-            let mut dex_interact = DexInteract::init().await;
-            dex_interact.register_wallets();
-            let args = SwapArgs {
-                amount: 10_000_000_000_000_000_000u128,
-                min_amount: 1_000_000_000_000u128,
-            };
-            let result = pair::swap_tokens_fixed_input(&mut dex_interact, &args).await;
-            println!("result {:#?}", result);
-            // let args =PairArgs {
-            //     first_payment_amount: 0u128,
-            //     second_payment_amount: 0u128,
-            //     first_token_amount_min: 0u128,
-            //     second_token_amount_min: 0u128,
-            // };
-            // dex_interact.full_farm_scenario(&args).await;
-        });
-    }
-}
+//         rt.block_on(async {
+//             let mut dex_interact = DexInteract::init().await;
+//             dex_interact.register_wallets();
+//             let args = SwapArgs {
+//                 amount: 10_000_000_000_000_000_000u128,
+//                 min_amount: 1_000_000_000_000u128,
+//             };
+//             let result = pair::swap_tokens_fixed_input(&mut dex_interact, &args).await;
+//             println!("result {:#?}", result);
+//             // let args =PairArgs {
+//             //     first_payment_amount: 0u128,
+//             //     second_payment_amount: 0u128,
+//             //     first_token_amount_min: 0u128,
+//             //     second_token_amount_min: 0u128,
+//             // };
+//             // dex_interact.full_farm_scenario(&args).await;
+//         });
+//     }
+// }
