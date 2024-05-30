@@ -2807,7 +2807,6 @@ dependencies = [
 name = "simple-lock-legacy"
 version = "0.0.0"
 dependencies = [
- "common_structs",
  "hex",
  "multiversx-sc",
  "multiversx-sc-modules",
