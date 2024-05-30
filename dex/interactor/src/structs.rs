@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+
 use multiversx_sc_scenario::{
     api::StaticApi,
     imports::{
