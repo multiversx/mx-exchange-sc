@@ -1,0 +1,13 @@
+[package]
+name = "simple-lock-legacy-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+authors = ["MultiversX <contact@multiversx.com>"]
+
+[dependencies.simple-lock-legacy]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.48.1"
+default-features = false

@@ -37,6 +37,9 @@ members = [
   "farm-staking/metabonding-staking",
   "farm-staking/metabonding-staking/meta",
 
+  "legacy-contracts/simple-lock-legacy",
+  "legacy-contracts/simple-lock-legacy/meta",
+
   "locked-asset/",
   "locked-asset/distribution",
   "locked-asset/distribution/meta",
@@ -50,8 +53,6 @@ members = [
   "locked-asset/factory/meta",
   "locked-asset/simple-lock",
   "locked-asset/simple-lock/meta",
-  "locked-asset/simple-lock-whitelist",
-  "locked-asset/simple-lock-whitelist/meta",
   "locked-asset/energy-factory",
   "locked-asset/energy-factory/meta",
   "locked-asset/token-unstake",

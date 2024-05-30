@@ -1,18 +1,12 @@
 [package]
-name = "simple-lock-whitelist"
+name = "simple-lock-legacy"
 version = "0.0.0"
-authors = ["Dorin Iancu <dorin.iancu@multiversx.com>"]
+authors = ["MultiversX <contact@multiversx.com>"]
 edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
-
-[dependencies.simple-lock]
-path = "../simple-lock"
-
-[dependencies.utils]
-path = "../../common/modules/utils"
 
 [dependencies.multiversx-sc]
 version = "=0.50.0"

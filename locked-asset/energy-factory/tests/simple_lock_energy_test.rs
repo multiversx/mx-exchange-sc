@@ -2,7 +2,9 @@
 
 mod energy_factory_setup;
 
-use energy_factory::energy::EnergyModule;
+use energy_factory::{
+    energy::EnergyModule, locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy,
+};
 use energy_factory_setup::*;
 use multiversx_sc::types::BigUint;
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -488,4 +490,79 @@ fn energy_deplete_test() {
             );
         })
         .assert_ok();
+}
+
+#[test]
+fn extend_lock_period_endpoint_test() {
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
+    let first_user = setup.first_user.clone();
+
+    let current_epoch = 1;
+    setup.b_mock.set_block_epoch(current_epoch);
+
+    setup
+        .lock(
+            &first_user,
+            BASE_ASSET_TOKEN_ID,
+            USER_BALANCE,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.sc_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.extend_lock_period(100, managed_address!(&first_user));
+            },
+        )
+        .assert_user_error("Invalid lock choice");
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.sc_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.extend_lock_period(LOCK_OPTIONS[0], managed_address!(&first_user));
+            },
+        )
+        .assert_user_error("May not call this endpoint. Use lockTokens instead");
+
+    let energy_per_epoch = rust_biguint!(USER_BALANCE);
+    let energy_before = setup.get_user_energy(&first_user);
+    assert_eq!(
+        energy_before,
+        LOCK_OPTIONS[0] * energy_per_epoch.clone() - energy_per_epoch.clone()
+    );
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.sc_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.token_transfer_whitelist()
+                    .add(&managed_address!(&first_user));
+                sc.extend_lock_period(LOCK_OPTIONS[1], managed_address!(&first_user));
+            },
+        )
+        .assert_ok();
+
+    let energy_after = setup.get_user_energy(&first_user);
+    assert_eq!(
+        energy_after,
+        LOCK_OPTIONS[1] * energy_per_epoch.clone() - energy_per_epoch.clone()
+    );
 }
