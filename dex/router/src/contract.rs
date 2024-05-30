@@ -234,7 +234,6 @@ pub trait Router:
                     can_add_special_roles: true,
                 },
             )
-            .async_call()
             .with_callback(
                 self.callbacks()
                     .lp_token_issue_callback(&caller, &pair_address),
