@@ -15,6 +15,9 @@ features = ["esdt-token-payment-legacy-decode"]
 [dependencies.multiversx-sc-modules]
 version = "=0.50.0"
 
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"
