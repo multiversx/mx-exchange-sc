@@ -64,7 +64,6 @@ pub trait WrappedTokenModule:
                 &wrapped_token_id,
                 [EsdtLocalRole::Transfer][..].iter().cloned(),
             )
-            .async_call()
             .call_and_exit();
     }
 
