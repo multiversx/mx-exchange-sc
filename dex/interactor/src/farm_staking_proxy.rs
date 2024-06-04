@@ -7,7 +7,7 @@ use proxies::farm_staking_proxy_sc_proxy;
 use crate::{
     structs::{
         extract_caller, InteractorClaimDualYieldResult, InteractorStakeProxyResult,
-        InteractorToken, InteractorUnstakeResult,
+        InteractorPayment, InteractorUnstakeResult,
     },
     DexInteract,
 };
@@ -167,7 +167,7 @@ pub(crate) async fn get_energy_factory_address(dex_interact: &mut DexInteract) -
 // endpoints
 pub(crate) async fn stake_farm_tokens(
     dex_interact: &mut DexInteract,
-    payment: Vec<InteractorToken>,
+    payment: Vec<InteractorPayment>,
     opt_original_caller: Option<Address>,
 ) -> InteractorStakeProxyResult {
     let caller_arg = extract_caller(dex_interact, opt_original_caller);
@@ -196,7 +196,7 @@ pub(crate) async fn stake_farm_tokens(
 
 pub(crate) async fn claim_dual_yield(
     dex_interact: &mut DexInteract,
-    payment: InteractorToken,
+    payment: InteractorPayment,
     opt_original_caller: Option<Address>,
 ) -> InteractorClaimDualYieldResult {
     let caller_arg = extract_caller(dex_interact, opt_original_caller);
@@ -220,7 +220,7 @@ pub(crate) async fn claim_dual_yield(
 
 pub(crate) async fn unstake_farm_tokens(
     dex_interact: &mut DexInteract,
-    payment: InteractorToken,
+    payment: InteractorPayment,
     pair_first_token_min_amount: RustBigUint,
     pair_second_token_min_amount: RustBigUint,
     opt_original_caller: Option<Address>,

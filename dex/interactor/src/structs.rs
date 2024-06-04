@@ -21,7 +21,7 @@ impl<T0, T1, T2> InteractorMultiValue3<T0, T1, T2> {
     }
 }
 pub type InteractorAddLiquidityResultType =
-    InteractorMultiValue3<InteractorToken, InteractorToken, InteractorToken>;
+    InteractorMultiValue3<InteractorPayment, InteractorPayment, InteractorPayment>;
 
 impl<M: ManagedTypeApi>
     From<MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>>
@@ -33,9 +33,9 @@ impl<M: ManagedTypeApi>
         let extracted = value.0;
 
         InteractorMultiValue3::new(
-            InteractorToken::from(extracted.0),
-            InteractorToken::from(extracted.1),
-            InteractorToken::from(extracted.2),
+            InteractorPayment::from(extracted.0),
+            InteractorPayment::from(extracted.1),
+            InteractorPayment::from(extracted.2),
         )
     }
 }
@@ -44,53 +44,53 @@ pub type RustBigInt = num_bigint::BigInt;
 
 #[allow(dead_code)]
 pub struct InteractorUnstakeResult {
-    pub other_token_payment: InteractorToken,
-    pub lp_farm_rewards: InteractorToken,
-    pub staking_rewards: InteractorToken,
-    pub unbond_staking_farm_token: InteractorToken,
+    pub other_token_payment: InteractorPayment,
+    pub lp_farm_rewards: InteractorPayment,
+    pub staking_rewards: InteractorPayment,
+    pub unbond_staking_farm_token: InteractorPayment,
 }
 
 impl<M: ManagedTypeApi> From<UnstakeResult<M>> for InteractorUnstakeResult {
     fn from(value: UnstakeResult<M>) -> Self {
         InteractorUnstakeResult {
-            other_token_payment: InteractorToken::from(value.other_token_payment),
-            lp_farm_rewards: InteractorToken::from(value.lp_farm_rewards),
-            staking_rewards: InteractorToken::from(value.staking_rewards),
-            unbond_staking_farm_token: InteractorToken::from(value.unbond_staking_farm_token),
+            other_token_payment: InteractorPayment::from(value.other_token_payment),
+            lp_farm_rewards: InteractorPayment::from(value.lp_farm_rewards),
+            staking_rewards: InteractorPayment::from(value.staking_rewards),
+            unbond_staking_farm_token: InteractorPayment::from(value.unbond_staking_farm_token),
         }
     }
 }
 
 #[allow(dead_code)]
 pub struct InteractorStakeProxyResult {
-    pub dual_yield_tokens: InteractorToken,
-    pub staking_boosted_rewards: InteractorToken,
-    pub lp_farm_boosted_rewards: InteractorToken,
+    pub dual_yield_tokens: InteractorPayment,
+    pub staking_boosted_rewards: InteractorPayment,
+    pub lp_farm_boosted_rewards: InteractorPayment,
 }
 
 impl<M: ManagedTypeApi> From<StakeProxyResult<M>> for InteractorStakeProxyResult {
     fn from(value: StakeProxyResult<M>) -> Self {
         InteractorStakeProxyResult {
-            dual_yield_tokens: InteractorToken::from(value.dual_yield_tokens),
-            staking_boosted_rewards: InteractorToken::from(value.staking_boosted_rewards),
-            lp_farm_boosted_rewards: InteractorToken::from(value.lp_farm_boosted_rewards),
+            dual_yield_tokens: InteractorPayment::from(value.dual_yield_tokens),
+            staking_boosted_rewards: InteractorPayment::from(value.staking_boosted_rewards),
+            lp_farm_boosted_rewards: InteractorPayment::from(value.lp_farm_boosted_rewards),
         }
     }
 }
 
 #[allow(dead_code)]
 pub struct InteractorClaimDualYieldResult {
-    pub lp_farm_rewards: InteractorToken,
-    pub staking_farm_rewards: InteractorToken,
-    pub new_dual_yield_tokens: InteractorToken,
+    pub lp_farm_rewards: InteractorPayment,
+    pub staking_farm_rewards: InteractorPayment,
+    pub new_dual_yield_tokens: InteractorPayment,
 }
 
 impl<M: ManagedTypeApi> From<ClaimDualYieldResult<M>> for InteractorClaimDualYieldResult {
     fn from(value: ClaimDualYieldResult<M>) -> Self {
         InteractorClaimDualYieldResult {
-            lp_farm_rewards: InteractorToken::from(value.lp_farm_rewards),
-            staking_farm_rewards: InteractorToken::from(value.staking_farm_rewards),
-            new_dual_yield_tokens: InteractorToken::from(value.new_dual_yield_tokens),
+            lp_farm_rewards: InteractorPayment::from(value.lp_farm_rewards),
+            staking_farm_rewards: InteractorPayment::from(value.staking_farm_rewards),
+            new_dual_yield_tokens: InteractorPayment::from(value.new_dual_yield_tokens),
         }
     }
 }
@@ -104,7 +104,7 @@ pub struct InteractorFarmTokenAttributes {
 }
 
 #[derive(Debug)]
-pub struct InteractorToken {
+pub struct InteractorPayment {
     pub token_id: String,
     pub nonce: u64,
     pub amount: RustBigUint,
@@ -127,9 +127,9 @@ impl<M: ManagedTypeApi> From<Energy<M>> for InteractorEnergy {
     }
 }
 
-impl<M: ManagedTypeApi> From<EsdtTokenPayment<M>> for InteractorToken {
+impl<M: ManagedTypeApi> From<EsdtTokenPayment<M>> for InteractorPayment {
     fn from(value: EsdtTokenPayment<M>) -> Self {
-        InteractorToken {
+        InteractorPayment {
             token_id: value.token_identifier.to_string(),
             nonce: value.token_nonce,
             amount: to_rust_biguint(value.amount),
@@ -137,8 +137,8 @@ impl<M: ManagedTypeApi> From<EsdtTokenPayment<M>> for InteractorToken {
     }
 }
 
-impl<M: ManagedTypeApi> From<InteractorToken> for EsdtTokenPayment<M> {
-    fn from(interactor_token: InteractorToken) -> Self {
+impl<M: ManagedTypeApi> From<InteractorPayment> for EsdtTokenPayment<M> {
+    fn from(interactor_token: InteractorPayment) -> Self {
         EsdtTokenPayment::new(
             TokenIdentifier::from(interactor_token.token_id.as_bytes()),
             interactor_token.nonce,
@@ -147,8 +147,8 @@ impl<M: ManagedTypeApi> From<InteractorToken> for EsdtTokenPayment<M> {
     }
 }
 
-impl<M: ManagedTypeApi> From<&InteractorToken> for EsdtTokenPayment<M> {
-    fn from(interactor_token: &InteractorToken) -> Self {
+impl<M: ManagedTypeApi> From<&InteractorPayment> for EsdtTokenPayment<M> {
+    fn from(interactor_token: &InteractorPayment) -> Self {
         EsdtTokenPayment::new(
             TokenIdentifier::from(interactor_token.token_id.as_bytes()),
             interactor_token.nonce,

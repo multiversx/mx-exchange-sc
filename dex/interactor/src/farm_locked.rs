@@ -6,14 +6,14 @@ use multiversx_sc_snippets::imports::*;
 
 use crate::{
     farm_with_locked_rewards_proxy,
-    structs::{extract_caller, to_rust_biguint, InteractorFarmTokenAttributes, InteractorToken},
+    structs::{extract_caller, to_rust_biguint, InteractorFarmTokenAttributes, InteractorPayment},
     DexInteract,
 };
 
 pub(crate) async fn enter_farm(
     dex_interact: &mut DexInteract,
-    lp_token: InteractorToken,
-) -> (InteractorToken, InteractorToken) {
+    lp_token: InteractorPayment,
+) -> (InteractorPayment, InteractorPayment) {
     println!("Attempting to enter farm with locked rewards...");
 
     let result_token = dex_interact
@@ -25,25 +25,23 @@ pub(crate) async fn enter_farm(
             .current_farm_with_locked_rewards_address())
         .gas(100_000_000u64)
         .typed(farm_with_locked_rewards_proxy::FarmProxy)
-        .enter_farm_endpoint(OptionalValue::Some(ManagedAddress::from(
-            dex_interact.wallet_address.as_address(),
-        )))
-        .payment::<EsdtTokenPayment<StaticApi>>(lp_token.into())
+        .enter_farm_endpoint(OptionalValue::Some(dex_interact.wallet_address.clone()))
+        .esdt::<EsdtTokenPayment<StaticApi>>(lp_token.into())
         .returns(ReturnsResult)
         .prepare_async()
         .run()
         .await;
     (
-        InteractorToken::from(result_token.0 .0),
-        InteractorToken::from(result_token.0 .1),
+        InteractorPayment::from(result_token.0 .0),
+        InteractorPayment::from(result_token.0 .1),
     )
 }
 
 pub(crate) async fn claim_rewards(
     dex_interact: &mut DexInteract,
-    payment: Vec<InteractorToken>,
+    payment: Vec<InteractorPayment>,
     opt_original_caller: Option<Address>,
-) -> (InteractorToken, InteractorToken) {
+) -> (InteractorPayment, InteractorPayment) {
     println!("Attempting to claim rewards from farm with locked rewards...");
 
     let payments = payment
@@ -70,16 +68,16 @@ pub(crate) async fn claim_rewards(
         .await;
 
     (
-        InteractorToken::from(result_token.0 .0),
-        InteractorToken::from(result_token.0 .1),
+        InteractorPayment::from(result_token.0 .0),
+        InteractorPayment::from(result_token.0 .1),
     )
 }
 
 pub(crate) async fn exit_farm(
     dex_interact: &mut DexInteract,
-    payment: InteractorToken,
+    payment: InteractorPayment,
     opt_original_caller: Option<Address>,
-) -> (InteractorToken, InteractorToken) {
+) -> (InteractorPayment, InteractorPayment) {
     println!("Attempting to exit farm with locked rewards...");
 
     let caller_arg = extract_caller(dex_interact, opt_original_caller);
@@ -101,16 +99,16 @@ pub(crate) async fn exit_farm(
         .await;
 
     (
-        InteractorToken::from(result_token.0 .0),
-        InteractorToken::from(result_token.0 .1),
+        InteractorPayment::from(result_token.0 .0),
+        InteractorPayment::from(result_token.0 .1),
     )
 }
 
 pub(crate) async fn merge_farm_tokens(
     dex_interact: &mut DexInteract,
-    payment: Vec<InteractorToken>,
+    payment: Vec<InteractorPayment>,
     opt_original_caller: Option<Address>,
-) -> (InteractorToken, InteractorToken) {
+) -> (InteractorPayment, InteractorPayment) {
     println!("Attempting to merge tokens in farm with locked rewards...");
 
     let payments = payment
@@ -137,15 +135,15 @@ pub(crate) async fn merge_farm_tokens(
         .await;
 
     (
-        InteractorToken::from(result_token.0 .0),
-        InteractorToken::from(result_token.0 .1),
+        InteractorPayment::from(result_token.0 .0),
+        InteractorPayment::from(result_token.0 .1),
     )
 }
 
 pub(crate) async fn claim_boosted_rewards(
     dex_interact: &mut DexInteract,
     opt_original_caller: Option<Address>,
-) -> InteractorToken {
+) -> InteractorPayment {
     let caller_arg = extract_caller(dex_interact, opt_original_caller);
 
     let result_token = dex_interact
@@ -163,7 +161,7 @@ pub(crate) async fn claim_boosted_rewards(
         .run()
         .await;
 
-    InteractorToken::from(result_token)
+    InteractorPayment::from(result_token)
 }
 
 pub(crate) async fn calculate_rewards_for_given_position(

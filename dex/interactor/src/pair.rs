@@ -4,14 +4,14 @@ use proxies::pair_proxy;
 
 use crate::{
     dex_interact_cli::{AddArgs, SwapArgs},
-    structs::{InteractorAddLiquidityResultType, InteractorToken},
+    structs::{InteractorAddLiquidityResultType, InteractorPayment},
     DexInteract,
 };
 
 pub(crate) async fn swap_tokens_fixed_input(
     dex_interact: &mut DexInteract,
     args: &SwapArgs,
-) -> InteractorToken {
+) -> InteractorPayment {
     let payment = args.as_payment(dex_interact);
     let first_token_id = dex_interact.state.first_token_id();
     let second_token_id = dex_interact.state.second_token_id();
@@ -38,7 +38,7 @@ pub(crate) async fn swap_tokens_fixed_input(
         .run()
         .await;
 
-    InteractorToken::from(result_token)
+    InteractorPayment::from(result_token)
 }
 
 pub(crate) async fn add_liquidity(

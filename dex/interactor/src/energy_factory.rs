@@ -17,7 +17,7 @@ pub(crate) async fn get_energy_entry_for_user(
         .query()
         .to(dex_interact.state.current_energy_factory_address())
         .typed(energy_factory_proxy::SimpleLockEnergyProxy)
-        .get_updated_energy_entry_for_user(ManagedAddress::from(user))
+        .get_updated_energy_entry_for_user(user)
         .returns(ReturnsResult)
         .prepare_async()
         .run()
