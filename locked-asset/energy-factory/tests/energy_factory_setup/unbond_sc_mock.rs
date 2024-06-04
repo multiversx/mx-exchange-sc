@@ -45,11 +45,13 @@ impl UnbondScMock {
         let (dest_user, ()) =
             load_endpoint_args::<DebugApi, (ManagedAddress<DebugApi>, ())>(("dest_user", ()));
 
-        self.send().direct_esdt(
-            &dest_user,
-            &unlocked_tokens.token_identifier,
-            unlocked_tokens.token_nonce,
-            &unlocked_tokens.amount,
-        );
+        self.tx()
+            .to(&dest_user)
+            .single_esdt(
+                &unlocked_tokens.token_identifier,
+                unlocked_tokens.token_nonce,
+                &unlocked_tokens.amount,
+            )
+            .transfer();
     }
 }

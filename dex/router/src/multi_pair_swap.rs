@@ -3,7 +3,7 @@ multiversx_sc::derive_imports!();
 
 use super::factory;
 use crate::config;
-use pair::{pair_actions::swap::ProxyTrait as _, read_pair_storage};
+use crate::pair_proxy;
 
 type SwapOperationType<M> =
     MultiValue4<ManagedAddress<M>, ManagedBuffer<M>, TokenIdentifier<M>, BigUint<M>>;
@@ -14,7 +14,7 @@ pub const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 #[multiversx_sc::module]
 pub trait MultiPairSwap:
     config::ConfigModule
-    + read_pair_storage::ReadPairStorageModule
+    + crate::read_pair_storage::ReadPairStorageModule
     + factory::FactoryModule
     + token_send::TokenSendModule
 {
@@ -70,7 +70,7 @@ pub trait MultiPairSwap:
         }
 
         payments.push(last_payment);
-        self.send().direct_multi(&caller, &payments);
+        self.tx().to(&caller).payment(&payments).transfer();
 
         payments
     }
@@ -83,10 +83,13 @@ pub trait MultiPairSwap:
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
-        self.pair_contract_proxy(pair_address)
+        self.tx()
+            .to(&pair_address)
+            .typed(pair_proxy::PairProxy)
             .swap_tokens_fixed_input(token_out, amount_out_min)
-            .with_esdt_transfer((token_in, 0, amount_in))
-            .execute_on_dest_context()
+            .single_esdt(&token_in, 0, &amount_in)
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     fn actual_swap_fixed_output(
@@ -97,15 +100,13 @@ pub trait MultiPairSwap:
         token_out: TokenIdentifier,
         amount_out: BigUint,
     ) -> (EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>) {
-        let call_result: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
-            self.pair_contract_proxy(pair_address)
-                .swap_tokens_fixed_output(token_out, amount_out)
-                .with_esdt_transfer((token_in, 0, amount_in_max))
-                .execute_on_dest_context();
-
-        call_result.into_tuple()
+        self.tx()
+            .to(&pair_address)
+            .typed(pair_proxy::PairProxy)
+            .swap_tokens_fixed_output(token_out, amount_out)
+            .single_esdt(&token_in, 0, &amount_in_max)
+            .returns(ReturnsResult)
+            .sync_call()
+            .into_tuple()
     }
-
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 }

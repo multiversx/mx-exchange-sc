@@ -6,15 +6,18 @@ multiversx_sc::derive_imports!();
 mod amm;
 pub mod config;
 mod contexts;
+mod energy_factory_lock_proxy;
 pub mod errors;
 mod events;
 pub mod fee;
+pub mod fees_collector_proxy;
 mod liquidity_pool;
 pub mod locking_wrapper;
 pub mod pair_actions;
 pub mod read_pair_storage;
 pub mod safe_price;
 pub mod safe_price_view;
+pub mod self_proxy;
 
 use crate::errors::*;
 

@@ -1,12 +1,12 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
-#![feature(exact_size_is_empty)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub mod base_functions;
 pub mod exit_penalty;
+pub mod pair_proxy;
 
 use base_functions::{ClaimRewardsResultType, DoubleMultiPayment, Wrapper};
 use common_structs::FarmTokenAttributes;

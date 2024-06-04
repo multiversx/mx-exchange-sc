@@ -1,10 +1,7 @@
 multiversx_sc::imports!();
 
-use farm::{
-    base_functions::{ClaimRewardsResultType, ClaimRewardsResultWrapper},
-    EnterFarmResultType, ExitFarmWithPartialPosResultType,
-};
-use farm_with_locked_rewards::ProxyTrait as _;
+use crate::farm_with_locked_rewards_proxy;
+use farm::base_functions::ClaimRewardsResultWrapper;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
@@ -25,11 +22,14 @@ pub trait FarmInteractionsModule {
         farming_token_id: TokenIdentifier,
         farming_token_amount: BigUint,
     ) -> EnterFarmResultWrapper<Self::Api> {
-        let enter_farm_result: EnterFarmResultType<Self::Api> = self
-            .farm_contract_proxy(farm_address)
-            .enter_farm_endpoint(user)
-            .with_esdt_transfer((farming_token_id, 0, farming_token_amount))
-            .execute_on_dest_context();
+        let enter_farm_result = self
+            .tx()
+            .to(&farm_address)
+            .typed(farm_with_locked_rewards_proxy::FarmProxy)
+            .enter_farm_endpoint(OptionalValue::Some(user))
+            .single_esdt(&farming_token_id, 0, &farming_token_amount)
+            .returns(ReturnsResult)
+            .sync_call();
 
         let (output_farm_token_payment, rewards_payment) = enter_farm_result.into_tuple();
 
@@ -45,11 +45,15 @@ pub trait FarmInteractionsModule {
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
     ) -> ExitFarmResultWrapper<Self::Api> {
-        let raw_result: ExitFarmWithPartialPosResultType<Self::Api> = self
-            .farm_contract_proxy(farm_address)
-            .exit_farm_endpoint(user)
-            .with_esdt_transfer(farm_token)
-            .execute_on_dest_context();
+        let raw_result = self
+            .tx()
+            .to(&farm_address)
+            .typed(farm_with_locked_rewards_proxy::FarmProxy)
+            .exit_farm_endpoint(OptionalValue::Some(user))
+            .payment(farm_token)
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (farming_tokens, reward_tokens) = raw_result.into_tuple();
 
         ExitFarmResultWrapper {
@@ -64,11 +68,15 @@ pub trait FarmInteractionsModule {
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
     ) -> ClaimRewardsResultWrapper<Self::Api> {
-        let raw_result: ClaimRewardsResultType<Self::Api> = self
-            .farm_contract_proxy(farm_address)
-            .claim_rewards_endpoint(user)
-            .with_esdt_transfer(farm_token)
-            .execute_on_dest_context();
+        let raw_result = self
+            .tx()
+            .to(&farm_address)
+            .typed(farm_with_locked_rewards_proxy::FarmProxy)
+            .claim_rewards_endpoint(OptionalValue::Some(user))
+            .payment(farm_token)
+            .returns(ReturnsResult)
+            .sync_call();
+
         let (new_farm_token, rewards) = raw_result.into_tuple();
 
         ClaimRewardsResultWrapper {
@@ -76,8 +84,4 @@ pub trait FarmInteractionsModule {
             rewards,
         }
     }
-
-    #[proxy]
-    fn farm_contract_proxy(&self, to: ManagedAddress)
-        -> farm_with_locked_rewards::Proxy<Self::Api>;
 }

@@ -1,8 +1,7 @@
 #![no_std]
 
 multiversx_sc::imports!();
-
-use weekly_rewards_splitting::update_claim_progress_energy::ProxyTrait as _;
+mod farm_proxy;
 
 #[multiversx_sc::contract]
 pub trait EnergyUpdate {
@@ -19,13 +18,11 @@ pub trait EnergyUpdate {
         farm_addresses: MultiValueEncoded<ManagedAddress>,
     ) {
         for farm_addr in farm_addresses {
-            let _: IgnoreValue = self
-                .farm_proxy(farm_addr)
+            self.tx()
+                .to(&farm_addr)
+                .typed(farm_proxy::FarmProxy)
                 .update_energy_for_user(user.clone())
-                .execute_on_dest_context();
+                .sync_call();
         }
     }
-
-    #[proxy]
-    fn farm_proxy(&self, user: ManagedAddress) -> farm::Proxy<Self::Api>;
 }

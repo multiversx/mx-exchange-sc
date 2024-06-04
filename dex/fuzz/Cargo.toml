@@ -12,11 +12,11 @@ num-bigint = "0.4.2"
 rand = "0.8.4"
 
 [dependencies.multiversx-sc]
-version = "=0.48.1"
+version = "=0.50.3"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-scenario]
-version = "=0.48.1"
+version = "=0.50.3"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"

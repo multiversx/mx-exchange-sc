@@ -1,3 +1,5 @@
+use crate::energy_factory_lock_proxy;
+
 multiversx_sc::imports!();
 
 #[multiversx_sc::module]
@@ -56,15 +58,15 @@ pub trait LockingWrapperModule:
         amount: BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
         let unlock_epoch = self.unlock_epoch().get();
-        let mut proxy_instance = self.get_locking_sc_proxy_instance();
+        let locking_sc_address = self.locking_sc_address().get();
 
-        let payment: EgldOrEsdtTokenPayment<Self::Api> = proxy_instance
+        self.tx()
+            .to(locking_sc_address)
+            .typed(energy_factory_lock_proxy::SimpleLockEnergyProxy)
             .lock_tokens_endpoint(unlock_epoch, opt_dest)
-            .with_esdt_transfer((token_id, 0, amount))
-            .execute_on_dest_context();
-        let (token_id, token_nonce, amount) = payment.into_tuple();
-
-        EsdtTokenPayment::new(token_id.unwrap_esdt(), token_nonce, amount)
+            .single_esdt(&token_id, 0, &amount)
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     fn should_generate_locked_asset(&self) -> bool {
@@ -73,14 +75,6 @@ pub trait LockingWrapperModule:
 
         current_epoch < locking_deadline_epoch
     }
-
-    fn get_locking_sc_proxy_instance(&self) -> simple_lock::Proxy<Self::Api> {
-        let locking_sc_address = self.locking_sc_address().get();
-        self.locking_sc_proxy_obj(locking_sc_address)
-    }
-
-    #[proxy]
-    fn locking_sc_proxy_obj(&self, sc_address: ManagedAddress) -> simple_lock::Proxy<Self::Api>;
 
     #[view(getLockingScAddress)]
     #[storage_mapper("lockingScAddress")]

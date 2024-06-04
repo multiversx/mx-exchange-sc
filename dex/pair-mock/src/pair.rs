@@ -110,8 +110,11 @@ pub trait PairMock {
         let caller = self.blockchain().get_caller();
 
         let lp_token_amount = liquidity - MINIMUM_LIQUIDITY;
-        self.send()
-            .direct_esdt(&caller, &lp_token_id, 0, &lp_token_amount);
+
+        self.tx()
+            .to(&caller)
+            .single_esdt(&lp_token_id, 0, &lp_token_amount)
+            .transfer();
 
         (
             EsdtTokenPayment::new(lp_token_id, 0, lp_token_amount),

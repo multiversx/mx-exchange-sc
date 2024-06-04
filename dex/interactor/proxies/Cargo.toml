@@ -1,0 +1,35 @@
+[package]
+name = "proxies"
+version = "0.0.0"
+authors = [""]
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "=0.50.3"
+
+[dependencies.multiversx-sc-scenario]
+version = "=0.50.3"
+
+[dependencies.common_structs]
+path = "../../../common/common_structs"
+
+[dependencies.permissions_module]
+path = "../../../common/modules/permissions_module"
+
+[dependencies.pausable]
+path = "../../../common/modules/pausable"
+
+[dependencies.farm-boosted-yields]
+path = "../../../energy-integration/farm-boosted-yields"
+
+[dependencies.energy-factory]
+path = "../../../locked-asset/energy-factory"
+
+[dependencies.config]
+path = "../../../common/modules/farm/config"
+
+[dependencies.weekly-rewards-splitting]
+path = "../../../energy-integration/common-modules/weekly-rewards-splitting"

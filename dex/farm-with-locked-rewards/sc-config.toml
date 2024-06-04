@@ -1,0 +1,2 @@
+[[proxy]]
+path = "../interactor/proxies/src/farm_with_locked_rewards_proxy.rs"

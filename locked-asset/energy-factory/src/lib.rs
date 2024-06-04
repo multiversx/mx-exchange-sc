@@ -12,15 +12,18 @@ pub mod locked_token_transfer;
 pub mod migration;
 pub mod penalty;
 pub mod token_merging;
+mod token_unstake_proxy;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
 pub mod unstake;
 pub mod virtual_lock;
+pub mod energy_factory_proxy;
 
 use common_structs::{Epoch, Percent};
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 use unwrappable::Unwrappable;
+pub use energy_factory_proxy::SimpleLockEnergyProxy;
 
 use crate::energy::Energy;
 
@@ -129,12 +132,14 @@ pub trait SimpleLockEnergy:
         let output_tokens =
             self.lock_by_token_type(&dest_address, payment, unlock_epoch, current_epoch);
 
-        self.send().direct_esdt(
-            &dest_address,
-            &output_tokens.token_identifier,
-            output_tokens.token_nonce,
-            &output_tokens.amount,
-        );
+        self.tx()
+            .to(&dest_address)
+            .single_esdt(
+                &output_tokens.token_identifier,
+                output_tokens.token_nonce,
+                &output_tokens.amount,
+            )
+            .transfer();
 
         output_tokens
     }
@@ -177,12 +182,11 @@ pub trait SimpleLockEnergy:
 
         self.send()
             .esdt_local_mint(&output_payment.token_identifier, 0, &output_payment.amount);
-        self.send().direct_esdt(
-            &caller,
-            &output_payment.token_identifier,
-            0,
-            &output_payment.amount,
-        );
+
+        self.tx()
+            .to(&caller)
+            .single_esdt(&output_payment.token_identifier, 0, &output_payment.amount)
+            .transfer();
 
         output_payment
     }
@@ -221,12 +225,14 @@ pub trait SimpleLockEnergy:
             &payment.amount,
         );
 
-        self.send().direct_esdt(
-            &caller,
-            &output_tokens.token_identifier,
-            output_tokens.token_nonce,
-            &output_tokens.amount,
-        );
+        self.tx()
+            .to(&caller)
+            .single_esdt(
+                &output_tokens.token_identifier,
+                output_tokens.token_nonce,
+                &output_tokens.amount,
+            )
+            .transfer();
 
         output_tokens
     }

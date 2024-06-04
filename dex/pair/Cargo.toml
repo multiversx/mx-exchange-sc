@@ -37,11 +37,11 @@ version = "0.10.1"
 default-features = false
 
 [dependencies.multiversx-sc]
-version = "=0.48.1"
+version = "=0.50.3"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dev-dependencies]
 num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.48.1"
+version = "=0.50.3"

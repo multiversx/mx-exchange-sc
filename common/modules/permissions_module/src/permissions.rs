@@ -1,6 +1,6 @@
 use bitflags::bitflags;
 use multiversx_sc::{
-    abi::TypeAbi,
+    abi::{TypeAbi, TypeAbiFrom},
     codec::{DecodeError, TopDecode, TopEncode},
 };
 bitflags! {
@@ -32,8 +32,16 @@ impl TopDecode for Permissions {
     }
 }
 
+impl TypeAbiFrom<Self> for Permissions {}
+
 impl TypeAbi for Permissions {
+    type Unmanaged = Self;
+
     fn type_name() -> multiversx_sc::abi::TypeName {
+        core::any::type_name::<u32>().into()
+    }
+
+    fn type_name_rust() -> multiversx_sc::abi::TypeName {
         core::any::type_name::<u32>().into()
     }
 }

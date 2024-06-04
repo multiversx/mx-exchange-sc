@@ -1,0 +1,2 @@
+[[proxy]]
+path = "../interactor/proxies/src/router_proxy.rs"

@@ -1,19 +1,7 @@
 multiversx_sc::imports!();
 
 use crate::config;
-
-mod price_provider_proxy {
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait PriceProvider {
-        #[endpoint(getTokensForGivenPositionWithSafePrice)]
-        fn get_tokens_for_given_position_with_safe_price(
-            &self,
-            liquidity: BigUint,
-        ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>;
-    }
-}
+use crate::price_provider_proxy;
 
 #[multiversx_sc::module]
 pub trait Lib: config::Config {
@@ -25,10 +13,14 @@ pub trait Lib: config::Config {
         }
 
         if let Some(provider) = self.price_providers().get(&payment.token_identifier) {
-            let call_result: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
-                self.price_provider_proxy(provider)
-                    .get_tokens_for_given_position_with_safe_price(payment.amount.clone())
-                    .execute_on_dest_context();
+            let call_result = self
+                .tx()
+                .to(&provider)
+                .typed(price_provider_proxy::PriceProviderProxy)
+                .get_tokens_for_given_position_with_safe_price(payment.amount.clone())
+                .returns(ReturnsResult)
+                .sync_call();
+
             let (token1, token2) = call_result.into_tuple();
 
             if token1.token_identifier == mex_token_id {
@@ -44,14 +36,9 @@ pub trait Lib: config::Config {
     }
 
     fn send_back(&self, payment: EsdtTokenPayment<Self::Api>) {
-        self.send().direct_esdt(
-            &self.blockchain().get_caller(),
-            &payment.token_identifier,
-            payment.token_nonce,
-            &payment.amount,
-        );
+        self.tx()
+            .to(&self.blockchain().get_caller())
+            .payment(payment)
+            .transfer();
     }
-
-    #[proxy]
-    fn price_provider_proxy(&self, to: ManagedAddress) -> price_provider_proxy::Proxy<Self::Api>;
 }

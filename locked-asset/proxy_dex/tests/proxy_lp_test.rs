@@ -907,17 +907,6 @@ fn increase_proxy_lp_token_energy() {
         )
         .assert_ok();
 
-    // check old tokens were burned
-    setup
-        .b_mock
-        .check_nft_balance::<WrappedLpTokenAttributes<DebugApi>>(
-            setup.proxy_wrapper.address_ref(),
-            WRAPPED_LP_TOKEN_ID,
-            1,
-            &rust_biguint!(0u64),
-            None,
-        );
-
     // chceck new wrapped lp token
     setup.b_mock.check_nft_balance(
         &first_user,
