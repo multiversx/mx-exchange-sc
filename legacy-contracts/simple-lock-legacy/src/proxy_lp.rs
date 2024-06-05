@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{error_messages::CANNOT_UNLOCK_YET_ERR_MSG, locked_token::LockedTokenAttributes};
+use crate::locked_token::LockedTokenAttributes;
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {

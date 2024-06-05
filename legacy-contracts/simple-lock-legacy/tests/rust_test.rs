@@ -106,20 +106,6 @@ fn unlock_token_test() {
     b_mock.check_esdt_balance(sc_wrapper.address_ref(), FREE_TOKEN_ID, &lock_amount);
     b_mock.check_esdt_balance(&user_addr, FREE_TOKEN_ID, &rust_zero);
 
-    // try unlock too early
-    b_mock
-        .execute_esdt_transfer(
-            &user_addr,
-            &sc_wrapper,
-            LOCKED_TOKEN_ID,
-            lock_token_nonce,
-            &lock_amount,
-            |sc| {
-                sc.unlock_tokens_endpoint(OptionalValue::None);
-            },
-        )
-        .assert_user_error("Cannot unlock yet");
-
     // unlock ok
     b_mock.set_block_epoch(10);
     b_mock
@@ -263,20 +249,6 @@ fn exit_lp_test() {
         &lock_amount,
         Some(&locked_lp_token_attributes),
     );
-
-    // try unlock too early
-    b_mock
-        .execute_esdt_transfer(
-            &user_addr,
-            &sc_wrapper,
-            LP_PROXY_TOKEN_ID,
-            lock_token_nonce,
-            &lock_amount,
-            |sc| {
-                sc.remove_liquidity_locked_token(managed_biguint!(0u64), managed_biguint!(0u64));
-            },
-        )
-        .assert_user_error("Cannot unlock yet");
 
     // unlock ok
     b_mock.set_block_epoch(10);
@@ -459,32 +431,6 @@ fn exit_farm_test() {
         &lock_amount,
         Some(&farm_attributes),
     );
-
-    // try unlock too early
-    b_mock
-        .execute_esdt_transfer(
-            &user_addr,
-            &sc_wrapper,
-            FARM_PROXY_TOKEN_ID,
-            lock_token_nonce,
-            &lock_amount,
-            |sc| {
-                sc.farm_claim_rewards_locked_token();
-            },
-        )
-        .assert_user_error("Cannot unlock yet");
-    b_mock
-        .execute_esdt_transfer(
-            &user_addr,
-            &sc_wrapper,
-            FARM_PROXY_TOKEN_ID,
-            lock_token_nonce,
-            &lock_amount,
-            |sc| {
-                sc.exit_farm_locked_token();
-            },
-        )
-        .assert_user_error("Cannot unlock yet");
 
     // unlock ok
     let half_lock_amount = rust_biguint!(1_000u64);
