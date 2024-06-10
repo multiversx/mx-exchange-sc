@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 multiversx_sc::imports!();
 
 use common_structs::PaymentsVec;
