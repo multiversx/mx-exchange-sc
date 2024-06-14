@@ -4,7 +4,7 @@
 
 #![no_std]
 
-elrond_wasm_node::wasm_endpoints! {
+multiversx_sc_wasm_adapter::endpoints! {
     farm_staking
     (
         callBack

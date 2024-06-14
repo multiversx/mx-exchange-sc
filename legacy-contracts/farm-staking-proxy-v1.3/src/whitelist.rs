@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_errors_old::ERROR_PERMISSIONS;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WhitelistModule {
     #[only_owner]
     #[endpoint(addAddressToWhitelist)]

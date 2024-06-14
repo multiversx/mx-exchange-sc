@@ -1,6 +1,6 @@
-use elrond_wasm::types::{Address, EsdtLocalRole};
-use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
-use elrond_wasm_debug::{
+use multiversx_sc::tx_mock::{TxContextStack, TxInputESDT};
+use multiversx_sc::types::{Address, EsdtLocalRole};
+use multiversx_sc::{
     managed_biguint, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
 };
 

@@ -9,8 +9,8 @@ pub mod whitelist;
 use common_structs_old::Nonce;
 use config::State;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::farm_token_merge::StakingFarmTokenAttributes;
 use config::{
@@ -31,7 +31,7 @@ pub struct UnbondSftAttributes {
     pub unlock_epoch: u64,
 }
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Farm:
     custom_rewards::CustomRewardsModule
     + config::ConfigModule

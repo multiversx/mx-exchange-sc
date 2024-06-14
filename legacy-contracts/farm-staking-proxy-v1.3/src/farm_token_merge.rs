@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use token_merge_old::ValueWeight;
 
@@ -26,7 +26,7 @@ pub struct StakingFarmToken<M: ManagedTypeApi> {
     pub attributes: StakingFarmTokenAttributes<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmTokenMergeModule:
     token_send::TokenSendModule
     + farm_token::FarmTokenModule

@@ -1,12 +1,12 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs_old::Nonce;
 use config::MAX_PERCENT;
 
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait CustomRewardsModule:
     config::ConfigModule + token_send::TokenSendModule + farm_token::FarmTokenModule
 {
