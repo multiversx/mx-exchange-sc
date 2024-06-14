@@ -1,5 +1,5 @@
 [package]
-name = "farm-staking"
+name = "farm-staking-legacy"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
@@ -20,14 +20,14 @@ path = "../../common/modules/farm/rewards"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
-[dependencies.token_merge_old]
-path = "../../common/modules/token_merge_old"
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
 
-[dependencies.common_structs_old]
-path = "../../common/common_structs_old"
+[dependencies.common_structs]
+path = "../../common/common_structs"
 
-[dependencies.common_errors_old]
-path = "../../common/common_errors_old"
+[dependencies.common_errors]
+path = "../../common/common_errors"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.48.1"

@@ -799,6 +799,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "farm-staking-legacy"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "farm_token",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "rewards",
+ "token_merge_helper",
+ "token_send",
+]
+
+[[package]]
+name = "farm-staking-legacy-abi"
+version = "0.0.0"
+dependencies = [
+ "farm-staking-legacy",
+ "multiversx-sc-meta",
+]
+
+[[package]]
 name = "farm-staking-proxy"
 version = "0.0.0"
 dependencies = [

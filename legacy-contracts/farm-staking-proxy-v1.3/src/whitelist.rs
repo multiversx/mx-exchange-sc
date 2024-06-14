@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_errors_old::ERROR_PERMISSIONS;
+use common_errors::ERROR_PERMISSION_DENIED;
 
 #[multiversx_sc::module]
 pub trait WhitelistModule {
@@ -22,7 +22,7 @@ pub trait WhitelistModule {
     }
 
     fn require_whitelisted(&self, address: &ManagedAddress) {
-        require!(self.is_whitelisted(address), ERROR_PERMISSIONS);
+        require!(self.is_whitelisted(address), ERROR_PERMISSION_DENIED);
     }
 
     #[view(isWhitelisted)]

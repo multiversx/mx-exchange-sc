@@ -1,5 +1,5 @@
 [package]
-name = "farm-staking-wasm"
+name = "farm-staking-legacy-wasm"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
@@ -20,7 +20,7 @@ lto = true
 debug = false
 panic = "abort"
 
-[dependencies.farm-staking]
+[dependencies.farm-staking-legacy]
 default-features = false
 path = ".."
 

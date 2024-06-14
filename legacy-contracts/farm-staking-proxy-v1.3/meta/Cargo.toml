@@ -1,12 +1,12 @@
 [package]
-name = "farm-staking-abi"
+name = "farm-staking-legacy-abi"
 
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
 publish = false
 
-[dependencies.farm-staking]
+[dependencies.farm-staking-legacy]
 path = ".."
 
 [dependencies.multiversx-sc-meta]

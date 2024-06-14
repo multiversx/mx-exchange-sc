@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use token_merge_old::ValueWeight;
+use token_merge_helper::ValueWeight;
 
 #[derive(
     ManagedVecItem,
