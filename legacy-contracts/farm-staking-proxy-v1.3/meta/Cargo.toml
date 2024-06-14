@@ -9,8 +9,6 @@ publish = false
 [dependencies.farm-staking]
 path = ".."
 
-[dependencies.elrond-wasm]
-version = "0.28.0"
-
-[dependencies.elrond-wasm-debug]
-version = "0.28.0"
+[dependencies.multiversx-sc-meta]
+version = "0.48.1"
+default-features = false

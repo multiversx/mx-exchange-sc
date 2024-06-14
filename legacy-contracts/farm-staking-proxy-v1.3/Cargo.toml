@@ -29,12 +29,15 @@ path = "../../common/common_structs_old"
 [dependencies.common_errors_old]
 path = "../../common/common_errors_old"
 
-[dependencies.elrond-wasm]
-version = "0.28.0"
-features = ["cb_closure_managed_deser"]
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.48.1"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "0.28.0"
+[dev-dependencies.multiversx-sc-modules]
+version = "=0.48.1"
+
+[dependencies.multiversx-sc]
+version = "=0.48.1"
+features = ["esdt-token-payment-legacy-decode"]
 
 [dev-dependencies]
 num-bigint = "0.4.2"

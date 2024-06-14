@@ -36,7 +36,7 @@ fn register_farm_token(
 )
 ```
 
-For issue parameters format restrictions, take a look here: https://docs.elrond.com/developers/esdt-tokens/#parameters-format
+For issue parameters format restrictions, take a look here: https://docs.multiversx.com/tokens/esdt-tokens/#parameters-format
 
 payment_amount should be `0.05 EGLD`.
 
