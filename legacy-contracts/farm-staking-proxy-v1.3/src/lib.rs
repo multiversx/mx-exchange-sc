@@ -165,7 +165,10 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(unstakeFarmThroughProxy)]
-    fn unstake_farm_through_proxy(&self) -> ExitFarmResultType<Self::Api> {
+    fn unstake_farm_through_proxy(
+        &self,
+        original_caller: ManagedAddress,
+    ) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_whitelisted(&caller);
 
@@ -188,12 +191,7 @@ pub trait Farm:
             "Invalid second payment"
         );
 
-        self.unstake_farm_common(
-            second_payment.token_identifier,
-            second_payment.token_nonce,
-            second_payment.amount,
-            Some(first_payment.amount),
-        )
+        self.unstake_farm_common(original_caller, second_payment, Some(first_payment.amount))
     }
 
     fn unstake_farm_common(
