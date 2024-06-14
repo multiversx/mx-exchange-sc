@@ -1,0 +1,16 @@
+[package]
+name = "farm-staking-abi"
+
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[dependencies.farm-staking]
+path = ".."
+
+[dependencies.elrond-wasm]
+version = "0.28.0"
+
+[dependencies.elrond-wasm-debug]
+version = "0.28.0"
