@@ -9,6 +9,7 @@ use crate::error_messages::*;
 pub enum FarmType {
     SimpleFarm,
     FarmWithLockedRewards,
+    FarmWithBoostedRewards
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
