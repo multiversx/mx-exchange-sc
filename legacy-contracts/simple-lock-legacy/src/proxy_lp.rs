@@ -1,8 +1,6 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use crate::{error_messages::CANNOT_UNLOCK_YET_ERR_MSG, locked_token::LockedTokenAttributes};
-
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
     pub lp_token_id: TokenIdentifier<M>,
@@ -54,28 +52,6 @@ pub trait ProxyLpModule: crate::locked_token::LockedTokenModule {
 
         let lp_proxy_token_attributes: LpProxyTokenAttributes<Self::Api> =
             lp_proxy_token_mapper.get_token_attributes(token_nonce);
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        if lp_proxy_token_attributes.first_token_locked_nonce > 0 {
-            let token_attributes: LockedTokenAttributes<Self::Api> = self
-                .locked_token()
-                .get_token_attributes(lp_proxy_token_attributes.first_token_locked_nonce);
-
-            require!(
-                current_epoch >= token_attributes.unlock_epoch,
-                CANNOT_UNLOCK_YET_ERR_MSG
-            );
-        }
-        if lp_proxy_token_attributes.second_token_locked_nonce > 0 {
-            let token_attributes: LockedTokenAttributes<Self::Api> = self
-                .locked_token()
-                .get_token_attributes(lp_proxy_token_attributes.second_token_locked_nonce);
-
-            require!(
-                current_epoch >= token_attributes.unlock_epoch,
-                CANNOT_UNLOCK_YET_ERR_MSG
-            );
-        }
 
         lp_proxy_token_attributes.lp_token_id
     }
