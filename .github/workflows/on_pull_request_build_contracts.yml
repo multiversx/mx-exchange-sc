@@ -1,8 +1,7 @@
-name: On release build and attach artifacts
+name: On pull request, build contracts
 
 on:
-  release:
-    types: [published]
+  pull_request:
 
 permissions:
   contents: write
@@ -12,4 +11,4 @@ jobs:
     uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v3.2.0
     with:
       image_tag: v7.0.0
-      attach_to_existing_release: true
+      package_whole_project_src: true
