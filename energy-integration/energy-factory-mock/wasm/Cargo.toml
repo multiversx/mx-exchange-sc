@@ -21,11 +21,14 @@ debug = false
 panic = "abort"
 overflow-checks = false
 
+[profile.dev]
+panic = "abort"
+
 [dependencies.energy-factory-mock]
 path = ".."
 
 [dependencies.multiversx-sc-wasm-adapter]
-version = "=0.48.1"
+version = "=0.50.4"
 
 [workspace]
 members = ["."]
