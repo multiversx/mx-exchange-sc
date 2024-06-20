@@ -51,8 +51,8 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
 
 impl<M: ManagedTypeApi> Mergeable<M> for FarmTokenAttributes<M> {
     #[inline]
-    fn can_merge_with(&self, other: &Self) -> bool {
-        self.original_owner == other.original_owner
+    fn can_merge_with(&self, _other: &Self) -> bool {
+        true
     }
 
     fn merge_with(&mut self, other: Self) {

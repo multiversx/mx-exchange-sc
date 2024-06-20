@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use pair::{config::ProxyTrait as _, pair_actions::views::ProxyTrait as _};
+use pair::{config::ProxyTrait as _, pair_actions::views::ProxyTrait as _, read_pair_storage};
 use pausable::{ProxyTrait as _, State};
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -27,7 +27,10 @@ pub struct SafePriceResult<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait EnableSwapByUserModule:
-    config::ConfigModule + crate::factory::FactoryModule + crate::events::EventsModule
+    config::ConfigModule
+    + read_pair_storage::ReadPairStorageModule
+    + crate::factory::FactoryModule
+    + crate::events::EventsModule
 {
     #[only_owner]
     #[endpoint(configEnableByUserParameters)]
@@ -83,6 +86,7 @@ pub trait EnableSwapByUserModule:
     #[payable("*")]
     #[endpoint(setSwapEnabledByUser)]
     fn set_swap_enabled_by_user(&self, pair_address: ManagedAddress) {
+        require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
         self.require_state_active_no_swaps(&pair_address);
 

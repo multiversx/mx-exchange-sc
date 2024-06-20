@@ -214,7 +214,7 @@ pub trait ProxyFarmModule:
             farm_address,
             farm_proxy_token_attributes.farm_token_id,
             farm_proxy_token_attributes.farm_token_nonce,
-            payment.amount,
+            payment.amount.clone(),
             caller.clone(),
         );
         require!(
@@ -235,6 +235,15 @@ pub trait ProxyFarmModule:
             lp_proxy_token_payment.token_nonce,
             &lp_proxy_token_payment.amount,
         );
+
+        if payment.amount > lp_proxy_token_payment.amount {
+            let penalty_amount = &payment.amount - &lp_proxy_token_payment.amount;
+
+            self.lp_proxy_token().nft_burn(
+                farm_proxy_token_attributes.farming_token_locked_nonce,
+                &penalty_amount,
+            );
+        }
 
         if exit_farm_result.reward_tokens.amount > 0 {
             self.send().direct_esdt(

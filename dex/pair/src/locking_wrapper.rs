@@ -74,7 +74,7 @@ pub trait LockingWrapperModule:
         current_epoch < locking_deadline_epoch
     }
 
-    fn get_locking_sc_proxy_instance(&self) -> simple_lock::Proxy<Self::Api> {
+    fn get_locking_sc_proxy_instance(&self) -> simple_lock::ProxyTo<Self::Api> {
         let locking_sc_address = self.locking_sc_address().get();
         self.locking_sc_proxy_obj(locking_sc_address)
     }

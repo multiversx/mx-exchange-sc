@@ -284,17 +284,4 @@ where
             )
             .assert_ok();
     }
-
-    pub fn migrate_pair_map(&mut self) {
-        self.blockchain_wrapper
-            .execute_tx(
-                &self.owner_address,
-                &self.router_wrapper,
-                &rust_biguint!(0u64),
-                |sc| {
-                    sc.migrate_pair_map();
-                },
-            )
-            .assert_ok();
-    }
 }

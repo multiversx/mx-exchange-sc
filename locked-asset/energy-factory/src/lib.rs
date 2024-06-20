@@ -91,7 +91,7 @@ pub trait SimpleLockEnergy:
         self.set_paused(true);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens

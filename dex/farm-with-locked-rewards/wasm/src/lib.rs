@@ -5,13 +5,12 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           68
+// Upgrade:                              1
+// Endpoints:                           67
 // Async Callback:                       1
 // Total number of exported functions:  70
 
 #![no_std]
-#![allow(internal_features)]
-#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -29,6 +28,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         startProduceRewards => start_produce_rewards_endpoint
         endProduceRewards => end_produce_rewards_endpoint
         setPerBlockRewardAmount => set_per_block_rewards_endpoint
+        setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage
         calculateRewardsForGivenPosition => calculate_rewards_for_given_position
         getRewardPerShare => reward_per_share
         getRewardReserve => reward_reserve
@@ -67,7 +67,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getMinimumFarmingEpoch => minimum_farming_epochs
         getBurnGasLimit => burn_gas_limit
         getPairContractManagedAddress => pair_contract_address
-        setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getBoostedYieldsRewardsPercentage => boosted_yields_rewards_percentage
         getAccumulatedRewardsForWeek => accumulated_rewards_for_week
