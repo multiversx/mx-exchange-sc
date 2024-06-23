@@ -1,0 +1,13 @@
+[package]
+name = "farm-staking-proxy-legacy-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+authors = ["MultiversX <contact@multiversx.com>"]
+
+[dependencies.farm-staking-proxy-legacy]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.50.4"
+default-features = false

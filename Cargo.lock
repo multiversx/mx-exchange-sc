@@ -885,6 +885,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "farm-staking-proxy-legacy"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "hex",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "num-traits",
+ "token_merge_helper",
+]
+
+[[package]]
+name = "farm-staking-proxy-legacy-meta"
+version = "0.0.0"
+dependencies = [
+ "farm-staking-proxy-legacy",
+ "multiversx-sc-meta",
+]
+
+[[package]]
 name = "farm-staking-proxy-meta"
 version = "0.0.0"
 dependencies = [

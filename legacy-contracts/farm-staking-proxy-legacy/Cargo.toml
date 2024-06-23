@@ -1,0 +1,30 @@
+[package]
+name = "farm-staking-proxy-legacy"
+version = "0.0.0"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "=0.50.4"
+features = ["esdt-token-payment-legacy-decode"]
+
+[dependencies.multiversx-sc-modules]
+version = "=0.50.4"
+
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.50.4"
