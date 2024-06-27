@@ -18,11 +18,6 @@ use crate::{
     },
 };
 
-pub struct NonceAmountPair {
-    pub nonce: u64,
-    pub amount: u64,
-}
-
 pub struct FarmStakingSetup<
     PairObjBuilder,
     FarmObjBuilder,
@@ -133,8 +128,6 @@ where
         dual_yield_token_nonce: u64,
         dual_yield_token_amount: u64,
         expected_wegld_amount: u64,
-        expected_lp_farm_rewards: u64,
-        expected_staking_rewards: u64,
         expected_unbond_token_amount: u64,
         expected_unbond_token_unlock_epoch: u64,
     ) -> u64 {
@@ -156,20 +149,6 @@ where
                     if expected_wegld_amount > 0 {
                         let wegld_payment = received_tokens.get(vec_index);
                         assert_eq!(wegld_payment.amount, expected_wegld_amount);
-
-                        vec_index += 1;
-                    }
-
-                    if expected_lp_farm_rewards > 0 {
-                        let lp_farm_rewards = received_tokens.get(vec_index);
-                        assert_eq!(lp_farm_rewards.amount, expected_lp_farm_rewards);
-
-                        vec_index += 1;
-                    }
-
-                    if expected_staking_rewards > 0 {
-                        let staking_rewards = received_tokens.get(vec_index);
-                        assert_eq!(staking_rewards.amount, expected_staking_rewards);
 
                         vec_index += 1;
                     }

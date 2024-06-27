@@ -120,7 +120,7 @@ where
         b_mock.create_sc_account(&rust_zero, Some(owner_addr), builder, PROXY_WASM_PATH);
 
     b_mock
-        .execute_tx(&owner_addr, &proxy_wrapper, &rust_zero, |sc| {
+        .execute_tx(owner_addr, &proxy_wrapper, &rust_zero, |sc| {
             sc.init();
 
             sc.pair_address().set(managed_address!(pair_address));

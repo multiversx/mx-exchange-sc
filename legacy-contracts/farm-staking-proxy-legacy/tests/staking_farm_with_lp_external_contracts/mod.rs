@@ -36,12 +36,12 @@ where
         b_mock.create_sc_account(&rust_zero, Some(owner_addr), pair_builder, PAIR_WASM_PATH);
 
     b_mock
-        .execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
+        .execute_tx(owner_addr, &pair_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
             let second_token_id = managed_token_id!(RIDE_TOKEN_ID);
-            let router_address = managed_address!(&owner_addr);
-            let router_owner_address = managed_address!(&owner_addr);
-            let initial_liquidity_adder = managed_address!(&owner_addr);
+            let router_address = managed_address!(owner_addr);
+            let router_owner_address = managed_address!(owner_addr);
+            let initial_liquidity_adder = managed_address!(owner_addr);
             let total_fee_percent = 300u64;
             let special_fee_percent = 50u64;
 
@@ -66,12 +66,12 @@ where
 
     // set user balance
     b_mock.set_esdt_balance(
-        &user_addr,
+        user_addr,
         WEGLD_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_WEGLD_TOKENS),
     );
     b_mock.set_esdt_balance(
-        &user_addr,
+        user_addr,
         RIDE_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
     );
@@ -79,12 +79,12 @@ where
     b_mock.set_block_nonce(BLOCK_NONCE_FIRST_ADD_LIQ);
 
     b_mock.set_esdt_balance(
-        &owner_addr,
+        owner_addr,
         WEGLD_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_WEGLD_TOKENS),
     );
     b_mock.set_esdt_balance(
-        &owner_addr,
+        owner_addr,
         RIDE_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
     );
@@ -102,7 +102,7 @@ where
         },
     ];
     b_mock
-        .execute_esdt_multi_transfer(&owner_addr, &pair_wrapper, &payments, |sc| {
+        .execute_esdt_multi_transfer(owner_addr, &pair_wrapper, &payments, |sc| {
             sc.add_initial_liquidity();
         })
         .assert_ok();
@@ -110,7 +110,7 @@ where
     b_mock.set_block_nonce(BLOCK_NONCE_SECOND_ADD_LIQ);
 
     b_mock
-        .execute_esdt_multi_transfer(&owner_addr, &pair_wrapper, &payments, |sc| {
+        .execute_esdt_multi_transfer(owner_addr, &pair_wrapper, &payments, |sc| {
             sc.add_liquidity(managed_biguint!(1u64), managed_biguint!(1u64));
         })
         .assert_ok();
@@ -131,12 +131,12 @@ where
 {
     let rust_zero = rust_biguint!(0u64);
     let farm_wrapper =
-        b_mock.create_sc_account(&rust_zero, Some(&owner_addr), farm_builder, FARM_WASM_PATH);
+        b_mock.create_sc_account(&rust_zero, Some(owner_addr), farm_builder, FARM_WASM_PATH);
 
     // init farm contract
 
     b_mock
-        .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+        .execute_tx(owner_addr, &farm_wrapper, &rust_zero, |sc| {
             let reward_token_id = managed_token_id!(RIDE_TOKEN_ID);
             let farming_token_id = managed_token_id!(LP_TOKEN_ID);
             let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);

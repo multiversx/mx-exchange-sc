@@ -138,8 +138,6 @@ fn test_unstake_from_legacy_proxy() {
         1,
         dual_yield_token_amount,
         expected_token_amount,
-        0,
-        0,
         expected_token_amount,
         30,
     );
