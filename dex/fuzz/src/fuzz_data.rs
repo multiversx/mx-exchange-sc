@@ -151,7 +151,6 @@ pub mod fuzz_data_tests {
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         pub rng: StdRng,
-        pub owner_address: Address,
         pub fuzz_args: FuzzDexExecutorInitArgs,
         pub statistics: EventsStatistics,
         pub blockchain_wrapper: BlockchainStateWrapper,
@@ -297,7 +296,6 @@ pub mod fuzz_data_tests {
 
             FuzzerData {
                 rng,
-                owner_address: owner_addr,
                 fuzz_args,
                 statistics,
                 blockchain_wrapper,
@@ -590,7 +588,6 @@ pub mod fuzz_data_tests {
     {
         pub pd_wrapper:
             ContractObjWrapper<price_discovery::ContractObj<DebugApi>, PriceDiscObjBuilder>,
-        pub locking_sc_address: Address,
     }
 
     pub fn setup_price_disc<PriceDiscObjBuilder>(
@@ -705,10 +702,7 @@ pub mod fuzz_data_tests {
             )
             .assert_ok();
 
-        PriceDiscSetup {
-            pd_wrapper,
-            locking_sc_address: locking_sc_wrapper.address_ref().clone(),
-        }
+        PriceDiscSetup { pd_wrapper }
     }
 
     #[derive(Clone, PartialEq)]
