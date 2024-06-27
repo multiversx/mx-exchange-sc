@@ -9,15 +9,29 @@ use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::token_attributes::StakingFarmTokenAttributes;
 
-pub trait FarmStakingTraits =
+pub trait FarmStakingTraits:
     crate::custom_rewards::CustomRewardsModule
+    + rewards::RewardsModule
+    + config::ConfigModule
+    + farm_token::FarmTokenModule
+    + pausable::PausableModule
+    + permissions_module::PermissionsModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + farm_boosted_yields::FarmBoostedYieldsModule
+{
+}
+
+impl<T> FarmStakingTraits for T where
+    T: crate::custom_rewards::CustomRewardsModule
         + rewards::RewardsModule
         + config::ConfigModule
         + farm_token::FarmTokenModule
         + pausable::PausableModule
         + permissions_module::PermissionsModule
         + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-        + farm_boosted_yields::FarmBoostedYieldsModule;
+        + farm_boosted_yields::FarmBoostedYieldsModule
+{
+}
 
 pub struct FarmStakingWrapper<T>
 where
