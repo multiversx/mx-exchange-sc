@@ -889,12 +889,22 @@ name = "farm-staking-proxy-legacy"
 version = "0.0.0"
 dependencies = [
  "common_structs",
+ "energy-factory",
+ "energy-query",
+ "farm-staking",
+ "farm-with-locked-rewards",
+ "farm_token",
  "hex",
+ "locking_module",
  "multiversx-sc",
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
  "num-traits",
+ "pair",
+ "pausable",
+ "sc_whitelist_module",
+ "simple-lock",
  "token_merge_helper",
 ]
 
