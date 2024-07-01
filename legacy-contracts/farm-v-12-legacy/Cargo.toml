@@ -1,0 +1,39 @@
+[package]
+name = "farm-v-12-legacy"
+version = "0.0.0"
+authors = ["you"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "0.50.4"
+
+[dependencies.pair]
+path = "../../dex/pair"
+
+[dependencies.factory]
+path = "../../locked-asset/factory"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
+
+[dependencies.token_send]
+path = "../../common/modules/token_send"
+
+[dev-dependencies]
+num-bigint = "0.4"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.50.4"
+
+[workspace]
+members = [
+    ".",
+    "meta",
+]

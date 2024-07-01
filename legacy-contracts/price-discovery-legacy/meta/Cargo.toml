@@ -1,0 +1,13 @@
+[package]
+name = "price-discovery-meta"
+version = "0.0.0"
+edition = "2018"
+publish = false
+authors = ["Dorin Iancu <dorin.iancu@elrond.com>"]
+
+[dependencies.price-discovery]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.45.2"
+default-features = false

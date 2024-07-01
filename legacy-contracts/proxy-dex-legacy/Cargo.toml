@@ -1,0 +1,24 @@
+[package]
+name = "proxy_dex"
+version = "0.0.0"
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.token_merge]
+path = "../../common/modules/token_merge"
+
+[dependencies.factory]
+path = "../factory"
+
+[dependencies.multiversx-sc]
+version = "=0.45.2"
+features = ["esdt-token-payment-legacy-decode"]
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.45.2"

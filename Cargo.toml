@@ -39,6 +39,8 @@ members = [
 
   "legacy-contracts/simple-lock-legacy",
   "legacy-contracts/simple-lock-legacy/meta",
+  "legacy-contracts/farm-v-12-legacy",
+  "legacy-contracts/farm-v-12-legacy/meta",
 
   "locked-asset/",
   "locked-asset/distribution",

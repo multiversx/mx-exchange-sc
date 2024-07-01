@@ -1,0 +1,12 @@
+[package]
+name = "farm-v-12-legacy-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies.farm-v-12-legacy]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.50.4"
+default-features = false
