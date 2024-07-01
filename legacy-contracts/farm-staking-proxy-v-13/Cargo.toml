@@ -1,5 +1,5 @@
 [package]
-name = "farm-staking-proxy-legacy"
+name = "farm-staking-proxy-v-13"
 version = "0.0.0"
 authors = ["MultiversX <contact@multiversx.com>"]
 edition = "2021"

@@ -885,7 +885,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "farm-staking-proxy-legacy"
+name = "farm-staking-proxy-meta"
+version = "0.0.0"
+dependencies = [
+ "farm-staking-proxy",
+ "multiversx-sc-meta",
+]
+
+[[package]]
+name = "farm-staking-proxy-v-13"
 version = "0.0.0"
 dependencies = [
  "common_structs",
@@ -909,18 +917,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "farm-staking-proxy-legacy-meta"
+name = "farm-staking-proxy-v-13-meta"
 version = "0.0.0"
 dependencies = [
- "farm-staking-proxy-legacy",
- "multiversx-sc-meta",
-]
-
-[[package]]
-name = "farm-staking-proxy-meta"
-version = "0.0.0"
-dependencies = [
- "farm-staking-proxy",
+ "farm-staking-proxy-v-13",
  "multiversx-sc-meta",
 ]
 

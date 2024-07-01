@@ -16,7 +16,7 @@ multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
 
 multiversx_sc_wasm_adapter::endpoints! {
-    farm_staking_proxy_legacy
+    farm_staking_proxy_v_13
     (
         init => init
         upgrade => upgrade

@@ -193,7 +193,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "farm-staking-proxy-legacy"
+name = "farm-staking-proxy-v-13"
 version = "0.0.0"
 dependencies = [
  "common_structs",
@@ -206,10 +206,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "farm-staking-proxy-legacy-wasm"
+name = "farm-staking-proxy-v-13-wasm"
 version = "0.0.0"
 dependencies = [
- "farm-staking-proxy-legacy",
+ "farm-staking-proxy-v-13",
  "multiversx-sc-wasm-adapter",
 ]
 

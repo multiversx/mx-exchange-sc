@@ -1,11 +1,11 @@
 [package]
-name = "farm-staking-proxy-legacy-meta"
+name = "farm-staking-proxy-v-13-meta"
 version = "0.0.0"
 edition = "2021"
 publish = false
 authors = ["MultiversX <contact@multiversx.com>"]
 
-[dependencies.farm-staking-proxy-legacy]
+[dependencies.farm-staking-proxy-v-13]
 path = ".."
 
 [dependencies.multiversx-sc-meta]

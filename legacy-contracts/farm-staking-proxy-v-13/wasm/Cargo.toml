@@ -5,7 +5,7 @@
 # ##########################################
 
 [package]
-name = "farm-staking-proxy-legacy-wasm"
+name = "farm-staking-proxy-v-13-wasm"
 version = "0.0.0"
 edition = "2021"
 publish = false
@@ -24,7 +24,7 @@ overflow-checks = false
 [profile.dev]
 panic = "abort"
 
-[dependencies.farm-staking-proxy-legacy]
+[dependencies.farm-staking-proxy-v-13]
 path = ".."
 
 [dependencies.multiversx-sc-wasm-adapter]
