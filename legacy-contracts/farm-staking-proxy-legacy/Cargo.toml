@@ -27,8 +27,8 @@ path = "../../farm-staking/farm-staking"
 [dependencies.pair]
 path = "../../dex/pair"
 
-[dependencies.farm-with-locked-rewards]
-path = "../../dex/farm-with-locked-rewards"
+[dependencies.farm-v-13]
+path = "../farm-v-13"
 
 [dev-dependencies.energy-factory]
 path = "../../locked-asset/energy-factory"

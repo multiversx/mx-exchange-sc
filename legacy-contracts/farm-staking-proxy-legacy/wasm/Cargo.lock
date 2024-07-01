@@ -198,7 +198,7 @@ version = "0.0.0"
 dependencies = [
  "common_structs",
  "farm-staking",
- "farm-with-locked-rewards",
+ "farm-v-13",
  "multiversx-sc",
  "multiversx-sc-modules",
  "pair",
@@ -214,33 +214,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "farm-with-locked-rewards"
+name = "farm-v-13"
 version = "0.0.0"
 dependencies = [
- "common_errors",
- "common_structs",
- "config",
- "contexts",
- "energy-factory",
- "energy-query",
- "events",
- "farm",
- "farm-boosted-yields",
- "farm_base_impl",
- "farm_token",
- "fixed-supply-token",
- "locking_module",
- "mergeable",
  "multiversx-sc",
- "multiversx-sc-modules",
- "pausable",
- "permissions_module",
- "rewards",
- "sc_whitelist_module",
- "token_send",
- "utils",
- "week-timekeeping",
- "weekly-rewards-splitting",
 ]
 
 [[package]]

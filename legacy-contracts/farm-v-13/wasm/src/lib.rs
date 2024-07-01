@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                            9
+// Endpoints:                            3
 // Async Callback (empty):               1
-// Total number of exported functions:  12
+// Total number of exported functions:   6
 
 #![no_std]
 
@@ -16,19 +16,13 @@ multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
 
 multiversx_sc_wasm_adapter::endpoints! {
-    farm_staking_proxy_legacy
+    farm_v_13
     (
         init => init
         upgrade => upgrade
-        unstakeFarmTokens => unstake_farm_tokens
-        setTransferRoleDualYieldToken => set_transfer_role_dual_yield_token
-        getDualYieldTokenId => dual_yield_token_id
-        getLpFarmAddress => lp_farm_address
-        getStakingFarmAddress => staking_farm_address
-        getPairAddress => pair_address
-        getStakingTokenId => staking_token_id
-        getFarmTokenId => staking_farm_token_id
-        getLpFarmTokenId => lp_farm_token_id
+        exitFarm => exit_farm
+        calculateRewardsForGivenPosition => calculate_rewards_for_given_position
+        end_produce_rewards => end_produce_rewards
     )
 }
 

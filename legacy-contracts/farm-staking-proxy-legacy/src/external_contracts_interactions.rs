@@ -3,7 +3,7 @@ multiversx_sc::imports!();
 use common_structs::{RawResultWrapper, RawResultsType};
 use farm_staking::unstake_farm::ProxyTrait as _;
 use multiversx_sc::storage::StorageKey;
-use pair::{pair_actions::remove_liq::ProxyTrait as _, safe_price_view::ProxyTrait as _};
+use pair::pair_actions::remove_liq::ProxyTrait as _;
 
 use crate::result_types::*;
 
@@ -17,7 +17,6 @@ pub trait ExternalContractsInteractionsModule:
 
     fn lp_farm_exit(
         &self,
-        orig_caller: ManagedAddress,
         lp_farm_token_nonce: u64,
         lp_farm_token_amount: BigUint,
     ) -> LpFarmExitResult<Self::Api> {
@@ -25,7 +24,7 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         let raw_results: RawResultsType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm_endpoint(OptionalValue::Some(orig_caller))
+            .exit_farm(OptionalValue::<ManagedBuffer>::None)
             .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
             .execute_on_dest_context();
 
@@ -136,39 +135,13 @@ pub trait ExternalContractsInteractionsModule:
         }
     }
 
-    fn get_lp_tokens_safe_price(&self, lp_tokens_amount: BigUint) -> BigUint {
-        let pair_address = self.pair_address().get();
-        let raw_results: RawResultsType<Self::Api> = self
-            .pair_proxy_obj(pair_address)
-            .update_and_get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
-            .execute_on_dest_context();
-
-        let mut results_wrapper = RawResultWrapper::new(raw_results);
-        results_wrapper.trim_results_front(2);
-
-        let first_token_info: EsdtTokenPayment = results_wrapper.decode_next_result();
-        let second_token_info: EsdtTokenPayment = results_wrapper.decode_next_result();
-
-        let staking_token_id = self.staking_token_id().get();
-        if first_token_info.token_identifier == staking_token_id {
-            first_token_info.amount
-        } else if second_token_info.token_identifier == staking_token_id {
-            second_token_info.amount
-        } else {
-            sc_panic!("Invalid Pair contract called");
-        }
-    }
-
     // proxies
 
     #[proxy]
     fn staking_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_staking::Proxy<Self::Api>;
 
     #[proxy]
-    fn lp_farm_proxy_obj(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> farm_with_locked_rewards::Proxy<Self::Api>;
+    fn lp_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_v_13::Proxy<Self::Api>;
 
     #[proxy]
     fn pair_proxy_obj(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;
