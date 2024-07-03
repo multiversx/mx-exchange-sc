@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(exact_size_is_empty)]
 
 mod attr_ex_helper;
 mod cache;

@@ -34,13 +34,6 @@ pub const FULL_PERCENTAGE: u64 = 10_000;
 pub const USER_ENERGY: u64 = 1_000_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
 
-#[derive(Clone)]
-pub struct Payment {
-    pub token: Vec<u8>,
-    pub nonce: u64,
-    pub amount: u64,
-}
-
 pub struct GovSetup<GovBuilder>
 where
     GovBuilder: 'static + Copy + Fn() -> governance_v2::ContractObj<DebugApi>,
