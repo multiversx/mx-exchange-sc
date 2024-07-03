@@ -55,4 +55,8 @@ pub trait FarmV13 {
     #[only_owner]
     #[endpoint]
     fn end_produce_rewards(&self) {}
+
+    #[view(getFarmingTokenId)]
+    #[storage_mapper("farming_token_id")]
+    fn farming_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }
