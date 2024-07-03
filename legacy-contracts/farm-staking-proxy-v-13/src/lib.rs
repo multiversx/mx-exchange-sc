@@ -19,6 +19,9 @@ pub trait FarmStakingProxy:
     #[init]
     fn init(&self) {}
 
+    #[upgrade]
+    fn upgrade(&self) {}
+
     #[payable("*")]
     #[endpoint(unstakeFarmTokens)]
     fn unstake_farm_tokens(

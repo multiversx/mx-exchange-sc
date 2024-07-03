@@ -1,57 +1,13 @@
 multiversx_sc::imports!();
 
 use common_structs::{RawResultWrapper, RawResultsType};
+use farm_staking::unstake_farm::ProxyTrait as _;
+use multiversx_sc::storage::StorageKey;
+use pair::pair_actions::remove_liq::ProxyTrait as _;
 
 use crate::result_types::*;
 
-mod farm_proxy {
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait FarmProxy {
-        #[payable("*")]
-        #[endpoint(exitFarm)]
-        fn exit_farm(&self) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment>;
-
-        #[view(getFarmingTokenId)]
-        fn farming_token_id(&self) -> TokenIdentifier;
-    }
-}
-
-mod farm_staking_proxy {
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait FarmStakingProxy {
-        #[payable("*")]
-        #[endpoint(unstakeFarmThroughProxy)]
-        fn unstake_farm_through_proxy(
-            &self,
-            original_caller: ManagedAddress,
-        ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment>;
-    }
-}
-
-mod pair_proxy {
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait PairProxy {
-        #[payable("*")]
-        #[endpoint(removeLiquidity)]
-        fn remove_liquidity(
-            &self,
-            first_token_amount_min: BigUint,
-            second_token_amount_min: BigUint,
-        ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment>;
-
-        #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
-        fn update_and_get_tokens_for_given_position_with_safe_price(
-            &self,
-            liquidity: BigUint,
-        ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment>;
-    }
-}
+pub static FARMING_TOKEN_STORAGE_KEY: &[u8] = b"farming_token_id";
 
 #[multiversx_sc::module]
 pub trait ExternalContractsInteractionsModule:
@@ -68,7 +24,7 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         let raw_results: RawResultsType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm()
+            .exit_farm(OptionalValue::<ManagedBuffer>::None)
             .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
             .execute_on_dest_context();
 
@@ -93,9 +49,13 @@ pub trait ExternalContractsInteractionsModule:
 
     fn get_lp_farming_token_identifier(&self) -> TokenIdentifier {
         let lp_farm_address = self.lp_farm_address().get();
-        self.lp_farm_proxy_obj(lp_farm_address)
-            .farming_token_id()
-            .execute_on_dest_context()
+
+        let farming_token_mapper = SingleValueMapper::<_, _, ManagedAddress>::new_from_address(
+            lp_farm_address,
+            StorageKey::new(FARMING_TOKEN_STORAGE_KEY),
+        );
+
+        farming_token_mapper.get()
     }
 
     // staking farm
@@ -175,42 +135,16 @@ pub trait ExternalContractsInteractionsModule:
         }
     }
 
-    fn get_lp_tokens_safe_price(&self, lp_tokens_amount: BigUint) -> BigUint {
-        let pair_address = self.pair_address().get();
-        let raw_results: RawResultsType<Self::Api> = self
-            .pair_proxy_obj(pair_address)
-            .update_and_get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
-            .execute_on_dest_context();
-
-        let mut results_wrapper = RawResultWrapper::new(raw_results);
-        results_wrapper.trim_results_front(2);
-
-        let first_token_info: EsdtTokenPayment = results_wrapper.decode_next_result();
-        let second_token_info: EsdtTokenPayment = results_wrapper.decode_next_result();
-
-        let staking_token_id = self.staking_token_id().get();
-        if first_token_info.token_identifier == staking_token_id {
-            first_token_info.amount
-        } else if second_token_info.token_identifier == staking_token_id {
-            second_token_info.amount
-        } else {
-            sc_panic!("Invalid Pair contract called");
-        }
-    }
-
     // proxies
 
     #[proxy]
-    fn staking_farm_proxy_obj(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> farm_staking_proxy::Proxy<Self::Api>;
+    fn staking_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_staking::Proxy<Self::Api>;
 
     #[proxy]
-    fn lp_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_proxy::Proxy<Self::Api>;
+    fn lp_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_v_13::Proxy<Self::Api>;
 
     #[proxy]
-    fn pair_proxy_obj(&self, sc_address: ManagedAddress) -> pair_proxy::Proxy<Self::Api>;
+    fn pair_proxy_obj(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     // storage
 
