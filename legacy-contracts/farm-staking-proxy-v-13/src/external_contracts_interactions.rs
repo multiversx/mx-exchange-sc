@@ -2,12 +2,9 @@ multiversx_sc::imports!();
 
 use common_structs::{RawResultWrapper, RawResultsType};
 use farm_staking::unstake_farm::ProxyTrait as _;
-use multiversx_sc::storage::StorageKey;
 use pair::pair_actions::remove_liq::ProxyTrait as _;
 
 use crate::result_types::*;
-
-pub static FARMING_TOKEN_STORAGE_KEY: &[u8] = b"farming_token_id";
 
 #[multiversx_sc::module]
 pub trait ExternalContractsInteractionsModule:
@@ -49,13 +46,9 @@ pub trait ExternalContractsInteractionsModule:
 
     fn get_lp_farming_token_identifier(&self) -> TokenIdentifier {
         let lp_farm_address = self.lp_farm_address().get();
-
-        let farming_token_mapper = SingleValueMapper::<_, _, ManagedAddress>::new_from_address(
-            lp_farm_address,
-            StorageKey::new(FARMING_TOKEN_STORAGE_KEY),
-        );
-
-        farming_token_mapper.get()
+        self.lp_farm_proxy_obj(lp_farm_address)
+            .farming_token_id()
+            .execute_on_dest_context()
     }
 
     // staking farm
