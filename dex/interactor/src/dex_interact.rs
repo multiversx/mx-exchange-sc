@@ -89,6 +89,7 @@ pub mod integration_tests {
     };
 
     #[tokio::test]
+    #[ignore = "run on demand"]
     async fn test_swap() {
         let mut dex_interact = DexInteract::init().await;
         dex_interact.register_wallets();
@@ -101,6 +102,7 @@ pub mod integration_tests {
     }
 
     #[tokio::test]
+    #[ignore = "run on demand"]
     async fn test_full_farm_scenario() {
         // initialize interactor
         let mut dex_interact = DexInteract::init().await;
