@@ -79,30 +79,39 @@ impl DexInteract {
 }
 
 // Just for demo, still TODO
-// #[cfg(test)]
-// pub mod integration_tests {
-//     use crate::{dex_interact_cli::SwapArgs, pair, DexInteract};
+#[cfg(test)]
+pub mod integration_tests {
+    use multiversx_sc_snippets::tokio;
 
-//     #[test]
-//     fn test_full_farm_scenario() {
-//         let rt = crate::tokio::runtime::Runtime::new().unwrap();
+    use crate::{
+        dex_interact_cli::{AddArgs, SwapArgs},
+        pair, DexInteract,
+    };
 
-//         rt.block_on(async {
-//             let mut dex_interact = DexInteract::init().await;
-//             dex_interact.register_wallets();
-//             let args = SwapArgs {
-//                 amount: 10_000_000_000_000_000_000u128,
-//                 min_amount: 1_000_000_000_000u128,
-//             };
-//             let result = pair::swap_tokens_fixed_input(&mut dex_interact, &args).await;
-//             println!("result {:#?}", result);
-//             // let args =PairArgs {
-//             //     first_payment_amount: 0u128,
-//             //     second_payment_amount: 0u128,
-//             //     first_token_amount_min: 0u128,
-//             //     second_token_amount_min: 0u128,
-//             // };
-//             // dex_interact.full_farm_scenario(&args).await;
-//         });
-//     }
-// }
+    #[tokio::test]
+    #[ignore = "run on demand"]
+    async fn test_swap() {
+        let mut dex_interact = DexInteract::init().await;
+        dex_interact.register_wallets();
+        let args = SwapArgs {
+            amount: 10_000_000_000_000_000_000u128,
+            min_amount: 1_000_000_000_000u128,
+        };
+        let result = pair::swap_tokens_fixed_input(&mut dex_interact, &args).await;
+        println!("result {:#?}", result);
+    }
+
+    #[tokio::test]
+    #[ignore = "run on demand"]
+    async fn test_full_farm_scenario() {
+        // initialize interactor
+        let mut dex_interact = DexInteract::init().await;
+        // test users
+        dex_interact.register_wallets();
+        // mock arguments
+        let args = AddArgs::default();
+
+        // runs a full farm scenario
+        dex_interact.full_farm_scenario(&args).await;
+    }
+}
