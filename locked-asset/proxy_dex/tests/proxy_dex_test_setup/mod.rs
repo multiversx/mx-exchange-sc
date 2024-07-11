@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #![allow(deprecated)]
 
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
@@ -157,7 +158,7 @@ where
             unlock_percent: 10_000,
             unlock_epoch: LOCK_OPTIONS[0],
         });
-    
+
         let old_token_attributes = LockedAssetTokenAttributesEx {
             is_merged: false,
             unlock_schedule: UnlockScheduleEx { unlock_milestones },
@@ -169,7 +170,6 @@ where
             &rust_biguint!(USER_BALANCE),
             &old_token_attributes,
         );
-        
 
         // users lock tokens
         b_mock

@@ -569,7 +569,7 @@ where
     pub fn allow_external_claim_rewards(&mut self, user: &Address, allow_claim: bool) {
         self.b_mock
             .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.allow_external_claim_boosted_rewards(allow_claim);
+                sc.set_allow_external_claim(allow_claim);
             })
             .assert_ok();
     }
@@ -755,7 +755,7 @@ where
                 if expected_amount > 0 && !user_total_farm_position_mapper.is_empty() {
                     assert_eq!(
                         managed_biguint!(expected_amount),
-                        user_total_farm_position_mapper.get().total_farm_position
+                        user_total_farm_position_mapper.get()
                     );
                 }
             })

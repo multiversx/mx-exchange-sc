@@ -195,3 +195,20 @@ pub trait UnlockWithPenaltyModule:
         token_amount * penalty_percentage_unlock / MAX_PENALTY_PERCENTAGE
     }
 }
+
+
+// ‘4687451965350631993632991850’
+// ‘0015306081845241142641261742’
+
+// {
+//     oldEnergyEntry: {
+//       amount: ,
+//       lastUpdateEpoch: 1174,
+//       totalLockedTokens: ‘3253583484335230397626951’
+//     },
+//     newEnergyEntry: {
+//       amount: ,
+//       lastUpdateEpoch: 1174,
+//       totalLockedTokens: ‘398’
+//     }
+// }

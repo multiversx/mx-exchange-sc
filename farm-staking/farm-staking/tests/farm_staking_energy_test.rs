@@ -1050,11 +1050,8 @@ fn farm_staking_farm_position_migration_test() {
             0,
             &rust_biguint!(10),
             |sc| {
-                let mut user_total_farm_position =
-                    sc.get_user_total_farm_position(&managed_address!(&user));
-                user_total_farm_position.total_farm_position = managed_biguint!(0u64);
                 sc.user_total_farm_position(&managed_address!(&user))
-                    .set(user_total_farm_position);
+                    .set(managed_biguint!(0u64));
 
                 sc.farm_position_migration_nonce().set(5);
             },

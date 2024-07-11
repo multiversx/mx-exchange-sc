@@ -74,11 +74,11 @@ pub trait ClaimStakeFarmRewardsModule:
             claim_result.storage_cache.farm_token_supply -= &virtual_farm_token.payment.amount;
             claim_result.storage_cache.farm_token_supply += &new_amount;
 
-            let mut user_total_farm_position = self.get_user_total_farm_position(&original_caller);
-            user_total_farm_position.total_farm_position -= &virtual_farm_token.payment.amount;
-            user_total_farm_position.total_farm_position += &new_amount;
             self.user_total_farm_position(&original_caller)
-                .set(user_total_farm_position);
+                .update(|total_farm_position| {
+                    *total_farm_position -= &virtual_farm_token.payment.amount;
+                    *total_farm_position += &new_amount;
+                });
 
             virtual_farm_token.payment.amount = new_amount.clone();
             virtual_farm_token.attributes.current_farm_amount = new_amount;

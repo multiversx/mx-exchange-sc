@@ -221,10 +221,9 @@ pub trait Farm:
             OptionalValue::Some(user) => user,
             OptionalValue::None => &caller,
         };
-        let user_total_farm_position = self.get_user_total_farm_position(user);
         if user != &caller {
             require!(
-                user_total_farm_position.allow_external_claim_boosted_rewards,
+                self.allow_external_claim(&user).get(),
                 "Cannot claim rewards for this address"
             );
         }

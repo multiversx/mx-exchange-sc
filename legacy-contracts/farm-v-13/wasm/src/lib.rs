@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                            3
+// Endpoints:                            4
 // Async Callback (empty):               1
-// Total number of exported functions:   6
+// Total number of exported functions:   7
 
 #![no_std]
 
@@ -23,6 +23,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         exitFarm => exit_farm
         calculateRewardsForGivenPosition => calculate_rewards_for_given_position
         end_produce_rewards => end_produce_rewards
+        getFarmingTokenId => farming_token_id
     )
 }
 
