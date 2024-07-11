@@ -223,7 +223,7 @@ pub trait Farm:
         };
         if user != &caller {
             require!(
-                self.allow_external_claim(&user).get(),
+                self.allow_external_claim(user).get(),
                 "Cannot claim rewards for this address"
             );
         }
