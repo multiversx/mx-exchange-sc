@@ -2243,6 +2243,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "proxy-dex-legacy"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "factory",
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "token_merge_helper",
+]
+
+[[package]]
+name = "proxy-dex-legacy-meta"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-meta",
+ "proxy-dex-legacy",
+]
+
+[[package]]
 name = "proxy_dex"
 version = "0.0.0"
 dependencies = [

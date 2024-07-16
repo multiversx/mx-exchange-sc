@@ -43,6 +43,8 @@ members = [
   "legacy-contracts/farm-staking-proxy-v-13/meta",
   "legacy-contracts/farm-v-13",
   "legacy-contracts/farm-v-13/meta",
+  "legacy-contracts/proxy-dex-legacy",
+  "legacy-contracts/proxy-dex-legacy/meta",
 
   "locked-asset/",
   "locked-asset/distribution",
