@@ -1,8 +1,8 @@
 [package]
-name = "proxy-dex-legacy"
+name = "factory-legacy"
+publish = false
 version = "0.0.0"
 edition = "2018"
-publish = false
 
 [lib]
 path = "src/lib.rs"
@@ -11,14 +11,17 @@ path = "src/lib.rs"
 version = "=0.50.5"
 features = ["esdt-token-payment-legacy-decode"]
 
+[dependencies.multiversx-sc-modules]
+version = "=0.50.5"
+
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.50.5"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
+[dependencies.common_errors]
+path = "../../common/common_errors"
+
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
-
-[dependencies.factory-legacy]
-path = "../factory-legacy"

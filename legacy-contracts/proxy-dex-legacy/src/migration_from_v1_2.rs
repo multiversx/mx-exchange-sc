@@ -3,7 +3,7 @@ multiversx_sc::derive_imports!();
 
 use common_structs::RawResultWrapper;
 use common_structs::RawResultsType;
-use factory::attr_ex_helper;
+use factory_legacy::attr_ex_helper;
 
 use super::events;
 use super::proxy_common;

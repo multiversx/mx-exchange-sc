@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use common_structs::LockedAssetTokenAttributesEx;
-use factory::attr_ex_helper;
+use factory_legacy::attr_ex_helper;
 
 use crate::{energy::Energy, proxy_common};
 
@@ -55,8 +55,9 @@ pub trait EnergyUpdateModule:
 
         let mut energy = self.get_energy_entry(user);
         let current_epoch = self.blockchain().get_block_epoch();
+        let extended_attributes_activation_nonce = self.get_extended_attributes_activation_nonce();
         let attributes: LockedAssetTokenAttributesEx<Self::Api> =
-            self.get_attributes_ex(token_id, token_nonce);
+            self.get_attributes_ex(token_id, token_nonce, extended_attributes_activation_nonce);
         let amounts_per_epoch = attributes.get_unlock_amounts_per_epoch(token_amount);
         for epoch_amount_pair in &amounts_per_epoch.pairs {
             energy.update_after_unlock_any(

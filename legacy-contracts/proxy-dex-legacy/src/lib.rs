@@ -12,7 +12,7 @@ pub mod proxy_farm;
 mod proxy_pair;
 pub mod transfer_role;
 
-use factory::attr_ex_helper;
+use factory_legacy::attr_ex_helper;
 
 #[multiversx_sc::contract]
 pub trait ProxyDexImpl:

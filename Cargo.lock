@@ -758,6 +758,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "factory-legacy"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "token_merge_helper",
+]
+
+[[package]]
+name = "factory-legacy-meta"
+version = "0.0.0"
+dependencies = [
+ "factory-legacy",
+ "multiversx-sc-meta",
+]
+
+[[package]]
 name = "farm"
 version = "0.0.0"
 dependencies = [
@@ -2247,7 +2267,7 @@ name = "proxy-dex-legacy"
 version = "0.0.0"
 dependencies = [
  "common_structs",
- "factory",
+ "factory-legacy",
  "multiversx-sc",
  "multiversx-sc-scenario",
  "token_merge_helper",

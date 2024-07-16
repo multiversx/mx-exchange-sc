@@ -56,6 +56,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "factory-legacy-wasm"
+version = "0.0.0"
+dependencies = [
+ "factory-legacy",
+ "multiversx-sc-wasm-adapter",
+]
+
+[[package]]
 name = "fixed-supply-token"
 version = "0.0.0"
 dependencies = [
@@ -181,24 +189,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ad3d49ab951a01fbaafe34f2ec74122942fe18a3f9814c3268f1bb72042131b"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "proxy-dex-legacy"
-version = "0.0.0"
-dependencies = [
- "common_structs",
- "factory-legacy",
- "multiversx-sc",
- "token_merge_helper",
-]
-
-[[package]]
-name = "proxy-dex-legacy-wasm"
-version = "0.0.0"
-dependencies = [
- "multiversx-sc-wasm-adapter",
- "proxy-dex-legacy",
 ]
 
 [[package]]

@@ -5,7 +5,7 @@ multiversx_sc::derive_imports!();
 
 use common_structs::Nonce;
 use common_structs::{RawResultWrapper, RawResultsType};
-use factory::attr_ex_helper;
+use factory_legacy::attr_ex_helper;
 
 use crate::energy_update;
 use crate::proxy_common::WrappedFarmTokenAttributes;
