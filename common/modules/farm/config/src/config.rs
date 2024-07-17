@@ -11,11 +11,12 @@ pub const DEFAULT_FARM_POSITION_MIGRATION_NONCE: u64 = 1;
 
 #[multiversx_sc::module]
 pub trait ConfigModule: pausable::PausableModule + permissions_module::PermissionsModule {
-    #[endpoint(setAllowExternalClaimBoostedRewards)]
-    fn set_allow_external_claim(&self, allow_external_claim: bool) {
-        let caller = self.blockchain().get_caller();
-        self.allow_external_claim(&caller).set(allow_external_claim);
-    }
+    // Disabled for this version of the exchange
+    // #[endpoint(setAllowExternalClaimBoostedRewards)]
+    // fn set_allow_external_claim(&self, allow_external_claim: bool) {
+    //     let caller = self.blockchain().get_caller();
+    //     self.allow_external_claim(&caller).set(allow_external_claim);
+    // }
 
     #[inline]
     fn is_active(&self) -> bool {

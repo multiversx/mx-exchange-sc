@@ -569,7 +569,8 @@ where
     pub fn allow_external_claim_rewards(&mut self, user: &Address, allow_claim: bool) {
         self.b_mock
             .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.set_allow_external_claim(allow_claim);
+                sc.allow_external_claim(&managed_address!(user))
+                    .set(allow_claim);
             })
             .assert_ok();
     }

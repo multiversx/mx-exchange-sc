@@ -773,7 +773,8 @@ fn claim_for_others_positive_test() {
             &setup.lp_farm_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.set_allow_external_claim(true);
+                sc.allow_external_claim(&managed_address!(&user_address))
+                    .set(true);
             },
         )
         .assert_ok();
@@ -785,7 +786,8 @@ fn claim_for_others_positive_test() {
             &setup.staking_farm_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.set_allow_external_claim(true);
+                sc.allow_external_claim(&managed_address!(&user_address))
+                    .set(true);
             },
         )
         .assert_ok();
