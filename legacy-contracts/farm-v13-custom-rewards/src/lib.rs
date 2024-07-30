@@ -34,7 +34,7 @@ pub trait FarmV13LockedRewards {
     #[only_owner]
     #[endpoint(addAddressToWhitelist)]
     fn add_address_to_whitelist(&self, _address: ManagedAddress) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -43,7 +43,7 @@ pub trait FarmV13LockedRewards {
         _amount: BigUint,
         _attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[payable("*")]
@@ -52,19 +52,19 @@ pub trait FarmV13LockedRewards {
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> ClaimRewardsResultType<Self::Api> {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[only_owner]
     #[payable("*")]
     #[endpoint(depositRewards)]
     fn deposit_rewards(&self) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(end_produce_rewards)]
     fn end_produce_rewards(&self) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[payable("*")]
@@ -73,7 +73,7 @@ pub trait FarmV13LockedRewards {
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> EnterFarmResultType<Self::Api> {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[payable("*")]
@@ -82,97 +82,97 @@ pub trait FarmV13LockedRewards {
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> ExitFarmResultType<Self::Api> {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getBlockForEndRewards)]
     fn block_for_end_rewards(&self) -> u64 {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getBurnGasLimit)]
     fn burn_gas_limit(&self) -> u64 {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getDivisionSafetyConstant)]
     fn division_safety_constant(&self) -> BigUint {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getFarmTokenId)]
     fn farm_token_id(&self) -> TokenIdentifier {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getFarmTokenSupply)]
     fn farm_token_supply(&self) -> BigUint {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getFarmingTokenId)]
     fn farming_token_id(&self) -> TokenIdentifier {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getLastErrorMessage)]
     fn last_error_message(&self) -> ManagedBuffer {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getLastRewardBlockNonce)]
     fn last_reward_block_nonce(&self) -> Nonce {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getMinimumFarmingEpoch)]
     fn minimum_farming_epochs(&self) -> u8 {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getOwner)]
     fn owner(&self) -> ManagedAddress {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getPenaltyPercent)]
     fn penalty_percent(&self) -> u64 {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getPerBlockRewardAmount)]
     fn per_block_reward_amount(&self) -> BigUint {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getRewardPerShare)]
     fn reward_per_share(&self) -> BigUint {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getRewardReserve)]
     fn reward_reserve(&self) -> BigUint {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getRewardTokenId)]
     fn reward_token_id(&self) -> TokenIdentifier {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getState)]
     fn state(&self) -> State {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getTransferExecGasLimit)]
     fn transfer_exec_gas_limit(&self) -> u64 {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getWhitelist)]
     fn whitelist(&self) -> UnorderedSetMapper<ManagedAddress> {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[payable("*")]
@@ -181,12 +181,12 @@ pub trait FarmV13LockedRewards {
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> EsdtTokenPayment {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(pause)]
     fn pause(&self) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[payable("EGLD")]
@@ -197,58 +197,58 @@ pub trait FarmV13LockedRewards {
         _token_ticker: ManagedBuffer,
         _num_decimals: usize,
     ) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[only_owner]
     #[endpoint(removeAddressFromWhitelist)]
     fn remove_address_from_whitelist(&self, _address: ManagedAddress) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(resume)]
     fn resume(&self) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[only_owner]
     #[endpoint(setBlockForEndRewards)]
     fn set_block_for_end_rewards(&self, _block_end: u64) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(setLocalRolesFarmToken)]
     fn set_local_roles_farm_token(&self) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_reward_amount(&self, _per_block_amount: BigUint) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(set_burn_gas_limit)]
     fn set_burn_gas_limit(&self, _gas_limit: u64) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(set_minimum_farming_epochs)]
     fn set_minimum_farming_epochs(&self, _epochs: u8) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(set_penalty_percent)]
     fn set_penalty_percent(&self, _percent: u64) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(set_transfer_exec_gas_limit)]
     fn set_transfer_exec_gas_limit(&self, _gas_limit: u64) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards(&self) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 }

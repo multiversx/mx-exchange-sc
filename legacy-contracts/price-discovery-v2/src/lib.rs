@@ -20,29 +20,29 @@ pub trait PriceDiscoveryV2 {
     #[payable("*")]
     #[endpoint]
     fn deposit(&self) -> EsdtTokenPayment<Self::Api> {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[payable("*")]
     #[endpoint]
     fn withdraw(&self) -> EgldOrEsdtTokenPayment<Self::Api> {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[payable("*")]
     #[endpoint]
     fn redeem(&self) -> EgldOrEsdtTokenPayment<Self::Api> {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getCurrentPrice)]
     fn calculate_price(&self) -> BigUint {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getCurrentPhase)]
     fn get_current_phase(&self) -> Phase<Self::Api> {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[only_owner]
@@ -54,13 +54,13 @@ pub trait PriceDiscoveryV2 {
         _token_ticker: ManagedBuffer,
         _nr_decimals: usize,
     ) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[only_owner]
     #[endpoint(createInitialRedeemTokens)]
     fn create_initial_redeem_tokens(&self) {
-        sc_panic!("This is a legacy contract, should not be interacted with");
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[view(getLaunchedTokenId)]
