@@ -11,12 +11,6 @@ pub const DEFAULT_FARM_POSITION_MIGRATION_NONCE: u64 = 1;
 
 #[multiversx_sc::module]
 pub trait ConfigModule: pausable::PausableModule + permissions_module::PermissionsModule {
-    #[endpoint(setAllowExternalClaimBoostedRewards)]
-    fn set_allow_external_claim(&self, allow_external_claim: bool) {
-        let caller = self.blockchain().get_caller();
-        self.allow_external_claim(&caller).set(allow_external_claim);
-    }
-
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -77,6 +71,7 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
     #[storage_mapper("userTotalFarmPosition")]
     fn user_total_farm_position(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
 
+    // Update for this storage disabled for this version of the exchange
     #[view(getAllowExternalClaim)]
     #[storage_mapper("allowExternalClaim")]
     fn allow_external_claim(&self, user: &ManagedAddress) -> SingleValueMapper<bool>;
