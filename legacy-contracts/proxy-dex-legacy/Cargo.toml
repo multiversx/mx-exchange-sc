@@ -22,3 +22,15 @@ path = "../../common/modules/token_merge_helper"
 
 [dependencies.factory-legacy]
 path = "../factory-legacy"
+
+[dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.farm-v13-locked-rewards]
+path = "../farm-v13-locked-rewards"
+
+[dependencies.pair]
+path = "../../dex/pair"

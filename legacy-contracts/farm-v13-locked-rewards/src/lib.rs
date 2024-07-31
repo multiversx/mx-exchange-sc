@@ -4,7 +4,7 @@ use multiversx_sc::derive_imports::*;
 use multiversx_sc::imports::*;
 
 type Nonce = u64;
-type ExitFarmResultType<BigUint> =
+pub type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]

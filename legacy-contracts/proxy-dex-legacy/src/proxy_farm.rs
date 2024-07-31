@@ -14,19 +14,7 @@ use super::events;
 use super::proxy_common;
 use super::proxy_pair;
 
-type ExitFarmResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-
-mod farm_proxy {
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait FarmProxy {
-        #[payable("*")]
-        #[endpoint(exitFarm)]
-        fn exit_farm(&self) -> super::ExitFarmResultType<Self::Api>;
-    }
-}
+use farm_v13_locked_rewards::ExitFarmResultType;
 
 #[derive(ManagedVecItem, Clone)]
 pub struct WrappedFarmToken<M: ManagedTypeApi> {
@@ -42,6 +30,7 @@ pub trait ProxyFarmModule:
     + events::EventsModule
     + energy_update::EnergyUpdateModule
     + attr_ex_helper::AttrExHelper
+    + energy_query::EnergyQueryModule
 {
     #[only_owner]
     #[endpoint(addFarmToIntermediate)]
@@ -130,7 +119,7 @@ pub trait ProxyFarmModule:
     ) -> ExitFarmResultType<Self::Api> {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_contract_proxy(farm_address.clone())
-            .exit_farm()
+            .exit_farm(OptionalValue::<ManagedBuffer>::None)
             .with_esdt_transfer((farm_token_id.clone(), farm_token_nonce, amount.clone()))
             .execute_on_dest_context();
 
@@ -155,5 +144,5 @@ pub trait ProxyFarmModule:
     }
 
     #[proxy]
-    fn farm_contract_proxy(&self, to: ManagedAddress) -> farm_proxy::Proxy<Self::Api>;
+    fn farm_contract_proxy(&self, to: ManagedAddress) -> farm_v13_locked_rewards::Proxy<Self::Api>;
 }

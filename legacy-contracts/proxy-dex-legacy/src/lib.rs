@@ -3,10 +3,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-mod energy;
 mod energy_update;
 mod events;
-pub mod migration_from_v1_2;
 pub mod proxy_common;
 pub mod proxy_farm;
 mod proxy_pair;
@@ -22,9 +20,9 @@ pub trait ProxyDexImpl:
     + token_merge_helper::TokenMergeHelperModule
     + events::EventsModule
     + energy_update::EnergyUpdateModule
-    + migration_from_v1_2::MigrationModule
     + transfer_role::TransferRoleModule
     + attr_ex_helper::AttrExHelper
+    + energy_query::EnergyQueryModule
 {
     #[init]
     fn init(&self) {}
