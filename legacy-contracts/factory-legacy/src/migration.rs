@@ -1,23 +1,7 @@
 multiversx_sc::imports!();
 
 use common_structs::UnlockEpochAmountPairs;
-
-mod energy_factory_proxy {
-    use common_structs::UnlockEpochAmountPairs;
-
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait EnergyFactoryProxy {
-        #[endpoint(updateEnergyAfterOldTokenUnlock)]
-        fn update_energy_after_old_token_unlock(
-            &self,
-            original_caller: ManagedAddress,
-            initial_epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
-            final_epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
-        );
-    }
-}
+use energy_factory::migration::ProxyTrait as _;
 
 #[multiversx_sc::module]
 pub trait LockedTokenMigrationModule:
@@ -54,7 +38,7 @@ pub trait LockedTokenMigrationModule:
     fn new_factory_proxy_builder(
         &self,
         sc_address: ManagedAddress,
-    ) -> energy_factory_proxy::Proxy<Self::Api>;
+    ) -> energy_factory::Proxy<Self::Api>;
 
     #[storage_mapper("newFactoryAddress")]
     fn new_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
