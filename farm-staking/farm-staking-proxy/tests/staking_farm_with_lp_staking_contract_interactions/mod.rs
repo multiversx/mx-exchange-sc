@@ -1,6 +1,6 @@
 #![allow(deprecated)]
 
-use config::{ConfigModule, UserTotalFarmPosition};
+use config::ConfigModule;
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
 use farm_with_locked_rewards::Farm;
@@ -679,12 +679,8 @@ where
                 &self.staking_farm_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    let user_farm_position = UserTotalFarmPosition {
-                        total_farm_position: managed_biguint!(new_farm_position),
-                        ..Default::default()
-                    };
                     sc.user_total_farm_position(&managed_address!(user_addr))
-                        .set(user_farm_position);
+                        .set(managed_biguint!(new_farm_position));
                 },
             )
             .assert_ok();
@@ -697,12 +693,8 @@ where
                 &self.lp_farm_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    let user_farm_position = UserTotalFarmPosition {
-                        total_farm_position: managed_biguint!(new_farm_position),
-                        ..Default::default()
-                    };
                     sc.user_total_farm_position(&managed_address!(user_addr))
-                        .set(user_farm_position);
+                        .set(managed_biguint!(new_farm_position));
                 },
             )
             .assert_ok();
@@ -720,7 +712,7 @@ where
                 if expected_amount > 0 && !user_total_farm_position_mapper.is_empty() {
                     assert_eq!(
                         managed_biguint!(expected_amount),
-                        user_total_farm_position_mapper.get().total_farm_position
+                        user_total_farm_position_mapper.get()
                     );
                 }
             })
@@ -735,7 +727,7 @@ where
                 if expected_amount > 0 && !user_total_farm_position_mapper.is_empty() {
                     assert_eq!(
                         managed_biguint!(expected_amount),
-                        user_total_farm_position_mapper.get().total_farm_position
+                        user_total_farm_position_mapper.get()
                     );
                 }
             })

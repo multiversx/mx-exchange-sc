@@ -31,10 +31,9 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
             OptionalValue::Some(user) => user,
             OptionalValue::None => &caller,
         };
-        let user_total_farm_position = self.get_user_total_farm_position(user);
         if user != &caller {
             require!(
-                user_total_farm_position.allow_external_claim_boosted_rewards,
+                self.allow_external_claim(user).get(),
                 "Cannot claim rewards for this address"
             );
         }
@@ -62,10 +61,8 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
         }
 
         if migrated_amount > 0 {
-            let mut user_total_farm_position = self.get_user_total_farm_position(caller);
-            user_total_farm_position.total_farm_position += &migrated_amount;
             self.user_total_farm_position(caller)
-                .set(user_total_farm_position);
+                .update(|total_farm_position| *total_farm_position += &migrated_amount);
         }
 
         migrated_amount
@@ -75,10 +72,16 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
         if migrated_amount == BigUint::zero() {
             return;
         }
-        self.user_total_farm_position(caller)
-            .update(|user_total_farm_position| {
-                user_total_farm_position.total_farm_position -= migrated_amount;
-            });
+
+        let user_total_farm_position_mapper = self.user_total_farm_position(caller);
+        let mut user_total_farm_position = user_total_farm_position_mapper.get();
+
+        if user_total_farm_position > migrated_amount {
+            user_total_farm_position -= &migrated_amount;
+            user_total_farm_position_mapper.set(user_total_farm_position);
+        } else {
+            user_total_farm_position_mapper.clear();
+        }
     }
 
     // Cannot import the one from farm, as the Wrapper struct has different dependencies

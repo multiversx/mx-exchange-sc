@@ -1221,12 +1221,10 @@ fn total_farm_mechanism_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
-            assert_eq!(
-                first_user_total_farm_position.total_farm_position,
-                managed_biguint!(0)
-            );
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
+            assert_eq!(first_user_total_farm_position, managed_biguint!(0));
         })
         .assert_ok();
 
@@ -1250,10 +1248,11 @@ fn total_farm_mechanism_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
             assert_eq!(
-                first_user_total_farm_position.total_farm_position,
+                first_user_total_farm_position,
                 managed_biguint!(USER_BALANCE)
             );
         })
@@ -1280,10 +1279,11 @@ fn total_farm_mechanism_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
             assert_eq!(
-                first_user_total_farm_position.total_farm_position,
+                first_user_total_farm_position,
                 managed_biguint!(USER_BALANCE * 2)
             );
         })
@@ -1348,10 +1348,11 @@ fn total_farm_mechanism_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
             assert_eq!(
-                first_user_total_farm_position.total_farm_position,
+                first_user_total_farm_position,
                 managed_biguint!(USER_BALANCE * 2)
             );
         })
@@ -2379,12 +2380,8 @@ fn total_farm_position_migration_through_proxy_dex_test() {
             &setup.farm_locked_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut first_user_total_farm_position =
-                    sc.get_user_total_farm_position(&managed_address!(&first_user));
-                first_user_total_farm_position.total_farm_position = managed_biguint!(0u64);
-
                 sc.user_total_farm_position(&managed_address!(&first_user))
-                    .set(first_user_total_farm_position);
+                    .set(managed_biguint!(0u64));
                 sc.farm_position_migration_nonce().set(2u64);
             },
         )
@@ -2393,12 +2390,10 @@ fn total_farm_position_migration_through_proxy_dex_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
-            assert_eq!(
-                first_user_total_farm_position.total_farm_position,
-                managed_biguint!(0)
-            );
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
+            assert_eq!(first_user_total_farm_position, managed_biguint!(0));
         })
         .assert_ok();
 
@@ -2420,10 +2415,11 @@ fn total_farm_position_migration_through_proxy_dex_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
             assert_eq!(
-                first_user_total_farm_position.total_farm_position,
+                first_user_total_farm_position,
                 managed_biguint!(USER_BALANCE)
             );
         })
@@ -2453,10 +2449,11 @@ fn total_farm_position_migration_through_proxy_dex_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
             assert_eq!(
-                first_user_total_farm_position.total_farm_position,
+                first_user_total_farm_position,
                 managed_biguint!(USER_BALANCE * 2)
             );
         })
@@ -2617,12 +2614,8 @@ fn total_farm_position_migration_mechanism_test() {
             &setup.farm_locked_wrapper,
             &rust_biguint!(0),
             |sc| {
-                let mut first_user_total_farm_position =
-                    sc.get_user_total_farm_position(&managed_address!(&first_user));
-                first_user_total_farm_position.total_farm_position = managed_biguint!(0u64);
-
                 sc.user_total_farm_position(&managed_address!(&first_user))
-                    .set(first_user_total_farm_position);
+                    .set(managed_biguint!(0u64));
                 sc.farm_position_migration_nonce().set(6u64);
             },
         )
@@ -2631,12 +2624,10 @@ fn total_farm_position_migration_mechanism_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
-            assert_eq!(
-                first_user_total_farm_position.total_farm_position,
-                managed_biguint!(0)
-            );
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
+            assert_eq!(first_user_total_farm_position, managed_biguint!(0));
         })
         .assert_ok();
 
@@ -2665,10 +2656,11 @@ fn total_farm_position_migration_mechanism_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
             assert_eq!(
-                first_user_total_farm_position.total_farm_position,
+                first_user_total_farm_position,
                 managed_biguint!(user_total_farm_position)
             );
         })
@@ -2694,10 +2686,11 @@ fn total_farm_position_migration_mechanism_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
             assert_eq!(
-                first_user_total_farm_position.total_farm_position,
+                first_user_total_farm_position,
                 managed_biguint!(user_total_farm_position)
             );
         })
@@ -2722,10 +2715,11 @@ fn total_farm_position_migration_mechanism_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
             assert_eq!(
-                first_user_total_farm_position.total_farm_position,
+                first_user_total_farm_position,
                 managed_biguint!(user_total_farm_position)
             );
         })
@@ -2757,10 +2751,11 @@ fn total_farm_position_migration_mechanism_test() {
     setup
         .b_mock
         .execute_query(&setup.farm_locked_wrapper, |sc| {
-            let first_user_total_farm_position =
-                sc.get_user_total_farm_position(&managed_address!(&first_user));
+            let first_user_total_farm_position = sc
+                .user_total_farm_position(&managed_address!(&first_user))
+                .get();
             assert_eq!(
-                first_user_total_farm_position.total_farm_position,
+                first_user_total_farm_position,
                 managed_biguint!(user_total_farm_position)
             );
         })
