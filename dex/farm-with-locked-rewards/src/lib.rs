@@ -127,30 +127,19 @@ pub trait Farm:
 
         self.migrate_old_farm_positions(&orig_caller);
 
-        let payments = self.call_value().all_esdt_transfers().clone_value();
-        let base_claim_rewards_result =
-            self.claim_rewards_base::<NoMintWrapper<Self>>(orig_caller.clone(), payments);
-        let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
+        let claim_rewards_result = self.claim_rewards::<NoMintWrapper<Self>>(orig_caller.clone());
 
-        let rewards_payment = base_claim_rewards_result.rewards;
+        self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
+
+        let rewards_payment = claim_rewards_result.rewards;
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             rewards_payment.token_identifier,
             rewards_payment.amount,
             caller,
-            orig_caller.clone(),
+            orig_caller,
         );
 
-        self.emit_claim_rewards_event::<_, FarmTokenAttributes<Self::Api>>(
-            &orig_caller,
-            base_claim_rewards_result.context,
-            base_claim_rewards_result.new_farm_token,
-            locked_rewards_payment.clone(),
-            base_claim_rewards_result.created_with_merge,
-            base_claim_rewards_result.storage_cache,
-        );
-
-        (output_farm_token_payment, locked_rewards_payment).into()
+        (claim_rewards_result.new_farm_token, locked_rewards_payment).into()
     }
 
     #[payable("*")]
