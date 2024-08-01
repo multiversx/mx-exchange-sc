@@ -82,9 +82,9 @@ pub trait ClaimStakeFarmRewardsModule:
 
             virtual_farm_token.payment.amount = new_amount.clone();
             virtual_farm_token.attributes.current_farm_amount = new_amount;
-
-            self.set_farm_supply_for_current_week(&claim_result.storage_cache.farm_token_supply);
         }
+
+        self.set_farm_supply_for_current_week(&claim_result.storage_cache.farm_token_supply);
 
         self.update_energy_and_progress(&original_caller);
 

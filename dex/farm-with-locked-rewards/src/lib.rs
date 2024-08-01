@@ -237,7 +237,13 @@ pub trait Farm:
             );
         }
 
+        let mut storage_cache = StorageCache::new(self);
+        NoMintWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
         let boosted_rewards = self.claim_only_boosted_payment(user);
+
+        self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
+
         self.send_to_lock_contract_non_zero(
             self.reward_token_id().get(),
             boosted_rewards,

@@ -1193,3 +1193,61 @@ fn total_farm_position_through_simple_lock_test() {
         &rust_biguint!(first_received_reward_amt),
     );
 }
+
+#[test]
+fn claim_only_boosted_rewards_per_week_test() {
+    DebugApi::dummy();
+    let mut farm_setup = MultiUserFarmSetup::new(
+        farm::contract_obj,
+        energy_factory_mock::contract_obj,
+        energy_update::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    let temp_user = farm_setup.third_user.clone();
+
+    // first user enter farm
+    let farm_in_amount = 100_000_000;
+    let first_user = farm_setup.first_user.clone();
+    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+
+    farm_setup.check_farm_token_supply(farm_in_amount);
+
+    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_epoch(6);
+    farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
+    farm_setup.set_user_energy(&temp_user, 1, 6, 1);
+    farm_setup.enter_farm(&temp_user, 1);
+    farm_setup.exit_farm(&temp_user, 2, 1);
+
+    // advance 1 week
+    farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
+    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_epoch(13);
+
+    let boosted_rewards = 2_500;
+    let second_week_received_reward_amt =
+        farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user);
+
+    assert_eq!(second_week_received_reward_amt, boosted_rewards);
+
+    // advance 1 week
+    farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
+    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_epoch(15);
+    let third_week_received_reward_amt =
+        farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user);
+
+    // Should be equal to half base generated rewards + full boosted generated rewards
+    assert_eq!(third_week_received_reward_amt, boosted_rewards);
+
+    farm_setup.b_mock.check_esdt_balance(
+        &first_user,
+        REWARD_TOKEN_ID,
+        &rust_biguint!(boosted_rewards * 2),
+    );
+}
