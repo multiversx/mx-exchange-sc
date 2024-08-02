@@ -192,6 +192,13 @@ pub trait BaseFunctionsModule:
 
         FC::check_and_update_user_farm_position(self, orig_caller, &payments);
 
+        let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+
+        FC::generate_aggregated_rewards(self, &mut storage_cache);
+
+        self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
+
         self.merge_from_payments_and_burn(payments, &token_mapper)
     }
 

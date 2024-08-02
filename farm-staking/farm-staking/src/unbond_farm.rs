@@ -1,8 +1,9 @@
 multiversx_sc::imports!();
 
 use contexts::storage_cache::StorageCache;
+use farm_base_impl::base_traits_impl::FarmContract;
 
-use crate::token_attributes::UnbondSftAttributes;
+use crate::{base_impl_wrapper::FarmStakingWrapper, token_attributes::UnbondSftAttributes};
 
 #[multiversx_sc::module]
 pub trait UnbondFarmModule:
@@ -32,7 +33,7 @@ pub trait UnbondFarmModule:
     #[payable("*")]
     #[endpoint(unbondFarm)]
     fn unbond_farm(&self) -> EsdtTokenPayment {
-        let storage_cache = StorageCache::new(self);
+        let mut storage_cache = StorageCache::new(self);
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
         let farm_token_mapper = self.farm_token();
@@ -47,6 +48,9 @@ pub trait UnbondFarmModule:
             current_epoch >= attributes.unlock_epoch,
             "Unbond period not over"
         );
+
+        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+        self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
 
         farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
