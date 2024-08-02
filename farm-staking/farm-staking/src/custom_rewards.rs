@@ -51,7 +51,6 @@ pub trait CustomRewardsModule:
         self.require_caller_has_admin_permissions();
 
         let mut storage_cache = StorageCache::new(self);
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
         let reward_capacity_mapper = self.reward_capacity();
@@ -81,7 +80,6 @@ pub trait CustomRewardsModule:
         self.require_caller_has_admin_permissions();
 
         let mut storage_cache = StorageCache::new(self);
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.produce_rewards_enabled().set(false);
     }
@@ -92,7 +90,6 @@ pub trait CustomRewardsModule:
         require!(per_block_amount != 0, "Amount cannot be zero");
 
         let mut storage_cache = StorageCache::new(self);
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.per_block_reward_amount().set(&per_block_amount);
     }
@@ -103,7 +100,6 @@ pub trait CustomRewardsModule:
         require!(max_apr != 0, "Max APR cannot be zero");
 
         let mut storage_cache = StorageCache::new(self);
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.max_annual_percentage_rewards().set(&max_apr);
     }
