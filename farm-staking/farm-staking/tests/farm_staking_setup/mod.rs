@@ -25,6 +25,7 @@ use farm_staking::unstake_farm::UnstakeFarmModule;
 use farm_staking::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
+use rewards::RewardsModule;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"RIDE-abcdef"; // reward token ID
 pub static FARMING_TOKEN_ID: &[u8] = b"RIDE-abcdef"; // farming token ID
@@ -45,6 +46,11 @@ pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const WITHDRAW_AMOUNT_TOO_HIGH: &str =
     "Withdraw amount is higher than the remaining uncollected rewards!";
+
+pub struct NonceAmountPair {
+    pub nonce: u64,
+    pub amount: u64,
+}
 
 pub struct FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
@@ -509,6 +515,24 @@ where
         );
     }
 
+    pub fn unstake_farm_no_checks(
+        &mut self,
+        user: &Address,
+        farm_token_amount: u64,
+        farm_token_nonce: u64,
+    ) {
+        let _ = self.b_mock.execute_esdt_transfer(
+            user,
+            &self.farm_wrapper,
+            FARM_TOKEN_ID,
+            farm_token_nonce,
+            &rust_biguint!(farm_token_amount),
+            |sc| {
+                sc.unstake_farm(OptionalValue::None);
+            },
+        );
+    }
+
     pub fn unbond_farm(
         &mut self,
         farm_token_nonce: u64,
@@ -542,6 +566,40 @@ where
         );
     }
 
+    pub fn merge_farm_tokens(
+        &mut self,
+        user: &Address,
+        farm_tokens: Vec<NonceAmountPair>,
+        expected_farm_token_nonce: u64,
+    ) {
+        let mut expected_farm_token_amount = 0;
+        let mut payments = Vec::new();
+        for farm_token in farm_tokens {
+            expected_farm_token_amount += farm_token.amount;
+            payments.push(TxTokenTransfer {
+                token_identifier: FARM_TOKEN_ID.to_vec(),
+                nonce: farm_token.nonce,
+                value: rust_biguint!(farm_token.amount),
+            });
+        }
+
+        self.b_mock
+            .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
+                let (out_farm_token, _boosted_rewards) =
+                    sc.merge_farm_tokens_endpoint().into_tuple();
+                assert_eq!(
+                    out_farm_token.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
+                assert_eq!(
+                    out_farm_token.amount,
+                    managed_biguint!(expected_farm_token_amount)
+                );
+            })
+            .assert_ok();
+    }
+
     pub fn check_farm_token_supply(&mut self, expected_farm_token_supply: u64) {
         self.b_mock
             .execute_query(&self.farm_wrapper, |sc| {
@@ -550,6 +608,15 @@ where
                     managed_biguint!(expected_farm_token_supply),
                     actual_farm_supply
                 );
+            })
+            .assert_ok();
+    }
+
+    pub fn check_farm_rps(&mut self, expected_amount: u64) {
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let current_rps = sc.reward_per_share().get();
+                assert_eq!(managed_biguint!(expected_amount), current_rps);
             })
             .assert_ok();
     }

@@ -8,6 +8,7 @@ use multiversx_sc::{
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
+    imports::TxTokenTransfer,
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
@@ -24,6 +25,7 @@ use farm_with_locked_rewards::Farm;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc_modules::pause::PauseModule;
 use pausable::{PausableModule, State};
+use rewards::RewardsModule;
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenModule;
 use week_timekeeping::Epoch;
@@ -47,6 +49,11 @@ pub const EPOCHS_IN_YEAR: u64 = 360;
 
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
+
+pub struct NonceAmountPair {
+    pub nonce: u64,
+    pub amount: u64,
+}
 
 pub struct RawFarmTokenAttributes {
     pub reward_per_share_bytes: Vec<u8>,
@@ -408,6 +415,37 @@ where
         result
     }
 
+    pub fn merge_farm_tokens(&mut self, user: &Address, farm_tokens: Vec<NonceAmountPair>) {
+        self.last_farm_token_nonce += 1;
+        let mut expected_farm_token_amount = 0;
+        let mut payments = Vec::new();
+        for farm_token in farm_tokens {
+            expected_farm_token_amount += farm_token.amount;
+            payments.push(TxTokenTransfer {
+                token_identifier: FARM_TOKEN_ID.to_vec(),
+                nonce: farm_token.nonce,
+                value: rust_biguint!(farm_token.amount),
+            });
+        }
+
+        self.b_mock
+            .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
+                let (out_farm_token, _boosted_rewards) = sc
+                    .merge_farm_tokens_endpoint(OptionalValue::None)
+                    .into_tuple();
+                assert_eq!(
+                    out_farm_token.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(out_farm_token.token_nonce, self.last_farm_token_nonce);
+                assert_eq!(
+                    out_farm_token.amount,
+                    managed_biguint!(expected_farm_token_amount)
+                );
+            })
+            .assert_ok();
+    }
+
     pub fn exit_farm(&mut self, user: &Address, farm_token_nonce: u64, exit_farm_amount: u64) {
         self.b_mock
             .execute_esdt_transfer(
@@ -420,6 +458,55 @@ where
                     let _ = sc.exit_farm_endpoint(OptionalValue::Some(managed_address!(user)));
                 },
             )
+            .assert_ok();
+    }
+
+    pub fn claim_boosted_rewards_for_user(
+        &mut self,
+        owner: &Address,
+        broker: &Address,
+        locked_reward_nonce: u64,
+    ) -> u64 {
+        self.last_farm_token_nonce += 1;
+
+        let mut result = 0;
+        self.b_mock
+            .execute_tx(broker, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                let reward_payment =
+                    sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(owner)));
+                assert_eq!(
+                    reward_payment.token_identifier,
+                    managed_token_id!(LOCKED_REWARD_TOKEN_ID)
+                );
+                assert_eq!(reward_payment.token_nonce, locked_reward_nonce);
+
+                result = reward_payment.amount.to_u64().unwrap();
+            })
+            .assert_ok();
+
+        result
+    }
+
+    pub fn check_farm_token_supply(&mut self, expected_farm_token_supply: u64) {
+        let b_mock = &mut self.b_mock;
+        b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let actual_farm_supply = sc.farm_token_supply().get();
+                assert_eq!(
+                    managed_biguint!(expected_farm_token_supply),
+                    actual_farm_supply
+                );
+            })
+            .assert_ok();
+    }
+
+    pub fn check_farm_rps(&mut self, expected_amount: u64) {
+        let b_mock = &mut self.b_mock;
+        b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let current_rps = sc.reward_per_share().get();
+                assert_eq!(managed_biguint!(expected_amount), current_rps);
+            })
             .assert_ok();
     }
 }
