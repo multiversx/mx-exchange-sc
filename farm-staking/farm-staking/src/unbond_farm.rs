@@ -49,6 +49,8 @@ pub trait UnbondFarmModule:
             "Unbond period not over"
         );
 
+        let current_week = self.get_current_week();
+        self.perform_weekly_update(current_week);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
 

@@ -1730,3 +1730,95 @@ fn merge_farm_position_per_week_test() {
         Some(&expected_attributes),
     );
 }
+
+#[test]
+fn unbond_farm_position_per_week_test() {
+    DebugApi::dummy();
+    let mut fs_setup =
+        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    fs_setup.set_boosted_yields_factors();
+    fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+
+    let first_user = fs_setup.user_address.clone();
+    let farm_in_amount = 100_000_000;
+
+    fs_setup.set_user_energy(&first_user, 10_000, 0, 10);
+    fs_setup.stake_farm(&first_user, farm_in_amount, &[], 1, 0, 0);
+    fs_setup.check_farm_token_supply(farm_in_amount);
+
+    fs_setup.unstake_farm_no_checks(&first_user, farm_in_amount / 2, 1);
+    fs_setup.check_farm_token_supply(farm_in_amount / 2);
+
+    fs_setup.check_farm_rps(0u64);
+
+    fs_setup.b_mock.set_block_nonce(100);
+    fs_setup.b_mock.set_block_epoch(6);
+    fs_setup.set_user_energy(&first_user, 1_000, 6, 1);
+
+    // Reset user balance
+    fs_setup
+        .b_mock
+        .set_esdt_balance(&first_user, FARMING_TOKEN_ID, &rust_biguint!(0));
+
+    let mut current_farm_rps = 0;
+    fs_setup.check_farm_rps(current_farm_rps);
+
+    // advance 1 week
+    fs_setup.set_user_energy(&first_user, 1_000, 13, 1);
+    fs_setup.b_mock.set_block_nonce(200);
+    fs_setup.b_mock.set_block_epoch(13);
+
+    fs_setup.unbond_farm(
+        2,
+        farm_in_amount / 2,
+        farm_in_amount / 2,
+        farm_in_amount / 2,
+    );
+
+    let mut user_balance = farm_in_amount / 2;
+    fs_setup
+        .b_mock
+        .check_esdt_balance(&first_user, REWARD_TOKEN_ID, &rust_biguint!(user_balance));
+
+    let farm_rps_increase = 6_000_000u64;
+    current_farm_rps += farm_rps_increase;
+    fs_setup.check_farm_rps(current_farm_rps);
+
+    // advance 1 week
+    fs_setup.set_user_energy(&first_user, 1_000, 15, 1);
+    fs_setup.b_mock.set_block_nonce(300);
+    fs_setup.b_mock.set_block_epoch(15);
+
+    let boosted_rewards_for_week = 100;
+    user_balance += boosted_rewards_for_week;
+    fs_setup.claim_boosted_rewards_for_user(
+        &first_user,
+        &first_user,
+        boosted_rewards_for_week,
+        &rust_biguint!(user_balance),
+    );
+
+    // User should have the following balance: unstake_amount + boosted_rewards_week_2
+    fs_setup
+        .b_mock
+        .check_esdt_balance(&first_user, REWARD_TOKEN_ID, &rust_biguint!(user_balance));
+
+    current_farm_rps += farm_rps_increase / 2; //user existed with half position
+    fs_setup.check_farm_rps(current_farm_rps);
+
+    let expected_attributes = StakingFarmTokenAttributes::<DebugApi> {
+        reward_per_share: managed_biguint!(0),
+        compounded_reward: managed_biguint!(0),
+        current_farm_amount: managed_biguint!(farm_in_amount),
+        original_owner: managed_address!(&first_user),
+    };
+
+    fs_setup.b_mock.check_nft_balance(
+        &first_user,
+        FARM_TOKEN_ID,
+        1,
+        &rust_biguint!(farm_in_amount / 2),
+        Some(&expected_attributes),
+    );
+}
