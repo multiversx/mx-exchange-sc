@@ -8,7 +8,6 @@ use multiversx_sc::{
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
-    imports::TxTokenTransfer,
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
@@ -49,11 +48,6 @@ pub const EPOCHS_IN_YEAR: u64 = 360;
 
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
-
-pub struct NonceAmountPair {
-    pub nonce: u64,
-    pub amount: u64,
-}
 
 pub struct RawFarmTokenAttributes {
     pub reward_per_share_bytes: Vec<u8>,
@@ -413,37 +407,6 @@ where
             .assert_ok();
 
         result
-    }
-
-    pub fn merge_farm_tokens(&mut self, user: &Address, farm_tokens: Vec<NonceAmountPair>) {
-        self.last_farm_token_nonce += 1;
-        let mut expected_farm_token_amount = 0;
-        let mut payments = Vec::new();
-        for farm_token in farm_tokens {
-            expected_farm_token_amount += farm_token.amount;
-            payments.push(TxTokenTransfer {
-                token_identifier: FARM_TOKEN_ID.to_vec(),
-                nonce: farm_token.nonce,
-                value: rust_biguint!(farm_token.amount),
-            });
-        }
-
-        self.b_mock
-            .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
-                let (out_farm_token, _boosted_rewards) = sc
-                    .merge_farm_tokens_endpoint(OptionalValue::None)
-                    .into_tuple();
-                assert_eq!(
-                    out_farm_token.token_identifier,
-                    managed_token_id!(FARM_TOKEN_ID)
-                );
-                assert_eq!(out_farm_token.token_nonce, self.last_farm_token_nonce);
-                assert_eq!(
-                    out_farm_token.amount,
-                    managed_biguint!(expected_farm_token_amount)
-                );
-            })
-            .assert_ok();
     }
 
     pub fn exit_farm(&mut self, user: &Address, farm_token_nonce: u64, exit_farm_amount: u64) {

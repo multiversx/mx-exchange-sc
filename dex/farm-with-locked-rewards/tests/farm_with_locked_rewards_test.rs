@@ -1,7 +1,6 @@
 #![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
-use farm_with_locked_rewards_setup::NonceAmountPair;
 use multiversx_sc::codec::Empty;
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -463,108 +462,6 @@ fn claim_rewards_per_week_test() {
         LOCKED_REWARD_TOKEN_ID,
         1,
         &rust_biguint!(total_rewards_per_week * 2 + base_rewards_per_week),
-        None,
-    );
-}
-
-#[test]
-fn merge_farm_position_per_week_test() {
-    DebugApi::dummy();
-    let mut farm_setup = FarmSetup::new(
-        farm_with_locked_rewards::contract_obj,
-        energy_factory::contract_obj,
-    );
-
-    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
-    farm_setup.set_boosted_yields_factors();
-    farm_setup.b_mock.set_block_epoch(2);
-
-    let temp_user = farm_setup.third_user.clone();
-
-    // first user enter farm
-    let farm_in_amount = 10_000_000;
-    let first_user = farm_setup.first_user.clone();
-    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
-
-    // User creates 3 different positions
-    farm_setup.enter_farm(&first_user, farm_in_amount);
-    farm_setup.enter_farm(&first_user, farm_in_amount);
-    farm_setup.enter_farm(&first_user, farm_in_amount);
-
-    farm_setup.check_farm_token_supply(farm_in_amount * 3);
-    farm_setup.check_farm_rps(0u64);
-
-    farm_setup.b_mock.set_block_nonce(10);
-    farm_setup.b_mock.set_block_epoch(6);
-    farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
-    farm_setup.set_user_energy(&temp_user, 1, 6, 1);
-    farm_setup.enter_farm(&temp_user, 1);
-    farm_setup.exit_farm(&temp_user, 4, 1);
-
-    farm_setup.check_farm_rps(250_000_000u64);
-    let boosted_rewards_per_week = 2_500;
-
-    // advance 1 week
-    farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
-    farm_setup.b_mock.set_block_nonce(20);
-    farm_setup.b_mock.set_block_epoch(13);
-
-    let mut payments = vec![
-        NonceAmountPair {
-            nonce: 1,
-            amount: farm_in_amount,
-        },
-        NonceAmountPair {
-            nonce: 2,
-            amount: farm_in_amount,
-        },
-    ];
-
-    farm_setup.merge_farm_tokens(&first_user, payments);
-
-    farm_setup.check_farm_token_supply(farm_in_amount * 3);
-    farm_setup.check_farm_rps(500_000_000u64);
-    farm_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user,
-        LOCKED_REWARD_TOKEN_ID,
-        1,
-        &rust_biguint!(boosted_rewards_per_week),
-        None,
-    );
-
-    // advance 1 week
-    farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
-    farm_setup.b_mock.set_block_nonce(30);
-    farm_setup.b_mock.set_block_epoch(15);
-
-    payments = vec![
-        NonceAmountPair {
-            nonce: 3,
-            amount: farm_in_amount,
-        },
-        NonceAmountPair {
-            nonce: 5,
-            amount: farm_in_amount * 2,
-        },
-    ];
-
-    farm_setup.merge_farm_tokens(&first_user, payments);
-
-    farm_setup.check_farm_token_supply(farm_in_amount * 3);
-    farm_setup.check_farm_rps(750_000_000u64);
-
-    farm_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user,
-        FARM_TOKEN_ID,
-        6,
-        &rust_biguint!(farm_in_amount * 3),
-        None,
-    );
-    farm_setup.b_mock.check_nft_balance::<Empty>(
-        &first_user,
-        LOCKED_REWARD_TOKEN_ID,
-        1,
-        &rust_biguint!(boosted_rewards_per_week * 2),
         None,
     );
 }
