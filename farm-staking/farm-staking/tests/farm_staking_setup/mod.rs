@@ -566,40 +566,6 @@ where
         );
     }
 
-    pub fn merge_farm_tokens(
-        &mut self,
-        user: &Address,
-        farm_tokens: Vec<NonceAmountPair>,
-        expected_farm_token_nonce: u64,
-    ) {
-        let mut expected_farm_token_amount = 0;
-        let mut payments = Vec::new();
-        for farm_token in farm_tokens {
-            expected_farm_token_amount += farm_token.amount;
-            payments.push(TxTokenTransfer {
-                token_identifier: FARM_TOKEN_ID.to_vec(),
-                nonce: farm_token.nonce,
-                value: rust_biguint!(farm_token.amount),
-            });
-        }
-
-        self.b_mock
-            .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
-                let (out_farm_token, _boosted_rewards) =
-                    sc.merge_farm_tokens_endpoint().into_tuple();
-                assert_eq!(
-                    out_farm_token.token_identifier,
-                    managed_token_id!(FARM_TOKEN_ID)
-                );
-                assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
-                assert_eq!(
-                    out_farm_token.amount,
-                    managed_biguint!(expected_farm_token_amount)
-                );
-            })
-            .assert_ok();
-    }
-
     pub fn check_farm_token_supply(&mut self, expected_farm_token_supply: u64) {
         self.b_mock
             .execute_query(&self.farm_wrapper, |sc| {
