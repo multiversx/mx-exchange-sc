@@ -77,6 +77,9 @@ pub trait EnergyQueryModule {
             .read_from_address(&energy_factory_address, key)
     }
 
+    #[proxy]
+    fn energy_factory_proxy(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
+
     #[view(getEnergyFactoryAddress)]
     #[storage_mapper("energyFactoryAddress")]
     fn energy_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
