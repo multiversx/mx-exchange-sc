@@ -70,7 +70,4 @@ pub trait EnergyUpdateModule:
             ManagedBuffer::new_from_bytes(EXTENDED_ATTRIBUTES_ACTIVATION_NONCE_KEY),
         )
     }
-
-    #[proxy]
-    fn energy_factory_proxy(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
 }
