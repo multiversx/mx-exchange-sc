@@ -45,6 +45,8 @@ members = [
   "legacy-contracts/farm-v-13/meta",
   "legacy-contracts/proxy-dex-legacy",
   "legacy-contracts/proxy-dex-legacy/meta",
+  "legacy-contracts/factory-legacy",
+  "legacy-contracts/factory-legacy/meta",
 
   "locked-asset/",
   "locked-asset/distribution",
