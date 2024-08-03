@@ -7,33 +7,15 @@ multiversx_sc::derive_imports!();
 
 use common_structs::{RawResultWrapper, RawResultsType};
 use factory_legacy::attr_ex_helper;
+use pair::config::ProxyTrait as _;
+use pair::pair_actions::common_result_types::RemoveLiquidityResultType;
+use pair::pair_actions::remove_liq::ProxyTrait as _;
 
 use crate::energy_update;
 use crate::proxy_common::WrappedLpTokenAttributes;
 
 use super::events;
 use super::proxy_common;
-
-type RemoveLiquidityResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-
-mod pair_proxy {
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait PairProxy {
-        #[payable("*")]
-        #[endpoint(removeLiquidity)]
-        fn remove_liquidity(
-            &self,
-            first_token_amount_min: BigUint,
-            second_token_amount_min: BigUint,
-        ) -> super::RemoveLiquidityResultType<Self::Api>;
-
-        #[view(getLpTokenIdentifier)]
-        fn get_lp_token_identifier(&self) -> TokenIdentifier;
-    }
-}
 
 #[derive(ManagedVecItem, Clone)]
 pub struct WrappedLpToken<M: ManagedTypeApi> {
@@ -48,6 +30,7 @@ pub trait ProxyPairModule:
     + events::EventsModule
     + energy_update::EnergyUpdateModule
     + attr_ex_helper::AttrExHelper
+    + energy_query::EnergyQueryModule
 {
     #[only_owner]
     #[endpoint(addPairToIntermediate)]
@@ -216,5 +199,5 @@ pub trait ProxyPairModule:
     }
 
     #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair_proxy::Proxy<Self::Api>;
+    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 }

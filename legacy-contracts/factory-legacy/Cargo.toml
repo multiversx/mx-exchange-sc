@@ -25,3 +25,6 @@ path = "../../common/common_errors"
 
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
+
+[dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"

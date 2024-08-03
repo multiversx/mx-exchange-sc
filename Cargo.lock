@@ -763,6 +763,7 @@ version = "0.0.0"
 dependencies = [
  "common_errors",
  "common_structs",
+ "energy-factory",
  "multiversx-sc",
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
@@ -2352,9 +2353,13 @@ name = "proxy-dex-legacy"
 version = "0.0.0"
 dependencies = [
  "common_structs",
+ "energy-factory",
+ "energy-query",
  "factory-legacy",
+ "farm-v13-locked-rewards",
  "multiversx-sc",
  "multiversx-sc-scenario",
+ "pair",
  "token_merge_helper",
 ]
 
