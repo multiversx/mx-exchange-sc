@@ -1,3 +1,6 @@
+use contexts::storage_cache::StorageCache;
+use farm_base_impl::base_traits_impl::FarmContract;
+
 use crate::base_impl_wrapper::FarmStakingWrapper;
 
 multiversx_sc::imports!();
@@ -38,9 +41,14 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
             );
         }
 
+        let mut storage_cache = StorageCache::new(self);
+        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
         let boosted_rewards = self.claim_only_boosted_payment(user);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+
+        self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
 
         self.send_payment_non_zero(user, &boosted_rewards_payment);
 

@@ -63,13 +63,8 @@ where
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
         let user_total_farm_position = sc.user_total_farm_position(caller).get();
-        let mut boosted_rewards = BigUint::zero();
 
-        if user_total_farm_position > 0 {
-            boosted_rewards = sc.claim_boosted_yields_rewards(caller, user_total_farm_position);
-        }
-
-        boosted_rewards
+        sc.claim_boosted_yields_rewards(caller, user_total_farm_position)
     }
 }
 

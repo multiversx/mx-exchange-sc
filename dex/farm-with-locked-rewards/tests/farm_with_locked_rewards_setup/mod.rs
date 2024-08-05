@@ -24,6 +24,7 @@ use farm_with_locked_rewards::Farm;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc_modules::pause::PauseModule;
 use pausable::{PausableModule, State};
+use rewards::RewardsModule;
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenModule;
 use week_timekeeping::Epoch;
@@ -420,6 +421,55 @@ where
                     let _ = sc.exit_farm_endpoint(OptionalValue::Some(managed_address!(user)));
                 },
             )
+            .assert_ok();
+    }
+
+    pub fn claim_boosted_rewards_for_user(
+        &mut self,
+        owner: &Address,
+        broker: &Address,
+        locked_reward_nonce: u64,
+    ) -> u64 {
+        self.last_farm_token_nonce += 1;
+
+        let mut result = 0;
+        self.b_mock
+            .execute_tx(broker, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                let reward_payment =
+                    sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(owner)));
+                assert_eq!(
+                    reward_payment.token_identifier,
+                    managed_token_id!(LOCKED_REWARD_TOKEN_ID)
+                );
+                assert_eq!(reward_payment.token_nonce, locked_reward_nonce);
+
+                result = reward_payment.amount.to_u64().unwrap();
+            })
+            .assert_ok();
+
+        result
+    }
+
+    pub fn check_farm_token_supply(&mut self, expected_farm_token_supply: u64) {
+        let b_mock = &mut self.b_mock;
+        b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let actual_farm_supply = sc.farm_token_supply().get();
+                assert_eq!(
+                    managed_biguint!(expected_farm_token_supply),
+                    actual_farm_supply
+                );
+            })
+            .assert_ok();
+    }
+
+    pub fn check_farm_rps(&mut self, expected_amount: u64) {
+        let b_mock = &mut self.b_mock;
+        b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let current_rps = sc.reward_per_share().get();
+                assert_eq!(managed_biguint!(expected_amount), current_rps);
+            })
             .assert_ok();
     }
 }
