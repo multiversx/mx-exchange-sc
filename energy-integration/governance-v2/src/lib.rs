@@ -51,17 +51,6 @@ pub trait GovernanceV2:
         self.try_change_fee_token_id(fee_token);
     }
 
-    #[endpoint]
-    fn upgrade(
-        &self,
-        proposal_id: ProposalId,
-        total_percentage: BigUint,
-    ) {
-        let mut proposal = self.proposals().get(proposal_id);
-        proposal.total_quorum = total_percentage;
-        self.proposals().set(proposal_id, &proposal);
-    }
-
     /// Propose a list of actions.
     /// A maximum of MAX_GOVERNANCE_PROPOSAL_ACTIONS can be proposed at a time.
     ///
