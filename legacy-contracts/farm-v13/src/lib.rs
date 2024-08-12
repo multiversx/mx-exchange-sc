@@ -64,12 +64,9 @@ pub struct FarmMigrationConfig<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::contract]
-pub trait FarmV13LockedRewards {
+pub trait FarmV13 {
     #[init]
     fn init(&self) {}
-
-    #[upgrade]
-    fn upgrade(&self) {}
 
     #[payable("*")]
     #[endpoint(enterFarm)]

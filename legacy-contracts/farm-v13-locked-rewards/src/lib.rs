@@ -64,9 +64,6 @@ pub trait FarmV13LockedRewards {
     #[init]
     fn init(&self) {}
 
-    #[upgrade]
-    fn upgrade(&self) {}
-
     #[payable("*")]
     #[endpoint(exitFarm)]
     fn exit_farm(

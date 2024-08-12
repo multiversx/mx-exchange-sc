@@ -63,6 +63,18 @@ pub trait PriceDiscoveryV2 {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
+    #[only_owner]
+    #[endpoint(setLockingScAddress)]
+    fn set_locking_sc_address(&self, _new_address: ManagedAddress) {
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+    }
+
+    #[only_owner]
+    #[endpoint(setUnlockEpoch)]
+    fn set_unlock_epoch(&self, _new_epoch: u64) {
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+    }
+
     #[view(getLaunchedTokenId)]
     #[storage_mapper("launchedTokenId")]
     fn launched_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
@@ -127,4 +139,12 @@ pub trait PriceDiscoveryV2 {
     #[storage_mapper("totalCirculatingSupply")]
     fn redeem_token_total_circulating_supply(&self, token_nonce: u64)
         -> SingleValueMapper<BigUint>;
+
+    #[view(getLockingScAddress)]
+    #[storage_mapper("lockingScAddress")]
+    fn locking_sc_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getUnlockEpoch)]
+    #[storage_mapper("unlockEpoch")]
+    fn unlock_epoch(&self) -> SingleValueMapper<u64>;
 }

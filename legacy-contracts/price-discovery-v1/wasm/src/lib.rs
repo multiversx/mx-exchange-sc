@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           23
+// Endpoints:                           27
 // Async Callback (empty):               1
-// Total number of exported functions:  25
+// Total number of exported functions:  29
 
 #![no_std]
 
@@ -25,6 +25,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getCurrentPhase => get_current_phase
         issueRedeemToken => issue_redeem_token
         createInitialRedeemTokens => create_initial_redeem_tokens
+        setLockingScAddress => set_locking_sc_address
+        setUnlockEpoch => set_unlock_epoch
         getLaunchedTokenId => launched_token_id
         getAcceptedTokenId => accepted_token_id
         getLaunchedTokenBalance => launched_token_balance
@@ -41,6 +43,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getPenaltyMinPercentage => penalty_min_percentage
         getPenaltyMaxPercentage => penalty_max_percentage
         getFixedPenaltyPercentage => fixed_penalty_percentage
+        getLockingScAddress => locking_sc_address
+        getUnlockEpoch => unlock_epoch
     )
 }
 

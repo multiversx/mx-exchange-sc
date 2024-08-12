@@ -5,9 +5,10 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
+// Upgrade:                              1
 // Endpoints:                           19
 // Async Callback (empty):               1
-// Total number of exported functions:  21
+// Total number of exported functions:  22
 
 #![no_std]
 
@@ -18,6 +19,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     proxy_dex_legacy
     (
         init => init
+        upgrade => upgrade
         getAssetTokenId => asset_token_id
         getLockedAssetTokenId => locked_asset_token_id
         getWrappedLpTokenId => wrapped_lp_token_id

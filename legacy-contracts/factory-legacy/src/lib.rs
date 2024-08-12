@@ -49,6 +49,9 @@ pub trait LockedAssetFactory:
         self.set_paused(true);
     }
 
+    #[upgrade]
+    fn upgrade(&self) {}
+
     #[only_owner]
     #[endpoint]
     fn whitelist(&self, address: ManagedAddress) {

@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(deprecated)]
 
 use multiversx_sc::derive_imports::*;
 use multiversx_sc::imports::*;
@@ -27,9 +28,11 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::contract]
-pub trait FarmV13LockedRewards {
+pub trait FarmV13CustomRewards {
     #[init]
-    fn init(&self) {}
+    fn init(&self) -> SCResult<()> {
+        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+    }
 
     #[only_owner]
     #[endpoint(addAddressToWhitelist)]
@@ -42,7 +45,7 @@ pub trait FarmV13LockedRewards {
         &self,
         _amount: BigUint,
         _attributes: FarmTokenAttributes<Self::Api>,
-    ) -> BigUint {
+    ) -> SCResult<BigUint> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -51,19 +54,19 @@ pub trait FarmV13LockedRewards {
     fn claim_rewards(
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> ClaimRewardsResultType<Self::Api> {
+    ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[only_owner]
     #[payable("*")]
     #[endpoint(depositRewards)]
-    fn deposit_rewards(&self) {
+    fn deposit_rewards(&self) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(end_produce_rewards)]
-    fn end_produce_rewards(&self) {
+    fn end_produce_rewards(&self) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -72,7 +75,7 @@ pub trait FarmV13LockedRewards {
     fn enter_farm(
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> EnterFarmResultType<Self::Api> {
+    ) -> SCResult<EnterFarmResultType<Self::Api>> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -81,7 +84,7 @@ pub trait FarmV13LockedRewards {
     fn exit_farm(
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> ExitFarmResultType<Self::Api> {
+    ) -> SCResult<ExitFarmResultType<Self::Api>> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -180,7 +183,7 @@ pub trait FarmV13LockedRewards {
     fn merge_farm_tokens(
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> EsdtTokenPayment {
+    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -213,7 +216,7 @@ pub trait FarmV13LockedRewards {
 
     #[only_owner]
     #[endpoint(setBlockForEndRewards)]
-    fn set_block_for_end_rewards(&self, _block_end: u64) {
+    fn set_block_for_end_rewards(&self, _block_end: u64) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -223,7 +226,7 @@ pub trait FarmV13LockedRewards {
     }
 
     #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_reward_amount(&self, _per_block_amount: BigUint) {
+    fn set_per_block_reward_amount(&self, _per_block_amount: BigUint) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
