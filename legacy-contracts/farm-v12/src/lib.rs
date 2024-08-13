@@ -7,6 +7,7 @@ use multiversx_sc::imports::*;
 type Nonce = u64;
 type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+type INCORRECTReturnType<ManagedTypeApi> = ManagedBuffer<ManagedTypeApi>;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
@@ -181,7 +182,10 @@ pub trait FarmV12 {
 
     #[only_owner]
     #[endpoint(setTransferRoleFarmToken)]
-    fn set_transfer_role_farm_token(&self, _opt_address: OptionalValue<ManagedAddress>) {
+    fn set_transfer_role_farm_token(
+        &self,
+        _opt_address: OptionalValue<ManagedAddress>,
+    ) -> INCORRECTReturnType<Self::Api> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 

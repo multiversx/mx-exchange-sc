@@ -10,6 +10,7 @@ type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+type INCORRECTReturnType<ManagedTypeApi> = ManagedBuffer<ManagedTypeApi>;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
@@ -199,7 +200,7 @@ pub trait FarmV13CustomRewards {
         _token_display_name: ManagedBuffer,
         _token_ticker: ManagedBuffer,
         _num_decimals: usize,
-    ) -> SCResult<()> {
+    ) -> SCResult<INCORRECTReturnType<Self::Api>> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -221,7 +222,7 @@ pub trait FarmV13CustomRewards {
     }
 
     #[endpoint(setLocalRolesFarmToken)]
-    fn set_local_roles_farm_token(&self) -> SCResult<()> {
+    fn set_local_roles_farm_token(&self) -> SCResult<INCORRECTReturnType<Self::Api>> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
