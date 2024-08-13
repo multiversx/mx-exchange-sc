@@ -188,7 +188,7 @@ pub trait FarmV13CustomRewards {
     }
 
     #[endpoint(pause)]
-    fn pause(&self) {
+    fn pause(&self) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -199,7 +199,7 @@ pub trait FarmV13CustomRewards {
         _token_display_name: ManagedBuffer,
         _token_ticker: ManagedBuffer,
         _num_decimals: usize,
-    ) {
+    ) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -210,7 +210,7 @@ pub trait FarmV13CustomRewards {
     }
 
     #[endpoint(resume)]
-    fn resume(&self) {
+    fn resume(&self) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -221,7 +221,7 @@ pub trait FarmV13CustomRewards {
     }
 
     #[endpoint(setLocalRolesFarmToken)]
-    fn set_local_roles_farm_token(&self) {
+    fn set_local_roles_farm_token(&self) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
@@ -231,27 +231,27 @@ pub trait FarmV13CustomRewards {
     }
 
     #[endpoint(set_burn_gas_limit)]
-    fn set_burn_gas_limit(&self, _gas_limit: u64) {
+    fn set_burn_gas_limit(&self, _gas_limit: u64) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(set_minimum_farming_epochs)]
-    fn set_minimum_farming_epochs(&self, _epochs: u8) {
+    fn set_minimum_farming_epochs(&self, _epochs: u8) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(set_penalty_percent)]
-    fn set_penalty_percent(&self, _percent: u64) {
+    fn set_penalty_percent(&self, _percent: u64) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(set_transfer_exec_gas_limit)]
-    fn set_transfer_exec_gas_limit(&self, _gas_limit: u64) {
+    fn set_transfer_exec_gas_limit(&self, _gas_limit: u64) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 
     #[endpoint(startProduceRewards)]
-    fn start_produce_rewards(&self) {
+    fn start_produce_rewards(&self) -> SCResult<()> {
         sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
     }
 }
