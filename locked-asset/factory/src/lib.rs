@@ -1,6 +1,6 @@
 #![no_std]
 
-mod attr_ex_helper;
+pub mod attr_ex_helper;
 mod cache;
 mod events;
 pub mod locked_asset;

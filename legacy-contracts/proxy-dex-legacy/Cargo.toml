@@ -1,0 +1,36 @@
+[package]
+name = "proxy-dex-legacy"
+version = "0.0.0"
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "=0.50.5"
+features = ["esdt-token-payment-legacy-decode"]
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.50.5"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
+
+[dependencies.factory-legacy]
+path = "../factory-legacy"
+
+[dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.farm-v13-locked-rewards]
+path = "../farm-v13-locked-rewards"
+
+[dependencies.pair]
+path = "../../dex/pair"
