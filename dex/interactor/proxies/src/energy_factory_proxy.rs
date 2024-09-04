@@ -234,6 +234,25 @@ where
             .original_result()
     }
 
+    pub fn set_energy_for_user<
+        Arg0: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<i64>,
+        Arg2: ProxyArg<u64>,
+    >(
+        self,
+        user: Arg0,
+        energy_amount: Arg1,
+        total_locked_tokens: Arg2,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("set_energy_for_user")
+            .argument(&user)
+            .argument(&energy_amount)
+            .argument(&total_locked_tokens)
+            .original_result()
+    }
+
     /// Add lock options, as pairs of epochs and penalty percentages. 
     /// lock epochs must be >= 360 epochs (1 year), 
     /// percentages must be between 0 and 10_000 
@@ -448,6 +467,35 @@ where
             .payment(NotPayable)
             .raw_call("setBurnRoleLockedToken")
             .argument(&address)
+            .original_result()
+    }
+
+    pub fn set_self_roles<
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+        Arg1: ProxyArg<MultiValueEncoded<Env::Api, EsdtLocalRole>>,
+    >(
+        self,
+        token_id: Arg0,
+        roles: Arg1,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("setSelfRoles")
+            .argument(&token_id)
+            .argument(&roles)
+            .original_result()
+    }
+
+    pub fn set_locked_token_id<
+        Arg0: ProxyArg<TokenIdentifier<Env::Api>>,
+    >(
+        self,
+        token_id: Arg0,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("set_locked_token_id")
+            .argument(&token_id)
             .original_result()
     }
 

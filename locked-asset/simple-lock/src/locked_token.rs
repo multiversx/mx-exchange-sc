@@ -1,7 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedDecode, NestedEncode, PartialEq, Debug, Clone)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedDecode, NestedEncode, PartialEq, Debug, Clone)]
 pub struct LockedTokenAttributes<M: ManagedTypeApi> {
     pub original_token_id: EgldOrEsdtTokenIdentifier<M>,
     pub original_token_nonce: u64,

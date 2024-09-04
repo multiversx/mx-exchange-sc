@@ -1,0 +1,2 @@
+[[proxy]]
+path = "../energy-interactor/proxies/src/fees_collector_proxy.rs"

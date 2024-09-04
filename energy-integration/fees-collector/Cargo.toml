@@ -53,3 +53,6 @@ version = "=0.50.3"
 
 [dev-dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
+
+[dependencies.multisig]
+path = "../multisig"

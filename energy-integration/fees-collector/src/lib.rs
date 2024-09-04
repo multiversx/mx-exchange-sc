@@ -44,6 +44,25 @@ pub trait FeesCollector:
         self.energy_factory_address().set(&energy_factory_address);
     }
 
+    #[only_owner]
+    #[endpoint(setSelfRoles)]
+    fn set_self_roles(&self, token_id: TokenIdentifier, roles: MultiValueEncoded<EsdtLocalRole>) {
+        self.send()
+            .esdt_system_sc_proxy()
+            .set_special_roles(
+                &self.blockchain().get_sc_address(),
+                &token_id,
+                roles.into_iter().by_ref(),
+            )
+            .async_call_and_exit()
+    }
+
+    #[only_owner]
+    #[endpoint]
+    fn insert_known_contract(&self, address: ManagedAddress) {
+        self.known_contracts().insert(address);
+    }
+
     #[upgrade]
     fn upgrade(&self) {}
 
@@ -52,6 +71,7 @@ pub trait FeesCollector:
         &self,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> PaymentsVec<Self::Api> {
+        // panic!("whatever");
         require!(self.not_paused(), "Cannot claim while paused");
 
         let caller = self.blockchain().get_caller();
@@ -90,6 +110,8 @@ pub trait FeesCollector:
 
         let wrapper = FeesCollectorWrapper::new();
         let mut rewards = self.claim_multi(&wrapper, &original_caller);
+        // sc_panic!("rewards len: {}", rewards.len());
+
         if rewards.is_empty() {
             return rewards;
         }

@@ -1,0 +1,446 @@
+{
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {}
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:first-user": {}
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:second-user": {}
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:depositor": {
+                    "balance": "50",
+                    "esdt": {
+                        "str:FIRST-123456": "2000000000000000000",
+                        "str:LOCKED-123456": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "2000000000000000000"
+                                }
+                            ]
+                        },
+                        "str:SECOND-123456": "2000000000000000000"
+                    }
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "5"
+            }
+        },
+        {
+            "step": "setState",
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "0",
+                    "newAddress": "sc:multisig"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "mxsc:tests/multisig.mxsc.json",
+                "arguments": [
+                    "0x01",
+                    "0x6f776e65725f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "setState",
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "1",
+                    "newAddress": "sc:energy-factory"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "mxsc:tests/energy-factory.mxsc.json",
+                "arguments": [
+                    "0x4d45582d313233343536",
+                    "0x4c45474143592d313233343536",
+                    "0x00000000000000000500656e657267792d666163746f72795f5f5f5f5f5f5f5f",
+                    "0x",
+                    "0x0168",
+                    "0x0fa0",
+                    "0x02d0",
+                    "0x1770",
+                    "0x05a0",
+                    "0x1f40"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:energy-factory",
+                "function": "set_locked_token_id",
+                "arguments": [
+                    "0x4c4f434b45442d313233343536"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:energy-factory",
+                "function": "unpause",
+                "arguments": [],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:energy-factory",
+                "function": "addSCAddressToWhitelist",
+                "arguments": [
+                    "0x00000000000000000500666565732d636f6c6c6563746f725f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "setState",
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "5",
+                    "newAddress": "sc:fees-collector"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "mxsc:tests/fees-collector.mxsc.json",
+                "arguments": [
+                    "0x4c4f434b45442d313233343536",
+                    "0x00000000000000000500656e657267792d666163746f72795f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:fees-collector",
+                "function": "insert_known_contract",
+                "arguments": [
+                    "0x6465706f7369746f725f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:fees-collector",
+                "function": "addKnownTokens",
+                "arguments": [
+                    "0x46495253542d313233343536",
+                    "0x5345434f4e442d313233343536",
+                    "0x4c4f434b45442d313233343536"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:fees-collector",
+                "function": "setEnergyFactoryAddress",
+                "arguments": [
+                    "0x00000000000000000500656e657267792d666163746f72795f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:fees-collector",
+                "function": "setLockingScAddress",
+                "arguments": [
+                    "0x00000000000000000500656e657267792d666163746f72795f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:fees-collector",
+                "function": "setLockEpochs",
+                "arguments": [
+                    "0x05a0"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:energy-factory",
+                "function": "setSelfRoles",
+                "arguments": [
+                    "0x4d45582d313233343536",
+                    "0x01",
+                    "0x02"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:energy-factory",
+                "function": "setSelfRoles",
+                "arguments": [
+                    "0x4c4f434b45442d313233343536",
+                    "0x03",
+                    "0x04",
+                    "0x05",
+                    "0x08"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:fees-collector",
+                "function": "setSelfRoles",
+                "arguments": [
+                    "0x4c4f434b45442d313233343536",
+                    "0x05"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:energy-factory",
+                "function": "set_energy_for_user",
+                "arguments": [
+                    "0x66697273742d757365725f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+                    "0x01f4",
+                    "0x03e8"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:energy-factory",
+                "function": "set_energy_for_user",
+                "arguments": [
+                    "0x7365636f6e642d757365725f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+                    "0x01f4",
+                    "0x2328"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:energy-factory",
+                "function": "set_energy_for_user",
+                "arguments": [
+                    "0x000000000000000005006d756c74697369675f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+                    "0x2328",
+                    "0x2328"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:multisig",
+                "function": "proposeAsyncCall",
+                "arguments": [
+                    "0x00000000000000000500666565732d636f6c6c6563746f725f5f5f5f5f5f5f5f",
+                    "0x",
+                    "0x010000000005f5e100",
+                    "0x636c61696d52657761726473"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [
+                    "0x01"
+                ],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:multisig",
+                "function": "signAndPerform",
+                "arguments": [
+                    "0x01"
+                ],
+                "gasLimit": "5,000,000"
+            },
+            "expect": {
+                "out": [
+                    "0x"
+                ],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scQuery",
+            "id": "",
+            "tx": {
+                "to": "sc:fees-collector",
+                "function": "getCurrentClaimProgress",
+                "arguments": [
+                    "0x000000000000000005006d756c74697369675f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+                ]
+            },
+            "expect": {
+                "out": [
+                    "0x000000022328000000000000000500000002232800000001"
+                ],
+                "status": "0"
+            }
+        }
+    ]
+}

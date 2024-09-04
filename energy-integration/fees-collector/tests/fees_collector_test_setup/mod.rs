@@ -65,7 +65,8 @@ where
             Some(&owner_address),
             fc_builder,
             "fees collector path",
-        );
+        ); 
+
         let energy_factory_wrapper = b_mock.create_sc_account(
             &rust_zero,
             Some(&owner_address),

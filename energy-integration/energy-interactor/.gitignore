@@ -1,0 +1,5 @@
+# Pem files are used for interactions, but shouldn't be committed
+*.pem
+
+# Trace file of interactor tooling
+interactor*.scen.json

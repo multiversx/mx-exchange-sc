@@ -1,4 +1,4 @@
-multiversx_sc::imports!();
+use multiversx_sc::imports::*;
 
 #[multiversx_sc::module]
 pub trait LocalRolesModule:
@@ -26,4 +26,24 @@ pub trait LocalRolesModule:
         self.locked_token()
             .set_local_roles_for_address(&address, &[EsdtLocalRole::NftBurn], None);
     }
+
+    #[only_owner]
+    #[endpoint(setSelfRoles)]
+    fn set_self_roles(&self, token_id: TokenIdentifier, roles: MultiValueEncoded<EsdtLocalRole>) {
+        self.send()
+            .esdt_system_sc_proxy()
+            .set_special_roles(
+                &self.blockchain().get_sc_address(),
+                &token_id,
+                roles.into_iter().by_ref(),
+            )
+            .async_call_and_exit()
+    }
+
+    #[only_owner]
+    #[endpoint]
+    fn set_locked_token_id(&self, token_id: TokenIdentifier) {
+        self.locked_token().set_token_id(token_id)
+    }
+
 }

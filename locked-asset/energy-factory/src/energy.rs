@@ -210,4 +210,20 @@ pub trait EnergyModule: crate::events::EventsModule {
 
     #[storage_mapper("userEnergy")]
     fn user_energy(&self, user: &ManagedAddress) -> SingleValueMapper<Energy<Self::Api>>;
+
+    #[only_owner]
+    #[endpoint]
+    fn set_energy_for_user(
+        &self,
+        user: ManagedAddress,
+        energy_amount: i64,
+        total_locked_tokens: u64,
+    ) {
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.user_energy(&user).set(&Energy::new(
+            BigInt::from(energy_amount),
+            current_epoch,
+            BigUint::from(total_locked_tokens),
+        ));
+    }
 }

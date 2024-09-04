@@ -1,12 +1,16 @@
 #![allow(deprecated)]
 
 mod fees_collector_test_setup;
-
 use energy_query::Energy;
 use fees_collector::additional_locked_tokens::{AdditionalLockedTokensModule, BLOCKS_IN_WEEK};
 use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector_test_setup::*;
-use multiversx_sc::types::{BigInt, EsdtTokenPayment, ManagedVec};
+use multisig::*;
+use multisig_propose::MultisigProposeModule;
+use multisig_sign::MultisigSignModule;
+use multiversx_sc::types::{
+    BigInt, BigUint, EsdtTokenPayment, FunctionCall, ManagedAddress, ManagedVec, MultiValueEncoded,
+};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     DebugApi,
@@ -1418,4 +1422,84 @@ fn additional_locked_tokens_test() {
             );
         })
         .assert_ok();
+}
+
+#[test]
+fn debug_test() {
+    let rust_zero = rust_biguint!(0);
+
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
+
+    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
+
+    fc_setup.set_energy(&first_user, 500, 1_000);
+    fc_setup.set_energy(&second_user, 500, 9_000);
+
+    let multisig_wrapper = fc_setup.b_mock.create_sc_account(
+        &rust_zero,
+        Option::Some(&fc_setup.owner_address),
+        multisig::contract_obj,
+        "../multisig/output/multisig.wasm",
+    );
+
+    fc_setup.set_energy(multisig_wrapper.address_ref(), 5_000, 5_000);
+
+    let addr = fc_setup.owner_address.clone();
+
+    fc_setup
+        .b_mock
+        .execute_tx(
+            &fc_setup.owner_address,
+            &multisig_wrapper,
+            &rust_zero,
+            |sc| {
+                let mut board = MultiValueEncoded::new();
+                board.push(managed_address!(&addr));
+                sc.init(1usize, board);
+            },
+        )
+        .assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_tx(
+            &fc_setup.owner_address,
+            &multisig_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.propose_async_call(
+                    ManagedAddress::from(fc_setup.fc_wrapper.address_ref()),
+                    BigUint::default(),
+                    Option::Some(100_000_000u64),
+                    FunctionCall::new("claimRewards"),
+                );
+            },
+        )
+        .assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_tx(
+            &fc_setup.owner_address,
+            &multisig_wrapper,
+            &rust_zero,
+            |sc| {
+                let _ = sc.sign_and_perform(1usize);
+            },
+        )
+        .assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            let claim_progress = sc
+                .current_claim_progress(&managed_address!(multisig_wrapper.address_ref()))
+                .get();
+            println!("{:?}", claim_progress);
+        })
+        .assert_ok();
+
+    fc_setup.b_mock.write_mandos_output("trace1.scen.json");
 }

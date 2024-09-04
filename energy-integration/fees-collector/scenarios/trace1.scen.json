@@ -1,0 +1,72 @@
+{
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925": {
+                    "balance": "0"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "0x2b32db6c2c0a6235fb1397e8225ea85e0f0e6e8c7b126d0016ccbde0e667151e": {
+                    "balance": "0"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "0x000000000000000071ed1721fd5319b383cca3a1f9fce3aa1c8cd3bd37af20d7": {
+                    "balance": "0",
+                    "code": "file:../fees collector path",
+                    "owner": "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "0x0000000000000000d720a08b839a004c2e6386f5aecc19ec74807d1920cb6aeb": {
+                    "balance": "0",
+                    "code": "file:../energy factory path",
+                    "owner": "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "5"
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "0x376da11fe3ab3d0eaaddb418ccb49b5426d5c2504f526f7766580f6e45984e3b": {
+                    "balance": "0"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "0x4391a5c79ffdc79883036503ca551673c09deec28df432a8d88debc7fa2ec91e": {
+                    "balance": "0"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "0x00000000000000001ba0460af9324ac6df5b6ffb66be6df2547872c2f29ba4c2": {
+                    "balance": "0",
+                    "code": "file:../../multisig/output/multisig.wasm",
+                    "owner": "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925"
+                }
+            }
+        }
+    ]
+}

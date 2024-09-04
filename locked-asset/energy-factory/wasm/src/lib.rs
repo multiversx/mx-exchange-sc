@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           33
+// Endpoints:                           36
 // Async Callback:                       1
-// Total number of exported functions:  36
+// Total number of exported functions:  39
 
 #![no_std]
 
@@ -29,6 +29,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getLegacyLockedTokenId => legacy_locked_token_id
         getEnergyEntryForUser => get_updated_energy_entry_for_user
         getEnergyAmountForUser => get_energy_amount_for_user
+        set_energy_for_user => set_energy_for_user
         addLockOptions => add_lock_options
         getLockOptions => get_lock_options_view
         unlockEarly => unlock_early
@@ -45,6 +46,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         isPaused => paused_status
         setTransferRoleLockedToken => set_transfer_role
         setBurnRoleLockedToken => set_burn_role
+        setSelfRoles => set_self_roles
+        set_locked_token_id => set_locked_token_id
         mergeTokens => merge_tokens_endpoint
         lockVirtual => lock_virtual
         addSCAddressToWhitelist => add_sc_address_to_whitelist

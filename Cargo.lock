@@ -670,6 +670,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "energy-interactor"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "common_structs",
+ "energy-factory",
+ "energy-interactor-proxies",
+ "fees-collector",
+ "multisig",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "multiversx-sc-snippets",
+ "serde",
+ "toml",
+]
+
+[[package]]
+name = "energy-interactor-proxies"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "config",
+ "energy-factory",
+ "farm-boosted-yields",
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "pausable",
+ "permissions_module",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
 name = "energy-query"
 version = "0.0.0"
 dependencies = [
@@ -1002,6 +1035,7 @@ dependencies = [
  "energy-factory",
  "energy-query",
  "locking_module",
+ "multisig",
  "multiversx-sc",
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
@@ -1720,6 +1754,18 @@ dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "multisig"
+version = "1.0.0"
+dependencies = [
+ "hex",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "num-traits",
 ]
 
 [[package]]
