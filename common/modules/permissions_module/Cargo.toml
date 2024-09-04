@@ -17,5 +17,5 @@ bitflags = "2.4.1"
 path = "../../common_errors"
 
 [dependencies.multiversx-sc]
-version = "=0.52.3"
+version = "=0.50.5"
 features = ["esdt-token-payment-legacy-decode"]
