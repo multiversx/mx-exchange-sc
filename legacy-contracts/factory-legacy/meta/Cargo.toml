@@ -10,5 +10,5 @@ publish = false
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "0.50.5"
+version = "0.52.3"
 default-features = false
