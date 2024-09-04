@@ -9,11 +9,11 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.52.3"
+version = "=0.50.5"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.52.3"
+version = "=0.50.5"
 
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
@@ -57,4 +57,4 @@ num-traits = "0.2"
 hex = "0.4"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.52.3"
+version = "=0.50.5"

@@ -8,14 +8,14 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.52.3"
+version = "=0.50.5"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.52.3"
+version = "=0.50.5"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.52.3"
+version = "=0.50.5"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
