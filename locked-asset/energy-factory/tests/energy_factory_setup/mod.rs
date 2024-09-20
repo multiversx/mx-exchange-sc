@@ -10,7 +10,7 @@ use energy_factory::{
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
-    types::{Address, EsdtLocalRole, MultiValueEncoded},
+    types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
@@ -271,6 +271,30 @@ where
             .assert_ok();
 
         result
+    }
+
+    pub fn get_user_locked_tokens(&mut self, user: &Address) -> num_bigint::BigUint {
+        let mut result = rust_biguint!(0);
+        self.b_mock
+            .execute_query(&self.sc_wrapper, |sc| {
+                let user_energy = sc.get_updated_energy_entry_for_user(&managed_address!(user));
+                result = to_rust_biguint(user_energy.get_total_locked_tokens().clone());
+            })
+            .assert_ok();
+
+        result
+    }
+
+    pub fn adjust_user_energy(&mut self, user: &Address, energy_amount: i64, token_amount: i64) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.sc_wrapper, &rust_biguint!(0), |sc| {
+                sc.adjust_user_energy(
+                    managed_address!(user),
+                    BigInt::from(energy_amount),
+                    BigInt::from(token_amount),
+                );
+            })
+            .assert_ok();
     }
 }
 

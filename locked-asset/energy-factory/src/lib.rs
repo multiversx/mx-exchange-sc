@@ -230,4 +230,39 @@ pub trait SimpleLockEnergy:
 
         output_tokens
     }
+
+    /// Adjusts the energy of a user.
+    /// This function allows the owner to adjust the energy of a user by adding or subtracting from the energy amount and total locked tokens.
+    ///
+    /// # Arguments
+    /// - `user`: The address of the user whose energy is to be adjusted.
+    /// - `energy_amount`: The amount of energy to add or subtract.
+    /// - `token_amount`: The amount of tokens to add or subtract.
+    #[only_owner]
+    #[endpoint(adjustUserEnergy)]
+    fn adjust_user_energy(
+        &self,
+        user: ManagedAddress,
+        energy_amount: BigInt,
+        token_amount: BigInt,
+    ) {
+        require!(!self.user_energy(&user).is_empty(), "User energy not found");
+        let old_energy = self.get_updated_energy_entry_for_user(&user);
+        let new_energy_amount = old_energy.get_energy_amount() + energy_amount;
+        let new_total_locked_tokens = if token_amount >= 0 {
+            old_energy.get_total_locked_tokens() + &token_amount.magnitude()
+        } else {
+            let token_amount_magnitude = token_amount.magnitude();
+            require!(
+                old_energy.get_total_locked_tokens() >= &token_amount_magnitude,
+                "Insufficient locked tokens"
+            );
+            old_energy.get_total_locked_tokens() - &token_amount_magnitude
+        };
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        let new_energy = Energy::new(new_energy_amount, current_epoch, new_total_locked_tokens);
+
+        self.set_energy_entry(&user, new_energy);
+    }
 }
