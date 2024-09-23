@@ -5,7 +5,7 @@ use super::factory;
 use crate::{config, events};
 use pair::{pair_actions::swap::ProxyTrait as _, read_pair_storage};
 
-pub type SwapOperationType<M> =
+type SwapOperationType<M> =
     MultiValue4<ManagedAddress<M>, ManagedBuffer<M>, TokenIdentifier<M>, BigUint<M>>;
 
 pub const SWAP_TOKENS_FIXED_INPUT_FUNC_NAME: &[u8] = b"swapTokensFixedInput";
@@ -77,7 +77,7 @@ pub trait MultiPairSwap:
             caller,
             token_id,
             amount,
-            swap_operations.clone(),
+            payments.clone(),
         );
 
         payments

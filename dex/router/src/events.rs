@@ -1,5 +1,3 @@
-use crate::multi_pair_swap::SwapOperationType;
-
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -24,30 +22,12 @@ pub struct UserPairSwapEnabledEvent<M: ManagedTypeApi> {
     pair_address: ManagedAddress<M>,
 }
 
-#[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    TypeAbi,
-    Clone,
-    PartialEq,
-    Debug,
-)]
-pub struct SwapOperationStruct<M: ManagedTypeApi> {
-    pub pair_address: ManagedAddress<M>,
-    pub function: ManagedBuffer<M>,
-    pub token: TokenIdentifier<M>,
-    pub amount: BigUint<M>,
-}
-
 #[derive(TypeAbi, TopEncode)]
 pub struct MultiPairSwapEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
-    token_id: TokenIdentifier<M>,
-    amount: BigUint<M>,
-    swap_operations_list: ManagedVec<M, SwapOperationStruct<M>>,
+    token_in: TokenIdentifier<M>,
+    amount_in: BigUint<M>,
+    payments_out: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 
 #[multiversx_sc::module]
@@ -108,32 +88,18 @@ pub trait EventsModule {
         caller: ManagedAddress,
         token_id: TokenIdentifier,
         amount: BigUint,
-        swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
+        payments: ManagedVec<EsdtTokenPayment>,
     ) {
-        let swap_operations_list = swap_operations
-            .clone()
-            .into_iter()
-            .map(|entry| {
-                let (pair_address, function, token, amount) = entry.into_tuple();
-                SwapOperationStruct {
-                    pair_address,
-                    function,
-                    token,
-                    amount,
-                }
-            })
-            .collect();
-
         self.multi_pair_swap_event(
             caller.clone(),
             token_id.clone(),
             amount.clone(),
-            swap_operations.clone(),
+            payments.clone(),
             MultiPairSwapEvent {
                 caller,
-                token_id,
-                amount,
-                swap_operations_list,
+                token_in: token_id,
+                amount_in: amount,
+                payments_out: payments,
             },
         )
     }
@@ -162,9 +128,9 @@ pub trait EventsModule {
     fn multi_pair_swap_event(
         &self,
         #[indexed] caller: ManagedAddress,
-        #[indexed] token_id: TokenIdentifier,
-        #[indexed] amount: BigUint,
-        #[indexed] swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
+        #[indexed] token_in: TokenIdentifier,
+        #[indexed] amount_in: BigUint,
+        #[indexed] payments_out: ManagedVec<EsdtTokenPayment>,
         multi_pair_swap_event: MultiPairSwapEvent<Self::Api>,
     );
 }
