@@ -2,10 +2,10 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use super::factory;
-use crate::config;
+use crate::{config, events};
 use pair::{pair_actions::swap::ProxyTrait as _, read_pair_storage};
 
-type SwapOperationType<M> =
+pub type SwapOperationType<M> =
     MultiValue4<ManagedAddress<M>, ManagedBuffer<M>, TokenIdentifier<M>, BigUint<M>>;
 
 pub const SWAP_TOKENS_FIXED_INPUT_FUNC_NAME: &[u8] = b"swapTokensFixedInput";
@@ -17,6 +17,7 @@ pub trait MultiPairSwap:
     + read_pair_storage::ReadPairStorageModule
     + factory::FactoryModule
     + token_send::TokenSendModule
+    + events::EventsModule
 {
     #[payable("*")]
     #[endpoint(multiPairSwap)]
@@ -39,9 +40,9 @@ pub trait MultiPairSwap:
 
         let caller = self.blockchain().get_caller();
         let mut payments = ManagedVec::new();
-        let mut last_payment = EsdtTokenPayment::new(token_id, nonce, amount);
+        let mut last_payment = EsdtTokenPayment::new(token_id.clone(), nonce, amount.clone());
 
-        for entry in swap_operations.into_iter() {
+        for entry in swap_operations.clone().into_iter() {
             let (pair_address, function, token_wanted, amount_wanted) = entry.into_tuple();
             self.check_is_pair_sc(&pair_address);
 
@@ -71,6 +72,13 @@ pub trait MultiPairSwap:
 
         payments.push(last_payment);
         self.send().direct_multi(&caller, &payments);
+
+        self.emit_multi_pair_swap_event(
+            caller,
+            token_id,
+            amount,
+            swap_operations.clone(),
+        );
 
         payments
     }
