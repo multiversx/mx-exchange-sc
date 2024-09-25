@@ -9,11 +9,11 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.52.3"
+version = "=0.53.0"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.52.3"
+version = "=0.53.0"
 
 [dependencies.factory]
 path = "../../locked-asset/factory"
@@ -22,7 +22,7 @@ path = "../../locked-asset/factory"
 num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.52.3"
+version = "=0.53.0"
 
 [dev-dependencies.common_structs]
 path = "../../common/common_structs"

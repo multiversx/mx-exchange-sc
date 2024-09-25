@@ -50,11 +50,11 @@ path = "../../../traits/mergeable"
 path = "../../../traits/fixed-supply-token"
 
 [dependencies.multiversx-sc]
-version = "=0.52.3"
+version = "=0.53.0"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.52.3"
+version = "=0.53.0"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.52.3"
+version = "=0.53.0"
