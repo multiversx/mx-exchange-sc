@@ -42,7 +42,7 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
         }
 
         require!(
-            !self.current_claim_progress(&user).is_empty(),
+            !self.current_claim_progress(user).is_empty(),
             "User energy is not registered!"
         );
 

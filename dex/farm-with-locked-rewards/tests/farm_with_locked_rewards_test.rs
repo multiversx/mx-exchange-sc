@@ -504,11 +504,19 @@ fn claim_boosted_rewards_with_zero_position_test() {
     farm_setup.b_mock.set_block_nonce(20);
     farm_setup.b_mock.set_block_epoch(13);
 
-    let second_week_received_reward_amt =
-        farm_setup.claim_boosted_rewards_for_user(&temp_user, &temp_user, 0);
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &temp_user,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(&temp_user)));
+            },
+        )
+        .assert_error(4, "User energy is not registered!");
 
-    assert_eq!(second_week_received_reward_amt, 0);
-    farm_setup.check_farm_rps(150_000_000u64);
+    farm_setup.check_farm_rps(75_000_000u64);
 
     // advance 1 week
     let boosted_rewards = 2_500;
@@ -518,14 +526,14 @@ fn claim_boosted_rewards_with_zero_position_test() {
     let third_week_received_reward_amt =
         farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user, 1);
 
-    assert_eq!(third_week_received_reward_amt, boosted_rewards * 2); // user receives rewards for weeks 1 and 2)
+    assert_eq!(third_week_received_reward_amt, boosted_rewards);
     farm_setup.check_farm_rps(225_000_000u64);
 
     farm_setup.b_mock.check_nft_balance::<Empty>(
         &first_user,
         LOCKED_REWARD_TOKEN_ID,
         1,
-        &rust_biguint!(boosted_rewards * 2),
+        &rust_biguint!(boosted_rewards),
         None,
     );
 }
