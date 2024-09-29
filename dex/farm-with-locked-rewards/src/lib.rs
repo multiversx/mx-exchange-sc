@@ -226,6 +226,11 @@ pub trait Farm:
             );
         }
 
+        require!(
+            !self.current_claim_progress(&user).is_empty(),
+            "User energy is not registered!"
+        );
+
         let mut storage_cache = StorageCache::new(self);
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         NoMintWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);

@@ -1,7 +1,8 @@
 #![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
-use multiversx_sc::codec::Empty;
+use farm_with_locked_rewards::Farm;
+use multiversx_sc::{codec::Empty, imports::OptionalValue};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -527,4 +528,42 @@ fn claim_boosted_rewards_with_zero_position_test() {
         &rust_biguint!(boosted_rewards * 2),
         None,
     );
+}
+
+#[test]
+fn claim_boosted_rewards_user_energy_not_registered_test() {
+    DebugApi::dummy();
+    let mut farm_setup = FarmSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    let first_user = farm_setup.first_user.clone();
+    let farm_in_amount = 100_000_000;
+
+    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+
+    // Attempt to claim boosted rewards without entering the farm
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &first_user,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(&first_user)));
+            },
+        )
+        .assert_error(4, "User energy is not registered!");
+
+    // User enters the farm
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+
+    // Now the user should be able to claim boosted rewards
+    // Rewards computation is out of scope
+    farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user, 0);
 }
