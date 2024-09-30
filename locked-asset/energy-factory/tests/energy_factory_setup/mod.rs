@@ -19,6 +19,8 @@ use multiversx_sc_scenario::{
     whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
+
+use num_bigint::Sign;
 use simple_lock::locked_token::LockedTokenModule;
 
 use unbond_sc_mock::*;
@@ -273,6 +275,18 @@ where
         result
     }
 
+    pub fn get_user_energy_raw(&mut self, user: &Address) -> num_bigint::BigInt {
+        let mut result = num_bigint::BigInt::from_biguint(Sign::NoSign, rust_biguint!(0));
+        self.b_mock
+            .execute_query(&self.sc_wrapper, |sc| {
+                let user_energy = sc.get_updated_energy_entry_for_user(&managed_address!(user));
+                result = to_rust_bigint(user_energy.get_energy_amount_raw().clone());
+            })
+            .assert_ok();
+
+        result
+    }
+
     pub fn get_user_locked_tokens(&mut self, user: &Address) -> num_bigint::BigUint {
         let mut result = rust_biguint!(0);
         self.b_mock
@@ -302,6 +316,16 @@ pub fn to_rust_biguint(
     managed_biguint: multiversx_sc::types::BigUint<DebugApi>,
 ) -> num_bigint::BigUint {
     num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
+}
+
+pub fn to_rust_bigint(
+    managed_biguint: multiversx_sc::types::BigInt<DebugApi>,
+) -> num_bigint::BigInt {
+    if managed_biguint < 0 {
+        num_bigint::BigInt::from_biguint(Sign::Minus, to_rust_biguint(managed_biguint.magnitude()))
+    } else {
+        num_bigint::BigInt::from_biguint(Sign::Plus, to_rust_biguint(managed_biguint.magnitude()))
+    }
 }
 
 pub fn to_start_of_month(unlock_epoch: u64) -> u64 {

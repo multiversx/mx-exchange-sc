@@ -7,6 +7,8 @@ use energy_factory::{
 };
 use energy_factory_setup::*;
 use multiversx_sc::types::BigUint;
+use num_bigint::BigInt;
+use num_traits::{FromPrimitive, Zero};
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use multiversx_sc_scenario::{
@@ -644,4 +646,85 @@ fn adjust_user_energy_test() {
         energy4,
         &energy3 - &rust_biguint!(adjustment4_energy.unsigned_abs())
     );
+
+    // Bring energy to negative value
+    let adjustment5_energy = -500_000_000i64; // Adjust to negative energy
+    let adjustment5_tokens = 0i64; // Positive token amount
+    setup.adjust_user_energy(&user, adjustment5_energy, adjustment5_tokens);
+
+    let locked_tokens5 = setup.get_user_locked_tokens(&user);
+    let energy5 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens5,
+        &locked_tokens4 + &rust_biguint!(adjustment5_tokens)
+    );
+    assert!(energy5 < BigInt::zero()); // Energy should be negative
+
+    // Replay Case 1 on negative energy
+    let adjustment6_energy = 500_000i64;
+    let adjustment6_tokens = 200_000i64;
+    setup.adjust_user_energy(&user, adjustment6_energy, adjustment6_tokens);
+
+    let locked_tokens6 = setup.get_user_locked_tokens(&user);
+    let energy6 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens6,
+        &locked_tokens5 + &rust_biguint!(adjustment6_tokens)
+    );
+    assert_eq!(
+        energy6,
+        &energy5 + &BigInt::from_i64(adjustment6_energy).unwrap()
+    );
+    assert!(energy6 < BigInt::zero()); // Energy should remain negative
+
+    // Replay Case 2 on negative energy
+    let adjustment7_energy = 300_000i64;
+    let adjustment7_tokens = -100_000i64;
+    setup.adjust_user_energy(&user, adjustment7_energy, adjustment7_tokens);
+
+    let locked_tokens7 = setup.get_user_locked_tokens(&user);
+    let energy7 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens7,
+        &locked_tokens6 - &rust_biguint!(adjustment7_tokens.unsigned_abs())
+    );
+    assert_eq!(
+        energy7,
+        &energy6 + &BigInt::from_i64(adjustment7_energy).unwrap()
+    );
+    assert!(energy7 < BigInt::zero()); // Energy should remain negative
+
+    // Replay Case 3 on negative energy
+    let adjustment8_energy = -500_000i64;
+    let adjustment8_tokens = 100_000i64;
+    setup.adjust_user_energy(&user, adjustment8_energy, adjustment8_tokens);
+
+    let locked_tokens8 = setup.get_user_locked_tokens(&user);
+    let energy8 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens8,
+        &locked_tokens7 + &rust_biguint!(adjustment8_tokens)
+    );
+    assert_eq!(
+        energy8,
+        &energy7 + &BigInt::from_i64(adjustment8_energy).unwrap()
+    );
+    assert!(energy8 < BigInt::zero()); // Energy should remain negative
+
+    // Replay Case 4 on negative energy
+    let adjustment9_energy = -300_000i64;
+    let adjustment9_tokens = -50_000i64;
+    setup.adjust_user_energy(&user, adjustment9_energy, adjustment9_tokens);
+
+    let locked_tokens9 = setup.get_user_locked_tokens(&user);
+    let energy9 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens9,
+        &locked_tokens8 - &rust_biguint!(adjustment9_tokens.unsigned_abs())
+    );
+    assert_eq!(
+        energy9,
+        &energy8 + &BigInt::from_i64(adjustment9_energy).unwrap()
+    );
+    assert!(energy9 < BigInt::zero()); // Energy should remain negative
 }

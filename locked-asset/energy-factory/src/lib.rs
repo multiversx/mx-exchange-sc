@@ -248,7 +248,7 @@ pub trait SimpleLockEnergy:
     ) {
         require!(!self.user_energy(&user).is_empty(), "User energy not found");
         let old_energy = self.get_updated_energy_entry_for_user(&user);
-        let new_energy_amount = old_energy.get_energy_amount() + energy_amount;
+        let new_energy_amount = old_energy.get_energy_amount_raw() + &energy_amount;
         let new_total_locked_tokens = if token_amount >= 0 {
             old_energy.get_total_locked_tokens() + &token_amount.magnitude()
         } else {
