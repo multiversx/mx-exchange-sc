@@ -266,7 +266,6 @@ pub trait Farm:
         require!(percentage <= MAX_PERCENT, "Invalid percentage");
 
         let mut storage_cache = StorageCache::new(self);
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         NoMintWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
         self.boosted_yields_rewards_percentage().set(percentage);

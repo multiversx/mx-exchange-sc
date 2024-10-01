@@ -19,6 +19,7 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+    + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + energy_query::EnergyQueryModule
     + token_send::TokenSendModule
     + events::EventsModule
@@ -42,6 +43,7 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
         }
 
         let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
         let boosted_rewards = self.claim_only_boosted_payment(user);
