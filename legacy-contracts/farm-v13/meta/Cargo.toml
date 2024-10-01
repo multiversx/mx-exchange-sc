@@ -1,0 +1,12 @@
+[package]
+name = "farm-v13-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies.farm-v13]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.52.3"
+default-features = false

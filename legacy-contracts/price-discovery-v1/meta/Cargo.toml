@@ -1,0 +1,12 @@
+[package]
+name = "price-discovery-v1-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies.price-discovery-v1]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.52.3"
+default-features = false

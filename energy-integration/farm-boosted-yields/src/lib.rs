@@ -44,14 +44,6 @@ pub trait FarmBoostedYieldsModule:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
 {
-    #[endpoint(setBoostedYieldsRewardsPercentage)]
-    fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
-        self.require_caller_has_admin_permissions();
-        require!(percentage <= MAX_PERCENT, "Invalid percentage");
-
-        self.boosted_yields_rewards_percentage().set(percentage);
-    }
-
     #[endpoint(collectUndistributedBoostedRewards)]
     fn collect_undistributed_boosted_rewards(&self) {
         self.require_caller_has_admin_permissions();
@@ -131,12 +123,12 @@ pub trait FarmBoostedYieldsModule:
 
     fn clear_user_energy_if_needed(&self, original_caller: &ManagedAddress) {
         let opt_config = self.try_get_boosted_yields_config();
-        let user_total_farm_position = self.get_user_total_farm_position(original_caller);
+        let user_total_farm_position = self.user_total_farm_position(original_caller).get();
         if let Some(config) = opt_config {
             let boosted_yields_factors = config.get_latest_factors();
             self.clear_user_energy(
                 original_caller,
-                &user_total_farm_position.total_farm_position,
+                &user_total_farm_position,
                 &boosted_yields_factors.min_farm_amount,
             );
         }

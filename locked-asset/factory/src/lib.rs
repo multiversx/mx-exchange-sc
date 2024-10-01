@@ -1,7 +1,6 @@
 #![no_std]
-#![feature(exact_size_is_empty)]
 
-mod attr_ex_helper;
+pub mod attr_ex_helper;
 mod cache;
 mod events;
 pub mod locked_asset;
@@ -63,7 +62,7 @@ pub trait LockedAssetFactory:
         self.set_paused(true);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     fn set_extended_attributes_activation_nonce(&self, is_sc_upgrade: bool) {

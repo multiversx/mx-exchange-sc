@@ -49,7 +49,7 @@ pub trait Governance:
         self.try_change_price_providers(price_providers);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     #[payable("*")]

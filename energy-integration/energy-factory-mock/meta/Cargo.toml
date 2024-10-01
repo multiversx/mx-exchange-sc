@@ -11,5 +11,5 @@ authors = ["MultiversX <contact@multiversx.com>"]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "0.46.1"
+version = "0.52.3"
 default-features = false

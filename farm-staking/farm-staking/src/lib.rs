@@ -1,13 +1,12 @@
 #![no_std]
 #![allow(clippy::from_over_into)]
-#![feature(trait_alias)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use base_impl_wrapper::FarmStakingWrapper;
 use contexts::storage_cache::StorageCache;
-use farm::base_functions::DoubleMultiPayment;
+use farm::{base_functions::DoubleMultiPayment, MAX_PERCENT};
 use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
 use token_attributes::StakingFarmTokenAttributes;
@@ -97,7 +96,7 @@ pub trait FarmStaking:
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
@@ -117,17 +116,46 @@ pub trait FarmStaking:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let payments = self.get_non_empty_payments();
-        let token_mapper = self.farm_token();
-        let output_attributes: StakingFarmTokenAttributes<Self::Api> =
-            self.merge_from_payments_and_burn(payments, &token_mapper);
-        let new_token_amount = output_attributes.get_total_supply();
+        let merged_farm_token = self.merge_and_update_farm_tokens(caller.clone());
 
-        let merged_farm_token = token_mapper.nft_create(new_token_amount, &output_attributes);
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
         (merged_farm_token, boosted_rewards_payment).into()
+    }
+
+    fn merge_and_update_farm_tokens(&self, orig_caller: ManagedAddress) -> EsdtTokenPayment {
+        let mut output_attributes =
+            self.merge_farm_tokens::<FarmStakingWrapper<Self>>(&orig_caller);
+        output_attributes.original_owner = orig_caller;
+
+        let new_token_amount = output_attributes.get_total_supply();
+        self.farm_token()
+            .nft_create(new_token_amount, &output_attributes)
+    }
+
+    fn merge_farm_tokens<FC: FarmContract<FarmSc = Self>>(
+        &self,
+        orig_caller: &ManagedAddress,
+    ) -> FC::AttributesType {
+        let payments = self.get_non_empty_payments();
+        let token_mapper = self.farm_token();
+        token_mapper.require_all_same_token(&payments);
+
+        FC::check_and_update_user_farm_position(self, orig_caller, &payments);
+
+        self.merge_from_payments_and_burn(payments, &token_mapper)
+    }
+
+    #[endpoint(setBoostedYieldsRewardsPercentage)]
+    fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
+        self.require_caller_has_admin_permissions();
+        require!(percentage <= MAX_PERCENT, "Invalid percentage");
+
+        let mut storage_cache = StorageCache::new(self);
+        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
+        self.boosted_yields_rewards_percentage().set(percentage);
     }
 
     #[view(calculateRewardsForGivenPosition)]

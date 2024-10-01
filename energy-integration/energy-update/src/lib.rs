@@ -9,7 +9,7 @@ pub trait EnergyUpdate {
     #[init]
     fn init(&self) {}
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     #[endpoint(updateFarmsEnergyForUser)]

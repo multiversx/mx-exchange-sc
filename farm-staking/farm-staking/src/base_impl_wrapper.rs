@@ -9,15 +9,29 @@ use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 
 use crate::token_attributes::StakingFarmTokenAttributes;
 
-pub trait FarmStakingTraits =
+pub trait FarmStakingTraits:
     crate::custom_rewards::CustomRewardsModule
+    + rewards::RewardsModule
+    + config::ConfigModule
+    + farm_token::FarmTokenModule
+    + pausable::PausableModule
+    + permissions_module::PermissionsModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + farm_boosted_yields::FarmBoostedYieldsModule
+{
+}
+
+impl<T> FarmStakingTraits for T where
+    T: crate::custom_rewards::CustomRewardsModule
         + rewards::RewardsModule
         + config::ConfigModule
         + farm_token::FarmTokenModule
         + pausable::PausableModule
         + permissions_module::PermissionsModule
         + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-        + farm_boosted_yields::FarmBoostedYieldsModule;
+        + farm_boosted_yields::FarmBoostedYieldsModule
+{
+}
 
 pub struct FarmStakingWrapper<T>
 where
@@ -48,15 +62,9 @@ where
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
-        let user_total_farm_position = sc.get_user_total_farm_position(caller);
-        let user_farm_position = user_total_farm_position.total_farm_position;
-        let mut boosted_rewards = BigUint::zero();
+        let user_total_farm_position = sc.user_total_farm_position(caller).get();
 
-        if user_farm_position > 0 {
-            boosted_rewards = sc.claim_boosted_yields_rewards(caller, user_farm_position);
-        }
-
-        boosted_rewards
+        sc.claim_boosted_yields_rewards(caller, user_total_farm_position)
     }
 }
 
@@ -214,10 +222,8 @@ where
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         increase_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) {
-        let mut user_total_farm_position = sc.get_user_total_farm_position(user);
-        user_total_farm_position.total_farm_position += increase_farm_position_amount;
         sc.user_total_farm_position(user)
-            .set(user_total_farm_position);
+            .update(|total_farm_position| *total_farm_position += increase_farm_position_amount);
     }
 
     fn decrease_user_farm_position(
@@ -232,13 +238,15 @@ where
         let token_attributes: StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
-        sc.user_total_farm_position(&token_attributes.original_owner)
-            .update(|user_total_farm_position| {
-                if user_total_farm_position.total_farm_position > farm_position.amount {
-                    user_total_farm_position.total_farm_position -= &farm_position.amount;
-                } else {
-                    user_total_farm_position.total_farm_position = BigUint::zero();
-                }
-            });
+        let user_total_farm_position_mapper =
+            sc.user_total_farm_position(&token_attributes.original_owner);
+        let mut user_total_farm_position = user_total_farm_position_mapper.get();
+
+        if user_total_farm_position > farm_position.amount {
+            user_total_farm_position -= &farm_position.amount;
+            user_total_farm_position_mapper.set(user_total_farm_position);
+        } else {
+            user_total_farm_position_mapper.clear();
+        }
     }
 }

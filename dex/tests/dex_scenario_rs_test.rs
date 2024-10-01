@@ -2,7 +2,6 @@ use multiversx_sc_scenario::ScenarioWorld;
 
 fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
-    blockchain.set_current_dir_from_workspace("dex");
 
     blockchain.register_contract("file:router/output/router.wasm", router::ContractBuilder);
     blockchain.register_contract("file:pair/output/pair.wasm", pair::ContractBuilder);

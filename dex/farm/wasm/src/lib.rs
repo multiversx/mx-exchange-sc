@@ -5,13 +5,12 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           65
+// Upgrade:                              1
+// Endpoints:                           63
 // Async Callback:                       1
-// Total number of exported functions:  67
+// Total number of exported functions:  66
 
 #![no_std]
-#![allow(internal_features)]
-#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -30,17 +29,17 @@ multiversx_sc_wasm_adapter::endpoints! {
         startProduceRewards => start_produce_rewards_endpoint
         endProduceRewards => end_produce_rewards_endpoint
         setPerBlockRewardAmount => set_per_block_rewards_endpoint
+        setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage
         calculateRewardsForGivenPosition => calculate_rewards_for_given_position
         getRewardPerShare => reward_per_share
         getRewardReserve => reward_reserve
-        allowExternalClaimBoostedRewards => allow_external_claim_boosted_rewards
-        getAllowExternalClaimRewards => get_allow_external_claim_rewards
         getFarmingTokenId => farming_token_id
         getRewardTokenId => reward_token_id
         getPerBlockRewardAmount => per_block_reward_amount
         getLastRewardBlockNonce => last_reward_block_nonce
         getDivisionSafetyConstant => division_safety_constant
         getUserTotalFarmPosition => user_total_farm_position
+        getAllowExternalClaim => allow_external_claim
         getFarmPositionMigrationNonce => farm_position_migration_nonce
         registerFarmToken => register_farm_token
         getFarmTokenId => farm_token
@@ -64,7 +63,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getMinimumFarmingEpoch => minimum_farming_epochs
         getBurnGasLimit => burn_gas_limit
         getPairContractManagedAddress => pair_contract_address
-        setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getBoostedYieldsRewardsPercentage => boosted_yields_rewards_percentage
         getAccumulatedRewardsForWeek => accumulated_rewards_for_week

@@ -5,13 +5,12 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           39
+// Upgrade:                              1
+// Endpoints:                           37
 // Async Callback (empty):               1
-// Total number of exported functions:  41
+// Total number of exported functions:  40
 
 #![no_std]
-#![allow(internal_features)]
-#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -27,7 +26,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeKnownContracts => remove_known_contracts
         addKnownTokens => add_known_tokens
         removeKnownTokens => remove_known_tokens
-        setAllowExternalClaimRewards => set_allow_external_claim_rewards
         getLockedTokenId => locked_token_id
         getAllTokens => get_all_tokens
         getAllKnownContracts => known_contracts
