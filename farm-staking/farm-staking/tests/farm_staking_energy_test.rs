@@ -1679,7 +1679,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
                 sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(&second_user)));
             },
         )
-        .assert_error(4, "User energy is not registered!");
+        .assert_error(4, "User total farm position is empty!");
 
     fs_setup.check_farm_rps(current_farm_rps);
 

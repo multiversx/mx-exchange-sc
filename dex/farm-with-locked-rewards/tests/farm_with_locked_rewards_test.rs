@@ -514,7 +514,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
                 sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(&temp_user)));
             },
         )
-        .assert_error(4, "User energy is not registered!");
+        .assert_error(4, "User total farm position is empty!");
 
     farm_setup.check_farm_rps(75_000_000u64);
 
@@ -566,7 +566,7 @@ fn claim_boosted_rewards_user_energy_not_registered_test() {
                 sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(&first_user)));
             },
         )
-        .assert_error(4, "User energy is not registered!");
+        .assert_error(4, "User total farm position is empty!");
 
     // User enters the farm
     farm_setup.enter_farm(&first_user, farm_in_amount);

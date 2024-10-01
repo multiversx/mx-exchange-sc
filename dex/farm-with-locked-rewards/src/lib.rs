@@ -227,8 +227,8 @@ pub trait Farm:
         }
 
         require!(
-            !self.current_claim_progress(user).is_empty(),
-            "User energy is not registered!"
+            !self.user_total_farm_position(user).is_empty(),
+            "User total farm position is empty!"
         );
 
         let mut storage_cache = StorageCache::new(self);
