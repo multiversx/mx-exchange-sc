@@ -9,11 +9,11 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.52.3"
+version = "=0.53.2"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.52.3"
+version = "=0.53.2"
 
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
@@ -29,6 +29,11 @@ path = "../../dex/pair"
 
 [dependencies.farm-v13-locked-rewards]
 path = "../farm-v13-locked-rewards"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
 
 [dev-dependencies.energy-factory]
 path = "../../locked-asset/energy-factory"
@@ -51,10 +56,5 @@ path = "../../common/modules/pausable"
 [dev-dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
 
-[dev-dependencies]
-num-bigint = "0.4.2"
-num-traits = "0.2"
-hex = "0.4"
-
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.52.3"
+version = "=0.53.2"
