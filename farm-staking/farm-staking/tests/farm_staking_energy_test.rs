@@ -3,6 +3,7 @@
 pub mod farm_staking_setup;
 use config::ConfigModule;
 use farm_staking::{
+    claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule,
     claim_stake_farm_rewards::ClaimStakeFarmRewardsModule,
     stake_farm::StakeFarmModule,
     token_attributes::{StakingFarmTokenAttributes, UnbondSftAttributes},
@@ -1667,9 +1668,19 @@ fn claim_boosted_rewards_with_zero_position_test() {
     fs_setup.b_mock.set_block_epoch(13);
 
     let boosted_rewards_for_week = 100;
-    fs_setup.claim_boosted_rewards_for_user(&second_user, &second_user, 0, &rust_biguint!(0));
 
-    current_farm_rps += farm_rps_increase;
+    fs_setup
+        .b_mock
+        .execute_tx(
+            &second_user,
+            &fs_setup.farm_wrapper,
+            &rust_biguint!(0u64),
+            |sc| {
+                sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(&second_user)));
+            },
+        )
+        .assert_error(4, "User total farm position is empty!");
+
     fs_setup.check_farm_rps(current_farm_rps);
 
     // advance 1 week
@@ -1679,16 +1690,16 @@ fn claim_boosted_rewards_with_zero_position_test() {
     fs_setup.claim_boosted_rewards_for_user(
         &first_user,
         &first_user,
-        boosted_rewards_for_week * 2,
-        &rust_biguint!(boosted_rewards_for_week * 2),
+        boosted_rewards_for_week,
+        &rust_biguint!(boosted_rewards_for_week),
     );
 
-    current_farm_rps += farm_rps_increase;
+    current_farm_rps += farm_rps_increase * 2;
     fs_setup.check_farm_rps(current_farm_rps);
     fs_setup.b_mock.check_esdt_balance(
         &first_user,
         REWARD_TOKEN_ID,
-        &rust_biguint!(boosted_rewards_for_week * 2),
+        &rust_biguint!(boosted_rewards_for_week),
     );
 
     let expected_attributes = StakingFarmTokenAttributes::<DebugApi> {

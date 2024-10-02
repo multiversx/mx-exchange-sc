@@ -41,6 +41,11 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
             );
         }
 
+        require!(
+            !self.user_total_farm_position(user).is_empty(),
+            "User total farm position is empty!"
+        );
+
         let mut storage_cache = StorageCache::new(self);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
