@@ -90,7 +90,7 @@ pub trait EventsModule {
         amount_in: BigUint,
         payments_out: ManagedVec<EsdtTokenPayment>,
     ) {
-        if payments_out.len() == 0 {
+        if payments_out.is_empty() {
             return;
         }
 
