@@ -8,11 +8,11 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.53.0"
+version = "=0.53.2"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.53.0"
+version = "=0.53.2"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
@@ -27,4 +27,4 @@ path = "../../common/modules/token_merge_helper"
 path = "../../locked-asset/energy-factory"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.53.0"
+version = "=0.53.2"

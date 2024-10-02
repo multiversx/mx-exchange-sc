@@ -8,7 +8,7 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.53.0"
+version = "=0.53.2"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.common_structs]
@@ -33,4 +33,4 @@ path = "../farm-v13-locked-rewards"
 path = "../../dex/pair"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.53.0"
+version = "=0.53.2"
