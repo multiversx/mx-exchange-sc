@@ -22,6 +22,14 @@ pub struct UserPairSwapEnabledEvent<M: ManagedTypeApi> {
     pair_address: ManagedAddress<M>,
 }
 
+#[derive(TypeAbi, TopEncode)]
+pub struct MultiPairSwapEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    token_in: TokenIdentifier<M>,
+    amount_in: BigUint<M>,
+    payments_out: ManagedVec<M, EsdtTokenPayment<M>>,
+}
+
 #[multiversx_sc::module]
 pub trait EventsModule {
     fn emit_create_pair_event(
@@ -75,6 +83,36 @@ pub trait EventsModule {
         )
     }
 
+    fn emit_multi_pair_swap_event(
+        &self,
+        caller: ManagedAddress,
+        token_in: TokenIdentifier,
+        amount_in: BigUint,
+        payments_out: ManagedVec<EsdtTokenPayment>,
+    ) {
+        if payments_out.len() == 0 {
+            return;
+        }
+
+        let epoch = self.blockchain().get_block_epoch();
+        let block_nonce = self.blockchain().get_block_nonce();
+        let last_payment_index = payments_out.len() - 1;
+        let token_out = payments_out.get(last_payment_index).token_identifier;
+        self.multi_pair_swap_event(
+            caller.clone(),
+            token_in.clone(),
+            token_out,
+            epoch,
+            block_nonce,
+            MultiPairSwapEvent {
+                caller,
+                token_in,
+                amount_in,
+                payments_out,
+            },
+        )
+    }
+
     #[event("create_pair")]
     fn create_pair_event(
         self,
@@ -93,5 +131,16 @@ pub trait EventsModule {
         #[indexed] caller: ManagedAddress,
         #[indexed] epoch: u64,
         swap_enabled_event: UserPairSwapEnabledEvent<Self::Api>,
+    );
+
+    #[event("multiPairSwap")]
+    fn multi_pair_swap_event(
+        &self,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] token_in: TokenIdentifier,
+        #[indexed] token_out: TokenIdentifier,
+        #[indexed] epoch: u64,
+        #[indexed] block_nonce: u64,
+        multi_pair_swap_event: MultiPairSwapEvent<Self::Api>,
     );
 }
