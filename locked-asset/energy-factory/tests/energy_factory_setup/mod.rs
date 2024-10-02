@@ -302,11 +302,16 @@ where
     pub fn adjust_user_energy(&mut self, user: &Address, energy_amount: i64, token_amount: i64) {
         self.b_mock
             .execute_tx(&self.owner, &self.sc_wrapper, &rust_biguint!(0), |sc| {
-                sc.adjust_user_energy(
-                    managed_address!(user),
-                    BigInt::from(energy_amount),
-                    BigInt::from(token_amount),
+                let mut args = MultiValueEncoded::new();
+                args.push(
+                    (
+                        managed_address!(user),
+                        BigInt::from(energy_amount),
+                        BigInt::from(token_amount),
+                    )
+                        .into(),
                 );
+                sc.adjust_user_energy(args);
             })
             .assert_ok();
     }
