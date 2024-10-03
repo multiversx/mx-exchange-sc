@@ -28,6 +28,9 @@ pub struct MultiPairSwapEvent<M: ManagedTypeApi> {
     token_in: TokenIdentifier<M>,
     amount_in: BigUint<M>,
     payments_out: ManagedVec<M, EsdtTokenPayment<M>>,
+    block: u64,
+    epoch: u64,
+    timestamp: u64,
 }
 
 #[multiversx_sc::module]
@@ -94,8 +97,9 @@ pub trait EventsModule {
             return;
         }
 
+        let block = self.blockchain().get_block_nonce();
         let epoch = self.blockchain().get_block_epoch();
-        let block_nonce = self.blockchain().get_block_nonce();
+        let timestamp = self.blockchain().get_block_timestamp();
         let last_payment_index = payments_out.len() - 1;
         let token_out = payments_out.get(last_payment_index).token_identifier;
         self.multi_pair_swap_event(
@@ -103,12 +107,14 @@ pub trait EventsModule {
             token_in.clone(),
             token_out,
             epoch,
-            block_nonce,
             MultiPairSwapEvent {
                 caller,
                 token_in,
                 amount_in,
                 payments_out,
+                block,
+                epoch,
+                timestamp,
             },
         )
     }
@@ -140,7 +146,6 @@ pub trait EventsModule {
         #[indexed] token_in: TokenIdentifier,
         #[indexed] token_out: TokenIdentifier,
         #[indexed] epoch: u64,
-        #[indexed] block_nonce: u64,
         multi_pair_swap_event: MultiPairSwapEvent<Self::Api>,
     );
 }
