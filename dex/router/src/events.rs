@@ -27,6 +27,8 @@ pub struct MultiPairSwapEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     token_in: TokenIdentifier<M>,
     amount_in: BigUint<M>,
+    token_out: TokenIdentifier<M>,
+    amount_out: BigUint<M>,
     payments_out: ManagedVec<M, EsdtTokenPayment<M>>,
     block: u64,
     epoch: u64,
@@ -101,16 +103,18 @@ pub trait EventsModule {
         let epoch = self.blockchain().get_block_epoch();
         let timestamp = self.blockchain().get_block_timestamp();
         let last_payment_index = payments_out.len() - 1;
-        let token_out = payments_out.get(last_payment_index).token_identifier;
+        let token_out = payments_out.get(last_payment_index);
         self.multi_pair_swap_event(
             caller.clone(),
             token_in.clone(),
-            token_out,
+            token_out.token_identifier.clone(),
             epoch,
             MultiPairSwapEvent {
                 caller,
                 token_in,
                 amount_in,
+                token_out: token_out.token_identifier,
+                amount_out: token_out.amount,
                 payments_out,
                 block,
                 epoch,
