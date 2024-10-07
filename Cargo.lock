@@ -1887,7 +1887,7 @@ name = "metabonding-staking-legacy-meta"
 version = "0.0.0"
 dependencies = [
  "metabonding-staking-legacy",
- "multiversx-sc-meta",
+ "multiversx-sc-meta-lib",
 ]
 
 [[package]]
