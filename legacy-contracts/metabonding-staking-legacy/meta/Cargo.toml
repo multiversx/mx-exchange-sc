@@ -1,0 +1,12 @@
+[package]
+name = "metabonding-staking-legacy-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies.metabonding-staking-legacy]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.53.2"
+default-features = false

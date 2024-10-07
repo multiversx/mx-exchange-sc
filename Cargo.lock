@@ -1874,6 +1874,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "metabonding-staking-legacy"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "num-bigint",
+]
+
+[[package]]
+name = "metabonding-staking-legacy-meta"
+version = "0.0.0"
+dependencies = [
+ "metabonding-staking-legacy",
+ "multiversx-sc-meta",
+]
+
+[[package]]
 name = "metabonding-staking-meta"
 version = "0.0.0"
 dependencies = [

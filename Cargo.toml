@@ -41,6 +41,8 @@ members = [
   "legacy-contracts/simple-lock-legacy/meta",
   "legacy-contracts/farm-staking-proxy-v13",
   "legacy-contracts/farm-staking-proxy-v13/meta",
+  "legacy-contracts/metabonding-staking-legacy",
+  "legacy-contracts/metabonding-staking-legacy/meta",
   "legacy-contracts/farm-v12",
   "legacy-contracts/farm-v12/meta",
   "legacy-contracts/farm-v13",
