@@ -10,6 +10,6 @@ authors = ["MultiversX <contact@multiversx.com>"]
 [dependencies.farm-staking-proxy]
 path = ".."
 
-[dependencies.multiversx-sc-meta]
+[dependencies.multiversx-sc-meta-lib]
 version = "0.53.2"
 default-features = false
