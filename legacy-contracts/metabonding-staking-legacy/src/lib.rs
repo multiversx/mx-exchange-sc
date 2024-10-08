@@ -13,6 +13,8 @@ pub struct UserEntry<M: ManagedTypeApi> {
     pub unbond_epoch: u64,
 }
 
+static ERROR_LEGACY_CONTRACT: &[u8] = b"This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.";
+
 #[multiversx_sc::contract]
 pub trait MetabondingStakingLegacy {
     #[init]
@@ -24,32 +26,32 @@ pub trait MetabondingStakingLegacy {
     #[payable("*")]
     #[endpoint(stakeLockedAsset)]
     fn stake_locked_asset(&self) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[endpoint]
     fn unstake(&self, _amount: BigUint) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[endpoint]
     fn unbond(&self) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[view(getStakedAmountForUser)]
     fn get_staked_amount_for_user(&self, _user_address: ManagedAddress) -> BigUint {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[view(getUserEntry)]
     fn get_user_entry(&self, _user_address: ManagedAddress) -> OptionalValue<UserEntry<Self::Api>> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[view(getSnapshot)]
     fn get_snapshot(&self) -> MultiValueEncoded<SnapshotEntry<Self::Api>> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     // storage
