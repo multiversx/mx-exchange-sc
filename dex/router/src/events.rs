@@ -22,6 +22,19 @@ pub struct UserPairSwapEnabledEvent<M: ManagedTypeApi> {
     pair_address: ManagedAddress<M>,
 }
 
+#[derive(TypeAbi, TopEncode)]
+pub struct MultiPairSwapEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    token_in: TokenIdentifier<M>,
+    amount_in: BigUint<M>,
+    token_out: TokenIdentifier<M>,
+    amount_out: BigUint<M>,
+    payments_out: ManagedVec<M, EsdtTokenPayment<M>>,
+    block: u64,
+    epoch: u64,
+    timestamp: u64,
+}
+
 #[multiversx_sc::module]
 pub trait EventsModule {
     fn emit_create_pair_event(
@@ -75,6 +88,41 @@ pub trait EventsModule {
         )
     }
 
+    fn emit_multi_pair_swap_event(
+        &self,
+        caller: ManagedAddress,
+        token_in: TokenIdentifier,
+        amount_in: BigUint,
+        payments_out: ManagedVec<EsdtTokenPayment>,
+    ) {
+        if payments_out.is_empty() {
+            return;
+        }
+
+        let block = self.blockchain().get_block_nonce();
+        let epoch = self.blockchain().get_block_epoch();
+        let timestamp = self.blockchain().get_block_timestamp();
+        let last_payment_index = payments_out.len() - 1;
+        let token_out = payments_out.get(last_payment_index);
+        self.multi_pair_swap_event(
+            caller.clone(),
+            token_in.clone(),
+            token_out.token_identifier.clone(),
+            epoch,
+            MultiPairSwapEvent {
+                caller,
+                token_in,
+                amount_in,
+                token_out: token_out.token_identifier,
+                amount_out: token_out.amount,
+                payments_out,
+                block,
+                epoch,
+                timestamp,
+            },
+        )
+    }
+
     #[event("create_pair")]
     fn create_pair_event(
         self,
@@ -93,5 +141,15 @@ pub trait EventsModule {
         #[indexed] caller: ManagedAddress,
         #[indexed] epoch: u64,
         swap_enabled_event: UserPairSwapEnabledEvent<Self::Api>,
+    );
+
+    #[event("multiPairSwap")]
+    fn multi_pair_swap_event(
+        &self,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] token_in: TokenIdentifier,
+        #[indexed] token_out: TokenIdentifier,
+        #[indexed] epoch: u64,
+        multi_pair_swap_event: MultiPairSwapEvent<Self::Api>,
     );
 }
