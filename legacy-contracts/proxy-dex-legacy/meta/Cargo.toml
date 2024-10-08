@@ -8,6 +8,6 @@ publish = false
 [dependencies.proxy-dex-legacy]
 path = ".."
 
-[dependencies.multiversx-sc-meta]
+[dependencies.multiversx-sc-meta-lib]
 version = "0.53.2"
 default-features = false
