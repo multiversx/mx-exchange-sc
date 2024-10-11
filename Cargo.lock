@@ -1203,18 +1203,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "metabonding-staking"
-version = "0.0.0"
-dependencies = [
- "common_structs",
- "factory",
- "multiversx-sc",
- "multiversx-sc-modules",
- "multiversx-sc-scenario",
- "num-bigint",
-]
-
-[[package]]
 name = "metabonding-staking-legacy"
 version = "0.0.0"
 dependencies = [
@@ -1228,14 +1216,6 @@ name = "metabonding-staking-legacy-meta"
 version = "0.0.0"
 dependencies = [
  "metabonding-staking-legacy",
- "multiversx-sc-meta-lib",
-]
-
-[[package]]
-name = "metabonding-staking-meta"
-version = "0.0.0"
-dependencies = [
- "metabonding-staking",
  "multiversx-sc-meta-lib",
 ]
 
