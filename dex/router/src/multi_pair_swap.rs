@@ -64,7 +64,10 @@ pub trait MultiPairSwap:
                 );
 
                 last_payment = payment;
-                payments.push(residuum);
+
+                if residuum.amount > 0 {
+                    payments.push(residuum);
+                }
             } else {
                 sc_panic!("Invalid function to call");
             }
