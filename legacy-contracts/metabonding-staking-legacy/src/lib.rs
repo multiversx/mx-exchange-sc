@@ -39,6 +39,18 @@ pub trait MetabondingStakingLegacy {
         sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
+    #[only_owner]
+    #[endpoint(pause)]
+    fn pause_endpoint(&self) {
+        sc_panic!(ERROR_LEGACY_CONTRACT);
+    }
+
+    #[only_owner]
+    #[endpoint(unpause)]
+    fn unpause_endpoint(&self) {
+        sc_panic!(ERROR_LEGACY_CONTRACT);
+    }
+
     #[view(getStakedAmountForUser)]
     fn get_staked_amount_for_user(&self, _user_address: ManagedAddress) -> BigUint {
         sc_panic!(ERROR_LEGACY_CONTRACT);
@@ -77,4 +89,8 @@ pub trait MetabondingStakingLegacy {
     #[view(getUserList)]
     #[storage_mapper("userList")]
     fn user_list(&self) -> UnorderedSetMapper<ManagedAddress>;
+
+    #[view(isPaused)]
+    #[storage_get("pause_module:paused")]
+    fn is_paused(&self) -> bool;
 }
