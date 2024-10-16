@@ -107,7 +107,9 @@ pub trait EventsModule {
         self.multi_pair_swap_event(
             caller.clone(),
             token_in.clone(),
+            amount_in.clone(),
             token_out.token_identifier.clone(),
+            token_out.amount.clone(),
             epoch,
             MultiPairSwapEvent {
                 caller,
@@ -148,7 +150,9 @@ pub trait EventsModule {
         &self,
         #[indexed] caller: ManagedAddress,
         #[indexed] token_in: TokenIdentifier,
+        #[indexed] amount_in: BigUint,
         #[indexed] token_out: TokenIdentifier,
+        #[indexed] amount_out: BigUint,
         #[indexed] epoch: u64,
         multi_pair_swap_event: MultiPairSwapEvent<Self::Api>,
     );
