@@ -36,9 +36,6 @@ path = "../../common/common_structs"
 [dependencies.farm-staking]
 path = "../../farm-staking/farm-staking"
 
-[dependencies.factory]
-path = "../../locked-asset/factory"
-
 [dependencies.pair-mock]
 path = "../pair-mock"
 

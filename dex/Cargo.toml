@@ -44,9 +44,6 @@ path = "../farm-staking/farm-staking"
 [dev-dependencies.farm-staking-proxy]
 path = "../farm-staking/farm-staking-proxy"
 
-[dev-dependencies.factory]
-path = "../locked-asset/factory"
-
 [dev-dependencies.simple-lock]
 path = "../locked-asset/simple-lock"
 

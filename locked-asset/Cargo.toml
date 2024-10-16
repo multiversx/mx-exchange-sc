@@ -20,9 +20,6 @@ path = "../dex/router"
 [dependencies.distribution]
 path = "distribution"
 
-[dependencies.factory]
-path = "factory"
-
 [dependencies.simple-lock]
 path = "simple-lock"
 

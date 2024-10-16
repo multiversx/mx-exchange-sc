@@ -12,22 +12,11 @@ pub mod fuzz_price_discovery_test {
     use crate::fuzz_data::fuzz_data_tests::*;
     use price_discovery::PriceDiscovery;
 
-    pub fn price_discovery_deposit<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        PriceDiscObjBuilder,
-    >(
-        fuzzer_data: &mut FuzzerData<
-            PairObjBuilder,
-            FarmObjBuilder,
-            FactoryObjBuilder,
-            PriceDiscObjBuilder,
-        >,
+    pub fn price_discovery_deposit<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
@@ -148,22 +137,11 @@ pub mod fuzz_price_discovery_test {
         }
     }
 
-    pub fn price_discovery_withdraw<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        PriceDiscObjBuilder,
-    >(
-        fuzzer_data: &mut FuzzerData<
-            PairObjBuilder,
-            FarmObjBuilder,
-            FactoryObjBuilder,
-            PriceDiscObjBuilder,
-        >,
+    pub fn price_discovery_withdraw<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
@@ -277,22 +255,11 @@ pub mod fuzz_price_discovery_test {
         }
     }
 
-    pub fn price_discovery_redeem<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        PriceDiscObjBuilder,
-    >(
-        fuzzer_data: &mut FuzzerData<
-            PairObjBuilder,
-            FarmObjBuilder,
-            FactoryObjBuilder,
-            PriceDiscObjBuilder,
-        >,
+    pub fn price_discovery_redeem<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
