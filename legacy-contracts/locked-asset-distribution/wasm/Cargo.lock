@@ -32,22 +32,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "distribution"
-version = "0.0.0"
-dependencies = [
- "common_structs",
- "multiversx-sc",
-]
-
-[[package]]
-name = "distribution-wasm"
-version = "0.0.0"
-dependencies = [
- "distribution",
- "multiversx-sc-wasm-adapter",
-]
-
-[[package]]
 name = "endian-type"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -71,6 +55,22 @@ name = "hex-literal"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
+
+[[package]]
+name = "locked-asset-distribution"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "multiversx-sc",
+]
+
+[[package]]
+name = "locked-asset-distribution-wasm"
+version = "0.0.0"
+dependencies = [
+ "locked-asset-distribution",
+ "multiversx-sc-wasm-adapter",
+]
 
 [[package]]
 name = "math"

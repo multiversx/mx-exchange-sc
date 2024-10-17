@@ -5,7 +5,7 @@
 # ##########################################
 
 [package]
-name = "distribution-wasm"
+name = "locked-asset-distribution-wasm"
 version = "0.0.0"
 edition = "2021"
 publish = false
@@ -24,7 +24,7 @@ overflow-checks = false
 [profile.dev]
 panic = "abort"
 
-[dependencies.distribution]
+[dependencies.locked-asset-distribution]
 path = ".."
 
 [dependencies.multiversx-sc-wasm-adapter]
