@@ -51,9 +51,13 @@ pub trait Distribution {
 
     #[endpoint(clearUserLockedAssetMap)]
     fn clear_user_locked_asset_map(&self, n: u64) -> usize {
-        for _ in 0..n {
-            let key = self.user_locked_asset_map().keys().last().unwrap();
+        let mut counter = 0;
+        for key in self.user_locked_asset_map().keys() {
             self.user_locked_asset_map().remove(&key);
+            counter += 1;
+            if counter >= n {
+                break;
+            }
         }
         self.user_locked_asset_map().len()
     }
