@@ -42,18 +42,20 @@ pub trait Distribution {
     }
 
     #[endpoint(clearCommunityDistributionList)]
-    fn clear_community_distribution_list(&self, n: u64) {
+    fn clear_community_distribution_list(&self, n: u64) -> usize {
         for _ in 0..n {
             self.community_distribution_list().pop_front();
         }
+        self.community_distribution_list().len()
     }
 
     #[endpoint(clearUserLockedAssetMap)]
-    fn clear_user_locked_asset_map(&self, n: u64) {
+    fn clear_user_locked_asset_map(&self, n: u64) -> usize {
         for _ in 0..n {
             let key = self.user_locked_asset_map().keys().last().unwrap();
             self.user_locked_asset_map().remove(&key);
         }
+        self.user_locked_asset_map().len()
     }
 
     #[view(getUnlockPeriod)]
