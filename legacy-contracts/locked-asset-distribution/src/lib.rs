@@ -42,15 +42,20 @@ pub trait Distribution {
     }
 
     #[endpoint(clearCommunityDistributionList)]
-    fn clear_community_distribution_list(&self, n: u64) -> usize {
-        for _ in 0..n {
-            self.community_distribution_list().pop_front();
+    fn clear_community_distribution_list(&self, n: u64) -> (u64, usize) {
+        let mut counter = 0;
+        for node in self.community_distribution_list().iter() {
+            self.community_distribution_list().remove_node(&node);
+            counter += 1;
+            if counter >= n {
+                break;
+            }
         }
-        self.community_distribution_list().len()
+        (counter, self.community_distribution_list().len())
     }
 
     #[endpoint(clearUserLockedAssetMap)]
-    fn clear_user_locked_asset_map(&self, n: u64) -> usize {
+    fn clear_user_locked_asset_map(&self, n: u64) -> (u64, usize) {
         let mut counter = 0;
         for key in self.user_locked_asset_map().keys() {
             self.user_locked_asset_map().remove(&key);
@@ -59,7 +64,7 @@ pub trait Distribution {
                 break;
             }
         }
-        self.user_locked_asset_map().len()
+        (counter, self.user_locked_asset_map().len())
     }
 
     #[view(getUnlockPeriod)]
