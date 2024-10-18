@@ -1,11 +1,11 @@
 [package]
-name = "distribution-abi"
+name = "locked-asset-distribution-abi"
 version = "0.0.0"
 authors = ["MultiversX <contact@multiversx.com>"]
 edition = "2021"
 publish = false
 
-[dependencies.distribution]
+[dependencies.locked-asset-distribution]
 path = ".."
 
 [dependencies.multiversx-sc-meta-lib]

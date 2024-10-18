@@ -343,28 +343,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "distribution"
-version = "0.0.0"
-dependencies = [
- "common_structs",
- "multiversx-sc",
- "multiversx-sc-scenario",
-]
-
-[[package]]
-name = "distribution-abi"
-version = "0.0.0"
-dependencies = [
- "distribution",
- "multiversx-sc-meta-lib",
-]
-
-[[package]]
 name = "distribution-tests"
 version = "0.0.0"
 dependencies = [
  "common_structs",
- "distribution",
  "energy-factory",
  "farm",
  "fees-collector",
@@ -1091,6 +1073,23 @@ name = "lkmex-transfer-abi"
 version = "0.0.0"
 dependencies = [
  "lkmex-transfer",
+ "multiversx-sc-meta-lib",
+]
+
+[[package]]
+name = "locked-asset-distribution"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+]
+
+[[package]]
+name = "locked-asset-distribution-abi"
+version = "0.0.0"
+dependencies = [
+ "locked-asset-distribution",
  "multiversx-sc-meta-lib",
 ]
 
