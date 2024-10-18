@@ -6,9 +6,6 @@ pub mod fuzz_data_tests {
     multiversx_sc::derive_imports!();
 
     use ::config::ConfigModule;
-    use common_structs::UnlockMilestone;
-    use factory::locked_asset::LockedAssetModule;
-    use factory::*;
     use farm::exit_penalty::ExitPenaltyModule;
     use farm::*;
     use farm_token::FarmTokenModule;
@@ -34,7 +31,6 @@ pub mod fuzz_data_tests {
 
     pub const FARM_WASM_PATH: &str = "farm/output/farm.wasm";
     pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
-    pub const FACTORY_WASM_PATH: &str = "factory/output/factory.wasm";
     pub const PD_WASM_PATH: &str = "../output/price-discovery.wasm";
 
     pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
@@ -45,8 +41,6 @@ pub mod fuzz_data_tests {
     pub const WEME_FARM_TOKEN_ID: &[u8] = b"WEMEFARM-abcdef";
     pub const WEBU_FARM_TOKEN_ID: &[u8] = b"WEBUFARM-abcdef";
     pub const MEX_FARM_TOKEN_ID: &[u8] = b"MEXFARM-abcdef";
-    pub const LOCKED_MEX_TOKEN_ID: &[u8] = b"LKMEX-abcdef";
-    pub const FACTORY_LOCK_NONCE: u64 = 1;
     pub const MIN_FARMING_EPOCHS: u64 = 2;
     pub const FARM_PENALTY_PERCENT: u64 = 10;
     pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
@@ -87,8 +81,6 @@ pub mod fuzz_data_tests {
         pub exit_farm_prob: u64,
         pub claim_rewards_prob: u64,
         pub compound_rewards_prob: u64,
-        pub factory_lock_asset_prob: u64,
-        pub factory_unlock_asset_prob: u64,
         pub price_discovery_deposit_prob: u64,
         pub price_discovery_withdraw_prob: u64,
         pub price_discovery_redeem_prob: u64,
@@ -101,8 +93,6 @@ pub mod fuzz_data_tests {
         pub enter_farm_max_value: u64,
         pub exit_farm_max_value: u64,
         pub claim_rewards_max_value: u64,
-        pub factory_lock_asset_max_value: u64,
-        pub factory_unlock_asset_max_value: u64,
         pub price_discovery_deposit_max_value: u64,
         pub price_discovery_withdraw_max_value: u64,
         pub price_discovery_redeem_max_value: u64,
@@ -120,8 +110,6 @@ pub mod fuzz_data_tests {
                 exit_farm_prob: 10,
                 claim_rewards_prob: 15,
                 compound_rewards_prob: 10,
-                factory_lock_asset_prob: 10,
-                factory_unlock_asset_prob: 10,
                 price_discovery_deposit_prob: 30,
                 price_discovery_withdraw_prob: 15,
                 price_discovery_redeem_prob: 30,
@@ -134,8 +122,6 @@ pub mod fuzz_data_tests {
                 enter_farm_max_value: 100000000u64,
                 exit_farm_max_value: 1000000u64,
                 claim_rewards_max_value: 1000000u64,
-                factory_lock_asset_max_value: 1000000u64,
-                factory_unlock_asset_max_value: 100000u64,
                 price_discovery_deposit_max_value: 1000000u64,
                 price_discovery_withdraw_max_value: 1000000u64,
                 price_discovery_redeem_max_value: 1000000u64,
@@ -143,11 +129,10 @@ pub mod fuzz_data_tests {
         }
     }
 
-    pub struct FuzzerData<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>
+    pub struct FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>
     where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         pub rng: StdRng,
@@ -157,23 +142,20 @@ pub mod fuzz_data_tests {
         pub users: Vec<User>,
         pub swap_pairs: Vec<PairSetup<PairObjBuilder>>,
         pub farms: Vec<FarmSetup<FarmObjBuilder>>,
-        pub factory: FactorySetup<FactoryObjBuilder>,
         pub price_disc: PriceDiscSetup<PriceDiscObjBuilder>,
     }
 
-    impl<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>
-        FuzzerData<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>
+    impl<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>
+        FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>
     where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         pub fn new(
             seed: u64,
             pair_builder: PairObjBuilder,
             farm_builder: FarmObjBuilder,
-            factory_builder: FactoryObjBuilder,
             price_discovery: PriceDiscObjBuilder,
         ) -> Self {
             let egld_amount = rust_biguint!(OWNER_EGLD_BALANCE);
@@ -225,7 +207,6 @@ pub mod fuzz_data_tests {
                 let user = User {
                     address: user_address,
                     price_discovery_buy,
-                    locked_asset_nonces: Vec::new(),
                 };
 
                 users.push(user);
@@ -283,14 +264,6 @@ pub mod fuzz_data_tests {
 
             let farms = vec![first_farm, second_farm, third_farm];
 
-            let factory = setup_factory(
-                MEX_TOKEN_ID,
-                LOCKED_MEX_TOKEN_ID,
-                &mut blockchain_wrapper,
-                &owner_addr,
-                factory_builder,
-            );
-
             let price_disc =
                 setup_price_disc(&owner_addr, &mut blockchain_wrapper, price_discovery);
 
@@ -302,7 +275,6 @@ pub mod fuzz_data_tests {
                 users,
                 swap_pairs,
                 farms,
-                factory,
                 price_disc,
             }
         }
@@ -312,7 +284,6 @@ pub mod fuzz_data_tests {
     pub struct User {
         pub address: Address,
         pub price_discovery_buy: bool,
-        pub locked_asset_nonces: Vec<u64>,
     }
 
     #[derive()]
@@ -495,93 +466,6 @@ pub mod fuzz_data_tests {
         }
     }
 
-    #[allow(dead_code)]
-    pub struct FactorySetup<FactoryObjBuilder>
-    where
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-    {
-        pub token: String,
-        pub locked_token: String,
-        pub factory_wrapper: ContractObjWrapper<factory::ContractObj<DebugApi>, FactoryObjBuilder>,
-    }
-
-    pub fn setup_factory<FactoryObjBuilder>(
-        token: &[u8],
-        locked_token: &[u8],
-        blockchain_wrapper: &mut BlockchainStateWrapper,
-        owner_addr: &Address,
-        factory_builder: FactoryObjBuilder,
-    ) -> FactorySetup<FactoryObjBuilder>
-    where
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-    {
-        let rust_zero = rust_biguint!(0u64);
-
-        let factory_wrapper = blockchain_wrapper.create_sc_account(
-            &rust_zero,
-            Some(owner_addr),
-            factory_builder,
-            FACTORY_WASM_PATH,
-        );
-
-        blockchain_wrapper
-            .execute_tx(owner_addr, &factory_wrapper, &rust_biguint!(0), |sc| {
-                let asset_token_id = managed_token_id!(MEX_TOKEN_ID);
-                let locked_asset_token_id = managed_token_id!(LOCKED_MEX_TOKEN_ID);
-                let default_unlock_period = MultiValueEncoded::from(ManagedVec::from(vec![
-                    UnlockMilestone {
-                        unlock_epoch: 0,
-                        unlock_percent: 25,
-                    },
-                    UnlockMilestone {
-                        unlock_epoch: 10,
-                        unlock_percent: 25,
-                    },
-                    UnlockMilestone {
-                        unlock_epoch: 20,
-                        unlock_percent: 25,
-                    },
-                    UnlockMilestone {
-                        unlock_epoch: 30,
-                        unlock_percent: 25,
-                    },
-                ]));
-                sc.init(asset_token_id, default_unlock_period);
-                sc.set_init_epoch(FACTORY_LOCK_NONCE);
-                sc.locked_asset_token().set_token_id(locked_asset_token_id);
-            })
-            .assert_ok();
-
-        let token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
-
-        blockchain_wrapper.set_esdt_local_roles(
-            factory_wrapper.address_ref(),
-            MEX_TOKEN_ID,
-            &token_roles[..],
-        );
-
-        let locked_token_roles = [
-            EsdtLocalRole::NftCreate,
-            EsdtLocalRole::NftAddQuantity,
-            EsdtLocalRole::NftBurn,
-        ];
-
-        blockchain_wrapper.set_esdt_local_roles(
-            factory_wrapper.address_ref(),
-            LOCKED_MEX_TOKEN_ID,
-            &locked_token_roles[..],
-        );
-
-        let token_string = String::from_utf8(token.to_vec()).unwrap();
-        let locked_token_string = String::from_utf8(locked_token.to_vec()).unwrap();
-
-        FactorySetup {
-            token: token_string,
-            locked_token: locked_token_string,
-            factory_wrapper,
-        }
-    }
-
     pub struct PriceDiscSetup<PriceDiscObjBuilder>
     where
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
@@ -733,12 +617,6 @@ pub mod fuzz_data_tests {
         pub compound_rewards_hits: u64,
         pub compound_rewards_misses: u64,
 
-        pub factory_lock_hits: u64,
-        pub factory_lock_misses: u64,
-
-        pub factory_unlock_hits: u64,
-        pub factory_unlock_misses: u64,
-
         pub price_discovery_deposit_hits: u64,
         pub price_discovery_deposit_misses: u64,
 
@@ -770,10 +648,6 @@ pub mod fuzz_data_tests {
                 claim_rewards_with_rewards: 0,
                 compound_rewards_hits: 0,
                 compound_rewards_misses: 0,
-                factory_lock_hits: 0,
-                factory_lock_misses: 0,
-                factory_unlock_hits: 0,
-                factory_unlock_misses: 0,
                 price_discovery_deposit_hits: 0,
                 price_discovery_deposit_misses: 0,
                 price_discovery_withdraw_hits: 0,

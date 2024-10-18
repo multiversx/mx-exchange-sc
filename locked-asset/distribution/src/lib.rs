@@ -32,8 +32,8 @@ pub struct CommunityDistribution<M: ManagedTypeApi> {
 
 #[multiversx_sc::contract]
 pub trait Distribution: global_op::GlobalOperationModule {
-    #[proxy]
-    fn locked_asset_factory_proxy(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
+    // #[proxy]
+    // fn locked_asset_factory_proxy(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
 
     #[init]
     fn init(&self, asset_token_id: TokenIdentifier, locked_asset_factory_address: ManagedAddress) {
@@ -90,44 +90,44 @@ pub trait Distribution: global_op::GlobalOperationModule {
         self.add_all_user_assets_to_map(spread_epoch, user_locked_assets)
     }
 
-    #[endpoint(claimLockedAssets)]
-    fn claim_locked_assets(&self) -> BigUint {
-        self.require_global_op_not_ongoing();
-        self.require_unlock_period_not_empty();
-        self.require_community_distribution_list_not_empty();
+    // #[endpoint(claimLockedAssets)]
+    // fn claim_locked_assets(&self) -> BigUint {
+    //     self.require_global_op_not_ongoing();
+    //     self.require_unlock_period_not_empty();
+    //     self.require_community_distribution_list_not_empty();
 
-        let caller = self.blockchain().get_caller();
-        let mut cummulated_amount = BigUint::zero();
+    //     let caller = self.blockchain().get_caller();
+    //     let mut cummulated_amount = BigUint::zero();
 
-        let locked_assets = self.calculate_user_locked_assets(&caller, true);
-        if locked_assets.is_empty() {
-            return cummulated_amount;
-        }
+    //     let locked_assets = self.calculate_user_locked_assets(&caller, true);
+    //     if locked_assets.is_empty() {
+    //         return cummulated_amount;
+    //     }
 
-        let to = self.locked_asset_factory_address().get();
-        let gas_limit_per_execute =
-            self.blockchain().get_gas_left() / (locked_assets.len() as u64 + 1);
+    //     let to = self.locked_asset_factory_address().get();
+    //     let gas_limit_per_execute =
+    //         self.blockchain().get_gas_left() / (locked_assets.len() as u64 + 1);
 
-        let unlock_period = self.unlock_period().get();
-        for elem in locked_assets.iter() {
-            let amount = elem.biguint;
-            let spread_epoch = elem.epoch;
-            let _: IgnoreValue = self
-                .locked_asset_factory_proxy(to.clone())
-                .create_and_forward_custom_period(
-                    amount.clone(),
-                    caller.clone(),
-                    spread_epoch,
-                    unlock_period.clone(),
-                )
-                .with_gas_limit(gas_limit_per_execute)
-                .execute_on_dest_context();
+    //     let unlock_period = self.unlock_period().get();
+    //     for elem in locked_assets.iter() {
+    //         let amount = elem.biguint;
+    //         let spread_epoch = elem.epoch;
+    //         let _: IgnoreValue = self
+    //             .locked_asset_factory_proxy(to.clone())
+    //             .create_and_forward_custom_period(
+    //                 amount.clone(),
+    //                 caller.clone(),
+    //                 spread_epoch,
+    //                 unlock_period.clone(),cargo
+    //             )
+    //             .with_gas_limit(gas_limit_per_execute)
+    //             .execute_on_dest_context();
 
-            cummulated_amount += amount;
-        }
+    //         cummulated_amount += amount;
+    //     }
 
-        cummulated_amount
-    }
+    //     cummulated_amount
+    // }
 
     #[endpoint(clearUnclaimableAssets)]
     fn clear_unclaimable_assets(&self) -> usize {

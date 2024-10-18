@@ -63,6 +63,8 @@ pub struct FarmMigrationConfig<M: ManagedTypeApi> {
     old_farm_token_id: TokenIdentifier<M>,
 }
 
+static ERROR_LEGACY_CONTRACT: &[u8] = b"This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.";
+
 #[multiversx_sc::contract]
 pub trait FarmV13 {
     #[init]
@@ -74,7 +76,7 @@ pub trait FarmV13 {
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> EnterFarmResultType<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[payable("*")]
@@ -83,7 +85,7 @@ pub trait FarmV13 {
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> ExitFarmResultType<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[payable("*")]
@@ -92,7 +94,7 @@ pub trait FarmV13 {
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> ClaimRewardsResultType<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[payable("*")]
@@ -101,7 +103,7 @@ pub trait FarmV13 {
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> CompoundRewardsResultType<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[payable("*")]
@@ -110,7 +112,7 @@ pub trait FarmV13 {
         &self,
         _opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -119,66 +121,66 @@ pub trait FarmV13 {
         _amount: BigUint,
         _attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint]
     fn end_produce_rewards(&self) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, _per_block_amount: BigUint) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint]
     fn set_penalty_percent(&self, _percent: u64) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint]
     fn set_minimum_farming_epochs(&self, _epochs: u8) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint]
     fn set_transfer_exec_gas_limit(&self, _gas_limit: u64) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint]
     fn set_burn_gas_limit(&self, _gas_limit: u64) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint]
     fn pause(&self) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint]
     fn resume(&self) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards_as_owner(&self) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint(setFarmTokenSupply)]
     fn set_farm_token_supply(&self, _supply: BigUint) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
@@ -190,7 +192,7 @@ pub trait FarmV13 {
         _new_farm_address: ManagedAddress,
         _new_farm_with_lock_address: ManagedAddress,
     ) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
@@ -202,18 +204,18 @@ pub trait FarmV13 {
         _token_ticker: ManagedBuffer,
         _num_decimals: usize,
     ) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint(setLocalRolesFarmToken)]
     fn set_local_roles_farm_token(&self) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[endpoint(setRpsAndStartRewards)]
     fn set_rps_and_start_rewards(&self, _rps: BigUint) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[payable("*")]
@@ -223,7 +225,7 @@ pub trait FarmV13 {
         _old_attrs: FarmTokenAttributesV1_2<Self::Api>,
         _orig_caller: ManagedAddress,
     ) -> EsdtTokenPayment<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[view(getFarmMigrationConfiguration)]

@@ -12,6 +12,8 @@ pub enum Phase<M: ManagedTypeApi> {
     Redeem,
 }
 
+static ERROR_LEGACY_CONTRACT: &[u8] = b"This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.";
+
 #[multiversx_sc::contract]
 pub trait PriceDiscoveryV2 {
     #[init]
@@ -20,29 +22,29 @@ pub trait PriceDiscoveryV2 {
     #[payable("*")]
     #[endpoint]
     fn deposit(&self) -> EsdtTokenPayment<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[payable("*")]
     #[endpoint]
     fn withdraw(&self) -> EgldOrEsdtTokenPayment<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[payable("*")]
     #[endpoint]
     fn redeem(&self) -> EgldOrEsdtTokenPayment<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[view(getCurrentPrice)]
     fn calculate_price(&self) -> BigUint {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[view(getCurrentPhase)]
     fn get_current_phase(&self) -> Phase<Self::Api> {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
@@ -54,25 +56,25 @@ pub trait PriceDiscoveryV2 {
         _token_ticker: ManagedBuffer,
         _nr_decimals: usize,
     ) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint(createInitialRedeemTokens)]
     fn create_initial_redeem_tokens(&self) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint(setLockingScAddress)]
     fn set_locking_sc_address(&self, _new_address: ManagedAddress) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[only_owner]
     #[endpoint(setUnlockEpoch)]
     fn set_unlock_epoch(&self, _new_epoch: u64) {
-        sc_panic!("This is a no-code version of a legacy contract. The logic of the endpoints has not been implemented.");
+        sc_panic!(ERROR_LEGACY_CONTRACT);
     }
 
     #[view(getLaunchedTokenId)]

@@ -5,7 +5,7 @@
 # ##########################################
 
 [package]
-name = "metabonding-staking-wasm"
+name = "metabonding-staking-legacy-wasm"
 version = "0.0.0"
 edition = "2021"
 publish = false
@@ -24,11 +24,11 @@ overflow-checks = false
 [profile.dev]
 panic = "abort"
 
-[dependencies.metabonding-staking]
+[dependencies.metabonding-staking-legacy]
 path = ".."
 
 [dependencies.multiversx-sc-wasm-adapter]
-version = "=0.52.3"
+version = "0.53.2"
 
 [workspace]
 members = ["."]

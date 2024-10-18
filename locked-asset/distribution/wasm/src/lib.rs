@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           15
+// Endpoints:                           14
 // Async Callback (empty):               1
-// Total number of exported functions:  18
+// Total number of exported functions:  17
 
 #![no_std]
 
@@ -22,7 +22,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         setCommunityDistribution => set_community_distribution
         setPerUserDistributedLockedAssets => set_per_user_distributed_locked_assets
-        claimLockedAssets => claim_locked_assets
         clearUnclaimableAssets => clear_unclaimable_assets
         undoLastCommunityDistribution => undo_last_community_distrib
         undoUserDistributedAssetsBetweenEpochs => undo_user_assets_between_epochs
