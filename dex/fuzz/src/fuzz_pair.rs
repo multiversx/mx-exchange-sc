@@ -16,17 +16,11 @@ pub mod fuzz_pair_test {
         add_liq::AddLiquidityModule, remove_liq::RemoveLiquidityModule, swap::SwapModule,
     };
 
-    pub fn add_liquidity<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
-        fuzzer_data: &mut FuzzerData<
-            PairObjBuilder,
-            FarmObjBuilder,
-            FactoryObjBuilder,
-            PriceDiscObjBuilder,
-        >,
+    pub fn add_liquidity<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
@@ -125,22 +119,11 @@ pub mod fuzz_pair_test {
         }
     }
 
-    pub fn remove_liquidity<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        PriceDiscObjBuilder,
-    >(
-        fuzzer_data: &mut FuzzerData<
-            PairObjBuilder,
-            FarmObjBuilder,
-            FactoryObjBuilder,
-            PriceDiscObjBuilder,
-        >,
+    pub fn remove_liquidity<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
@@ -229,17 +212,11 @@ pub mod fuzz_pair_test {
         }
     }
 
-    pub fn swap_pair<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
-        fuzzer_data: &mut FuzzerData<
-            PairObjBuilder,
-            FarmObjBuilder,
-            FactoryObjBuilder,
-            PriceDiscObjBuilder,
-        >,
+    pub fn swap_pair<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());

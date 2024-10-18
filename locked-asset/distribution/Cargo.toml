@@ -10,9 +10,6 @@ path = "src/lib.rs"
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
-[dependencies.factory]
-path = "../factory"
-
 [dependencies.multiversx-sc]
 version = "=0.53.2"
 features = ["esdt-token-payment-legacy-decode"]
