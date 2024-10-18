@@ -57,10 +57,10 @@ members = [
   "legacy-contracts/price-discovery-v1/meta",
   "legacy-contracts/price-discovery-v2",
   "legacy-contracts/price-discovery-v2/meta",
+  "legacy-contracts/locked-asset-distribution",
+  "legacy-contracts/locked-asset-distribution/meta",
 
   "locked-asset/",
-  "locked-asset/distribution",
-  "locked-asset/distribution/meta",
   "locked-asset/proxy_dex",
   "locked-asset/proxy_dex/meta",
   "locked-asset/lkmex-transfer",
