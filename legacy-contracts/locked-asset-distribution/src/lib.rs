@@ -41,28 +41,30 @@ pub trait Distribution {
         self.global_op_is_ongoing().clear();
     }
 
+    // Returns the number of entries deleted and entries remaining in the storage.
     #[endpoint(clearCommunityDistributionList)]
-    fn clear_community_distribution_list(&self, n: u64) -> (u64, usize) {
+    fn clear_community_distribution_list(&self, entries_to_delete: u64) -> (u64, usize) {
         let mut counter = 0;
         for node in self.community_distribution_list().iter() {
-            self.community_distribution_list().remove_node(&node);
-            counter += 1;
-            if counter >= n {
+            if counter >= entries_to_delete {
                 break;
             }
+            self.community_distribution_list().remove_node(&node);
+            counter += 1;
         }
         (counter, self.community_distribution_list().len())
     }
 
+    // Returns the number of entries deleted and entries remaining in the storage.
     #[endpoint(clearUserLockedAssetMap)]
-    fn clear_user_locked_asset_map(&self, n: u64) -> (u64, usize) {
+    fn clear_user_locked_asset_map(&self, entries_to_delete: u64) -> (u64, usize) {
         let mut counter = 0;
         for key in self.user_locked_asset_map().keys() {
-            self.user_locked_asset_map().remove(&key);
-            counter += 1;
-            if counter >= n {
+            if counter >= entries_to_delete {
                 break;
             }
+            self.user_locked_asset_map().remove(&key);
+            counter += 1;
         }
         (counter, self.user_locked_asset_map().len())
     }
