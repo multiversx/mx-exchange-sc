@@ -70,11 +70,6 @@ fn exit_farm_go() {
 }
 
 #[test]
-fn exit_farm_too_soon_go() {
-    world().run("scenarios/exit_farm_too_soon.scen.json");
-}
-
-#[test]
 fn exit_mex_farm_go() {
     world().run("scenarios/exit_mex_farm.scen.json");
 }

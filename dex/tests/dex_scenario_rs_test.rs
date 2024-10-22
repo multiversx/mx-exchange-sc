@@ -76,11 +76,6 @@ fn exit_farm_rs() {
 }
 
 #[test]
-fn exit_farm_too_soon_rs() {
-    world().run("scenarios/exit_farm_too_soon.scen.json");
-}
-
-#[test]
 fn exit_mex_farm_rs() {
     world().run("scenarios/exit_mex_farm.scen.json");
 }

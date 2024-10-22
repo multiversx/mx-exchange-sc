@@ -13,7 +13,6 @@ use multiversx_sc_scenario::{
 type RustBigUint = num_bigint::BigUint;
 
 use config::*;
-use farm::exit_penalty::ExitPenaltyModule;
 use farm::*;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
@@ -29,8 +28,6 @@ pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
 pub const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-pub const MIN_FARMING_EPOCHS: u64 = 2;
-pub const PENALTY_PERCENT: u64 = 10;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 pub const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
@@ -121,13 +118,11 @@ where
                 let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
                 let farming_token_id = managed_token_id!(LP_TOKEN_ID);
                 let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-                let pair_address = managed_address!(&Address::zero());
 
                 sc.init(
                     reward_token_id,
                     farming_token_id,
                     division_safety_constant,
-                    pair_address,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::new(),
                 );
@@ -137,8 +132,6 @@ where
 
                 sc.per_block_reward_amount()
                     .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
-                sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
-                sc.penalty_percent().set(PENALTY_PERCENT);
 
                 sc.state().set(State::Active);
                 sc.produce_rewards_enabled().set(true);

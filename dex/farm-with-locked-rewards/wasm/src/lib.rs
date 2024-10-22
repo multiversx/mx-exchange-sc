@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           66
+// Endpoints:                           59
 // Async Callback:                       1
-// Total number of exported functions:  69
+// Total number of exported functions:  62
 
 #![no_std]
 
@@ -59,13 +59,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
-        set_penalty_percent => set_penalty_percent
-        set_minimum_farming_epochs => set_minimum_farming_epochs
-        set_burn_gas_limit => set_burn_gas_limit
-        getPenaltyPercent => penalty_percent
-        getMinimumFarmingEpoch => minimum_farming_epochs
-        getBurnGasLimit => burn_gas_limit
-        getPairContractManagedAddress => pair_contract_address
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getBoostedYieldsRewardsPercentage => boosted_yields_rewards_percentage
         getAccumulatedRewardsForWeek => accumulated_rewards_for_week

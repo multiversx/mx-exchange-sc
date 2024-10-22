@@ -12,8 +12,6 @@ use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 
-use crate::{exit_penalty, MAX_PERCENT};
-
 pub type DoubleMultiPayment<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsResultType<M> = DoubleMultiPayment<M>;
 pub type ExitFarmResultType<M> = DoubleMultiPayment<M>;
@@ -52,7 +50,6 @@ pub trait BaseFunctionsModule:
     + permissions_module::PermissionsModule
     + events::EventsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
@@ -154,18 +151,11 @@ pub trait BaseFunctionsModule:
     ) -> ExitFarmResultWrapper<Self::Api> {
         let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment);
 
-        let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
+        let farming_token_payment = base_exit_farm_result.farming_token_payment;
         let reward_payment = base_exit_farm_result.reward_payment;
 
         self.set_farm_supply_for_current_week(
             &base_exit_farm_result.storage_cache.farm_token_supply,
-        );
-
-        FC::apply_penalty(
-            self,
-            &mut farming_token_payment.amount,
-            &base_exit_farm_result.context.farm_token.attributes,
-            &base_exit_farm_result.storage_cache,
         );
 
         self.emit_exit_farm_event(
@@ -267,19 +257,13 @@ pub trait BaseFunctionsModule:
     }
 }
 
-pub struct Wrapper<
-    T: BaseFunctionsModule
-        + farm_boosted_yields::FarmBoostedYieldsModule
-        + crate::exit_penalty::ExitPenaltyModule,
-> {
+pub struct Wrapper<T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule> {
     _phantom: PhantomData<T>,
 }
 
 impl<T> Wrapper<T>
 where
-    T: BaseFunctionsModule
-        + farm_boosted_yields::FarmBoostedYieldsModule
-        + crate::exit_penalty::ExitPenaltyModule,
+    T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule,
 {
     pub fn calculate_boosted_rewards(
         sc: &<Self as FarmContract>::FarmSc,
@@ -293,9 +277,7 @@ where
 
 impl<T> FarmContract for Wrapper<T>
 where
-    T: BaseFunctionsModule
-        + farm_boosted_yields::FarmBoostedYieldsModule
-        + crate::exit_penalty::ExitPenaltyModule,
+    T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule,
 {
     type FarmSc = T;
     type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
@@ -334,38 +316,5 @@ where
         let boosted_yield_rewards = Self::calculate_boosted_rewards(sc, caller);
 
         base_farm_reward + boosted_yield_rewards
-    }
-
-    fn get_exit_penalty(
-        sc: &Self::FarmSc,
-        total_exit_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
-        token_attributes: &Self::AttributesType,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        let current_epoch = sc.blockchain().get_block_epoch();
-        let user_farming_epochs = current_epoch - token_attributes.entering_epoch;
-        let min_farming_epochs = sc.minimum_farming_epochs().get();
-        if user_farming_epochs >= min_farming_epochs {
-            BigUint::zero()
-        } else {
-            total_exit_amount * sc.penalty_percent().get() / MAX_PERCENT
-        }
-    }
-
-    fn apply_penalty(
-        sc: &Self::FarmSc,
-        total_exit_amount: &mut BigUint<<Self::FarmSc as ContractBase>::Api>,
-        token_attributes: &Self::AttributesType,
-        storage_cache: &StorageCache<Self::FarmSc>,
-    ) {
-        let penalty_amount = Self::get_exit_penalty(sc, total_exit_amount, token_attributes);
-        if penalty_amount > 0 {
-            *total_exit_amount -= &penalty_amount;
-
-            sc.burn_farming_tokens(
-                &penalty_amount,
-                &storage_cache.farming_token_id,
-                &storage_cache.reward_token_id,
-            );
-        }
     }
 }

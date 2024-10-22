@@ -5,13 +5,12 @@ use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox_legacy::TxTokenTransfer, whitebox_legacy::*, DebugApi,
+    managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::TxTokenTransfer,
+    whitebox_legacy::*, DebugApi,
 };
 pub type RustBigUint = num_bigint::BigUint;
 
 use config::*;
-use farm::exit_penalty::ExitPenaltyModule;
 use farm::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
@@ -83,13 +82,11 @@ where
                 let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
                 let farming_token_id = managed_token_id!(LP_TOKEN_ID);
                 let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-                let pair_address = managed_address!(&Address::zero());
 
                 sc.init(
                     reward_token_id,
                     farming_token_id,
                     division_safety_constant,
-                    pair_address,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::new(),
                 );
@@ -99,8 +96,6 @@ where
 
                 sc.per_block_reward_amount()
                     .set(&to_managed_biguint(per_block_reward_amount));
-                sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
-                sc.penalty_percent().set(PENALTY_PERCENT);
 
                 sc.state().set(State::Active);
                 sc.produce_rewards_enabled().set(true);

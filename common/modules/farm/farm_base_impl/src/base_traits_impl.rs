@@ -185,22 +185,6 @@ pub trait FarmContract {
         new_attributes.into()
     }
 
-    fn get_exit_penalty(
-        _sc: &Self::FarmSc,
-        _total_exit_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
-        _token_attributes: &Self::AttributesType,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        BigUint::zero()
-    }
-
-    fn apply_penalty(
-        _sc: &Self::FarmSc,
-        _total_exit_amount: &mut BigUint<<Self::FarmSc as ContractBase>::Api>,
-        _token_attributes: &Self::AttributesType,
-        _storage_cache: &StorageCache<Self::FarmSc>,
-    ) {
-    }
-
     fn check_and_update_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,

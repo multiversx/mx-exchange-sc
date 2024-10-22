@@ -890,6 +890,7 @@ fn stake_farm_through_proxy_migration_test() {
 
     setup.check_user_total_staking_farm_position(&user, user_total_staking_farm_position);
     setup.check_user_total_lp_farm_position(&user, user_total_lp_farm_position);
+
     let dual_yield_token_nonce1 = setup.stake_farm_lp_proxy(1, farm_amount, 1, farm_amount);
     let dual_yield_token_nonce2 = setup.stake_farm_lp_proxy(1, farm_amount, 2, farm_amount);
     let dual_yield_token_nonce3 = setup.stake_farm_lp_proxy(1, farm_amount, 3, farm_amount);
@@ -995,10 +996,10 @@ fn stake_farm_through_proxy_migration_test() {
     setup.unstake_proxy(
         dual_yield_token_nonce3,
         farm_amount / 2,
-        49950000,
+        50000000,
         0,
         0,
-        49950000,
+        50000000,
         10,
     );
 

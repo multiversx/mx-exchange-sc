@@ -16,7 +16,6 @@ use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::remove_liq::RemoveLiquidityModule;
 use simple_lock::locked_token::LockedTokenModule;
 
-use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
 use pair::safe_price_view::{SafePriceViewModule, DEFAULT_SAFE_PRICE_ROUNDS_OFFSET};
 use pair::*;
@@ -268,22 +267,17 @@ where
             let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
             let farming_token_id = managed_token_id!(LP_TOKEN_ID);
             let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-            let pair_address = managed_address!(&Address::zero());
 
             sc.init(
                 reward_token_id,
                 farming_token_id,
                 division_safety_constant,
-                pair_address,
                 ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::new(),
             );
 
             let farm_token_id = managed_token_id!(LP_FARM_TOKEN_ID);
             sc.farm_token().set_token_id(farm_token_id);
-
-            sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
-            sc.penalty_percent().set(PENALTY_PERCENT);
 
             sc.state().set(State::Active);
             sc.produce_rewards_enabled().set(true);
