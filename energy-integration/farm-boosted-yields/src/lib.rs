@@ -8,27 +8,10 @@ use boosted_yields_factors::BoostedYieldsConfig;
 use common_types::PaymentsVec;
 use multiversx_sc::api::ErrorApi;
 use week_timekeeping::Week;
-use weekly_rewards_splitting::{
-    base_impl::WeeklyRewardsSplittingTraitsModule, USER_MAX_CLAIM_WEEKS,
-};
+use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
 
 pub mod boosted_yields_factors;
-
-const MAX_PERCENT: u64 = 10_000;
-
-pub struct SplitReward<M: ManagedTypeApi> {
-    pub base_farm: BigUint<M>,
-    pub boosted_farm: BigUint<M>,
-}
-
-impl<M: ManagedTypeApi> SplitReward<M> {
-    pub fn new(base_farm: BigUint<M>, boosted_farm: BigUint<M>) -> Self {
-        SplitReward {
-            base_farm,
-            boosted_farm,
-        }
-    }
-}
+pub mod custom_reward_logic;
 
 #[multiversx_sc::module]
 pub trait FarmBoostedYieldsModule:
@@ -43,56 +26,9 @@ pub trait FarmBoostedYieldsModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + utils::UtilsModule
+    + custom_reward_logic::CustomRewardLogicModule
 {
-    #[endpoint(collectUndistributedBoostedRewards)]
-    fn collect_undistributed_boosted_rewards(&self) {
-        self.require_caller_has_admin_permissions();
-
-        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS + 1usize;
-        let current_week = self.get_current_week();
-        require!(
-            current_week > collect_rewards_offset,
-            "Current week must be higher than the week offset"
-        );
-
-        let last_collect_week_mapper = self.last_undistributed_boosted_rewards_collect_week();
-        let first_collect_week = last_collect_week_mapper.get() + 1;
-        let last_collect_week = current_week - collect_rewards_offset;
-        if first_collect_week > last_collect_week {
-            return;
-        }
-
-        for week in first_collect_week..=last_collect_week {
-            let rewards_to_distribute = self.remaining_boosted_rewards_to_distribute(week).take();
-            self.undistributed_boosted_rewards()
-                .update(|total_amount| *total_amount += rewards_to_distribute);
-        }
-
-        last_collect_week_mapper.set(last_collect_week);
-    }
-
-    fn take_reward_slice(&self, full_reward: BigUint) -> SplitReward<Self::Api> {
-        let percentage = self.boosted_yields_rewards_percentage().get();
-        if percentage == 0 {
-            return SplitReward::new(full_reward, BigUint::zero());
-        }
-
-        let boosted_yields_cut = &full_reward * percentage / MAX_PERCENT;
-        let base_farm_amount = if boosted_yields_cut > 0 {
-            let current_week = self.get_current_week();
-            self.accumulated_rewards_for_week(current_week)
-                .update(|accumulated_rewards| {
-                    *accumulated_rewards += &boosted_yields_cut;
-                });
-
-            &full_reward - &boosted_yields_cut
-        } else {
-            full_reward
-        };
-
-        SplitReward::new(base_farm_amount, boosted_yields_cut)
-    }
-
     fn claim_boosted_yields_rewards(
         &self,
         user: &ManagedAddress,
@@ -133,29 +69,6 @@ pub trait FarmBoostedYieldsModule:
             );
         }
     }
-
-    #[view(getBoostedYieldsRewardsPercentage)]
-    #[storage_mapper("boostedYieldsRewardsPercentage")]
-    fn boosted_yields_rewards_percentage(&self) -> SingleValueMapper<u64>;
-
-    #[view(getAccumulatedRewardsForWeek)]
-    #[storage_mapper("accumulatedRewardsForWeek")]
-    fn accumulated_rewards_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
-
-    #[view(getFarmSupplyForWeek)]
-    #[storage_mapper("farmSupplyForWeek")]
-    fn farm_supply_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
-
-    #[view(getRemainingBoostedRewardsToDistribute)]
-    #[storage_mapper("remainingBoostedRewardsToDistribute")]
-    fn remaining_boosted_rewards_to_distribute(&self, week: Week) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("lastUndistributedBoostedRewardsCollectWeek")]
-    fn last_undistributed_boosted_rewards_collect_week(&self) -> SingleValueMapper<Week>;
-
-    #[view(getUndistributedBoostedRewards)]
-    #[storage_mapper("undistributedBoostedRewards")]
-    fn undistributed_boosted_rewards(&self) -> SingleValueMapper<BigUint>;
 }
 
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
@@ -250,17 +163,28 @@ where
             (boosted_rewards_by_energy + boosted_rewards_by_tokens) / constants_base;
 
         // min between base rewards per week and computed rewards
-        let user_reward = cmp::min(max_rewards, boosted_reward_amount);
-        if user_reward > 0 {
-            sc.remaining_boosted_rewards_to_distribute(week)
-                .update(|amount| *amount -= &user_reward);
-
-            user_rewards.push(EsdtTokenPayment::new(
-                weekly_reward.token_identifier,
-                0,
-                user_reward,
-            ));
+        let mut user_reward = cmp::min(max_rewards, boosted_reward_amount);
+        if user_reward == 0 {
+            return user_rewards;
         }
+
+        let current_week = sc.get_current_week(); // TODO: Shouldn't be current week.
+        if current_week == week {
+            // do magic
+
+            if user_reward == 0 {
+                return user_rewards;
+            }
+        }
+
+        sc.remaining_boosted_rewards_to_distribute(week)
+            .update(|amount| *amount -= &user_reward);
+
+        user_rewards.push(EsdtTokenPayment::new(
+            weekly_reward.token_identifier,
+            0,
+            user_reward,
+        ));
 
         user_rewards
     }

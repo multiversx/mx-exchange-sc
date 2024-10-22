@@ -31,3 +31,12 @@ path = "../common-modules/energy-query"
 
 [dependencies.common-types]
 path = "../common-types"
+
+[dependencies.timestamp-oracle]
+path = "../timestamp-oracle"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
