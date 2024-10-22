@@ -1908,6 +1908,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "timestamp-oracle"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "num-bigint",
+]
+
+[[package]]
+name = "timestamp-oracle-meta"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-meta-lib",
+ "timestamp-oracle",
+]
+
+[[package]]
 name = "token-unstake"
 version = "0.0.0"
 dependencies = [
