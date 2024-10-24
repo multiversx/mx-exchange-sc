@@ -5,10 +5,10 @@ multiversx_sc::imports!();
 use core::cmp;
 
 use boosted_yields_factors::BoostedYieldsConfig;
-use common_types::PaymentsVec;
+use common_structs::PaymentsVec;
 use multiversx_sc::api::ErrorApi;
 use week_timekeeping::Week;
-use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
+use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
 
 pub mod boosted_yields_factors;
 pub mod custom_reward_logic;
@@ -112,24 +112,26 @@ where
     fn get_user_rewards_for_week(
         &self,
         sc: &Self::WeeklyRewardsSplittingMod,
-        week: Week,
-        energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+        claim_progress: &ClaimProgress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
-        let farm_supply_for_week = sc.farm_supply_for_week(week).get();
+        let energy_amount = claim_progress.energy.get_energy_amount();
+        let farm_supply_for_week = sc.farm_supply_for_week(claim_progress.week).get();
         if total_energy == &0 || farm_supply_for_week == 0 {
             return user_rewards;
         }
 
-        let factors = self.boosted_yields_config.get_factors_for_week(week);
-        if energy_amount < &factors.min_energy_amount
+        let factors = self
+            .boosted_yields_config
+            .get_factors_for_week(claim_progress.week);
+        if energy_amount < factors.min_energy_amount
             || self.user_farm_amount < factors.min_farm_amount
         {
             return user_rewards;
         }
 
-        let total_rewards = self.collect_and_get_rewards_for_week(sc, week);
+        let total_rewards = self.collect_and_get_rewards_for_week(sc, claim_progress.week);
         if total_rewards.is_empty() {
             return user_rewards;
         }
@@ -168,16 +170,16 @@ where
             return user_rewards;
         }
 
-        let current_week = sc.get_current_week(); // TODO: Shouldn't be current week.
-        if current_week == week {
-            // do magic
+        let week_start_epoch = sc.get_start_epoch_for_week(claim_progress.week);
+        if claim_progress.enter_epoch > week_start_epoch {
+            // do math
 
             if user_reward == 0 {
                 return user_rewards;
             }
         }
 
-        sc.remaining_boosted_rewards_to_distribute(week)
+        sc.remaining_boosted_rewards_to_distribute(claim_progress.week)
             .update(|amount| *amount -= &user_reward);
 
         user_rewards.push(EsdtTokenPayment::new(

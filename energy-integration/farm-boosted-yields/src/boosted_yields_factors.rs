@@ -1,4 +1,4 @@
-use common_types::Week;
+use common_structs::Week;
 use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
 
 multiversx_sc::imports!();

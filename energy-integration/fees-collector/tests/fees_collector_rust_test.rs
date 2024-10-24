@@ -92,7 +92,8 @@ fn claim_first_week_test() {
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
-                    week: 1
+                    week: 1,
+                    enter_epoch: INIT_EPOCH
                 }
             );
             assert_eq!(
@@ -100,7 +101,8 @@ fn claim_first_week_test() {
                     .get(),
                 ClaimProgress {
                     energy: second_user_energy,
-                    week: 1
+                    week: 1,
+                    enter_epoch: INIT_EPOCH
                 }
             );
         })
@@ -148,7 +150,8 @@ fn claim_first_week_test() {
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
-                    week: 1
+                    week: 1,
+                    enter_epoch: INIT_EPOCH
                 }
             );
             assert_eq!(
@@ -156,7 +159,8 @@ fn claim_first_week_test() {
                     .get(),
                 ClaimProgress {
                     energy: second_user_energy,
-                    week: 1
+                    week: 1,
+                    enter_epoch: INIT_EPOCH
                 }
             );
         })
@@ -264,7 +268,8 @@ fn claim_after_dex_inactive_test() {
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
-                    week: 4
+                    week: 4,
+                    enter_epoch: INIT_EPOCH
                 }
             );
         })
@@ -387,7 +392,8 @@ fn claim_second_week_test() {
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
-                    week: 2
+                    week: 2,
+                    enter_epoch: INIT_EPOCH
                 }
             );
         })
@@ -440,7 +446,8 @@ fn claim_second_week_test() {
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
-                    week: 2
+                    week: 2,
+                    enter_epoch: INIT_EPOCH
                 }
             );
         })
@@ -592,7 +599,8 @@ fn claim_for_other_user_test() {
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
-                    week: 2
+                    week: 2,
+                    enter_epoch: INIT_EPOCH
                 }
             );
         })
@@ -671,7 +679,8 @@ fn claim_inactive_week_test() {
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
-                    week: 2
+                    week: 2,
+                    enter_epoch: INIT_EPOCH
                 }
             );
         })
@@ -1226,7 +1235,8 @@ fn claim_locked_rewards_with_energy_update_test() {
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
-                    week: 2
+                    week: 2,
+                    enter_epoch: INIT_EPOCH
                 }
             );
         })
@@ -1305,7 +1315,8 @@ fn claim_locked_rewards_with_energy_update_test() {
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
-                    week: 2
+                    week: 2,
+                    enter_epoch: INIT_EPOCH
                 }
             );
         })

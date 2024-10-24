@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_types::PaymentsVec;
+use common_structs::PaymentsVec;
 use week_timekeeping::Week;
 
 use crate::{
@@ -52,18 +52,18 @@ pub trait WeeklyRewardsSplittingTraitsModule {
     fn get_user_rewards_for_week(
         &self,
         sc: &Self::WeeklyRewardsSplittingMod,
-        week: Week,
-        energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+        claim_progress: &ClaimProgress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
-        if energy_amount == &0 || total_energy == &0 {
+        let energy_amount = claim_progress.energy.get_energy_amount();
+        if energy_amount == 0 || total_energy == &0 {
             return user_rewards;
         }
 
-        let total_rewards = self.collect_and_get_rewards_for_week(sc, week);
+        let total_rewards = self.collect_and_get_rewards_for_week(sc, claim_progress.week);
         for weekly_reward in &total_rewards {
-            let reward_amount = weekly_reward.amount * energy_amount / total_energy;
+            let reward_amount = &weekly_reward.amount * &energy_amount / total_energy;
             if reward_amount > 0 {
                 user_rewards.push(EsdtTokenPayment::new(
                     weekly_reward.token_identifier,

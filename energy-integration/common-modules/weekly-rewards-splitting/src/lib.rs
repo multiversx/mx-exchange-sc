@@ -12,14 +12,53 @@ pub mod locked_token_buckets;
 pub mod update_claim_progress_energy;
 
 use base_impl::WeeklyRewardsSplittingTraitsModule;
-use common_types::PaymentsVec;
+use codec::NestedDecodeInput;
+use common_structs::{Epoch, PaymentsVec};
 use energy_query::Energy;
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
-#[derive(TypeAbi, TopEncode, TopDecode, Clone, PartialEq, Debug)]
+#[derive(TypeAbi, TopEncode, Clone, PartialEq, Debug)]
 pub struct ClaimProgress<M: ManagedTypeApi> {
     pub energy: Energy<M>,
     pub week: Week,
+    pub enter_epoch: Epoch,
+}
+
+impl<M: ManagedTypeApi> TopDecode for ClaimProgress<M> {
+    fn top_decode<I>(input: I) -> Result<Self, DecodeError>
+    where
+        I: codec::TopDecodeInput,
+    {
+        let mut input_nested = input.into_nested_buffer();
+        let energy = Energy::dep_decode(&mut input_nested)?;
+        let week = Week::dep_decode(&mut input_nested)?;
+        let enter_epoch = if !input_nested.is_depleted() {
+            Epoch::dep_decode(&mut input_nested)?
+        } else {
+            0
+        };
+
+        if !input_nested.is_depleted() {
+            return Result::Err(DecodeError::INPUT_TOO_LONG);
+        }
+
+        Result::Ok(ClaimProgress {
+            energy,
+            week,
+            enter_epoch,
+        })
+    }
+
+    fn top_decode_or_handle_err<I, H>(input: I, h: H) -> Result<Self, H::HandledErr>
+    where
+        I: codec::TopDecodeInput,
+        H: codec::DecodeErrorHandler,
+    {
+        match Self::top_decode(input) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(h.handle_error(e)),
+        }
+    }
 }
 
 impl<M: ManagedTypeApi> ClaimProgress<M> {
@@ -63,6 +102,7 @@ pub trait WeeklyRewardsSplittingModule:
             ClaimProgress {
                 energy: current_user_energy.clone(),
                 week: current_week,
+                enter_epoch: self.blockchain().get_block_epoch(),
             }
         };
 
@@ -123,12 +163,7 @@ pub trait WeeklyRewardsSplittingModule:
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let total_energy = self.total_energy_for_week(claim_progress.week).get();
-        let user_rewards = wrapper.get_user_rewards_for_week(
-            self,
-            claim_progress.week,
-            &claim_progress.energy.get_energy_amount(),
-            &total_energy,
-        );
+        let user_rewards = wrapper.get_user_rewards_for_week(self, claim_progress, &total_energy);
 
         claim_progress.advance_week();
 
@@ -163,5 +198,62 @@ pub trait WeeklyRewardsSplittingModule:
         } else {
             OptionalValue::None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use multiversx_sc_scenario::{managed_biguint, DebugApi};
+
+    use super::*;
+
+    #[derive(TypeAbi, TopEncode, Clone, PartialEq, Debug)]
+    pub struct OldClaimProgress<M: ManagedTypeApi> {
+        pub energy: Energy<M>,
+        pub week: Week,
+    }
+
+    #[test]
+    fn decode_old_claim_progress_to_new_test() {
+        DebugApi::dummy();
+
+        let old_progress = OldClaimProgress {
+            energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
+            week: 2,
+        };
+        let mut old_progress_encoded = ManagedBuffer::<DebugApi>::new();
+        let _ = old_progress.top_encode(&mut old_progress_encoded);
+
+        let new_progress_decoded = ClaimProgress::top_decode(old_progress_encoded).unwrap();
+        assert_eq!(
+            new_progress_decoded,
+            ClaimProgress {
+                energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
+                week: 2,
+                enter_epoch: 0
+            }
+        );
+    }
+
+    #[test]
+    fn encoded_decode_new_progress_test() {
+        DebugApi::dummy();
+
+        let new_progress = ClaimProgress {
+            energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
+            week: 2,
+            enter_epoch: 5,
+        };
+        let mut new_progress_encoded = ManagedBuffer::<DebugApi>::new();
+        let _ = new_progress.top_encode(&mut new_progress_encoded);
+        let new_progress_decoded = ClaimProgress::top_decode(new_progress_encoded).unwrap();
+        assert_eq!(
+            new_progress_decoded,
+            ClaimProgress {
+                energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
+                week: 2,
+                enter_epoch: 5
+            }
+        );
     }
 }

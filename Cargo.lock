@@ -183,13 +183,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "common-types"
-version = "0.0.0"
-dependencies = [
- "multiversx-sc",
-]
-
-[[package]]
 name = "common_errors"
 version = "0.0.0"
 dependencies = [
@@ -554,7 +547,6 @@ dependencies = [
 name = "farm-boosted-yields"
 version = "0.0.0"
 dependencies = [
- "common-types",
  "common_structs",
  "config",
  "energy-query",
@@ -829,8 +821,8 @@ dependencies = [
 name = "fees-collector"
 version = "0.0.0"
 dependencies = [
- "common-types",
  "common_errors",
+ "common_structs",
  "energy-factory",
  "energy-query",
  "locking_module",
@@ -2095,7 +2087,7 @@ dependencies = [
 name = "week-timekeeping"
 version = "0.0.0"
 dependencies = [
- "common-types",
+ "common_structs",
  "multiversx-sc",
 ]
 
@@ -2103,10 +2095,12 @@ dependencies = [
 name = "weekly-rewards-splitting"
 version = "0.0.0"
 dependencies = [
- "common-types",
+ "common_structs",
  "energy-query",
  "math",
  "multiversx-sc",
+ "multiversx-sc-scenario",
+ "num-bigint",
  "unwrappable",
  "week-timekeeping",
 ]
