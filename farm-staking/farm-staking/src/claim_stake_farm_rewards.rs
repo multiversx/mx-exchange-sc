@@ -109,6 +109,8 @@ pub trait ClaimStakeFarmRewardsModule:
             claim_result.storage_cache,
         );
 
+        self.update_start_of_epoch_timestamp();
+
         (virtual_farm_token.payment, claim_result.rewards).into()
     }
 }

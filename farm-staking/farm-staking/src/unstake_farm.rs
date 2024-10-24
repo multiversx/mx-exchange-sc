@@ -101,6 +101,8 @@ pub trait UnstakeFarmModule:
             exit_result.storage_cache,
         );
 
+        self.update_start_of_epoch_timestamp();
+
         (unbond_farm_token, exit_result.reward_payment).into()
     }
 

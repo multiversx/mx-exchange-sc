@@ -98,13 +98,15 @@ pub trait FarmStaking:
     }
 
     #[upgrade]
-    fn upgrade(&self) {
+    fn upgrade(&self, timestamp_oracle_address: ManagedAddress) {
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
 
         // Farm position migration code
         let farm_token_mapper = self.farm_token();
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
+
+        self.set_timestamp_oracle_address(timestamp_oracle_address);
     }
 
     #[payable("*")]
@@ -121,6 +123,8 @@ pub trait FarmStaking:
 
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
+
+        self.update_start_of_epoch_timestamp();
 
         (merged_farm_token, boosted_rewards_payment).into()
     }
@@ -157,6 +161,8 @@ pub trait FarmStaking:
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
         self.boosted_yields_rewards_percentage().set(percentage);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[view(calculateRewardsForGivenPosition)]

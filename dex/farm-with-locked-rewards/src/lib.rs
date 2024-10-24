@@ -71,7 +71,7 @@ pub trait Farm:
     }
 
     #[upgrade]
-    fn upgrade(&self) {
+    fn upgrade(&self, timestamp_oracle_address: ManagedAddress) {
         if self.first_week_start_epoch().is_empty() {
             let current_epoch = self.blockchain().get_block_epoch();
             self.first_week_start_epoch().set(current_epoch);
@@ -80,6 +80,8 @@ pub trait Farm:
         // Farm position migration code
         let farm_token_mapper = self.farm_token();
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
+
+        self.set_timestamp_oracle_address(timestamp_oracle_address);
     }
 
     #[payable("*")]
@@ -104,6 +106,8 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &new_farm_token);
         self.update_energy_and_progress(&orig_caller);
 
+        self.update_start_of_epoch_timestamp();
+
         (new_farm_token, boosted_rewards_payment).into()
     }
 
@@ -127,6 +131,8 @@ pub trait Farm:
             caller,
             orig_caller,
         );
+
+        self.update_start_of_epoch_timestamp();
 
         (claim_rewards_result.new_farm_token, locked_rewards_payment).into()
     }
@@ -158,6 +164,8 @@ pub trait Farm:
 
         self.clear_user_energy_if_needed(&orig_caller);
 
+        self.update_start_of_epoch_timestamp();
+
         (exit_farm_result.farming_tokens, locked_rewards_payment).into()
     }
 
@@ -182,6 +190,8 @@ pub trait Farm:
             caller,
             orig_caller,
         );
+
+        self.update_start_of_epoch_timestamp();
 
         (merged_farm_token, locked_rewards_payment).into()
     }
@@ -225,6 +235,8 @@ pub trait Farm:
         let boosted_rewards = self.claim_only_boosted_payment(user);
         self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
 
+        // Don't need to call update here too, the internal functions call it already
+
         self.send_to_lock_contract_non_zero(
             self.reward_token_id().get(),
             boosted_rewards,
@@ -237,18 +249,24 @@ pub trait Farm:
     fn start_produce_rewards_endpoint(&self) {
         self.require_caller_has_admin_permissions();
         self.start_produce_rewards();
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[endpoint(endProduceRewards)]
     fn end_produce_rewards_endpoint(&self) {
         self.require_caller_has_admin_permissions();
         self.end_produce_rewards::<NoMintWrapper<Self>>();
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards::<NoMintWrapper<Self>>(per_block_amount);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[endpoint(setBoostedYieldsRewardsPercentage)]
@@ -260,6 +278,8 @@ pub trait Farm:
         NoMintWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
         self.boosted_yields_rewards_percentage().set(percentage);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[view(calculateRewardsForGivenPosition)]

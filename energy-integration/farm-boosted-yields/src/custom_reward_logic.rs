@@ -48,9 +48,10 @@ pub trait CustomRewardLogicModule:
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
 {
+    #[only_owner]
     #[endpoint(setTimestampOracleAddress)]
     fn set_timestamp_oracle_address(&self, sc_address: ManagedAddress) {
-        self.require_caller_has_admin_permissions();
+        self.require_sc_address(&sc_address);
 
         self.timestamp_oracle_address().set(sc_address);
     }
@@ -159,6 +160,11 @@ pub trait CustomRewardLogicModule:
             BigUint::zero(),
         );
         *user_reward = interpolated_reward;
+    }
+
+    #[inline]
+    fn update_start_of_epoch_timestamp(&self) {
+        let _ = self.get_start_of_epoch_timestamp();
     }
 
     fn get_start_of_epoch_timestamp(&self) -> Timestamp {

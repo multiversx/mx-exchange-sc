@@ -44,6 +44,8 @@ pub trait CustomRewardsModule:
         require!(payment_token == reward_token_id, "Invalid token");
 
         self.reward_capacity().update(|r| *r += payment_amount);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[payable("*")]
@@ -74,6 +76,8 @@ pub trait CustomRewardsModule:
         let caller = self.blockchain().get_caller();
         let reward_token_id = self.reward_token_id().get();
         self.send_tokens_non_zero(&caller, &reward_token_id, 0, &withdraw_amount);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[endpoint(endProduceRewards)]
@@ -83,6 +87,8 @@ pub trait CustomRewardsModule:
         let mut storage_cache = StorageCache::new(self);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.produce_rewards_enabled().set(false);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[endpoint(setPerBlockRewardAmount)]
@@ -93,6 +99,8 @@ pub trait CustomRewardsModule:
         let mut storage_cache = StorageCache::new(self);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.per_block_reward_amount().set(&per_block_amount);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[endpoint(setMaxApr)]
@@ -103,12 +111,16 @@ pub trait CustomRewardsModule:
         let mut storage_cache = StorageCache::new(self);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.max_annual_percentage_rewards().set(&max_apr);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[endpoint(setMinUnbondEpochs)]
     fn set_min_unbond_epochs_endpoint(&self, min_unbond_epochs: Epoch) {
         self.require_caller_has_admin_permissions();
         self.try_set_min_unbond_epochs(min_unbond_epochs);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     fn try_set_min_unbond_epochs(&self, min_unbond_epochs: Epoch) {
@@ -129,6 +141,8 @@ pub trait CustomRewardsModule:
     fn start_produce_rewards_endpoint(&self) {
         self.require_caller_has_admin_permissions();
         self.start_produce_rewards();
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[view(getAccumulatedRewards)]

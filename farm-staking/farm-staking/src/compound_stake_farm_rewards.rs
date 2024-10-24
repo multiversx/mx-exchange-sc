@@ -53,6 +53,8 @@ pub trait CompoundStakeFarmRewardsModule:
             compound_result.storage_cache,
         );
 
+        self.update_start_of_epoch_timestamp();
+
         new_farm_token
     }
 }

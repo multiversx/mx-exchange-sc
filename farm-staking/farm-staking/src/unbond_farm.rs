@@ -55,6 +55,8 @@ pub trait UnbondFarmModule:
             EsdtTokenPayment::new(storage_cache.farming_token_id.clone(), 0, payment.amount);
         self.send_payment_non_zero(&caller, &farming_tokens);
 
+        self.update_start_of_epoch_timestamp();
+
         farming_tokens
     }
 }

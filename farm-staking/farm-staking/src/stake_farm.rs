@@ -97,6 +97,8 @@ pub trait StakeFarmModule:
             enter_result.storage_cache,
         );
 
+        self.update_start_of_epoch_timestamp();
+
         (new_farm_token, boosted_rewards_payment).into()
     }
 }
