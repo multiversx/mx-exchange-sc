@@ -3,6 +3,7 @@
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
+use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
@@ -20,7 +21,6 @@ use energy_query::{Energy, EnergyQueryModule};
 use energy_update::EnergyUpdate;
 use farm::Farm;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
-use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;

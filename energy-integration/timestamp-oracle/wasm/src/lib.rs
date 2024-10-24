@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                            1
+// Endpoints:                            4
 // Async Callback (empty):               1
-// Total number of exported functions:   4
+// Total number of exported functions:   7
 
 #![no_std]
 
@@ -20,7 +20,10 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
+        setStartTimestampForEpoch => set_start_timestamp_for_epoch
+        overwriteStartTimestampForEpoch => overwrite_start_timestamp_for_epoch
         updateAndGetTimestampStartEpoch => update_and_get_timestamp_start_epoch
+        getStartTimestampForEpoch => get_start_timestamp_for_epoch
     )
 }
 

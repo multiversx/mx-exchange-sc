@@ -152,11 +152,14 @@ name = "farm-boosted-yields"
 version = "0.0.0"
 dependencies = [
  "common-types",
+ "common_structs",
  "config",
  "energy-query",
  "multiversx-sc",
  "pausable",
  "permissions_module",
+ "timestamp-oracle",
+ "utils",
  "week-timekeeping",
  "weekly-rewards-splitting",
 ]
@@ -508,6 +511,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "timestamp-oracle"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "multiversx-sc",
 ]
 
 [[package]]
