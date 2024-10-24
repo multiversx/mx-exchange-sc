@@ -47,6 +47,20 @@ pub trait EpochToTimestampModule {
         mapper.get()
     }
 
+    #[view(getStartTimestampMultipleEpochs)]
+    fn get_start_timestamp_multiple_epochs(
+        &self,
+        epochs: MultiValueEncoded<Epoch>,
+    ) -> MultiValueEncoded<Timestamp> {
+        let mut timestamps = MultiValueEncoded::new();
+        for epoch in epochs {
+            let timestamp = self.get_start_timestamp_for_epoch(epoch);
+            timestamps.push(timestamp);
+        }
+
+        timestamps
+    }
+
     #[storage_mapper("epochLastInteraction")]
     fn epoch_last_interaction(&self) -> SingleValueMapper<Epoch>;
 

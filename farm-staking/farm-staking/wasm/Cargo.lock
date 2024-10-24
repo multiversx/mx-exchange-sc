@@ -147,6 +147,7 @@ dependencies = [
  "common_structs",
  "config",
  "energy-query",
+ "math",
  "multiversx-sc",
  "pausable",
  "permissions_module",

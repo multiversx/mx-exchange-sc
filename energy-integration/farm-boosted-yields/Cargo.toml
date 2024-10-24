@@ -37,3 +37,6 @@ path = "../../common/common_structs"
 
 [dependencies.utils]
 path = "../../common/modules/utils"
+
+[dependencies.math]
+path = "../../common/modules/math"

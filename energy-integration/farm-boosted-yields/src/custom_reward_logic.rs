@@ -1,9 +1,21 @@
 use common_structs::{Epoch, Nonce, Timestamp};
+use math::linear_interpolation;
 use timestamp_oracle::epoch_to_timestamp::ProxyTrait as _;
-use week_timekeeping::Week;
-use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
+use week_timekeeping::{Week, EPOCHS_IN_WEEK};
+use weekly_rewards_splitting::{ClaimProgress, USER_MAX_CLAIM_WEEKS};
+
+use crate::boosted_yields_factors::BoostedYieldsFactors;
 
 multiversx_sc::imports!();
+
+pub struct CalculateRewardsArgs<'a, M: ManagedTypeApi> {
+    pub factors: &'a BoostedYieldsFactors<M>,
+    pub weekly_reward_amount: &'a BigUint<M>,
+    pub user_farm_amount: &'a BigUint<M>,
+    pub farm_supply_for_week: &'a BigUint<M>,
+    pub energy_amount: &'a BigUint<M>,
+    pub total_energy: &'a BigUint<M>,
+}
 
 pub struct SplitReward<M: ManagedTypeApi> {
     pub base_farm: BigUint<M>,
@@ -92,6 +104,63 @@ pub trait CustomRewardLogicModule:
         SplitReward::new(base_farm_amount, boosted_yields_cut)
     }
 
+    fn calculate_user_boosted_rewards(&self, args: CalculateRewardsArgs<Self::Api>) -> BigUint {
+        let max_rewards =
+            &args.factors.max_rewards_factor * args.weekly_reward_amount * args.user_farm_amount
+                / args.farm_supply_for_week;
+
+        // computed user rewards = total_boosted_rewards *
+        // (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) /
+        // (energy_const + farm_const)
+        let boosted_rewards_by_energy = args.weekly_reward_amount
+            * &args.factors.user_rewards_energy_const
+            * args.energy_amount
+            / args.total_energy;
+        let boosted_rewards_by_tokens = args.weekly_reward_amount
+            * &args.factors.user_rewards_farm_const
+            * args.user_farm_amount
+            / args.farm_supply_for_week;
+        let constants_base =
+            &args.factors.user_rewards_energy_const + &args.factors.user_rewards_farm_const;
+        let boosted_reward_amount =
+            (boosted_rewards_by_energy + boosted_rewards_by_tokens) / constants_base;
+
+        core::cmp::min(max_rewards, boosted_reward_amount)
+    }
+
+    fn limit_boosted_rewards_by_enter_time(
+        &self,
+        user_reward: &mut BigUint,
+        claim_progress: &ClaimProgress<Self::Api>,
+    ) {
+        let week_start_epoch = self.get_start_epoch_for_week(claim_progress.week);
+        let week_end_epoch = week_start_epoch + EPOCHS_IN_WEEK;
+
+        let mut needed_epoch_timestamps = MultiValueEncoded::new();
+        needed_epoch_timestamps.push(week_start_epoch);
+        needed_epoch_timestamps.push(week_end_epoch);
+
+        let timestamps = self
+            .get_multiple_epochs_start_timestamp(needed_epoch_timestamps)
+            .to_vec();
+        let week_start_timestamp = timestamps.get(0);
+        let week_end_timestamp = timestamps.get(1);
+        if !(claim_progress.enter_timestamp > week_start_timestamp
+            && claim_progress.enter_timestamp < week_end_timestamp)
+        {
+            return;
+        }
+
+        let interpolated_reward = linear_interpolation::<Self::Api, _>(
+            BigUint::from(week_start_timestamp),
+            BigUint::from(week_end_timestamp),
+            BigUint::from(claim_progress.enter_timestamp),
+            user_reward.clone(),
+            BigUint::zero(),
+        );
+        *user_reward = interpolated_reward;
+    }
+
     fn get_start_of_epoch_timestamp(&self) -> Timestamp {
         let timestamp_oracle_addr = self.timestamp_oracle_address().get();
         self.timestamp_oracle_proxy_obj(timestamp_oracle_addr)
@@ -99,10 +168,20 @@ pub trait CustomRewardLogicModule:
             .execute_on_dest_context()
     }
 
-    fn get_custom_epoch_start_timestamp(&self, epoch: Epoch) -> Timestamp {
+    fn get_epoch_start_timestamp(&self, epoch: Epoch) -> Timestamp {
         let timestamp_oracle_addr = self.timestamp_oracle_address().get();
         self.timestamp_oracle_proxy_obj(timestamp_oracle_addr)
             .get_start_timestamp_for_epoch(epoch)
+            .execute_on_dest_context()
+    }
+
+    fn get_multiple_epochs_start_timestamp(
+        &self,
+        epochs: MultiValueEncoded<Epoch>,
+    ) -> MultiValueEncoded<Timestamp> {
+        let timestamp_oracle_addr = self.timestamp_oracle_address().get();
+        self.timestamp_oracle_proxy_obj(timestamp_oracle_addr)
+            .get_start_timestamp_multiple_epochs(epochs)
             .execute_on_dest_context()
     }
 

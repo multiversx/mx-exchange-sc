@@ -34,10 +34,10 @@ pub trait UpdateClaimProgressEnergyModule:
         let current_user_energy = self.get_energy_entry(caller);
 
         let progress_mapper = self.current_claim_progress(caller);
-        let (enter_epoch, opt_progress_for_update) = if !progress_mapper.is_empty() {
+        let (enter_timestamp, opt_progress_for_update) = if !progress_mapper.is_empty() {
             let progress = progress_mapper.get();
 
-            (progress.enter_epoch, Some(progress))
+            (progress.enter_timestamp, Some(progress))
         } else {
             (self.blockchain().get_block_epoch(), None)
         };
@@ -52,7 +52,7 @@ pub trait UpdateClaimProgressEnergyModule:
             progress_mapper.set(&ClaimProgress {
                 week: current_week,
                 energy: current_user_energy,
-                enter_epoch,
+                enter_timestamp,
             });
         } else {
             progress_mapper.clear();

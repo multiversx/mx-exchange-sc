@@ -2,10 +2,9 @@
 
 multiversx_sc::imports!();
 
-use core::cmp;
-
 use boosted_yields_factors::BoostedYieldsConfig;
 use common_structs::PaymentsVec;
+use custom_reward_logic::CalculateRewardsArgs;
 use multiversx_sc::api::ErrorApi;
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
@@ -147,36 +146,21 @@ where
             return user_rewards;
         }
 
-        let max_rewards =
-            &factors.max_rewards_factor * &weekly_reward.amount * &self.user_farm_amount
-                / &farm_supply_for_week;
-
-        // computed user rewards = total_boosted_rewards *
-        // (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) /
-        // (energy_const + farm_const)
-        let boosted_rewards_by_energy =
-            &weekly_reward.amount * &factors.user_rewards_energy_const * energy_amount
-                / total_energy;
-        let boosted_rewards_by_tokens =
-            &weekly_reward.amount * &factors.user_rewards_farm_const * &self.user_farm_amount
-                / &farm_supply_for_week;
-        let constants_base = &factors.user_rewards_energy_const + &factors.user_rewards_farm_const;
-        let boosted_reward_amount =
-            (boosted_rewards_by_energy + boosted_rewards_by_tokens) / constants_base;
-
-        // min between base rewards per week and computed rewards
-        let mut user_reward = cmp::min(max_rewards, boosted_reward_amount);
+        let mut user_reward = sc.calculate_user_boosted_rewards(CalculateRewardsArgs {
+            factors,
+            weekly_reward_amount: &weekly_reward.amount,
+            user_farm_amount: &self.user_farm_amount,
+            farm_supply_for_week: &farm_supply_for_week,
+            energy_amount: &energy_amount,
+            total_energy,
+        });
         if user_reward == 0 {
             return user_rewards;
         }
 
-        let week_start_epoch = sc.get_start_epoch_for_week(claim_progress.week);
-        if claim_progress.enter_epoch > week_start_epoch {
-            // do math
-
-            if user_reward == 0 {
-                return user_rewards;
-            }
+        sc.limit_boosted_rewards_by_enter_time(&mut user_reward, claim_progress);
+        if user_reward == 0 {
+            return user_rewards;
         }
 
         sc.remaining_boosted_rewards_to_distribute(claim_progress.week)

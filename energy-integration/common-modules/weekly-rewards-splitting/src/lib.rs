@@ -13,7 +13,7 @@ pub mod update_claim_progress_energy;
 
 use base_impl::WeeklyRewardsSplittingTraitsModule;
 use codec::NestedDecodeInput;
-use common_structs::{Epoch, PaymentsVec};
+use common_structs::{PaymentsVec, Timestamp};
 use energy_query::Energy;
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
@@ -21,7 +21,7 @@ use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 pub struct ClaimProgress<M: ManagedTypeApi> {
     pub energy: Energy<M>,
     pub week: Week,
-    pub enter_epoch: Epoch,
+    pub enter_timestamp: Timestamp,
 }
 
 impl<M: ManagedTypeApi> TopDecode for ClaimProgress<M> {
@@ -32,8 +32,8 @@ impl<M: ManagedTypeApi> TopDecode for ClaimProgress<M> {
         let mut input_nested = input.into_nested_buffer();
         let energy = Energy::dep_decode(&mut input_nested)?;
         let week = Week::dep_decode(&mut input_nested)?;
-        let enter_epoch = if !input_nested.is_depleted() {
-            Epoch::dep_decode(&mut input_nested)?
+        let enter_timestamp = if !input_nested.is_depleted() {
+            Timestamp::dep_decode(&mut input_nested)?
         } else {
             0
         };
@@ -45,7 +45,7 @@ impl<M: ManagedTypeApi> TopDecode for ClaimProgress<M> {
         Result::Ok(ClaimProgress {
             energy,
             week,
-            enter_epoch,
+            enter_timestamp,
         })
     }
 
@@ -102,7 +102,7 @@ pub trait WeeklyRewardsSplittingModule:
             ClaimProgress {
                 energy: current_user_energy.clone(),
                 week: current_week,
-                enter_epoch: self.blockchain().get_block_epoch(),
+                enter_timestamp: self.blockchain().get_block_timestamp(),
             }
         };
 
@@ -230,7 +230,7 @@ mod tests {
             ClaimProgress {
                 energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
                 week: 2,
-                enter_epoch: 0
+                enter_timestamp: 0
             }
         );
     }
@@ -242,7 +242,7 @@ mod tests {
         let new_progress = ClaimProgress {
             energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
             week: 2,
-            enter_epoch: 5,
+            enter_timestamp: 5,
         };
         let mut new_progress_encoded = ManagedBuffer::<DebugApi>::new();
         let _ = new_progress.top_encode(&mut new_progress_encoded);
@@ -252,7 +252,7 @@ mod tests {
             ClaimProgress {
                 energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
                 week: 2,
-                enter_epoch: 5
+                enter_timestamp: 5
             }
         );
     }
