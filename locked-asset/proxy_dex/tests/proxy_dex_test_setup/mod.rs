@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![allow(deprecated)]
 
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
 use config::ConfigModule;

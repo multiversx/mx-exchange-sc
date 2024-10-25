@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use farm_staking::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
 use farm_staking::compound_stake_farm_rewards::CompoundStakeFarmRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;

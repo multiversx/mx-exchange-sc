@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 mod fees_collector_test_setup;
 
 use energy_query::Energy;

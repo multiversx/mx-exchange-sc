@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use common_structs::{Epoch, Percent, Timestamp};
 use multiversx_sc::{
     codec::multi_types::OptionalValue,

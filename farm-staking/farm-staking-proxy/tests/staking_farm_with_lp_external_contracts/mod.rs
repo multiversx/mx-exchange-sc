@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use energy_factory::token_whitelist::TokenWhitelistModule;
 use energy_factory::SimpleLockEnergy;
 use energy_query::EnergyQueryModule;

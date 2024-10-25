@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};

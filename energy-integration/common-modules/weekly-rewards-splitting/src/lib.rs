@@ -107,10 +107,6 @@ pub trait WeeklyRewardsSplittingModule:
             opt_progress_for_energy_update,
         );
 
-        let current_epoch = self.blockchain().get_block_epoch();
-        let mut calculated_energy_for_current_epoch = claim_progress.energy.clone();
-        calculated_energy_for_current_epoch.deplete(current_epoch);
-
         let mut all_rewards = ManagedVec::new();
 
         let total_weeks_to_claim = current_week - claim_progress.week;

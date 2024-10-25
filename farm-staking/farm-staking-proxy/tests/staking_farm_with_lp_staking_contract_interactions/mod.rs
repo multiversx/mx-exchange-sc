@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use config::ConfigModule;
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;

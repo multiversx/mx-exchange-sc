@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 pub mod farm_staking_setup;
 use config::ConfigModule;
 use farm_staking::{

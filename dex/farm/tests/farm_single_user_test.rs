@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 mod farm_setup;
 
 use config::ConfigModule;

@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 mod farm_setup;
 
 use farm_setup::multi_user_farm_setup::*;
@@ -10,6 +8,7 @@ fn test_farm_setup() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 }
 
@@ -19,6 +18,7 @@ fn test_energy_update() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let first_farm_token_amount = 100_000_000;
@@ -39,6 +39,7 @@ fn test_energy_update_no_claim_current_week() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let first_farm_token_amount = 100_000_000;

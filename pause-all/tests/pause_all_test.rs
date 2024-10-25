@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use farm::Farm;
 use multiversx_sc::types::{Address, ManagedAddress, MultiValueEncoded, OperationCompletionStatus};
 use multiversx_sc_scenario::{

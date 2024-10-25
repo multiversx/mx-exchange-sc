@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use multiversx_sc::{

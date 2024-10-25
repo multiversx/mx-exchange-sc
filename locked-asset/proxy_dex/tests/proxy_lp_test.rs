@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 mod proxy_dex_test_setup;
 
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};

@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 mod token_unstake_setup;
 
 use multiversx_sc::types::{EsdtTokenPayment, ManagedVec};

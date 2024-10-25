@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use common_structs::FarmTokenAttributes;
 use farm_with_locked_rewards::Farm;
 use multiversx_sc::{codec::Empty, imports::OptionalValue};

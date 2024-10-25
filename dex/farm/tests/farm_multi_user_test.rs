@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use common_structs::FarmTokenAttributes;
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 
@@ -14,10 +12,12 @@ use weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo;
 #[test]
 fn farm_with_no_boost_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // first user enter farm
@@ -112,10 +112,12 @@ fn farm_with_no_boost_test() {
 #[test]
 fn farm_with_boosted_yields_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -224,10 +226,12 @@ fn farm_with_boosted_yields_test() {
 #[test]
 fn farm_change_boosted_yields_factors_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -287,10 +291,12 @@ fn farm_change_boosted_yields_factors_test() {
 #[test]
 fn farm_boosted_yields_claim_with_different_user_pos_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -393,10 +399,12 @@ fn farm_boosted_yields_claim_with_different_user_pos_test() {
 #[test]
 fn farm_known_proxy_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // first user enter farm
@@ -492,10 +500,12 @@ fn farm_known_proxy_test() {
 #[test]
 fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -742,10 +752,12 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
 #[test]
 fn farm_enter_with_multiple_farm_token() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -857,10 +869,12 @@ fn farm_enter_with_multiple_farm_token() {
 #[test]
 fn farm_claim_with_minimum_tokens() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);

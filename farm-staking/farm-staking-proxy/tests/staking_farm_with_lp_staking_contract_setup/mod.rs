@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use energy_query::EnergyQueryModule;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
