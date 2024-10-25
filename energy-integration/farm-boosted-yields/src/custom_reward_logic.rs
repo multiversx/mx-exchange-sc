@@ -1,4 +1,4 @@
-use common_structs::{Epoch, Nonce, Timestamp};
+use common_structs::{Epoch, Timestamp};
 use math::linear_interpolation;
 use timestamp_oracle::epoch_to_timestamp::ProxyTrait as _;
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
@@ -129,11 +129,11 @@ pub trait CustomRewardLogicModule:
         core::cmp::min(max_rewards, boosted_reward_amount)
     }
 
-    fn limit_boosted_rewards_by_enter_time(
+    fn limit_boosted_rewards_by_claim_time(
         &self,
-        user_reward: &mut BigUint,
-        claim_progress: &ClaimProgress<Self::Api>,
-    ) {
+        user_reward: BigUint,
+        claim_progress: &mut ClaimProgress<Self::Api>,
+    ) -> BigUint {
         let week_start_epoch = self.get_start_epoch_for_week(claim_progress.week);
         let week_end_epoch = week_start_epoch + EPOCHS_IN_WEEK;
 
@@ -146,20 +146,45 @@ pub trait CustomRewardLogicModule:
             .to_vec();
         let week_start_timestamp = timestamps.get(0);
         let week_end_timestamp = timestamps.get(1);
-        if !(claim_progress.enter_timestamp > week_start_timestamp
-            && claim_progress.enter_timestamp < week_end_timestamp)
+        let current_timestamp = self.blockchain().get_block_timestamp();
+        let min_timestamp = core::cmp::min(current_timestamp, week_end_timestamp);
+        if !(claim_progress.last_claim_timestamp >= week_start_timestamp
+            && claim_progress.last_claim_timestamp < week_end_timestamp)
         {
-            return;
+            claim_progress.last_claim_timestamp = min_timestamp;
+
+            return user_reward;
         }
 
-        let interpolated_reward = linear_interpolation::<Self::Api, _>(
-            BigUint::from(week_start_timestamp),
-            BigUint::from(week_end_timestamp),
-            BigUint::from(claim_progress.enter_timestamp),
-            user_reward.clone(),
-            BigUint::zero(),
+        // last claim - 25% of week, current time - 90% of week => give 65% of rewards
+        // Using u128 just for extra safety. It's not technically needed.
+        let last_claim_timestamp_percent_of_week = linear_interpolation::<Self::Api, _>(
+            week_start_timestamp as u128,
+            week_end_timestamp as u128,
+            claim_progress.last_claim_timestamp as u128,
+            0,
+            MAX_PERCENT as u128,
         );
-        *user_reward = interpolated_reward;
+        let current_timestamp_percent_of_week = if min_timestamp != week_end_timestamp {
+            linear_interpolation::<Self::Api, _>(
+                week_start_timestamp as u128,
+                week_end_timestamp as u128,
+                min_timestamp as u128,
+                0,
+                MAX_PERCENT as u128,
+            )
+        } else {
+            MAX_PERCENT as u128 // do less math
+        };
+
+        claim_progress.last_claim_timestamp = min_timestamp;
+
+        if last_claim_timestamp_percent_of_week >= current_timestamp_percent_of_week {
+            return user_reward;
+        }
+
+        let percent_diff = current_timestamp_percent_of_week - last_claim_timestamp_percent_of_week;
+        user_reward * BigUint::from(percent_diff) / MAX_PERCENT
     }
 
     #[inline]
@@ -199,9 +224,6 @@ pub trait CustomRewardLogicModule:
 
     #[storage_mapper("timestampOracleAddress")]
     fn timestamp_oracle_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[storage_mapper("posEnterTimestamp")]
-    fn pos_enter_timestamp(&self, pos_nonce: Nonce) -> SingleValueMapper<Timestamp>;
 
     #[view(getBoostedYieldsRewardsPercentage)]
     #[storage_mapper("boostedYieldsRewardsPercentage")]

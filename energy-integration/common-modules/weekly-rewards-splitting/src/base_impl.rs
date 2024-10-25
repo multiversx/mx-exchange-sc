@@ -52,7 +52,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
     fn get_user_rewards_for_week(
         &self,
         sc: &Self::WeeklyRewardsSplittingMod,
-        claim_progress: &ClaimProgress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+        claim_progress: &mut ClaimProgress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();

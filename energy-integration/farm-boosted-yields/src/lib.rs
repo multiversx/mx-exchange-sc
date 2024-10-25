@@ -111,7 +111,7 @@ where
     fn get_user_rewards_for_week(
         &self,
         sc: &Self::WeeklyRewardsSplittingMod,
-        claim_progress: &ClaimProgress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+        claim_progress: &mut ClaimProgress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
@@ -146,7 +146,7 @@ where
             return user_rewards;
         }
 
-        let mut user_reward = sc.calculate_user_boosted_rewards(CalculateRewardsArgs {
+        let user_reward = sc.calculate_user_boosted_rewards(CalculateRewardsArgs {
             factors,
             weekly_reward_amount: &weekly_reward.amount,
             user_farm_amount: &self.user_farm_amount,
@@ -158,18 +158,18 @@ where
             return user_rewards;
         }
 
-        sc.limit_boosted_rewards_by_enter_time(&mut user_reward, claim_progress);
-        if user_reward == 0 {
+        let new_user_reward = sc.limit_boosted_rewards_by_claim_time(user_reward, claim_progress);
+        if new_user_reward == 0 {
             return user_rewards;
         }
 
         sc.remaining_boosted_rewards_to_distribute(claim_progress.week)
-            .update(|amount| *amount -= &user_reward);
+            .update(|amount| *amount -= &new_user_reward);
 
         user_rewards.push(EsdtTokenPayment::new(
             weekly_reward.token_identifier,
             0,
-            user_reward,
+            new_user_reward,
         ));
 
         user_rewards
