@@ -148,11 +148,8 @@ pub trait WeeklyRewardsSplittingModule:
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let total_energy = self.total_energy_for_week(claim_progress.week).get();
-        let user_rewards = wrapper.get_user_rewards_for_week(self, claim_progress, &total_energy);
 
-        claim_progress.advance_week();
-
-        user_rewards
+        wrapper.get_user_rewards_for_week(self, claim_progress, &total_energy)
     }
 
     #[view(getLastActiveWeekForUser)]

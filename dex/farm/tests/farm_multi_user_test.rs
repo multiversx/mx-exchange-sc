@@ -123,6 +123,9 @@ fn farm_with_boosted_yields_test() {
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
     farm_setup.b_mock.set_block_epoch(2);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(2 * TIMESTAMP_PER_EPOCH);
 
     // first user enter farm
     let first_farm_token_amount = 100_000_000;
@@ -147,6 +150,10 @@ fn farm_with_boosted_yields_test() {
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(6 * TIMESTAMP_PER_EPOCH);
+
     farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
@@ -155,6 +162,10 @@ fn farm_with_boosted_yields_test() {
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(10 * TIMESTAMP_PER_EPOCH);
+
     farm_setup.set_user_energy(&first_user, 1_000, 10, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 10, 1);
 

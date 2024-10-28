@@ -73,6 +73,8 @@ pub trait WeeklyRewardsSplittingTraitsModule {
             }
         }
 
+        claim_progress.advance_week();
+
         user_rewards
     }
 

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmTokenAttributes, Timestamp};
 use config::ConfigModule;
 use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
@@ -23,6 +23,7 @@ use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
+use timestamp_oracle::epoch_to_timestamp::EpochToTimestampModule;
 use timestamp_oracle::TimestampOracle;
 use week_timekeeping::Epoch;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
@@ -40,6 +41,7 @@ pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const TIMESTAMP_PER_EPOCH: Timestamp = 1 * 24 * 60 * 60;
 
 pub struct RawFarmTokenAttributes {
     pub reward_per_share_bytes: Vec<u8>,
@@ -131,6 +133,10 @@ where
         b_mock
             .execute_tx(&owner, &timestamp_oracle_wrapper, &rust_zero, |sc| {
                 sc.init(0);
+
+                for i in 0..=21 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
             })
             .assert_ok();
 
@@ -158,6 +164,9 @@ where
                 sc.produce_rewards_enabled().set(true);
                 sc.set_energy_factory_address(managed_address!(
                     energy_factory_wrapper.address_ref()
+                ));
+                sc.set_timestamp_oracle_address(managed_address!(
+                    timestamp_oracle_wrapper.address_ref()
                 ));
             })
             .assert_ok();

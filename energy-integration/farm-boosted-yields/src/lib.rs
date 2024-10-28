@@ -117,7 +117,15 @@ where
         let mut user_rewards = ManagedVec::new();
         let energy_amount = claim_progress.energy.get_energy_amount();
         let farm_supply_for_week = sc.farm_supply_for_week(claim_progress.week).get();
+
+        let current_week = sc.get_current_week();
+        let week_timestamps = sc.get_week_start_and_end_timestamp(claim_progress.week);
+        let current_timestamp = sc.blockchain().get_block_timestamp();
+        let min_timestamp = core::cmp::min(current_timestamp, week_timestamps.end);
+
         if total_energy == &0 || farm_supply_for_week == 0 {
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+
             return user_rewards;
         }
 
@@ -127,15 +135,19 @@ where
         if energy_amount < factors.min_energy_amount
             || self.user_farm_amount < factors.min_farm_amount
         {
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+
             return user_rewards;
         }
 
         let total_rewards = self.collect_and_get_rewards_for_week(sc, claim_progress.week);
         if total_rewards.is_empty() {
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+
             return user_rewards;
         }
 
-        // always no entries or 1 entry, but the trait uses a Vec
+        // always no entries or 1 entry, but the trait uses a Vec. Just a sanity check.
         if total_rewards.len() != 1 {
             <<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>::error_api_impl()
                 .signal_error(b"Invalid boosted yields rewards");
@@ -143,6 +155,8 @@ where
 
         let weekly_reward = total_rewards.get(0);
         if weekly_reward.amount == 0 {
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+
             return user_rewards;
         }
 
@@ -155,14 +169,20 @@ where
             total_energy,
         });
         if user_reward == 0 {
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+
             return user_rewards;
         }
 
-        let new_user_reward = sc.limit_boosted_rewards_by_claim_time(user_reward, claim_progress);
+        let new_user_reward =
+            sc.limit_boosted_rewards_by_claim_time(user_reward, &week_timestamps, claim_progress);
         if new_user_reward == 0 {
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+
             return user_rewards;
         }
 
+        sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
         sc.remaining_boosted_rewards_to_distribute(claim_progress.week)
             .update(|amount| *amount -= &new_user_reward);
 

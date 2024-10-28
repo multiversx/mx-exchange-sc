@@ -31,6 +31,11 @@ impl<M: ManagedTypeApi> SplitReward<M> {
     }
 }
 
+pub struct WeekTimestamps {
+    pub start: Timestamp,
+    pub end: Timestamp,
+}
+
 pub const MAX_PERCENT: u64 = 10_000;
 
 #[multiversx_sc::module]
@@ -132,43 +137,35 @@ pub trait CustomRewardLogicModule:
     fn limit_boosted_rewards_by_claim_time(
         &self,
         user_reward: BigUint,
+        week_timestamps: &WeekTimestamps,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> BigUint {
-        let week_start_epoch = self.get_start_epoch_for_week(claim_progress.week);
-        let week_end_epoch = week_start_epoch + EPOCHS_IN_WEEK;
-
-        let mut needed_epoch_timestamps = MultiValueEncoded::new();
-        needed_epoch_timestamps.push(week_start_epoch);
-        needed_epoch_timestamps.push(week_end_epoch);
-
-        let timestamps = self
-            .get_multiple_epochs_start_timestamp(needed_epoch_timestamps)
-            .to_vec();
-        let week_start_timestamp = timestamps.get(0);
-        let week_end_timestamp = timestamps.get(1);
         let current_timestamp = self.blockchain().get_block_timestamp();
-        let min_timestamp = core::cmp::min(current_timestamp, week_end_timestamp);
-        if !(claim_progress.last_claim_timestamp >= week_start_timestamp
-            && claim_progress.last_claim_timestamp < week_end_timestamp)
+        let min_timestamp = core::cmp::min(current_timestamp, week_timestamps.end);
+        if !(claim_progress.last_claim_timestamp >= week_timestamps.start
+            && claim_progress.last_claim_timestamp < week_timestamps.end)
         {
             claim_progress.last_claim_timestamp = min_timestamp;
 
             return user_reward;
         }
 
+        // TODO: Check math, and how claim_progress is affected
+        // Does this solution fix the issue of entering late last week and exiting early next week?
+
         // last claim - 25% of week, current time - 90% of week => give 65% of rewards
         // Using u128 just for extra safety. It's not technically needed.
         let last_claim_timestamp_percent_of_week = linear_interpolation::<Self::Api, _>(
-            week_start_timestamp as u128,
-            week_end_timestamp as u128,
+            week_timestamps.start as u128,
+            week_timestamps.end as u128,
             claim_progress.last_claim_timestamp as u128,
             0,
             MAX_PERCENT as u128,
         );
-        let current_timestamp_percent_of_week = if min_timestamp != week_end_timestamp {
+        let current_timestamp_percent_of_week = if min_timestamp != week_timestamps.end {
             linear_interpolation::<Self::Api, _>(
-                week_start_timestamp as u128,
-                week_end_timestamp as u128,
+                week_timestamps.start as u128,
+                week_timestamps.end as u128,
                 min_timestamp as u128,
                 0,
                 MAX_PERCENT as u128,
@@ -185,6 +182,39 @@ pub trait CustomRewardLogicModule:
 
         let percent_diff = current_timestamp_percent_of_week - last_claim_timestamp_percent_of_week;
         user_reward * BigUint::from(percent_diff) / MAX_PERCENT
+    }
+
+    fn get_week_start_and_end_timestamp(&self, week: Week) -> WeekTimestamps {
+        let week_start_epoch = self.get_start_epoch_for_week(week);
+        let week_end_epoch = week_start_epoch + EPOCHS_IN_WEEK;
+
+        let mut needed_epoch_timestamps = MultiValueEncoded::new();
+        needed_epoch_timestamps.push(week_start_epoch);
+        needed_epoch_timestamps.push(week_end_epoch);
+
+        let timestamps = self
+            .get_multiple_epochs_start_timestamp(needed_epoch_timestamps)
+            .to_vec();
+        let week_start_timestamp = timestamps.get(0);
+        let week_end_timestamp = timestamps.get(1);
+
+        WeekTimestamps {
+            start: week_start_timestamp,
+            end: week_end_timestamp,
+        }
+    }
+
+    fn advance_week_if_needed(
+        &self,
+        current_week: Week,
+        min_timestamp: Timestamp,
+        claim_progress: &mut ClaimProgress<Self::Api>,
+    ) {
+        if claim_progress.week != current_week - 1 {
+            claim_progress.advance_week();
+        }
+
+        claim_progress.last_claim_timestamp = min_timestamp;
     }
 
     #[inline]
