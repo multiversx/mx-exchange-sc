@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           66
+// Endpoints:                           69
 // Async Callback:                       1
-// Total number of exported functions:  69
+// Total number of exported functions:  72
 
 #![no_std]
 
@@ -66,6 +66,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         getMinimumFarmingEpoch => minimum_farming_epochs
         getBurnGasLimit => burn_gas_limit
         getPairContractManagedAddress => pair_contract_address
+        enterFarmOnBehalf => enter_farm_on_behalf
+        claimRewardsOnBehalf => claim_rewards_on_behalf
+        setPermissionsHubAddress => set_permissions_hub_address
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getBoostedYieldsRewardsPercentage => boosted_yields_rewards_percentage
         getAccumulatedRewardsForWeek => accumulated_rewards_for_week
