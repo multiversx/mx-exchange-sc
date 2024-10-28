@@ -41,7 +41,7 @@ pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
-pub const TIMESTAMP_PER_EPOCH: Timestamp = 1 * 24 * 60 * 60;
+pub const TIMESTAMP_PER_EPOCH: Timestamp = 24 * 60 * 60;
 
 pub struct RawFarmTokenAttributes {
     pub reward_per_share_bytes: Vec<u8>,
