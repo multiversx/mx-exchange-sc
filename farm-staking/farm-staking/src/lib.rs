@@ -81,26 +81,24 @@ pub trait FarmStaking:
         );
 
         require!(max_apr > 0u64, "Invalid max APR percentage");
-        self.max_annual_percentage_rewards().set_if_empty(&max_apr);
+        self.max_annual_percentage_rewards().set(&max_apr);
 
         require!(
             min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
             "Invalid min unbond epochs"
         );
-        self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
+        self.min_unbond_epochs().set(min_unbond_epochs);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
-
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+        self.first_week_start_epoch().set(current_epoch);
     }
 
     #[upgrade]
     fn upgrade(&self, timestamp_oracle_address: ManagedAddress) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
+        if self.first_week_start_epoch().is_empty() {
+            let current_epoch = self.blockchain().get_block_epoch();
+            self.first_week_start_epoch().set(current_epoch);
+        }
 
         // Farm position migration code
         let farm_token_mapper = self.farm_token();

@@ -588,6 +588,7 @@ dependencies = [
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
+ "timestamp-oracle",
  "token_send",
  "utils",
  "week-timekeeping",
