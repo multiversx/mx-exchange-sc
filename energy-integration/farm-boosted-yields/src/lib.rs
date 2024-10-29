@@ -119,7 +119,7 @@ where
         let farm_supply_for_week = sc.farm_supply_for_week(claim_progress.week).get();
 
         let current_week = sc.get_current_week();
-        let week_timestamps = sc.get_week_start_and_end_timestamp(claim_progress.week);
+        let week_timestamps = sc.get_week_start_and_end_timestamp(claim_progress.week + 1);
         let current_timestamp = sc.blockchain().get_block_timestamp();
         let min_timestamp = core::cmp::min(current_timestamp, week_timestamps.end);
 

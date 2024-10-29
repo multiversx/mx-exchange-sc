@@ -150,9 +150,6 @@ pub trait CustomRewardLogicModule:
             return user_reward;
         }
 
-        // TODO: Check math, and how claim_progress is affected
-        // Does this solution fix the issue of entering late last week and exiting early next week?
-
         // last claim - 25% of week, current time - 90% of week => give 65% of rewards
         // Using u128 just for extra safety. It's not technically needed.
         let last_claim_timestamp_percent_of_week = linear_interpolation::<Self::Api, _>(
@@ -196,7 +193,7 @@ pub trait CustomRewardLogicModule:
             .get_multiple_epochs_start_timestamp(needed_epoch_timestamps)
             .to_vec();
         let week_start_timestamp = timestamps.get(0);
-        let week_end_timestamp = timestamps.get(1);
+        let week_end_timestamp = timestamps.get(1) - 1;
 
         WeekTimestamps {
             start: week_start_timestamp,
