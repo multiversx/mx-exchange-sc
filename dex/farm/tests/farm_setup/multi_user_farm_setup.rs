@@ -134,7 +134,7 @@ where
             .execute_tx(&owner, &timestamp_oracle_wrapper, &rust_zero, |sc| {
                 sc.init(0);
 
-                for i in 0..=21 {
+                for i in 0..=100 {
                     sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
                 }
             })
