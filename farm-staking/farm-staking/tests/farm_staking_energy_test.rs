@@ -16,8 +16,11 @@ use multiversx_sc_scenario::{
 
 #[test]
 fn farm_staking_with_energy_setup_test() {
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     fs_setup.set_boosted_yields_factors();
     fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -26,8 +29,12 @@ fn farm_staking_with_energy_setup_test() {
 #[test]
 fn farm_staking_boosted_rewards_no_energy_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let user_address = fs_setup.user_address.clone();
 
@@ -72,8 +79,12 @@ fn farm_staking_boosted_rewards_no_energy_test() {
 #[test]
 fn farm_staking_other_user_enter_negative_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let user_address = fs_setup.user_address.clone();
     let rand_user = fs_setup.b_mock.create_user_account(&rust_biguint!(0));
@@ -118,8 +129,12 @@ fn farm_staking_other_user_enter_negative_test() {
 #[test]
 fn farm_staking_boosted_rewards_with_energy_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let user_address = fs_setup.user_address.clone();
     let user_address2 = fs_setup.user_address2.clone();
@@ -343,8 +358,12 @@ fn farm_staking_boosted_rewards_with_energy_test() {
 #[test]
 fn farm_staking_partial_position_handling_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let user_address = fs_setup.user_address.clone();
 
@@ -505,8 +524,12 @@ fn farm_staking_partial_position_handling_test() {
 #[test]
 fn farm_staking_claim_boosted_rewards_for_user_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let user_address = fs_setup.user_address.clone();
 
@@ -619,8 +642,12 @@ fn farm_staking_claim_boosted_rewards_for_user_test() {
 #[test]
 fn farm_staking_full_position_boosted_rewards_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let user_address = fs_setup.user_address.clone();
 
@@ -734,8 +761,12 @@ fn farm_staking_full_position_boosted_rewards_test() {
 #[test]
 fn position_owner_change_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let first_user = fs_setup.user_address.clone();
     let second_user = fs_setup.user_address2.clone();
@@ -1026,8 +1057,12 @@ fn position_owner_change_test() {
 #[test]
 fn farm_staking_farm_position_migration_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let user = fs_setup.user_address.clone();
 
@@ -1120,8 +1155,12 @@ fn farm_staking_farm_position_migration_test() {
 #[test]
 fn boosted_rewards_config_change_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let first_user = fs_setup.user_address.clone();
     let second_user = fs_setup.user_address2.clone();
@@ -1430,8 +1469,12 @@ fn boosted_rewards_config_change_test() {
 #[test]
 fn claim_only_boosted_rewards_per_week_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     fs_setup.set_boosted_yields_factors();
     fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -1525,8 +1568,12 @@ fn claim_only_boosted_rewards_per_week_test() {
 #[test]
 fn claim_rewards_per_week_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     fs_setup.set_boosted_yields_factors();
     fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -1619,8 +1666,12 @@ fn claim_rewards_per_week_test() {
 #[test]
 fn claim_boosted_rewards_with_zero_position_test() {
     DebugApi::dummy();
-    let mut fs_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     fs_setup.set_boosted_yields_factors();
     fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);

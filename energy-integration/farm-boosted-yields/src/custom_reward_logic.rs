@@ -207,15 +207,11 @@ pub trait CustomRewardLogicModule:
         current_week: Week,
         min_timestamp: Timestamp,
         claim_progress: &mut ClaimProgress<Self::Api>,
-    ) -> Week {
+    ) {
         claim_progress.last_claim_timestamp = min_timestamp;
 
         if claim_progress.week != current_week - 1 {
             claim_progress.advance_week();
-
-            claim_progress.week - 1
-        } else {
-            claim_progress.week
         }
     }
 

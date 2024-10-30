@@ -124,7 +124,7 @@ where
         let min_timestamp = core::cmp::min(current_timestamp, week_timestamps.end);
 
         if total_energy == &0 || farm_supply_for_week == 0 {
-            let _ = sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
 
             return user_rewards;
         }
@@ -135,14 +135,14 @@ where
         if energy_amount < factors.min_energy_amount
             || self.user_farm_amount < factors.min_farm_amount
         {
-            let _ = sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
 
             return user_rewards;
         }
 
         let total_rewards = self.collect_and_get_rewards_for_week(sc, claim_progress.week);
         if total_rewards.is_empty() {
-            let _ = sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
 
             return user_rewards;
         }
@@ -155,7 +155,7 @@ where
 
         let weekly_reward = total_rewards.get(0);
         if weekly_reward.amount == 0 {
-            let _ = sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
 
             return user_rewards;
         }
@@ -169,7 +169,7 @@ where
             total_energy,
         });
         if user_reward == 0 {
-            let _ = sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
 
             return user_rewards;
         }
@@ -177,14 +177,14 @@ where
         let new_user_reward =
             sc.limit_boosted_rewards_by_claim_time(user_reward, &week_timestamps, claim_progress);
         if new_user_reward == 0 {
-            let _ = sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
+            sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
 
             return user_rewards;
         }
 
-        let prev_week = sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
-        sc.remaining_boosted_rewards_to_distribute(prev_week)
+        sc.remaining_boosted_rewards_to_distribute(claim_progress.week)
             .update(|amount| *amount -= &new_user_reward);
+        sc.advance_week_if_needed(current_week, min_timestamp, claim_progress);
 
         user_rewards.push(EsdtTokenPayment::new(
             weekly_reward.token_identifier,
