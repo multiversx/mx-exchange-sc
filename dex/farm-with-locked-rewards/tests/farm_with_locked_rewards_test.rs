@@ -13,9 +13,11 @@ mod farm_with_locked_rewards_setup;
 #[test]
 fn farm_with_no_boost_no_proxy_test() {
     DebugApi::dummy();
+
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // first user enter farm
@@ -113,9 +115,11 @@ fn farm_with_no_boost_no_proxy_test() {
 #[test]
 fn farm_with_boosted_yields_no_proxy_test() {
     DebugApi::dummy();
+
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -232,9 +236,11 @@ fn farm_with_boosted_yields_no_proxy_test() {
 #[test]
 fn total_farm_position_claim_with_locked_rewards_test() {
     DebugApi::dummy();
+
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -339,9 +345,11 @@ fn total_farm_position_claim_with_locked_rewards_test() {
 #[test]
 fn claim_only_boosted_rewards_per_week_test() {
     DebugApi::dummy();
+
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -402,9 +410,11 @@ fn claim_only_boosted_rewards_per_week_test() {
 #[test]
 fn claim_rewards_per_week_test() {
     DebugApi::dummy();
+
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -468,9 +478,11 @@ fn claim_rewards_per_week_test() {
 #[test]
 fn claim_boosted_rewards_with_zero_position_test() {
     DebugApi::dummy();
+
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -539,9 +551,11 @@ fn claim_boosted_rewards_with_zero_position_test() {
 #[test]
 fn claim_boosted_rewards_user_energy_not_registered_test() {
     DebugApi::dummy();
+
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
