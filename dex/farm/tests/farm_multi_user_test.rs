@@ -122,22 +122,20 @@ fn farm_with_boosted_yields_test() {
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
-    farm_setup.b_mock.set_block_epoch(2);
-    farm_setup
-        .b_mock
-        .set_block_timestamp(2 * TIMESTAMP_PER_EPOCH);
+    farm_setup.b_mock.set_block_epoch(0);
+    farm_setup.b_mock.set_block_timestamp(1);
 
     // first user enter farm
     let first_farm_token_amount = 100_000_000;
     let first_user = farm_setup.first_user.clone();
     let third_user = farm_setup.third_user.clone();
-    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+    farm_setup.set_user_energy(&first_user, 1_000, 0, 1);
     farm_setup.enter_farm(&first_user, first_farm_token_amount);
 
     // second user enter farm
     let second_farm_token_amount = 50_000_000;
     let second_user = farm_setup.second_user.clone();
-    farm_setup.set_user_energy(&second_user, 4_000, 2, 1);
+    farm_setup.set_user_energy(&second_user, 4_000, 0, 1);
     farm_setup.enter_farm(&second_user, second_farm_token_amount);
 
     // users claim rewards to get their energy registered
@@ -521,23 +519,21 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
-    farm_setup.b_mock.set_block_epoch(2);
-    farm_setup
-        .b_mock
-        .set_block_timestamp(3 * TIMESTAMP_PER_EPOCH - 1);
+    farm_setup.b_mock.set_block_epoch(0);
+    farm_setup.b_mock.set_block_timestamp(1);
 
     let third_user = farm_setup.third_user.clone();
 
     // first user enter farm
     let first_farm_token_amount = 100_000_000;
     let first_user = farm_setup.first_user.clone();
-    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+    farm_setup.set_user_energy(&first_user, 1_000, 0, 1);
     farm_setup.enter_farm(&first_user, first_farm_token_amount);
 
     // second user enter farm
     let second_farm_token_amount = 50_000_000;
     let second_user = farm_setup.second_user.clone();
-    farm_setup.set_user_energy(&second_user, 4_000, 2, 1);
+    farm_setup.set_user_energy(&second_user, 4_000, 0, 1);
     farm_setup.enter_farm(&second_user, second_farm_token_amount);
 
     // users claim rewards to get their energy registered

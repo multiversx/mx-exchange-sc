@@ -695,10 +695,8 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
-    farm_setup.b_mock.set_block_epoch(5);
-    farm_setup
-        .b_mock
-        .set_block_timestamp(6 * TIMESTAMP_PER_EPOCH - 1);
+    farm_setup.b_mock.set_block_epoch(0);
+    farm_setup.b_mock.set_block_timestamp(1);
 
     let temp_user = farm_setup.third_user.clone();
 
@@ -794,10 +792,8 @@ fn total_farm_position_owner_change_test() {
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
-    farm_setup.b_mock.set_block_epoch(2);
-    farm_setup
-        .b_mock
-        .set_block_timestamp(3 * TIMESTAMP_PER_EPOCH - 1);
+    farm_setup.b_mock.set_block_epoch(0);
+    farm_setup.b_mock.set_block_timestamp(1);
 
     // first user enters farm 6 times
     let farm_token_amount = 10_000_000;
@@ -822,11 +818,11 @@ fn total_farm_position_owner_change_test() {
     assert_eq!(farm_setup.last_farm_token_nonce, 6);
 
     // First user transfers 5 position to second user
-    farm_setup.send_farm_position(&first_user, &second_user, 1, farm_token_amount, 0, 2);
-    farm_setup.send_farm_position(&first_user, &second_user, 2, farm_token_amount, 0, 2);
-    farm_setup.send_farm_position(&first_user, &second_user, 3, farm_token_amount, 0, 2);
-    farm_setup.send_farm_position(&first_user, &second_user, 4, farm_token_amount, 0, 2);
-    farm_setup.send_farm_position(&first_user, &second_user, 5, farm_token_amount, 0, 2);
+    farm_setup.send_farm_position(&first_user, &second_user, 1, farm_token_amount, 0, 0);
+    farm_setup.send_farm_position(&first_user, &second_user, 2, farm_token_amount, 0, 0);
+    farm_setup.send_farm_position(&first_user, &second_user, 3, farm_token_amount, 0, 0);
+    farm_setup.send_farm_position(&first_user, &second_user, 4, farm_token_amount, 0, 0);
+    farm_setup.send_farm_position(&first_user, &second_user, 5, farm_token_amount, 0, 0);
 
     // Total farm position unchanged as users only transfered the farm positions
     farm_setup.check_user_total_farm_position(&first_user, first_user_total_position);
@@ -893,7 +889,7 @@ fn total_farm_position_owner_change_test() {
         &rust_biguint!(half_token_amount),
         Some(&FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(107142857),
-            entering_epoch: 2,
+            entering_epoch: 0,
             compounded_reward: managed_biguint!(0),
             current_farm_amount: managed_biguint!(half_token_amount),
             original_owner: managed_address!(&second_user),
@@ -999,7 +995,7 @@ fn total_farm_position_owner_change_test() {
         &rust_biguint!(half_token_amount * 3),
         Some(&FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(35714286),
-            entering_epoch: 2,
+            entering_epoch: 0,
             compounded_reward: managed_biguint!(0),
             current_farm_amount: managed_biguint!(half_token_amount * 3),
             original_owner: managed_address!(&second_user),

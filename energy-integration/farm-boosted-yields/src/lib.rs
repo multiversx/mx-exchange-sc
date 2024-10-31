@@ -158,7 +158,7 @@ where
             return user_rewards;
         }
 
-        let week_timestamps = sc.get_week_start_and_end_timestamp(claim_progress.week + 1);
+        let week_timestamps = sc.get_week_start_and_end_timestamp(claim_progress.week);
         let new_user_reward =
             sc.limit_boosted_rewards_by_claim_time(user_reward, &week_timestamps, claim_progress);
         if new_user_reward == 0 {
