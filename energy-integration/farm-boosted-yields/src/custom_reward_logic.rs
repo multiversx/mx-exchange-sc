@@ -138,47 +138,25 @@ pub trait CustomRewardLogicModule:
         &self,
         user_reward: BigUint,
         week_timestamps: &WeekTimestamps,
-        claim_progress: &mut ClaimProgress<Self::Api>,
+        claim_progress: &ClaimProgress<Self::Api>,
     ) -> BigUint {
-        let current_timestamp = self.blockchain().get_block_timestamp();
-        let min_timestamp = core::cmp::min(current_timestamp, week_timestamps.end);
-        if !(claim_progress.last_claim_timestamp >= week_timestamps.start
-            && claim_progress.last_claim_timestamp < week_timestamps.end)
+        if !(claim_progress.enter_timestamp >= week_timestamps.start
+            && claim_progress.enter_timestamp < week_timestamps.end)
         {
-            claim_progress.last_claim_timestamp = min_timestamp;
-
             return user_reward;
         }
 
-        // last claim - 25% of week, current time - 90% of week => give 65% of rewards
-        // Using u128 just for extra safety. It's not technically needed.
-        let last_claim_timestamp_percent_of_week = linear_interpolation::<Self::Api, _>(
+        // Example: user entered at 25% of week, so give only 75% of rewards
+        let enter_timestamp_percent_of_week = linear_interpolation::<Self::Api, _>(
             week_timestamps.start as u128,
             week_timestamps.end as u128,
-            claim_progress.last_claim_timestamp as u128,
+            claim_progress.enter_timestamp as u128,
             0,
             MAX_PERCENT as u128,
         );
-        let current_timestamp_percent_of_week = if min_timestamp != week_timestamps.end {
-            linear_interpolation::<Self::Api, _>(
-                week_timestamps.start as u128,
-                week_timestamps.end as u128,
-                min_timestamp as u128,
-                0,
-                MAX_PERCENT as u128,
-            )
-        } else {
-            MAX_PERCENT as u128 // do less math
-        };
+        let percent_leftover = MAX_PERCENT as u128 - enter_timestamp_percent_of_week;
 
-        claim_progress.last_claim_timestamp = min_timestamp;
-
-        if last_claim_timestamp_percent_of_week >= current_timestamp_percent_of_week {
-            return user_reward;
-        }
-
-        let percent_diff = current_timestamp_percent_of_week - last_claim_timestamp_percent_of_week;
-        user_reward * BigUint::from(percent_diff) / MAX_PERCENT
+        user_reward * BigUint::from(percent_leftover) / MAX_PERCENT
     }
 
     fn get_week_start_and_end_timestamp(&self, week: Week) -> WeekTimestamps {
@@ -198,20 +176,6 @@ pub trait CustomRewardLogicModule:
         WeekTimestamps {
             start: week_start_timestamp,
             end: week_end_timestamp,
-        }
-    }
-
-    /// Returns the previous week
-    fn advance_week_if_needed(
-        &self,
-        current_week: Week,
-        min_timestamp: Timestamp,
-        claim_progress: &mut ClaimProgress<Self::Api>,
-    ) {
-        claim_progress.last_claim_timestamp = min_timestamp;
-
-        if claim_progress.week != current_week - 1 {
-            claim_progress.advance_week();
         }
     }
 

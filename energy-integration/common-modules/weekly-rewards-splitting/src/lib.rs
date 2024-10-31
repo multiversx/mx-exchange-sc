@@ -21,7 +21,7 @@ use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 pub struct ClaimProgress<M: ManagedTypeApi> {
     pub energy: Energy<M>,
     pub week: Week,
-    pub last_claim_timestamp: Timestamp,
+    pub enter_timestamp: Timestamp,
 }
 
 impl<M: ManagedTypeApi> TopDecode for ClaimProgress<M> {
@@ -32,7 +32,7 @@ impl<M: ManagedTypeApi> TopDecode for ClaimProgress<M> {
         let mut input_nested = input.into_nested_buffer();
         let energy = Energy::dep_decode(&mut input_nested)?;
         let week = Week::dep_decode(&mut input_nested)?;
-        let last_claim_timestamp = if !input_nested.is_depleted() {
+        let enter_timestamp = if !input_nested.is_depleted() {
             Timestamp::dep_decode(&mut input_nested)?
         } else {
             0
@@ -45,7 +45,7 @@ impl<M: ManagedTypeApi> TopDecode for ClaimProgress<M> {
         Result::Ok(ClaimProgress {
             energy,
             week,
-            last_claim_timestamp,
+            enter_timestamp,
         })
     }
 }
@@ -91,7 +91,7 @@ pub trait WeeklyRewardsSplittingModule:
             ClaimProgress {
                 energy: current_user_energy.clone(),
                 week: current_week,
-                last_claim_timestamp: self.blockchain().get_block_timestamp(),
+                enter_timestamp: self.blockchain().get_block_timestamp(),
             }
         };
 
@@ -107,14 +107,13 @@ pub trait WeeklyRewardsSplittingModule:
             opt_progress_for_energy_update,
         );
 
-        let mut all_rewards = ManagedVec::new();
-
         let total_weeks_to_claim = current_week - claim_progress.week;
         if total_weeks_to_claim > USER_MAX_CLAIM_WEEKS {
             let extra_weeks = total_weeks_to_claim - USER_MAX_CLAIM_WEEKS;
             claim_progress.advance_multiple_weeks(extra_weeks);
         }
 
+        let mut all_rewards = ManagedVec::new();
         let weeks_to_claim = core::cmp::min(total_weeks_to_claim, USER_MAX_CLAIM_WEEKS);
         for _ in 0..weeks_to_claim {
             let rewards_for_week = self.claim_single(wrapper, &mut claim_progress);
@@ -148,8 +147,11 @@ pub trait WeeklyRewardsSplittingModule:
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let total_energy = self.total_energy_for_week(claim_progress.week).get();
+        let user_rewards = wrapper.get_user_rewards_for_week(self, claim_progress, &total_energy);
 
-        wrapper.get_user_rewards_for_week(self, claim_progress, &total_energy)
+        claim_progress.advance_week();
+
+        user_rewards
     }
 
     #[view(getLastActiveWeekForUser)]
@@ -212,7 +214,7 @@ mod tests {
             ClaimProgress {
                 energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
                 week: 2,
-                last_claim_timestamp: 0
+                enter_timestamp: 0,
             }
         );
     }
@@ -224,7 +226,7 @@ mod tests {
         let new_progress = ClaimProgress {
             energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
             week: 2,
-            last_claim_timestamp: 5,
+            enter_timestamp: 0,
         };
         let mut new_progress_encoded = ManagedBuffer::<DebugApi>::new();
         let _ = new_progress.top_encode(&mut new_progress_encoded);
@@ -234,7 +236,7 @@ mod tests {
             ClaimProgress {
                 energy: Energy::new(BigInt::<DebugApi>::zero(), 10, managed_biguint!(20)),
                 week: 2,
-                last_claim_timestamp: 5
+                enter_timestamp: 0,
             }
         );
     }

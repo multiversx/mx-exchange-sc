@@ -91,7 +91,7 @@ fn claim_first_week_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 1,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
             assert_eq!(
@@ -100,7 +100,7 @@ fn claim_first_week_test() {
                 ClaimProgress {
                     energy: second_user_energy,
                     week: 1,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
         })
@@ -149,7 +149,7 @@ fn claim_first_week_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 1,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
             assert_eq!(
@@ -158,7 +158,7 @@ fn claim_first_week_test() {
                 ClaimProgress {
                     energy: second_user_energy,
                     week: 1,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
         })
@@ -267,7 +267,7 @@ fn claim_after_dex_inactive_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 4,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
         })
@@ -391,7 +391,7 @@ fn claim_second_week_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 2,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
         })
@@ -445,7 +445,7 @@ fn claim_second_week_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 2,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
         })
@@ -598,7 +598,7 @@ fn claim_for_other_user_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 2,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
         })
@@ -678,7 +678,7 @@ fn claim_inactive_week_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 2,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
         })
@@ -1234,7 +1234,7 @@ fn claim_locked_rewards_with_energy_update_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 2,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
         })
@@ -1314,7 +1314,7 @@ fn claim_locked_rewards_with_energy_update_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 2,
-                    last_claim_timestamp: INIT_TIMESTAMP
+                    enter_timestamp: INIT_TIMESTAMP
                 }
             );
         })
