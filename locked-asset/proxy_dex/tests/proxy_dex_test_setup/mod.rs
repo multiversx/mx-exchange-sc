@@ -1,10 +1,15 @@
 #![allow(dead_code)]
 
-use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
+use common_structs::{
+    LockedAssetTokenAttributesEx, Timestamp, UnlockMilestoneEx, UnlockScheduleEx,
+};
 use config::ConfigModule;
 use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
-use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
+use farm_boosted_yields::{
+    boosted_yields_factors::BoostedYieldsFactorsModule,
+    custom_reward_logic::CustomRewardLogicModule,
+};
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm as FarmLocked;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
@@ -27,6 +32,7 @@ use proxy_dex::{
 };
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
+use timestamp_oracle::{epoch_to_timestamp::EpochToTimestampModule, TimestampOracle};
 
 // General
 pub static MEX_TOKEN_ID: &[u8] = b"MEX-123456";
@@ -57,12 +63,20 @@ pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 pub static WRAPPED_LP_TOKEN_ID: &[u8] = b"WPLP-123456";
 pub static WRAPPED_FARM_TOKEN_ID: &[u8] = b"WPFARM-123456";
 
-pub struct ProxySetup<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
-where
+pub const TIMESTAMP_PER_EPOCH: Timestamp = 24 * 60 * 60;
+
+pub struct ProxySetup<
+    ProxyObjBuilder,
+    PairObjBuilder,
+    FarmLockedObjBuilder,
+    SimpleLockObjBuilder,
+    TimestampOracleObjBuilder,
+> where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
@@ -74,21 +88,37 @@ where
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmLockedObjBuilder>,
     pub simple_lock_wrapper:
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, SimpleLockObjBuilder>,
+    pub timestamp_oracle_wrapper:
+        ContractObjWrapper<timestamp_oracle::ContractObj<DebugApi>, TimestampOracleObjBuilder>,
 }
 
-impl<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
-    ProxySetup<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
+impl<
+        ProxyObjBuilder,
+        PairObjBuilder,
+        FarmLockedObjBuilder,
+        SimpleLockObjBuilder,
+        TimestampOracleObjBuilder,
+    >
+    ProxySetup<
+        ProxyObjBuilder,
+        PairObjBuilder,
+        FarmLockedObjBuilder,
+        SimpleLockObjBuilder,
+        TimestampOracleObjBuilder,
+    >
 where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
 {
     pub fn new(
         proxy_builder: ProxyObjBuilder,
         pair_builder: PairObjBuilder,
         farm_locked_builder: FarmLockedObjBuilder,
         simple_lock_builder: SimpleLockObjBuilder,
+        timestamp_oracle_builder: TimestampOracleObjBuilder,
     ) -> Self {
         DebugApi::dummy();
 
@@ -99,6 +129,23 @@ where
         let second_user = b_mock.create_user_account(&rust_zero);
 
         b_mock.set_block_epoch(1);
+        b_mock.set_block_timestamp(TIMESTAMP_PER_EPOCH);
+
+        let timestamp_oracle_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            timestamp_oracle_builder,
+            "timestamp oracle",
+        );
+        b_mock
+            .execute_tx(&owner, &timestamp_oracle_wrapper, &rust_zero, |sc| {
+                sc.init(0);
+
+                for i in 0..=100 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
+            })
+            .assert_ok();
 
         let pair_wrapper = setup_pair(&mut b_mock, &owner, pair_builder);
         let simple_lock_wrapper = setup_simple_lock(&mut b_mock, &owner, simple_lock_builder);
@@ -107,6 +154,7 @@ where
             &owner,
             farm_locked_builder,
             simple_lock_wrapper.address_ref(),
+            timestamp_oracle_wrapper.address_ref(),
         );
         let proxy_wrapper = setup_proxy(
             &mut b_mock,
@@ -230,6 +278,7 @@ where
             pair_wrapper,
             farm_locked_wrapper,
             simple_lock_wrapper,
+            timestamp_oracle_wrapper,
         }
     }
 }
@@ -290,6 +339,7 @@ fn setup_farm_locked<FarmLockedObjBuilder>(
     owner: &Address,
     farm_builder: FarmLockedObjBuilder,
     simple_lock_addr: &Address,
+    timestamp_oracle_addr: &Address,
 ) -> ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmLockedObjBuilder>
 where
     FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
@@ -336,6 +386,7 @@ where
             sc.set_lock_epochs(EPOCHS_IN_YEAR);
             sc.energy_factory_address()
                 .set(managed_address!(simple_lock_addr));
+            sc.set_timestamp_oracle_address(managed_address!(timestamp_oracle_addr));
         })
         .assert_ok();
 

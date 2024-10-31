@@ -25,6 +25,7 @@ fn setup_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 }
 
@@ -35,6 +36,7 @@ fn add_remove_liquidity_proxy_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -232,6 +234,7 @@ fn tripple_add_liquidity_proxy_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -503,6 +506,7 @@ fn wrapped_same_nonce_lp_token_merge_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let locked_token_amount = rust_biguint!(1_000_000_000);
@@ -629,6 +633,7 @@ fn wrapped_different_nonce_lp_token_merge_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let user = setup.first_user.clone();
     let user_balance = rust_biguint!(USER_BALANCE);
@@ -806,6 +811,7 @@ fn increase_proxy_lp_token_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -962,6 +968,7 @@ fn increase_proxy_lp_token_energy_unlocked_tokens() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -1126,6 +1133,7 @@ fn increase_proxy_lp_token_energy_partially_unlocked_tokens() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -1302,6 +1310,7 @@ fn increase_proxy_lp_legacy_token_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);

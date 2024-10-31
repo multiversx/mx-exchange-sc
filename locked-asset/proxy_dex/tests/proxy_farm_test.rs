@@ -17,6 +17,7 @@ use proxy_dex::{
     proxy_farm::ProxyFarmModule, proxy_pair::ProxyPairModule,
     wrapped_farm_attributes::WrappedFarmTokenAttributes,
     wrapped_farm_token_merge::WrappedFarmTokenMerge,
+    wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
 use proxy_dex_test_setup::*;
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -28,6 +29,7 @@ fn farm_proxy_setup_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 }
 
@@ -38,6 +40,7 @@ fn farm_proxy_actions_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -258,258 +261,255 @@ fn farm_proxy_actions_test() {
     );
 }
 
-// TODO: Fix later
+#[test]
+fn farm_with_wrapped_lp_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
-// #[test]
-// fn farm_with_wrapped_lp_test() {
-//     let mut setup = ProxySetup::new(
-//         proxy_dex::contract_obj,
-//         pair::contract_obj,
-//         farm_with_locked_rewards::contract_obj,
-//         energy_factory::contract_obj,
-//     );
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner,
+            &setup.farm_locked_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.farming_token_id().set(&managed_token_id!(LP_TOKEN_ID));
 
-//     setup
-//         .b_mock
-//         .execute_tx(
-//             &setup.owner,
-//             &setup.farm_locked_wrapper,
-//             &rust_biguint!(0),
-//             |sc| {
-//                 sc.farming_token_id().set(&managed_token_id!(LP_TOKEN_ID));
+                // set produce rewards to false for easier calculation
+                sc.produce_rewards_enabled().set(false);
+            },
+        )
+        .assert_ok();
 
-//                 // set produce rewards to false for easier calculation
-//                 sc.produce_rewards_enabled().set(false);
-//             },
-//         )
-//         .assert_ok();
+    setup.b_mock.set_esdt_local_roles(
+        setup.farm_locked_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &[EsdtLocalRole::Burn],
+    );
 
-//     setup.b_mock.set_esdt_local_roles(
-//         setup.farm_locked_wrapper.address_ref(),
-//         LP_TOKEN_ID,
-//         &[EsdtLocalRole::Burn],
-//     );
+    let first_user = setup.first_user.clone();
+    let locked_token_amount = rust_biguint!(1_000_000_000);
+    let other_token_amount = rust_biguint!(500_000_000);
+    let expected_lp_token_amount = rust_biguint!(499_999_000);
 
-//     let first_user = setup.first_user.clone();
-//     let locked_token_amount = rust_biguint!(1_000_000_000);
-//     let other_token_amount = rust_biguint!(500_000_000);
-//     let expected_lp_token_amount = rust_biguint!(499_999_000);
+    // set the price to 1 EGLD = 2 MEX
+    let payments = vec![
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: locked_token_amount.clone(),
+        },
+        TxTokenTransfer {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: other_token_amount.clone(),
+        },
+    ];
 
-//     // set the price to 1 EGLD = 2 MEX
-//     let payments = vec![
-//         TxTokenTransfer {
-//             token_identifier: LOCKED_TOKEN_ID.to_vec(),
-//             nonce: 1,
-//             value: locked_token_amount.clone(),
-//         },
-//         TxTokenTransfer {
-//             token_identifier: WEGLD_TOKEN_ID.to_vec(),
-//             nonce: 0,
-//             value: other_token_amount.clone(),
-//         },
-//     ];
+    // add liquidity
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount.to_u64().unwrap()),
+                managed_biguint!(other_token_amount.to_u64().unwrap()),
+            );
+        })
+        .assert_ok();
 
-//     // add liquidity
-//     let pair_addr = setup.pair_wrapper.address_ref().clone();
-//     setup
-//         .b_mock
-//         .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
-//             sc.add_liquidity_proxy(
-//                 managed_address!(&pair_addr),
-//                 managed_biguint!(locked_token_amount.to_u64().unwrap()),
-//                 managed_biguint!(other_token_amount.to_u64().unwrap()),
-//             );
-//         })
-//         .assert_ok();
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_LP_TOKEN_ID,
+        1,
+        &expected_lp_token_amount,
+        Some(&WrappedLpTokenAttributes::<DebugApi> {
+            locked_tokens: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(locked_token_amount.to_u64().unwrap()),
+            },
+            lp_token_id: managed_token_id!(LP_TOKEN_ID),
+            lp_token_amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
+        }),
+    );
 
-//     setup.b_mock.check_nft_balance(
-//         &first_user,
-//         WRAPPED_LP_TOKEN_ID,
-//         1,
-//         &expected_lp_token_amount,
-//         Some(&WrappedLpTokenAttributes::<DebugApi> {
-//             locked_tokens: EsdtTokenPayment {
-//                 token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
-//                 token_nonce: 1,
-//                 amount: managed_biguint!(locked_token_amount.to_u64().unwrap()),
-//             },
-//             lp_token_id: managed_token_id!(LP_TOKEN_ID),
-//             lp_token_amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
-//         }),
-//     );
+    let block_epoch = 1u64;
+    let user_balance = USER_BALANCE;
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let unlock_epoch = LOCK_OPTIONS[0];
+            let lock_epochs = unlock_epoch - block_epoch;
+            let expected_energy_amount =
+                BigInt::from((user_balance) as i64) * BigInt::from(lock_epochs as i64);
+            let expected_energy = Energy::new(
+                expected_energy_amount,
+                block_epoch,
+                managed_biguint!(user_balance),
+            );
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
+            assert_eq!(expected_energy, actual_energy);
+        })
+        .assert_ok();
 
-//     let block_epoch = 1u64;
-//     let user_balance = USER_BALANCE;
-//     setup
-//         .b_mock
-//         .execute_query(&setup.simple_lock_wrapper, |sc| {
-//             let unlock_epoch = LOCK_OPTIONS[0];
-//             let lock_epochs = unlock_epoch - block_epoch;
-//             let expected_energy_amount =
-//                 BigInt::from((user_balance) as i64) * BigInt::from(lock_epochs as i64);
-//             let expected_energy = Energy::new(
-//                 expected_energy_amount,
-//                 block_epoch,
-//                 managed_biguint!(user_balance),
-//             );
-//             let actual_energy =
-//                 sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
-//             assert_eq!(expected_energy, actual_energy);
-//         })
-//         .assert_ok();
+    let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
 
-//     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
+    //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
 
-//     //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
+    let mut current_epoch = 5;
+    setup.b_mock.set_block_epoch(current_epoch);
 
-//     let mut current_epoch = 5;
-//     setup.b_mock.set_block_epoch(current_epoch);
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_LP_TOKEN_ID,
+            1,
+            &expected_lp_token_amount,
+            |sc| {
+                sc.enter_farm_proxy_endpoint(
+                    managed_address!(&farm_locked_addr),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_ok();
 
-//     setup
-//         .b_mock
-//         .execute_esdt_transfer(
-//             &first_user,
-//             &setup.proxy_wrapper,
-//             WRAPPED_LP_TOKEN_ID,
-//             1,
-//             &expected_lp_token_amount,
-//             |sc| {
-//                 sc.enter_farm_proxy_endpoint(
-//                     managed_address!(&farm_locked_addr),
-//                     OptionalValue::None,
-//                 );
-//             },
-//         )
-//         .assert_ok();
+    let expected_energy = rust_biguint!(LOCK_OPTIONS[0] - current_epoch) * USER_BALANCE;
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let managed_result = sc.get_energy_amount_for_user(managed_address!(&first_user));
+            let result = to_rust_biguint(managed_result);
+            assert_eq!(result, expected_energy);
+        })
+        .assert_ok();
 
-//     let expected_energy = rust_biguint!(LOCK_OPTIONS[0] - current_epoch) * USER_BALANCE;
-//     setup
-//         .b_mock
-//         .execute_query(&setup.simple_lock_wrapper, |sc| {
-//             let managed_result = sc.get_energy_amount_for_user(managed_address!(&first_user));
-//             let result = to_rust_biguint(managed_result);
-//             assert_eq!(result, expected_energy);
-//         })
-//         .assert_ok();
+    // check user balance
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        1,
+        &expected_lp_token_amount,
+        Some(&WrappedFarmTokenAttributes::<DebugApi> {
+            proxy_farming_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(WRAPPED_LP_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
+            },
+            farm_token: EsdtTokenPayment {
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
+            },
+        }),
+    );
 
-//     // check user balance
-//     setup.b_mock.check_nft_balance(
-//         &first_user,
-//         WRAPPED_FARM_TOKEN_ID,
-//         1,
-//         &expected_lp_token_amount,
-//         Some(&WrappedFarmTokenAttributes::<DebugApi> {
-//             proxy_farming_token: EsdtTokenPayment {
-//                 token_identifier: managed_token_id!(WRAPPED_LP_TOKEN_ID),
-//                 token_nonce: 1,
-//                 amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
-//             },
-//             farm_token: EsdtTokenPayment {
-//                 token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
-//                 token_nonce: 1,
-//                 amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
-//             },
-//         }),
-//     );
+    // check proxy balance
+    setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            setup.proxy_wrapper.address_ref(),
+            FARM_LOCKED_TOKEN_ID,
+            1,
+            &expected_lp_token_amount,
+            None,
+        );
 
-//     // check proxy balance
-//     setup
-//         .b_mock
-//         .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
-//             setup.proxy_wrapper.address_ref(),
-//             FARM_LOCKED_TOKEN_ID,
-//             1,
-//             &expected_lp_token_amount,
-//             None,
-//         );
+    // check farm balance
+    setup.b_mock.check_esdt_balance(
+        setup.farm_locked_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &expected_lp_token_amount,
+    );
 
-//     // check farm balance
-//     setup.b_mock.check_esdt_balance(
-//         setup.farm_locked_wrapper.address_ref(),
-//         LP_TOKEN_ID,
-//         &expected_lp_token_amount,
-//     );
+    current_epoch += 1; // applies penalty on exit
+    setup.b_mock.set_block_epoch(current_epoch);
+    setup.b_mock.set_block_nonce(100);
 
-//     current_epoch += 1; // applies penalty on exit
-//     setup.b_mock.set_block_epoch(current_epoch);
-//     setup.b_mock.set_block_nonce(100);
+    ////////////////////////////////////////////// EXIT FARM /////////////////////////////////////
+    // exit with partial amount
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.proxy_wrapper,
+            WRAPPED_FARM_TOKEN_ID,
+            1,
+            &(expected_lp_token_amount.clone() / rust_biguint!(2)),
+            |sc| {
+                sc.exit_farm_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
+            },
+        )
+        .assert_ok();
 
-//     ////////////////////////////////////////////// EXIT FARM /////////////////////////////////////
-//     // exit with partial amount
-//     setup
-//         .b_mock
-//         .execute_esdt_transfer(
-//             &first_user,
-//             &setup.proxy_wrapper,
-//             WRAPPED_FARM_TOKEN_ID,
-//             1,
-//             &(expected_lp_token_amount.clone() / rust_biguint!(2)),
-//             |sc| {
-//                 sc.exit_farm_proxy(managed_address!(&farm_locked_addr), OptionalValue::None);
-//             },
-//         )
-//         .assert_ok();
+    let penalty_amount = rust_biguint!(0); //&expected_lp_token_amount / 2u64 * DEFAULT_PENALTY_PERCENT / MAX_PERCENT;
 
-//     let penalty_amount = rust_biguint!(0); //&expected_lp_token_amount / 2u64 * DEFAULT_PENALTY_PERCENT / MAX_PERCENT;
+    // check proxy received only part of LP tokens back
+    setup.b_mock.check_esdt_balance(
+        setup.proxy_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &(&expected_lp_token_amount / 2u64 - &penalty_amount),
+    );
 
-//     // check proxy received only part of LP tokens back
-//     setup.b_mock.check_esdt_balance(
-//         setup.proxy_wrapper.address_ref(),
-//         LP_TOKEN_ID,
-//         &(&expected_lp_token_amount / 2u64 - &penalty_amount),
-//     );
+    // check user received half of the farm tokens back, and another new wrapped LP token
+    setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        WRAPPED_FARM_TOKEN_ID,
+        1,
+        &(&expected_lp_token_amount / 2u64),
+        None,
+    );
 
-//     // check user received half of the farm tokens back, and another new wrapped LP token
-//     setup.b_mock.check_nft_balance::<Empty>(
-//         &first_user,
-//         WRAPPED_FARM_TOKEN_ID,
-//         1,
-//         &(&expected_lp_token_amount / 2u64),
-//         None,
-//     );
+    let locked_token_after_exit = rust_biguint!(1_000_000_000);
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_LP_TOKEN_ID,
+        1,
+        &(&expected_lp_token_amount / 2u64 - &penalty_amount),
+        Some(&WrappedLpTokenAttributes::<DebugApi> {
+            locked_tokens: EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                1,
+                managed_biguint!(locked_token_after_exit.to_u64().unwrap()),
+            ),
+            lp_token_id: managed_token_id!(LP_TOKEN_ID),
+            lp_token_amount: managed_biguint!(
+                expected_lp_token_amount.to_u64().unwrap()  //  / 2u64
+                    - penalty_amount.to_u64().unwrap()
+            ),
+        }),
+    );
 
-//     let locked_token_after_exit = rust_biguint!(500_000_000);
-//     setup.b_mock.check_nft_balance(
-//         &first_user,
-//         WRAPPED_LP_TOKEN_ID,
-//         1,
-//         &(&expected_lp_token_amount / 2u64 - &penalty_amount),
-//         Some(&WrappedLpTokenAttributes::<DebugApi> {
-//             locked_tokens: EsdtTokenPayment::new(
-//                 managed_token_id!(LOCKED_TOKEN_ID),
-//                 1,
-//                 managed_biguint!(locked_token_after_exit.to_u64().unwrap()),
-//             ),
-//             lp_token_id: managed_token_id!(LP_TOKEN_ID),
-//             lp_token_amount: managed_biguint!(
-//                 expected_lp_token_amount.to_u64().unwrap()  //  / 2u64
-//                     - penalty_amount.to_u64().unwrap()
-//             ),
-//         }),
-//     );
+    // check user's energy
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let new_user_balance = managed_biguint!(USER_BALANCE);
+            let expected_energy_amount =
+                managed_biguint!(LOCK_OPTIONS[0] - current_epoch) * &new_user_balance;
 
-//     // check user's energy
-//     setup
-//         .b_mock
-//         .execute_query(&setup.simple_lock_wrapper, |sc| {
-//             let new_user_balance = managed_biguint!(USER_BALANCE)
-//                 - locked_token_amount.to_u64().unwrap() / 2u64
-//                 + locked_token_after_exit.to_u64().unwrap();
-//             let expected_energy_amount =
-//                 managed_biguint!(LOCK_OPTIONS[0] - current_epoch) * &new_user_balance;
+            let expected_energy = Energy::new(
+                BigInt::from(expected_energy_amount),
+                current_epoch,
+                new_user_balance,
+            );
+            let actual_energy =
+                sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
 
-//             let expected_energy = Energy::new(
-//                 BigInt::from(expected_energy_amount),
-//                 current_epoch,
-//                 new_user_balance,
-//             );
-//             let actual_energy =
-//                 sc.get_updated_energy_entry_for_user(&managed_address!(&first_user));
-
-//             assert_eq!(actual_energy, expected_energy);
-//         })
-//         .assert_ok();
-// }
+            assert_eq!(actual_energy, expected_energy);
+        })
+        .assert_ok();
+}
 
 #[test]
 fn farm_proxy_claim_energy_test() {
@@ -518,6 +518,7 @@ fn farm_proxy_claim_energy_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -656,6 +657,7 @@ fn farm_proxy_partial_exit_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -834,6 +836,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1016,6 +1019,7 @@ fn different_farm_locked_token_nonce_merging_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1185,6 +1189,7 @@ fn total_farm_mechanism_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1416,6 +1421,7 @@ fn increase_proxy_farm_lkmex_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1497,6 +1503,7 @@ fn increase_proxy_farm_proxy_lp_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     setup
@@ -1737,6 +1744,7 @@ fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     setup
@@ -1982,6 +1990,7 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     setup
@@ -2224,6 +2233,7 @@ fn original_caller_negative_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -2328,6 +2338,7 @@ fn total_farm_position_migration_through_proxy_dex_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -2463,6 +2474,7 @@ fn increase_proxy_farm_legacy_token_energy_negative_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -2506,6 +2518,7 @@ fn total_farm_position_migration_mechanism_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
