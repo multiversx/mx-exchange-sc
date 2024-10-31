@@ -629,6 +629,7 @@ dependencies = [
  "rewards",
  "sc_whitelist_module",
  "simple-lock",
+ "timestamp-oracle",
  "token_send",
  "unwrappable",
  "utils",

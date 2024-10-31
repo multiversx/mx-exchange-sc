@@ -1,5 +1,6 @@
 use energy_query::EnergyQueryModule;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
+use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::{
@@ -27,6 +28,7 @@ pub fn setup_staking_farm<StakingContractObjBuilder>(
     energy_factory_address: &Address,
     b_mock: &mut BlockchainStateWrapper,
     builder: StakingContractObjBuilder,
+    timestamp_oracle_address: &Address,
 ) -> ContractObjWrapper<farm_staking::ContractObj<DebugApi>, StakingContractObjBuilder>
 where
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
@@ -62,6 +64,7 @@ where
             sc.last_reward_block_nonce()
                 .set(BLOCK_NONCE_AFTER_PAIR_SETUP);
             sc.reward_capacity().set(&managed_biguint!(REWARD_CAPACITY));
+            sc.set_timestamp_oracle_address(managed_address!(timestamp_oracle_address));
         })
         .assert_ok();
 

@@ -1,6 +1,7 @@
 use energy_factory::token_whitelist::TokenWhitelistModule;
 use energy_factory::SimpleLockEnergy;
 use energy_query::EnergyQueryModule;
+use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
@@ -250,6 +251,7 @@ pub fn setup_lp_farm<FarmObjBuilder>(
     b_mock: &mut BlockchainStateWrapper,
     farm_builder: FarmObjBuilder,
     user_farm_in_amount: u64,
+    timestamp_oracle_address: &Address,
 ) -> ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
@@ -288,6 +290,7 @@ where
                 .set(managed_address!(energy_factory_address));
             sc.energy_factory_address()
                 .set(managed_address!(energy_factory_address));
+            sc.set_timestamp_oracle_address(managed_address!(timestamp_oracle_address));
         })
         .assert_ok();
 

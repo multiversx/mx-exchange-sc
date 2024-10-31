@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 pub mod constants;
 pub mod staking_farm_with_lp_external_contracts;
 pub mod staking_farm_with_lp_staking_contract_interactions;
@@ -31,6 +33,7 @@ fn test_all_setup() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 }
 
@@ -42,6 +45,7 @@ fn test_stake_farm_proxy() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000; // safe price of USER_TOTAL_LP_TOKENS in RIDE tokens
@@ -57,6 +61,7 @@ fn test_claim_rewards_farm_proxy_full() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -85,6 +90,7 @@ fn test_claim_rewards_farm_proxy_half() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -113,6 +119,7 @@ fn test_claim_rewards_farm_proxy_twice() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -156,6 +163,7 @@ fn test_unstake_through_proxy_no_claim() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -187,6 +195,7 @@ fn unstake_through_proxy_after_claim() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -228,6 +237,7 @@ fn unstake_partial_position_test() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -344,6 +354,7 @@ fn unbond_test() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -389,6 +400,7 @@ fn farm_staking_compound_rewards_and_unstake_test() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let farming_amount = 500_000_000;
 
@@ -420,6 +432,7 @@ fn test_stake_farm_through_proxy_with_merging() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let first_dual_yield_token_nonce = setup.stake_farm_lp_proxy(1, 400_000_000, 1, 400_000_000);
@@ -496,6 +509,7 @@ fn test_farm_stake_proxy_merging_boosted_rewards() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // Boosted rewards setup
@@ -641,6 +655,7 @@ fn original_caller_negative_test() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let user = setup.user_addr.clone();
@@ -683,6 +698,7 @@ fn claim_for_others_positive_test() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // Boosted rewards setup
@@ -879,6 +895,7 @@ fn stake_farm_through_proxy_migration_test() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let user = setup.user_addr.clone();
@@ -1014,6 +1031,7 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         energy_factory::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // Boosted rewards setup
