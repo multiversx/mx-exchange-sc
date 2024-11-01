@@ -21,6 +21,7 @@ pub trait FarmStakingProxy:
     + proxy_actions::stake::ProxyStakeModule
     + proxy_actions::claim::ProxyClaimModule
     + proxy_actions::unstake::ProxyUnstakeModule
+    + proxy_actions::external_interaction::ProxyExternalInteractionsModule
 {
     #[init]
     fn init(
