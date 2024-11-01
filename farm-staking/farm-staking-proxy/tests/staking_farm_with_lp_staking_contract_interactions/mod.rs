@@ -638,6 +638,7 @@ where
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn stake_farm_on_behalf(
         &mut self,
         caller: &Address,
