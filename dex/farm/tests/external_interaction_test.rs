@@ -2,12 +2,15 @@
 
 mod farm_setup;
 
+use common_structs::FarmTokenAttributes;
 use farm::external_interaction::ExternalInteractionsModule;
 use farm_setup::multi_user_farm_setup::{
     MultiUserFarmSetup, BOOSTED_YIELDS_PERCENTAGE, FARMING_TOKEN_ID, FARM_TOKEN_ID, MAX_PERCENTAGE,
     PER_BLOCK_REWARD_AMOUNT, REWARD_TOKEN_ID,
 };
-use multiversx_sc_scenario::{imports::TxTokenTransfer, managed_address, rust_biguint};
+use multiversx_sc_scenario::{
+    imports::TxTokenTransfer, managed_address, managed_biguint, rust_biguint, DebugApi,
+};
 
 #[test]
 fn test_enter_and_claim_farm_on_behalf() {
@@ -57,6 +60,8 @@ fn test_enter_and_claim_farm_on_behalf() {
 
 #[test]
 fn test_multiple_positions_on_behalf() {
+    DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
@@ -141,6 +146,22 @@ fn test_multiple_positions_on_behalf() {
         &external_user,
         REWARD_TOKEN_ID,
         &rust_biguint!(total_rewards + base_rewards),
+    );
+
+    let farm_token_attributes: FarmTokenAttributes<DebugApi> = FarmTokenAttributes {
+        reward_per_share: managed_biguint!(150_000_000u64),
+        entering_epoch: 10u64,
+        compounded_reward: managed_biguint!(0),
+        current_farm_amount: managed_biguint!(farm_token_amount * 2),
+        original_owner: managed_address!(&external_user),
+    };
+
+    farm_setup.b_mock.check_nft_balance(
+        &authorized_address,
+        FARM_TOKEN_ID,
+        5,
+        &rust_biguint!(farm_token_amount * 2),
+        Some(&farm_token_attributes),
     );
 }
 
