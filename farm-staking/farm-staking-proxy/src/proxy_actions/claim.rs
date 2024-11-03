@@ -30,7 +30,7 @@ pub trait ProxyClaimModule:
 
         let payment = self.call_value().single_esdt();
 
-        let claim_result = self.claim_dual_yield_common(orig_caller, &payment);
+        let claim_result = self.claim_dual_yield_common(orig_caller, payment);
 
         claim_result.send_and_return(self, &caller)
     }
@@ -38,7 +38,7 @@ pub trait ProxyClaimModule:
     fn claim_dual_yield_common(
         &self,
         orig_caller: ManagedAddress,
-        payment: &EsdtTokenPayment,
+        payment: EsdtTokenPayment,
     ) -> ClaimDualYieldResult<Self::Api> {
         let dual_yield_token_mapper = self.dual_yield_token();
         dual_yield_token_mapper.require_same_token(&payment.token_identifier);

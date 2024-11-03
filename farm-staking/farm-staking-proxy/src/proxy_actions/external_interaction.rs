@@ -47,7 +47,7 @@ pub trait ProxyExternalInteractionsModule:
         let original_owner = self.get_underlying_farm_position_original_owner(&payment);
         self.require_user_whitelisted(&original_owner, &caller);
 
-        let claim_result = self.claim_dual_yield_common(original_owner.clone(), &payment);
+        let claim_result = self.claim_dual_yield_common(original_owner.clone(), payment);
 
         self.send_payment_non_zero(&original_owner, &claim_result.lp_farm_rewards);
         self.send_payment_non_zero(&original_owner, &claim_result.staking_farm_rewards);
@@ -98,7 +98,7 @@ pub trait ProxyExternalInteractionsModule:
         dual_yield_token_mapper.require_same_token(&payment.token_identifier);
 
         let attributes: DualYieldTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(&payment, &dual_yield_token_mapper);
+            self.get_attributes_as_part_of_fixed_supply(payment, &dual_yield_token_mapper);
 
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let attributes = self
