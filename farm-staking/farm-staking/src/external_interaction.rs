@@ -50,12 +50,10 @@ pub trait ExternalInteractionsModule:
         let caller = self.blockchain().get_caller();
         self.require_user_whitelisted(&user, &caller);
 
-        self.check_additional_payments_original_owner(&user);
-
         let payments = self.get_non_empty_payments();
+        self.check_additional_payments_original_owner(&user, &payments);
 
         let boosted_rewards = self.claim_only_boosted_payment(&user);
-
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
@@ -83,11 +81,11 @@ pub trait ExternalInteractionsModule:
     #[payable("*")]
     #[endpoint(claimRewardsOnBehalf)]
     fn claim_rewards_on_behalf(&self) -> ClaimRewardsResultType<Self::Api> {
-        let user = self.check_and_return_original_owner();
+        let payment = self.call_value().single_esdt();
+        let user = self.check_and_return_original_owner(&payment);
         let caller = self.blockchain().get_caller();
         self.require_user_whitelisted(&user, &caller);
 
-        let payment = self.call_value().single_esdt();
         let claim_result = self.claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
             user.clone(),
             ManagedVec::from_single_item(payment),
@@ -122,34 +120,24 @@ pub trait ExternalInteractionsModule:
         (virtual_farm_token.payment, claim_result.rewards).into()
     }
 
-    fn check_and_return_original_owner(&self) -> ManagedAddress {
-        let payments = self.call_value().all_esdt_transfers().clone_value();
+    fn check_and_return_original_owner(&self, payment: &EsdtTokenPayment) -> ManagedAddress {
         let farm_token_mapper = self.farm_token();
-        let mut original_owner = ManagedAddress::zero();
-        for payment in payments.into_iter() {
-            let attributes: StakingFarmTokenAttributes<Self::Api> =
-                farm_token_mapper.get_token_attributes(payment.token_nonce);
-
-            if original_owner.is_zero() {
-                original_owner = attributes.original_owner;
-            } else {
-                require!(
-                    original_owner == attributes.original_owner,
-                    "All position must have the same original owner"
-                );
-            }
-        }
+        let attributes: StakingFarmTokenAttributes<Self::Api> =
+            farm_token_mapper.get_token_attributes(payment.token_nonce);
 
         require!(
-            !original_owner.is_zero(),
+            !attributes.original_owner.is_zero(),
             "Original owner could not be identified"
         );
 
-        original_owner
+        attributes.original_owner
     }
 
-    fn check_additional_payments_original_owner(&self, user: &ManagedAddress) {
-        let payments = self.call_value().all_esdt_transfers().clone_value();
+    fn check_additional_payments_original_owner(
+        &self,
+        user: &ManagedAddress,
+        payments: &ManagedVec<EsdtTokenPayment>,
+    ) {
         if payments.len() == 1 {
             return;
         }
