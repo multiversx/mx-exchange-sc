@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           70
+// Endpoints:                           73
 // Async Callback:                       1
-// Total number of exported functions:  73
+// Total number of exported functions:  76
 
 #![no_std]
 
@@ -68,6 +68,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         unstakeFarm => unstake_farm
         unstakeFarmThroughProxy => unstake_farm_through_proxy
         unbondFarm => unbond_farm
+        stakeFarmOnBehalf => stake_farm_on_behalf
+        claimRewardsOnBehalf => claim_rewards_on_behalf
+        setPermissionsHubAddress => set_permissions_hub_address
         claimBoostedRewards => claim_boosted_rewards
         setBoostedYieldsFactors => set_boosted_yields_factors
         getBoostedYieldsFactors => get_boosted_yields_factors

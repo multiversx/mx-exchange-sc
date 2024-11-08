@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           57
+// Endpoints:                           60
 // Async Callback:                       1
-// Total number of exported functions:  60
+// Total number of exported functions:  63
 
 #![no_std]
 
@@ -56,6 +56,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
+        enterFarmOnBehalf => enter_farm_on_behalf
+        claimRewardsOnBehalf => claim_rewards_on_behalf
+        setPermissionsHubAddress => set_permissions_hub_address
         setBoostedYieldsFactors => set_boosted_yields_factors
         getBoostedYieldsFactors => get_boosted_yields_factors
         setTimestampOracleAddress => set_timestamp_oracle_address

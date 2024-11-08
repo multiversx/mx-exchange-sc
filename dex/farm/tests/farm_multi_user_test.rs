@@ -18,6 +18,7 @@ fn farm_with_no_boost_test() {
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     // first user enter farm
@@ -118,6 +119,7 @@ fn farm_with_boosted_yields_test() {
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -241,6 +243,7 @@ fn farm_change_boosted_yields_factors_test() {
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -306,6 +309,7 @@ fn farm_boosted_yields_claim_with_different_user_pos_test() {
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -414,6 +418,7 @@ fn farm_known_proxy_test() {
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     // first user enter farm
@@ -515,6 +520,7 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -786,6 +792,7 @@ fn farm_enter_with_multiple_farm_token() {
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -903,6 +910,7 @@ fn farm_claim_with_minimum_tokens() {
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -1024,6 +1032,7 @@ fn partial_boosted_rewards_test() {
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);

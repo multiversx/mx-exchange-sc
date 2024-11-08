@@ -63,6 +63,9 @@ path = "../../common/modules/sc_whitelist_module"
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
 
+[dependencies.permissions-hub]
+path = "../../dex/permissions-hub"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 

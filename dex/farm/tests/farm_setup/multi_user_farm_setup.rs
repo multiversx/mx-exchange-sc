@@ -2,6 +2,7 @@
 
 use common_structs::{FarmTokenAttributes, Timestamp};
 use config::ConfigModule;
+use farm::external_interaction::ExternalInteractionsModule;
 use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::{
@@ -22,6 +23,7 @@ use farm::Farm;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
+use permissions_hub::PermissionsHub;
 use sc_whitelist_module::SCWhitelistModule;
 use timestamp_oracle::epoch_to_timestamp::EpochToTimestampModule;
 use timestamp_oracle::TimestampOracle;
@@ -61,11 +63,13 @@ pub struct MultiUserFarmSetup<
     EnergyFactoryBuilder,
     EnergyUpdateObjBuilder,
     TimestampOracleObjBuilder,
+    PermissionsHubObjBuilder,
 > where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
     EnergyUpdateObjBuilder: 'static + Copy + Fn() -> energy_update::ContractObj<DebugApi>,
     TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
+    PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
@@ -80,26 +84,37 @@ pub struct MultiUserFarmSetup<
         ContractObjWrapper<energy_update::ContractObj<DebugApi>, EnergyUpdateObjBuilder>,
     pub timestamp_oracle_wrapper:
         ContractObjWrapper<timestamp_oracle::ContractObj<DebugApi>, TimestampOracleObjBuilder>,
+    pub permissions_hub_wrapper:
+        ContractObjWrapper<permissions_hub::ContractObj<DebugApi>, PermissionsHubObjBuilder>,
 }
 
-impl<FarmObjBuilder, EnergyFactoryBuilder, EnergyUpdateObjBuilder, TimestampOracleObjBuilder>
+impl<
+        FarmObjBuilder,
+        EnergyFactoryBuilder,
+        EnergyUpdateObjBuilder,
+        TimestampOracleObjBuilder,
+        PermissionsHubObjBuilder,
+    >
     MultiUserFarmSetup<
         FarmObjBuilder,
         EnergyFactoryBuilder,
         EnergyUpdateObjBuilder,
         TimestampOracleObjBuilder,
+        PermissionsHubObjBuilder,
     >
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
     EnergyUpdateObjBuilder: 'static + Copy + Fn() -> energy_update::ContractObj<DebugApi>,
     TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
+    PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
     pub fn new(
         farm_builder: FarmObjBuilder,
         energy_factory_builder: EnergyFactoryBuilder,
         eu_builder: EnergyUpdateObjBuilder,
         timestamp_oracle_builder: TimestampOracleObjBuilder,
+        permissions_hub_builder: PermissionsHubObjBuilder,
     ) -> Self {
         let rust_zero = rust_biguint!(0);
         let mut b_mock = BlockchainStateWrapper::new();
@@ -140,6 +155,19 @@ where
             })
             .assert_ok();
 
+        let permissions_hub_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            permissions_hub_builder,
+            "permissions_hub.wasm",
+        );
+
+        b_mock
+            .execute_tx(&owner, &permissions_hub_wrapper, &rust_zero, |sc| {
+                sc.init();
+            })
+            .assert_ok();
+
         b_mock
             .execute_tx(&owner, &farm_wrapper, &rust_zero, |sc| {
                 let reward_token_id = managed_token_id!(REWARD_TOKEN_ID);
@@ -167,6 +195,10 @@ where
                 ));
                 sc.set_timestamp_oracle_address(managed_address!(
                     timestamp_oracle_wrapper.address_ref()
+                ));
+
+                sc.set_permissions_hub_address(managed_address!(
+                    permissions_hub_wrapper.address_ref()
                 ));
             })
             .assert_ok();
@@ -223,6 +255,7 @@ where
             energy_factory_wrapper,
             eu_wrapper,
             timestamp_oracle_wrapper,
+            permissions_hub_wrapper,
         }
     }
 
@@ -648,6 +681,113 @@ where
                     .set(allow_external_claim);
             })
             .assert_ok();
+    }
+
+    pub fn whitelist_address_on_behalf(&mut self, user: &Address, address_to_whitelist: &Address) {
+        self.b_mock
+            .execute_tx(
+                user,
+                &self.permissions_hub_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.whitelist(managed_address!(address_to_whitelist));
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn remove_whitelist_address_on_behalf(
+        &mut self,
+        user: &Address,
+        address_to_whitelist: &Address,
+    ) {
+        self.b_mock
+            .execute_tx(
+                user,
+                &self.permissions_hub_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.remove_whitelist(managed_address!(address_to_whitelist));
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn enter_farm_on_behalf(
+        &mut self,
+        caller: &Address,
+        user: &Address,
+        farming_token_amount: u64,
+        farm_token_nonce: u64,
+        farm_token_amount: u64,
+    ) {
+        let mut payments = Vec::new();
+        payments.push(TxTokenTransfer {
+            token_identifier: FARMING_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: rust_biguint!(farming_token_amount),
+        });
+
+        if farm_token_nonce > 0 {
+            payments.push(TxTokenTransfer {
+                token_identifier: FARM_TOKEN_ID.to_vec(),
+                nonce: farm_token_nonce,
+                value: rust_biguint!(farm_token_amount),
+            });
+        }
+
+        let b_mock = &mut self.b_mock;
+        b_mock
+            .execute_esdt_multi_transfer(caller, &self.farm_wrapper, &payments, |sc| {
+                let enter_farm_result = sc.enter_farm_on_behalf(managed_address!(user));
+                let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+                assert_eq!(
+                    out_farm_token.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(
+                    out_farm_token.amount,
+                    managed_biguint!(farming_token_amount + farm_token_amount)
+                );
+            })
+            .assert_ok();
+    }
+
+    pub fn claim_rewards_on_behalf(
+        &mut self,
+        caller: &Address,
+        farm_token_nonce: u64,
+        farm_token_amount: u64,
+    ) -> u64 {
+        let mut result = 0;
+        self.b_mock
+            .execute_esdt_transfer(
+                caller,
+                &self.farm_wrapper,
+                FARM_TOKEN_ID,
+                farm_token_nonce,
+                &rust_biguint!(farm_token_amount),
+                |sc| {
+                    let (out_farm_token, out_reward_token) =
+                        sc.claim_rewards_on_behalf().into_tuple();
+                    assert_eq!(
+                        out_farm_token.token_identifier,
+                        managed_token_id!(FARM_TOKEN_ID)
+                    );
+                    assert_eq!(out_farm_token.amount, managed_biguint!(farm_token_amount));
+
+                    assert_eq!(
+                        out_reward_token.token_identifier,
+                        managed_token_id!(REWARD_TOKEN_ID)
+                    );
+                    assert_eq!(out_reward_token.token_nonce, 0);
+
+                    result = out_reward_token.amount.to_u64().unwrap();
+                },
+            )
+            .assert_ok();
+
+        result
     }
 
     pub fn update_energy_for_user(&mut self) {

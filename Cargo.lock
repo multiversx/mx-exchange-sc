@@ -525,6 +525,7 @@ dependencies = [
  "num-bigint",
  "pair",
  "pausable",
+ "permissions-hub",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -585,6 +586,7 @@ dependencies = [
  "num-bigint",
  "pair",
  "pausable",
+ "permissions-hub",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -626,6 +628,7 @@ dependencies = [
  "num-bigint",
  "pair",
  "pausable",
+ "permissions-hub",
  "rewards",
  "sc_whitelist_module",
  "simple-lock",
@@ -766,6 +769,7 @@ dependencies = [
  "multiversx-sc-scenario",
  "num-bigint",
  "pausable",
+ "permissions-hub",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -1441,6 +1445,23 @@ version = "0.0.0"
 dependencies = [
  "multiversx-sc-meta-lib",
  "pause-all",
+]
+
+[[package]]
+name = "permissions-hub"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "num-bigint",
+]
+
+[[package]]
+name = "permissions-hub-meta"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-meta-lib",
+ "permissions-hub",
 ]
 
 [[package]]

@@ -22,6 +22,17 @@ pub trait ProxyStakeModule:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
         let payments = self.get_non_empty_payments();
+
+        let output_payments = self.stake_farm_tokens_common(orig_caller, payments);
+
+        output_payments.send_and_return(self, &caller)
+    }
+
+    fn stake_farm_tokens_common(
+        &self,
+        original_caller: ManagedAddress,
+        payments: ManagedVec<EsdtTokenPayment>,
+    ) -> StakeProxyResult<Self::Api> {
         let lp_farm_token_payment = payments.get(0);
         let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
 
@@ -62,7 +73,7 @@ pub trait ProxyStakeModule:
         );
         let staking_token_amount = self.get_lp_tokens_safe_price(lp_tokens_in_farm);
         let staking_farm_enter_result = self.staking_farm_enter(
-            orig_caller.clone(),
+            original_caller.clone(),
             staking_token_amount,
             additional_staking_farm_tokens,
         );
@@ -70,7 +81,7 @@ pub trait ProxyStakeModule:
 
         let (merged_lp_farm_tokens, lp_farm_boosted_rewards) = self
             .merge_lp_farm_tokens(
-                orig_caller,
+                original_caller,
                 lp_farm_token_payment,
                 additional_lp_farm_tokens,
             )
@@ -90,6 +101,6 @@ pub trait ProxyStakeModule:
             lp_farm_boosted_rewards,
         };
 
-        output_payments.send_and_return(self, &caller)
+        output_payments
     }
 }

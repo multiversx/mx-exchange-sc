@@ -1,3 +1,4 @@
+use common_structs::FarmTokenAttributes;
 use common_structs::Timestamp;
 use config::ConfigModule;
 use energy_factory::energy::EnergyModule;
@@ -20,12 +21,16 @@ use farm_staking::{
     token_attributes::UnbondSftAttributes, unbond_farm::UnbondFarmModule,
     unstake_farm::UnstakeFarmModule,
 };
-use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::proxy_actions::claim::ProxyClaimModule;
+use farm_staking_proxy::{
+    dual_yield_token::DualYieldTokenAttributes,
+    proxy_actions::external_interaction::ProxyExternalInteractionsModule,
+};
 
 use farm_staking_proxy::proxy_actions::stake::ProxyStakeModule;
 use farm_staking_proxy::proxy_actions::unstake::ProxyUnstakeModule;
 
+use permissions_hub::PermissionsHub;
 use sc_whitelist_module::SCWhitelistModule;
 use timestamp_oracle::{epoch_to_timestamp::EpochToTimestampModule, TimestampOracle};
 
@@ -48,6 +53,7 @@ pub struct FarmStakingSetup<
     PairObjBuilder,
     FarmObjBuilder,
     EnergyFactoryBuilder,
+    PermissionsHubObjBuilder,
     StakingContractObjBuilder,
     ProxyContractObjBuilder,
     TimestampOracleObjBuilder,
@@ -55,6 +61,7 @@ pub struct FarmStakingSetup<
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     ProxyContractObjBuilder: 'static + Copy + Fn() -> farm_staking_proxy::ContractObj<DebugApi>,
     TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
@@ -67,6 +74,8 @@ pub struct FarmStakingSetup<
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>,
     pub energy_factory_wrapper:
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
+    pub permissions_hub_wrapper:
+        ContractObjWrapper<permissions_hub::ContractObj<DebugApi>, PermissionsHubObjBuilder>,
     pub staking_farm_wrapper:
         ContractObjWrapper<farm_staking::ContractObj<DebugApi>, StakingContractObjBuilder>,
     pub proxy_wrapper:
@@ -79,6 +88,7 @@ impl<
         PairObjBuilder,
         FarmObjBuilder,
         EnergyFactoryBuilder,
+        PermissionsHubObjBuilder,
         StakingContractObjBuilder,
         ProxyContractObjBuilder,
         TimestampOracleObjBuilder,
@@ -87,6 +97,7 @@ impl<
         PairObjBuilder,
         FarmObjBuilder,
         EnergyFactoryBuilder,
+        PermissionsHubObjBuilder,
         StakingContractObjBuilder,
         ProxyContractObjBuilder,
         TimestampOracleObjBuilder,
@@ -95,6 +106,7 @@ where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     ProxyContractObjBuilder: 'static + Copy + Fn() -> farm_staking_proxy::ContractObj<DebugApi>,
     TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
@@ -103,6 +115,7 @@ where
         pair_builder: PairObjBuilder,
         lp_farm_builder: FarmObjBuilder,
         energy_factory_builder: EnergyFactoryBuilder,
+        permissions_hub_builder: PermissionsHubObjBuilder,
         staking_farm_builder: StakingContractObjBuilder,
         proxy_builder: ProxyContractObjBuilder,
         timestamp_oracle_builder: TimestampOracleObjBuilder,
@@ -164,6 +177,27 @@ where
             &staking_farm_wrapper,
         );
 
+        let permissions_hub_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            permissions_hub_builder,
+            "permissions_hub.wasm",
+        );
+
+        b_mock
+            .execute_tx(&owner, &proxy_wrapper, &rust_zero, |sc| {
+                sc.set_permissions_hub_address(managed_address!(
+                    permissions_hub_wrapper.address_ref()
+                ));
+            })
+            .assert_ok();
+
+        b_mock
+            .execute_tx(&owner, &permissions_hub_wrapper, &rust_zero, |sc| {
+                sc.init();
+            })
+            .assert_ok();
+
         b_mock
             .execute_tx(&owner, &lp_farm_wrapper, &rust_zero, |sc| {
                 sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
@@ -182,6 +216,7 @@ where
             pair_wrapper,
             lp_farm_wrapper,
             energy_factory_wrapper,
+            permissions_hub_wrapper,
             staking_farm_wrapper,
             proxy_wrapper,
             timestamp_oracle_wrapper,
@@ -633,6 +668,82 @@ where
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub fn stake_farm_on_behalf(
+        &mut self,
+        caller: &Address,
+        user: &Address,
+        lp_farm_token_nonce: u64,
+        lp_farm_token_amount: u64,
+        additional_dual_yield_token_nonce: u64,
+        additional_dual_yield_token_amount: u64,
+        expected_dual_yield_token_nonce: u64,
+        expected_dual_yield_token_amount: u64,
+    ) {
+        let mut payments = Vec::new();
+        payments.push(TxTokenTransfer {
+            token_identifier: LP_FARM_TOKEN_ID.to_vec(),
+            nonce: lp_farm_token_nonce,
+            value: rust_biguint!(lp_farm_token_amount),
+        });
+
+        if additional_dual_yield_token_nonce > 0 {
+            payments.push(TxTokenTransfer {
+                token_identifier: DUAL_YIELD_TOKEN_ID.to_vec(),
+                nonce: additional_dual_yield_token_nonce,
+                value: rust_biguint!(additional_dual_yield_token_amount),
+            });
+        }
+
+        let b_mock = &mut self.b_mock;
+        b_mock
+            .execute_esdt_multi_transfer(caller, &self.proxy_wrapper, &payments, |sc| {
+                let stake_farm_result = sc.stake_farm_on_behalf(managed_address!(user));
+                assert_eq!(
+                    stake_farm_result.dual_yield_tokens.token_nonce,
+                    expected_dual_yield_token_nonce
+                );
+                assert_eq!(
+                    stake_farm_result.dual_yield_tokens.amount,
+                    managed_biguint!(expected_dual_yield_token_amount)
+                );
+            })
+            .assert_ok();
+    }
+
+    pub fn claim_rewards_on_behalf(
+        &mut self,
+        caller: &Address,
+        dual_yield_token_nonce: u64,
+        dual_yield_token_amount: u64,
+    ) {
+        self.b_mock
+            .execute_esdt_transfer(
+                caller,
+                &self.proxy_wrapper,
+                DUAL_YIELD_TOKEN_ID,
+                dual_yield_token_nonce,
+                &rust_biguint!(dual_yield_token_amount),
+                |sc| {
+                    let _claim_dual_yield_result = sc.claim_dual_yield_on_behalf();
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn whitelist_address_on_behalf(&mut self, user: &Address, address_to_whitelist: &Address) {
+        self.b_mock
+            .execute_tx(
+                user,
+                &self.permissions_hub_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.whitelist(managed_address!(address_to_whitelist));
+                },
+            )
+            .assert_ok();
+    }
+
     pub fn set_user_energy(
         &mut self,
         user: &Address,
@@ -728,6 +839,90 @@ where
                 },
             )
             .assert_ok();
+    }
+
+    pub fn send_farm_position(
+        &mut self,
+        sender: &Address,
+        receiver: &Address,
+        nonce: u64,
+        amount: u64,
+        attr_reward_per_share: u64,
+        attr_entering_epoch: u64,
+    ) {
+        self.b_mock.check_nft_balance(
+            sender,
+            LP_FARM_TOKEN_ID,
+            nonce,
+            &rust_biguint!(amount),
+            Some(&FarmTokenAttributes::<DebugApi> {
+                reward_per_share: managed_biguint!(attr_reward_per_share),
+                entering_epoch: attr_entering_epoch,
+                compounded_reward: managed_biguint!(0),
+                current_farm_amount: managed_biguint!(amount),
+                original_owner: managed_address!(&sender),
+            }),
+        );
+
+        self.b_mock
+            .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+                receiver,
+                LP_FARM_TOKEN_ID,
+                nonce,
+                &rust_biguint!(0),
+                None,
+            );
+
+        self.b_mock.set_nft_balance(
+            sender,
+            LP_FARM_TOKEN_ID,
+            nonce,
+            &rust_biguint!(0),
+            &FarmTokenAttributes::<DebugApi> {
+                reward_per_share: managed_biguint!(attr_reward_per_share),
+                entering_epoch: attr_entering_epoch,
+                compounded_reward: managed_biguint!(0),
+                current_farm_amount: managed_biguint!(amount),
+                original_owner: managed_address!(&sender),
+            },
+        );
+
+        self.b_mock.set_nft_balance(
+            receiver,
+            LP_FARM_TOKEN_ID,
+            nonce,
+            &rust_biguint!(amount),
+            &FarmTokenAttributes::<DebugApi> {
+                reward_per_share: managed_biguint!(attr_reward_per_share),
+                entering_epoch: attr_entering_epoch,
+                compounded_reward: managed_biguint!(0),
+                current_farm_amount: managed_biguint!(amount),
+                original_owner: managed_address!(&sender),
+            },
+        );
+
+        self.b_mock
+            .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+                sender,
+                LP_FARM_TOKEN_ID,
+                nonce,
+                &rust_biguint!(0),
+                None,
+            );
+
+        self.b_mock.check_nft_balance(
+            receiver,
+            LP_FARM_TOKEN_ID,
+            nonce,
+            &rust_biguint!(amount),
+            Some(&FarmTokenAttributes::<DebugApi> {
+                reward_per_share: managed_biguint!(attr_reward_per_share),
+                entering_epoch: attr_entering_epoch,
+                compounded_reward: managed_biguint!(0),
+                current_farm_amount: managed_biguint!(amount),
+                original_owner: managed_address!(&sender),
+            }),
+        );
     }
 
     pub fn check_user_total_staking_farm_position(

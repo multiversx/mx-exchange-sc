@@ -1,5 +1,8 @@
 use common_structs::FarmTokenAttributes;
 use farm_with_locked_rewards::Farm;
+use farm_with_locked_rewards_setup::{
+    FARMING_TOKEN_ID, MAX_PERCENTAGE, PER_BLOCK_REWARD_AMOUNT, REWARD_TOKEN_ID,
+};
 use multiversx_sc::{codec::Empty, imports::OptionalValue};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -18,6 +21,7 @@ fn farm_with_no_boost_no_proxy_test() {
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     // first user enter farm
@@ -120,6 +124,7 @@ fn farm_with_boosted_yields_no_proxy_test() {
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -241,6 +246,7 @@ fn total_farm_position_claim_with_locked_rewards_test() {
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -350,6 +356,7 @@ fn claim_only_boosted_rewards_per_week_test() {
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -415,6 +422,7 @@ fn claim_rewards_per_week_test() {
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -483,6 +491,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -556,6 +565,7 @@ fn claim_boosted_rewards_user_energy_not_registered_test() {
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -586,4 +596,129 @@ fn claim_boosted_rewards_user_energy_not_registered_test() {
     // Now the user should be able to claim boosted rewards
     // Rewards computation is out of scope
     farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user, 0);
+}
+
+#[test]
+fn test_multiple_positions_on_behalf() {
+    DebugApi::dummy();
+
+    let mut farm_setup = FarmSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    let mut block_nonce = 0u64;
+    farm_setup.b_mock.set_block_nonce(block_nonce);
+
+    // new external user
+    let external_user = farm_setup.b_mock.create_user_account(&rust_biguint!(0));
+    farm_setup.set_user_energy(&external_user, 1_000, 1, 1);
+
+    // authorized address
+    let farm_token_amount = 100_000_000;
+    let authorized_address = farm_setup.first_user.clone();
+    farm_setup.b_mock.set_esdt_balance(
+        &authorized_address,
+        FARMING_TOKEN_ID,
+        &rust_biguint!(farm_token_amount * 2),
+    );
+
+    farm_setup.whitelist_address_on_behalf(&external_user, &authorized_address);
+
+    farm_setup.check_farm_token_supply(0);
+    farm_setup.enter_farm_on_behalf(&authorized_address, &external_user, farm_token_amount, 0, 0);
+    farm_setup.check_farm_token_supply(farm_token_amount);
+
+    let block_nonce_diff = 10u64;
+    block_nonce += block_nonce_diff;
+    farm_setup.b_mock.set_block_nonce(block_nonce);
+
+    // 1000 rewards per block
+    let total_rewards = PER_BLOCK_REWARD_AMOUNT * block_nonce_diff;
+    let base_rewards =
+        total_rewards * (MAX_PERCENTAGE - BOOSTED_YIELDS_PERCENTAGE) / MAX_PERCENTAGE;
+    let boosted_rewards = total_rewards * BOOSTED_YIELDS_PERCENTAGE / MAX_PERCENTAGE;
+
+    // Only base rewards are given
+    farm_setup
+        .b_mock
+        .check_esdt_balance(&external_user, REWARD_TOKEN_ID, &rust_biguint!(0));
+    farm_setup.claim_rewards_on_behalf(&authorized_address, 1, farm_token_amount, 1);
+    farm_setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            &external_user,
+            LOCKED_REWARD_TOKEN_ID,
+            1,
+            &rust_biguint!(base_rewards),
+            None,
+        );
+
+    // random tx on end of week 1, to cummulate rewards
+    farm_setup.b_mock.set_block_epoch(6);
+    let temp_user = farm_setup.third_user.clone();
+    farm_setup.set_user_energy(&external_user, 1_000, 6, 1);
+    farm_setup.set_user_energy(&temp_user, 1, 6, 1);
+    farm_setup.last_farm_token_nonce = 2;
+    farm_setup.enter_farm(&temp_user, 1);
+    farm_setup.exit_farm(&temp_user, 3, 1);
+
+    // advance 1 week
+    block_nonce += block_nonce_diff;
+    farm_setup.b_mock.set_block_nonce(block_nonce);
+    farm_setup.b_mock.set_block_epoch(10);
+    farm_setup.set_user_energy(&external_user, 1_000, 10, 1);
+
+    // enter farm again for the same user (with additional payment)
+    farm_setup.check_farm_token_supply(farm_token_amount);
+    farm_setup.enter_farm_on_behalf(
+        &authorized_address,
+        &external_user,
+        farm_token_amount,
+        2, // nonce 2 as the user already claimed with this position
+        farm_token_amount,
+    );
+    farm_setup.check_farm_token_supply(farm_token_amount * 2);
+    farm_setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            &external_user,
+            LOCKED_REWARD_TOKEN_ID,
+            1,
+            &rust_biguint!(base_rewards + boosted_rewards),
+            None,
+        );
+
+    farm_setup.claim_rewards_on_behalf(&authorized_address, 4, farm_token_amount * 2, 1);
+    farm_setup.check_farm_token_supply(farm_token_amount * 2);
+
+    farm_setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            &external_user,
+            LOCKED_REWARD_TOKEN_ID,
+            1,
+            &rust_biguint!(total_rewards + base_rewards),
+            None,
+        );
+
+    let farm_token_attributes: FarmTokenAttributes<DebugApi> = FarmTokenAttributes {
+        reward_per_share: managed_biguint!(150_000_000u64),
+        entering_epoch: 10u64,
+        compounded_reward: managed_biguint!(0),
+        current_farm_amount: managed_biguint!(farm_token_amount * 2),
+        original_owner: managed_address!(&external_user),
+    };
+
+    farm_setup.b_mock.check_nft_balance(
+        &authorized_address,
+        FARM_TOKEN_ID,
+        5,
+        &rust_biguint!(farm_token_amount * 2),
+        Some(&farm_token_attributes),
+    );
 }

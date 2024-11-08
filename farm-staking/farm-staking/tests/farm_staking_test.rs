@@ -13,6 +13,7 @@ fn test_farm_setup() {
         farm_staking::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 }
 
@@ -24,6 +25,7 @@ fn test_enter_farm() {
         farm_staking::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     let user_address = farm_setup.user_address.clone();
@@ -49,6 +51,7 @@ fn test_unstake_farm() {
         farm_staking::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     let user_address = farm_setup.user_address.clone();
@@ -105,6 +108,7 @@ fn test_claim_rewards() {
         farm_staking::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     let user_address = farm_setup.user_address.clone();
@@ -142,20 +146,33 @@ fn test_claim_rewards() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 }
 
-fn steps_enter_farm_twice<FarmObjBuilder, EnergyFactoryBuilder, TimestampOracleObjBuilder>(
+fn steps_enter_farm_twice<
+    FarmObjBuilder,
+    EnergyFactoryBuilder,
+    TimestampOracleObjBuilder,
+    PermissionsHubObjBuilder,
+>(
     farm_builder: FarmObjBuilder,
     energy_factory_builder: EnergyFactoryBuilder,
     timestamp_oracle_builder: TimestampOracleObjBuilder,
-) -> FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder, TimestampOracleObjBuilder>
+    permissions_hub_builder: PermissionsHubObjBuilder,
+) -> FarmStakingSetup<
+    FarmObjBuilder,
+    EnergyFactoryBuilder,
+    TimestampOracleObjBuilder,
+    PermissionsHubObjBuilder,
+>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
     TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
+    PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
     let mut farm_setup = FarmStakingSetup::new(
         farm_builder,
         energy_factory_builder,
         timestamp_oracle_builder,
+        permissions_hub_builder,
     );
 
     let user_address = farm_setup.user_address.clone();
@@ -212,6 +229,7 @@ fn test_enter_farm_twice() {
         farm_staking::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 }
 
@@ -223,6 +241,7 @@ fn test_exit_farm_after_enter_twice() {
         farm_staking::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     let user_address = farm_setup.user_address.clone();
@@ -261,6 +280,7 @@ fn test_unbond() {
         farm_staking::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     let user_address = farm_setup.user_address.clone();
@@ -326,6 +346,7 @@ fn test_withdraw_rewards() {
         farm_staking::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     let initial_rewards_capacity = 1_000_000_000_000u64;
@@ -346,6 +367,7 @@ fn test_withdraw_after_produced_rewards() {
         farm_staking::contract_obj,
         energy_factory::contract_obj,
         timestamp_oracle::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     let user_address = farm_setup.user_address.clone();
