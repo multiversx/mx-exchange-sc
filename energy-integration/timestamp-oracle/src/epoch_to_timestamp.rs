@@ -40,22 +40,24 @@ pub trait EpochToTimestampModule {
     }
 
     #[view(getStartTimestampForEpoch)]
-    fn get_start_timestamp_for_epoch(&self, epoch: Epoch) -> Timestamp {
+    fn get_start_timestamp_for_epoch(&self, epoch: Epoch) -> Option<Timestamp> {
         let mapper = self.timestamp_for_epoch(epoch);
-        require!(!mapper.is_empty(), "No timestamp available");
-
-        mapper.get()
+        if !mapper.is_empty() {
+            Some(mapper.get())
+        } else {
+            None
+        }
     }
 
     #[view(getStartTimestampMultipleEpochs)]
     fn get_start_timestamp_multiple_epochs(
         &self,
         epochs: MultiValueEncoded<Epoch>,
-    ) -> MultiValueEncoded<Timestamp> {
+    ) -> MultiValueEncoded<Option<Timestamp>> {
         let mut timestamps = MultiValueEncoded::new();
         for epoch in epochs {
-            let timestamp = self.get_start_timestamp_for_epoch(epoch);
-            timestamps.push(timestamp);
+            let opt_timestamp = self.get_start_timestamp_for_epoch(epoch);
+            timestamps.push(opt_timestamp);
         }
 
         timestamps

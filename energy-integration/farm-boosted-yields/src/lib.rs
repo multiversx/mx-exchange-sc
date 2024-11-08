@@ -146,7 +146,7 @@ where
             return user_rewards;
         }
 
-        let user_reward = sc.calculate_user_boosted_rewards(CalculateRewardsArgs {
+        let mut user_reward = sc.calculate_user_boosted_rewards(CalculateRewardsArgs {
             factors,
             weekly_reward_amount: &weekly_reward.amount,
             user_farm_amount: &self.user_farm_amount,
@@ -158,20 +158,27 @@ where
             return user_rewards;
         }
 
-        let week_timestamps = sc.get_week_start_and_end_timestamp(claim_progress.week);
-        let new_user_reward =
-            sc.limit_boosted_rewards_by_claim_time(user_reward, &week_timestamps, claim_progress);
-        if new_user_reward == 0 {
-            return user_rewards;
+        if claim_progress.enter_timestamp != 0 {
+            let opt_week_timestamps = sc.get_week_start_and_end_timestamp(claim_progress.week);
+            if let Some(week_timestamps) = opt_week_timestamps {
+                user_reward = sc.limit_boosted_rewards_by_claim_time(
+                    user_reward,
+                    &week_timestamps,
+                    claim_progress,
+                );
+                if user_reward == 0 {
+                    return user_rewards;
+                }
+            }
         }
 
         sc.remaining_boosted_rewards_to_distribute(claim_progress.week)
-            .update(|amount| *amount -= &new_user_reward);
+            .update(|amount| *amount -= &user_reward);
 
         user_rewards.push(EsdtTokenPayment::new(
             weekly_reward.token_identifier,
             0,
-            new_user_reward,
+            user_reward,
         ));
 
         user_rewards

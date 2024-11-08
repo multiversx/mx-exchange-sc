@@ -159,7 +159,7 @@ pub trait CustomRewardLogicModule:
         user_reward * BigUint::from(percent_leftover) / MAX_PERCENT
     }
 
-    fn get_week_start_and_end_timestamp(&self, week: Week) -> WeekTimestamps {
+    fn get_week_start_and_end_timestamp(&self, week: Week) -> Option<WeekTimestamps> {
         let week_start_epoch = self.get_start_epoch_for_week(week);
         let week_end_epoch = week_start_epoch + EPOCHS_IN_WEEK;
 
@@ -167,16 +167,22 @@ pub trait CustomRewardLogicModule:
         needed_epoch_timestamps.push(week_start_epoch);
         needed_epoch_timestamps.push(week_end_epoch);
 
-        let timestamps = self
+        let opt_timestamps = self
             .get_multiple_epochs_start_timestamp(needed_epoch_timestamps)
             .to_vec();
-        let week_start_timestamp = timestamps.get(0);
-        let week_end_timestamp = timestamps.get(1) - 1;
+        let week_start_timestamp = match opt_timestamps.get(0) {
+            Some(timestamp) => timestamp,
+            None => return None,
+        };
+        let week_end_timestamp = match opt_timestamps.get(1) {
+            Some(timestamp) => timestamp - 1,
+            None => return None,
+        };
 
-        WeekTimestamps {
+        Some(WeekTimestamps {
             start: week_start_timestamp,
             end: week_end_timestamp,
-        }
+        })
     }
 
     #[inline]
@@ -201,7 +207,7 @@ pub trait CustomRewardLogicModule:
     fn get_multiple_epochs_start_timestamp(
         &self,
         epochs: MultiValueEncoded<Epoch>,
-    ) -> MultiValueEncoded<Timestamp> {
+    ) -> MultiValueEncoded<Option<Timestamp>> {
         let timestamp_oracle_addr = self.timestamp_oracle_address().get();
         self.timestamp_oracle_proxy_obj(timestamp_oracle_addr)
             .get_start_timestamp_multiple_epochs(epochs)
