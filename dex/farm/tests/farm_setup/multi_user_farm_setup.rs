@@ -24,8 +24,10 @@ use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
-use week_timekeeping::Epoch;
+use week_timekeeping::{Epoch, Week};
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
+
+use super::single_user_farm_setup::MEX_TOKEN_ID;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"REW-123456";
 pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
@@ -65,6 +67,7 @@ where
     pub first_user: Address,
     pub second_user: Address,
     pub third_user: Address,
+    pub undistributed_rew_dest: Address,
     pub last_farm_token_nonce: u64,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     pub energy_factory_wrapper:
@@ -91,6 +94,7 @@ where
         let first_user = b_mock.create_user_account(&rust_zero);
         let second_user = b_mock.create_user_account(&rust_zero);
         let third_user = b_mock.create_user_account(&rust_zero);
+        let undistributed_rew_dest = b_mock.create_user_account(&rust_zero);
         let farm_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner), farm_builder, "farm.wasm");
         let energy_factory_wrapper = b_mock.create_sc_account(
@@ -101,6 +105,20 @@ where
         );
         let eu_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner), eu_builder, "energy update mock");
+
+        b_mock
+            .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
+                sc.init();
+                sc.base_asset_token_id()
+                    .set(managed_token_id!(MEX_TOKEN_ID));
+            })
+            .assert_ok();
+
+        b_mock.set_esdt_local_roles(
+            energy_factory_wrapper.address_ref(),
+            MEX_TOKEN_ID,
+            &[EsdtLocalRole::Mint],
+        );
 
         b_mock
             .execute_tx(&owner, &eu_wrapper, &rust_zero, |sc| {
@@ -185,6 +203,7 @@ where
             first_user,
             second_user,
             third_user,
+            undistributed_rew_dest,
             last_farm_token_nonce: 0,
             farm_wrapper,
             energy_factory_wrapper,
@@ -651,18 +670,33 @@ where
             .assert_ok();
     }
 
-    pub fn check_error_collect_undistributed_boosted_rewards(&mut self, expected_message: &str) {
+    pub fn check_error_collect_undistributed_boosted_rewards(
+        &mut self,
+        expected_message: &str,
+        start_week: Week,
+        end_week: Week,
+    ) {
+        let dest_address = self.undistributed_rew_dest.clone();
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.collect_undistributed_boosted_rewards();
+                sc.collect_undistributed_boosted_rewards(
+                    start_week,
+                    end_week,
+                    managed_address!(&dest_address),
+                );
             })
             .assert_error(4, expected_message)
     }
 
-    pub fn collect_undistributed_boosted_rewards(&mut self) {
+    pub fn collect_undistributed_boosted_rewards(&mut self, start_week: Week, end_week: Week) {
+        let dest_address = self.undistributed_rew_dest.clone();
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.collect_undistributed_boosted_rewards();
+                sc.collect_undistributed_boosted_rewards(
+                    start_week,
+                    end_week,
+                    managed_address!(&dest_address),
+                );
             })
             .assert_ok();
     }
@@ -683,12 +717,11 @@ where
     }
 
     pub fn check_undistributed_boosted_rewards(&mut self, expected_amount: u64) {
-        self.b_mock
-            .execute_query(&self.farm_wrapper, |sc| {
-                let result_managed = sc.undistributed_boosted_rewards().get();
-                assert_eq!(result_managed, managed_biguint!(expected_amount));
-            })
-            .assert_ok();
+        self.b_mock.check_esdt_balance(
+            &self.undistributed_rew_dest,
+            MEX_TOKEN_ID,
+            &rust_biguint!(expected_amount),
+        );
     }
 
     pub fn check_farm_token_supply(&mut self, expected_farm_token_supply: u64) {

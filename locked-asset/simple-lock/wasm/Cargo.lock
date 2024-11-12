@@ -35,7 +35,6 @@ dependencies = [
 name = "disable-add-liq"
 version = "0.0.0"
 dependencies = [
- "common_structs",
  "multiversx-sc",
 ]
 
