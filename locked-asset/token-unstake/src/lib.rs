@@ -10,8 +10,6 @@ pub mod unbond_tokens;
 
 use common_structs::{Epoch, Percent};
 
-use crate::fees_handler::MAX_PENALTY_PERCENTAGE;
-
 #[multiversx_sc::contract]
 pub trait TokenUnstakeModule:
     tokens_per_user::TokensPerUserModule
@@ -33,15 +31,12 @@ pub trait TokenUnstakeModule:
     ) {
         self.require_sc_address(&energy_factory_address);
         self.require_sc_address(&fees_collector_address);
-        require!(
-            fees_burn_percentage <= MAX_PENALTY_PERCENTAGE,
-            "Invalid percentage"
-        );
+
+        self.set_fees_burn_percent(fees_burn_percentage);
 
         self.unbond_epochs().set(unbond_epochs);
         self.energy_factory_address().set(energy_factory_address);
         self.fees_collector_address().set(fees_collector_address);
-        self.fees_burn_percentage().set(fees_burn_percentage);
     }
 
     #[upgrade]

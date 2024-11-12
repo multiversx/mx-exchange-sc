@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           10
+// Endpoints:                           11
 // Async Callback (empty):               1
-// Total number of exported functions:  13
+// Total number of exported functions:  14
 
 #![no_std]
 
@@ -24,6 +24,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUnlockedTokensForUser => unlocked_tokens_for_user
         claimUnlockedTokens => claim_unlocked_tokens
         cancelUnbond => cancel_unbond
+        setFeesBurnPercent => set_fees_burn_percent
         depositUserTokens => deposit_user_tokens
         depositFees => deposit_fees
         getFeesBurnPercentage => fees_burn_percentage

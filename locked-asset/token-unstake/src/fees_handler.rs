@@ -24,6 +24,14 @@ pub trait FeesHandlerModule:
     + utils::UtilsModule
     + events::EventsModule
 {
+    #[only_owner]
+    #[endpoint(setFeesBurnPercent)]
+    fn set_fees_burn_percent(&self, percent: Percent) {
+        require!(percent <= MAX_PENALTY_PERCENTAGE, "Invalid percent");
+
+        self.fees_burn_percentage().set(percent);
+    }
+
     #[payable("*")]
     #[endpoint(depositUserTokens)]
     fn deposit_user_tokens(&self, user: ManagedAddress) {
