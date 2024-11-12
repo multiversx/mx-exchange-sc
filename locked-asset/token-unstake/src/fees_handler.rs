@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 
-pub const MAX_PENALTY_PERCENTAGE: u64 = 10_000;
+pub const MAX_PENALTY_PERCENTAGE: Percent = 10_000;
+
+use common_structs::Percent;
 
 use crate::{events, tokens_per_user::UnstakePair};
 
@@ -103,7 +105,7 @@ pub trait FeesHandlerModule:
 
     #[view(getFeesBurnPercentage)]
     #[storage_mapper("feesBurnPercentage")]
-    fn fees_burn_percentage(&self) -> SingleValueMapper<u64>;
+    fn fees_burn_percentage(&self) -> SingleValueMapper<Percent>;
 
     #[view(getFeesCollectorAddress)]
     #[storage_mapper("feesCollectorAddress")]
