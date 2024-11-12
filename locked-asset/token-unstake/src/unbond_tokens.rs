@@ -29,8 +29,7 @@ pub trait UnbondTokensModule:
 
                     self.handle_single_unbond_entry(&entry, &mut penalty_tokens);
 
-                    let unlocked_tokens = entry.unlocked_tokens;
-                    output_payments.push(unlocked_tokens);
+                    output_payments.push(entry.unlocked_tokens);
                     user_entries.remove(0);
                 }
 
