@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           30
+// Endpoints:                           33
 // Async Callback:                       1
-// Total number of exported functions:  33
+// Total number of exported functions:  36
 
 #![no_std]
 
@@ -36,9 +36,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeIntermediatedFarm => remove_intermediated_farm
         getIntermediatedPairs => intermediated_pairs
         getIntermediatedFarms => intermediated_farms
+        enableAddLiq => enable_add_liq
+        disableAddLiq => disable_add_liq
         addLiquidityProxy => add_liquidity_proxy
         removeLiquidityProxy => remove_liquidity_proxy
         increaseProxyPairTokenEnergy => increase_proxy_pair_token_energy_endpoint
+        isAddLiqDisabled => add_liq_disabled
         enterFarmProxy => enter_farm_proxy_endpoint
         exitFarmProxy => exit_farm_proxy
         claimRewardsProxy => claim_rewards_proxy
