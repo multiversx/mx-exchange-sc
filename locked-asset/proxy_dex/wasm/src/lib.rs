@@ -36,12 +36,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeIntermediatedFarm => remove_intermediated_farm
         getIntermediatedPairs => intermediated_pairs
         getIntermediatedFarms => intermediated_farms
-        enableAddLiq => enable_add_liq
-        disableAddLiq => disable_add_liq
         addLiquidityProxy => add_liquidity_proxy
         removeLiquidityProxy => remove_liquidity_proxy
         increaseProxyPairTokenEnergy => increase_proxy_pair_token_energy_endpoint
-        isAddLiqDisabled => add_liq_disabled
         enterFarmProxy => enter_farm_proxy_endpoint
         exitFarmProxy => exit_farm_proxy
         claimRewardsProxy => claim_rewards_proxy
@@ -53,6 +50,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
+        enableAddLiq => enable_add_liq
+        disableAddLiq => disable_add_liq
+        isAddLiqDisabled => add_liq_disabled
     )
 }
 

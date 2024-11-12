@@ -21,6 +21,7 @@ pub trait SimpleLock:
     + lp_interactions::LpInteractionsModule
     + farm_interactions::FarmInteractionsModule
     + token_attributes::TokenAttributesModule
+    + disable_add_liq::DisableAddLiqModule
 {
     #[init]
     fn init(&self) {}

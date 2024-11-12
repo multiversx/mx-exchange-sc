@@ -75,6 +75,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "disable-add-liq"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "multiversx-sc",
+]
+
+[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -438,6 +446,7 @@ name = "proxy_dex"
 version = "0.0.0"
 dependencies = [
  "common_structs",
+ "disable-add-liq",
  "energy-factory",
  "energy-query",
  "farm",

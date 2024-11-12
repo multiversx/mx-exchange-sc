@@ -10,9 +10,6 @@ use crate::{
 use common_structs::Epoch;
 use fixed_supply_token::FixedSupplyToken;
 
-const ADD_LIQ_ENABLED: bool = false;
-const ADD_LIQ_DISABLED: bool = true;
-
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
     crate::proxy_common::ProxyCommonModule
@@ -26,19 +23,8 @@ pub trait ProxyPairModule:
     + token_send::TokenSendModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
+    + disable_add_liq::DisableAddLiqModule
 {
-    #[only_owner]
-    #[endpoint(enableAddLiq)]
-    fn enable_add_liq(&self) {
-        self.add_liq_disabled().set(ADD_LIQ_ENABLED);
-    }
-
-    #[only_owner]
-    #[endpoint(disableAddLiq)]
-    fn disable_add_liq(&self) {
-        self.add_liq_disabled().set(ADD_LIQ_DISABLED);
-    }
-
     #[payable("*")]
     #[endpoint(addLiquidityProxy)]
     fn add_liquidity_proxy(
@@ -49,10 +35,7 @@ pub trait ProxyPairModule:
     ) -> MultiValueEncoded<EsdtTokenPayment> {
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
-        require!(
-            self.add_liq_disabled().get() == ADD_LIQ_ENABLED,
-            "Add Liquidity is disabled"
-        );
+        self.require_add_liq_enabled();
 
         let caller = self.blockchain().get_caller();
         let mut payments = self.get_non_empty_payments();
@@ -316,8 +299,4 @@ pub trait ProxyPairModule:
     fn require_wrapped_lp_token_id_not_empty(&self) {
         require!(!self.wrapped_lp_token().is_empty(), "Empty token id");
     }
-
-    #[view(isAddLiqDisabled)]
-    #[storage_mapper("addLiqDisabled")]
-    fn add_liq_disabled(&self) -> SingleValueMapper<bool>;
 }
