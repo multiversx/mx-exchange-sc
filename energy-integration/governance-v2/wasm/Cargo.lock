@@ -46,6 +46,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "disable-add-liq"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+]
+
+[[package]]
 name = "endian-type"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -299,6 +306,7 @@ name = "simple-lock"
 version = "0.0.0"
 dependencies = [
  "common_structs",
+ "disable-add-liq",
  "multiversx-sc",
  "multiversx-sc-modules",
 ]

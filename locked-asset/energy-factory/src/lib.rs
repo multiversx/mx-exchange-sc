@@ -14,6 +14,7 @@ pub mod penalty;
 pub mod token_merging;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
+pub mod unlocked_token_transfer;
 pub mod unstake;
 pub mod virtual_lock;
 
@@ -47,6 +48,7 @@ pub trait SimpleLockEnergy:
     + virtual_lock::VirtualLockModule
     + sc_whitelist_module::SCWhitelistModule
     + locked_token_transfer::LockedTokenTransferModule
+    + unlocked_token_transfer::UnlockedTokenTransferModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     /// Args:
@@ -82,11 +84,10 @@ pub trait SimpleLockEnergy:
         self.min_migrated_token_locked_period()
             .set(min_migrated_token_locked_period);
 
-        self.base_asset_token_id()
-            .set_if_empty(&base_asset_token_id);
-        self.legacy_locked_token_id().set_if_empty(&legacy_token_id);
+        self.base_asset_token_id().set(&base_asset_token_id);
+        self.legacy_locked_token_id().set(&legacy_token_id);
         self.old_locked_asset_factory_address()
-            .set_if_empty(&old_locked_asset_factory_address);
+            .set(&old_locked_asset_factory_address);
 
         self.set_paused(true);
     }

@@ -30,6 +30,16 @@ impl<M: ManagedTypeApi> SplitReward<M> {
     }
 }
 
+mod energy_factory_proxy_send_rew {
+    multiversx_sc::imports!();
+
+    #[multiversx_sc::proxy]
+    pub trait EnergyFactorySendRewProxy {
+        #[endpoint(transferUnlockedToken)]
+        fn transfer_unlocked_token(&self, dest: ManagedAddress, amount: BigUint);
+    }
+}
+
 #[multiversx_sc::module]
 pub trait FarmBoostedYieldsModule:
     boosted_yields_factors::BoostedYieldsFactorsModule
@@ -44,31 +54,41 @@ pub trait FarmBoostedYieldsModule:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
 {
+    #[only_owner]
     #[endpoint(collectUndistributedBoostedRewards)]
-    fn collect_undistributed_boosted_rewards(&self) {
-        self.require_caller_has_admin_permissions();
-
-        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS + 1usize;
+    fn collect_undistributed_boosted_rewards(
+        &self,
+        start_week: Week,
+        end_week: Week,
+        dest_address: ManagedAddress,
+    ) {
+        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS + 1;
         let current_week = self.get_current_week();
         require!(
             current_week > collect_rewards_offset,
             "Current week must be higher than the week offset"
         );
+        require!(start_week <= end_week, "Invalid week numbers");
+        require!(
+            end_week <= current_week - collect_rewards_offset,
+            "Invalid end week"
+        );
 
-        let last_collect_week_mapper = self.last_undistributed_boosted_rewards_collect_week();
-        let first_collect_week = last_collect_week_mapper.get() + 1;
-        let last_collect_week = current_week - collect_rewards_offset;
-        if first_collect_week > last_collect_week {
+        let mut total_rewards = BigUint::zero();
+        for week in start_week..=end_week {
+            let rewards_to_distribute = self.remaining_boosted_rewards_to_distribute(week).take();
+            total_rewards += rewards_to_distribute;
+        }
+
+        if total_rewards == 0 {
             return;
         }
 
-        for week in first_collect_week..=last_collect_week {
-            let rewards_to_distribute = self.remaining_boosted_rewards_to_distribute(week).take();
-            self.undistributed_boosted_rewards()
-                .update(|total_amount| *total_amount += rewards_to_distribute);
-        }
-
-        last_collect_week_mapper.set(last_collect_week);
+        let energy_factory = self.energy_factory_address().get();
+        let _: () = self
+            .energy_factory_send_rew_proxy_obj(energy_factory)
+            .transfer_unlocked_token(dest_address, total_rewards)
+            .execute_on_dest_context();
     }
 
     fn take_reward_slice(&self, full_reward: BigUint) -> SplitReward<Self::Api> {
@@ -150,12 +170,11 @@ pub trait FarmBoostedYieldsModule:
     #[storage_mapper("remainingBoostedRewardsToDistribute")]
     fn remaining_boosted_rewards_to_distribute(&self, week: Week) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("lastUndistributedBoostedRewardsCollectWeek")]
-    fn last_undistributed_boosted_rewards_collect_week(&self) -> SingleValueMapper<Week>;
-
-    #[view(getUndistributedBoostedRewards)]
-    #[storage_mapper("undistributedBoostedRewards")]
-    fn undistributed_boosted_rewards(&self) -> SingleValueMapper<BigUint>;
+    #[proxy]
+    fn energy_factory_send_rew_proxy_obj(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> energy_factory_proxy_send_rew::Proxy<Self::Api>;
 }
 
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
