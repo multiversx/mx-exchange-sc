@@ -177,8 +177,8 @@ pub trait ProxyPairModule:
             pair_address: pair_address.clone(),
             lp_token_id: attributes.lp_token_id.clone(),
             lp_token_amount: attributes.lp_token_amount.clone(),
-            first_token_amount_min: first_token_amount_min,
-            second_token_amount_min: second_token_amount_min,
+            first_token_amount_min,
+            second_token_amount_min,
         });
         let received_token_refs = self.require_exactly_one_base_asset(
             &remove_liq_result.first_token_received,
