@@ -18,6 +18,9 @@ version = "=0.53.2"
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
+[dependencies.disable-add-liq]
+path = "../../common/modules/disable-add-liq"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"

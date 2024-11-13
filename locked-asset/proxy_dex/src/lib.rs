@@ -36,6 +36,7 @@ pub trait ProxyDexImpl:
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
     + sc_whitelist_module::SCWhitelistModule
+    + disable_add_liq::DisableAddLiqModule
 {
     #[init]
     fn init(
