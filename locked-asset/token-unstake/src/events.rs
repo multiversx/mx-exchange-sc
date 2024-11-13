@@ -1,3 +1,5 @@
+use common_structs::Epoch;
+
 use crate::tokens_per_user::UnstakePair;
 
 multiversx_sc::imports!();
@@ -24,7 +26,7 @@ pub trait EventsModule {
         &self,
         #[indexed] caller: &ManagedAddress,
         #[indexed] block: u64,
-        #[indexed] epoch: u64,
+        #[indexed] epoch: Epoch,
         #[indexed] timestamp: u64,
         data: ManagedVec<UnstakePair<Self::Api>>,
     );
