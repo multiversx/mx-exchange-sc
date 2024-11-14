@@ -1,5 +1,6 @@
 #![allow(deprecated)]
 
+use claim::ClaimModule;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -151,6 +152,7 @@ where
                 sc.init(
                     managed_token_id!(LOCKED_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
+                    MultiValueEncoded::new(),
                 );
 
                 let _ = sc
