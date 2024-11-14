@@ -1378,6 +1378,7 @@ version = "0.0.0"
 dependencies = [
  "common_errors",
  "common_structs",
+ "disable-add-liq",
  "fees-collector",
  "itertools 0.10.5",
  "multiversx-sc",
