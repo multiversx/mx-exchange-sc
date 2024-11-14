@@ -1789,7 +1789,7 @@ fn try_add_liq_disabled_test() {
         .assert_ok();
 
     // try add liquidity through simple-lock SC - one locked (WEGLD) token, one unlocked (MEX)
-    let transfers = vec![
+    let transfers = [
         TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
