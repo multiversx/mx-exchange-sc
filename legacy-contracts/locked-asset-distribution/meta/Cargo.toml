@@ -1,0 +1,13 @@
+[package]
+name = "locked-asset-distribution-abi"
+version = "0.0.0"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
+publish = false
+
+[dependencies.locked-asset-distribution]
+path = ".."
+
+[dependencies.multiversx-sc-meta-lib]
+version = "0.53.2"
+default-features = false

@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies.multiversx-sc]
-version = "=0.52.3"
+version = "=0.53.2"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.farm]
@@ -16,12 +16,6 @@ path = "../dex/pair"
 
 [dependencies.router]
 path = "../dex/router"
-
-[dependencies.distribution]
-path = "distribution"
-
-[dependencies.factory]
-path = "factory"
 
 [dependencies.simple-lock]
 path = "simple-lock"
@@ -50,7 +44,7 @@ num-traits = "0.2"
 hex = "0.4"
 
 [dev-dependencies.multiversx-sc-modules]
-version = "=0.52.3"
+version = "=0.53.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.52.3"
+version = "=0.53.2"

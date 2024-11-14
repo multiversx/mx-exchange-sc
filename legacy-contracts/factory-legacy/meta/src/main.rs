@@ -1,3 +1,3 @@
 fn main() {
-    multiversx_sc_meta::cli_main::<factory_legacy::AbiProvider>();
+    multiversx_sc_meta_lib::cli_main::<factory_legacy::AbiProvider>();
 }
