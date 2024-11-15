@@ -147,8 +147,6 @@ where
         let total_rewards = self.collect_and_get_rewards_for_week(sc, week);
         let remaining_rewards_mapper = sc.remaining_rewards(week);
         let mut remaining_rewards = remaining_rewards_mapper.get();
-        let mut update_storage = false;
-
         for (i, weekly_reward) in total_rewards.iter().enumerate() {
             let reward_amount = weekly_reward.amount * energy_amount / total_energy;
             if reward_amount == 0 {
@@ -157,7 +155,6 @@ where
 
             let mut rem_rew_entry = remaining_rewards.get_mut(i);
             rem_rew_entry.amount -= &reward_amount;
-            update_storage = true;
 
             user_rewards.push(EsdtTokenPayment::new(
                 weekly_reward.token_identifier,
@@ -166,9 +163,7 @@ where
             ));
         }
 
-        if update_storage {
-            remaining_rewards_mapper.set(remaining_rewards);
-        }
+        remaining_rewards_mapper.set(remaining_rewards);
 
         user_rewards
     }

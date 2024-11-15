@@ -149,10 +149,13 @@ where
 
         b_mock
             .execute_tx(&owner_address, &fc_wrapper, &rust_zero, |sc| {
+                let mut admins = MultiValueEncoded::new();
+                admins.push(managed_address!(&owner_address));
+
                 sc.init(
                     managed_token_id!(LOCKED_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
-                    MultiValueEncoded::new(),
+                    admins,
                 );
 
                 let _ = sc

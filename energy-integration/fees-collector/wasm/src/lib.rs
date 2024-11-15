@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           45
+// Endpoints:                           43
 // Async Callback (empty):               1
-// Total number of exported functions:  48
+// Total number of exported functions:  46
 
 #![no_std]
 
@@ -61,9 +61,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getAdmins => admins
         claimRewards => claim_rewards_endpoint
         claimBoostedRewards => claim_boosted_rewards
-        redistributeInitialRewards => redistribute_initial_rewards
         redistributeRewards => redistribute_rewards
-        wereInitialRewardsRedistributed => redistributed_initial_rewards
         getRemainingRewards => remaining_rewards
     )
 }
