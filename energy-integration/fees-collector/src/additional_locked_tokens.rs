@@ -10,7 +10,6 @@ pub trait AdditionalLockedTokensModule:
     + crate::fees_accumulation::FeesAccumulationModule
     + crate::events::FeesCollectorEventsModule
     + week_timekeeping::WeekTimekeepingModule
-    + multiversx_sc_modules::only_admin::OnlyAdminModule
 {
     #[only_owner]
     #[endpoint(setLockedTokensPerBlock)]

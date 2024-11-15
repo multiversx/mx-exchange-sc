@@ -8,7 +8,6 @@ pub trait FeesAccumulationModule:
     crate::config::ConfigModule
     + crate::events::FeesCollectorEventsModule
     + week_timekeeping::WeekTimekeepingModule
-    + multiversx_sc_modules::only_admin::OnlyAdminModule
 {
     /// Pair SC will deposit the fees through this endpoint
     /// Deposits for current week are accessible starting next week
