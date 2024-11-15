@@ -2,6 +2,7 @@
 
 mod proxy_dex_test_setup;
 
+use disable_add_liq::DisableAddLiqModule;
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::Energy;
 use multiversx_sc::{
@@ -1401,4 +1402,57 @@ fn increase_proxy_lp_legacy_token_energy() {
             },
         )
         .assert_error(4, "Invalid payment");
+}
+
+#[test]
+fn add_liq_disabled_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let locked_token_amount = rust_biguint!(1_000_000_000);
+    let other_token_amount = rust_biguint!(500_000_000);
+
+    // disable add liquidity
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner,
+            &setup.proxy_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.disable_add_liq();
+            },
+        )
+        .assert_ok();
+
+    // set the price to 1 EGLD = 2 MEX
+    let payments = vec![
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: locked_token_amount.clone(),
+        },
+        TxTokenTransfer {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: other_token_amount.clone(),
+        },
+    ];
+
+    // try add liquidity
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount.to_u64().unwrap()),
+                managed_biguint!(other_token_amount.to_u64().unwrap()),
+            );
+        })
+        .assert_user_error("Add Liquidity is disabled");
 }
