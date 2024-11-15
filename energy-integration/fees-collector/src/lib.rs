@@ -7,6 +7,7 @@ pub mod claim;
 pub mod config;
 pub mod events;
 pub mod fees_accumulation;
+pub mod redistribute_rewards;
 
 #[multiversx_sc::contract]
 pub trait FeesCollector:
@@ -27,6 +28,7 @@ pub trait FeesCollector:
     + sc_whitelist_module::SCWhitelistModule
     + multiversx_sc_modules::only_admin::OnlyAdminModule
     + claim::ClaimModule
+    + redistribute_rewards::RedistributeRewardsModule
 {
     #[init]
     fn init(

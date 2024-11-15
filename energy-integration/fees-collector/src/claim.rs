@@ -23,6 +23,7 @@ pub trait ClaimModule:
     + utils::UtilsModule
     + sc_whitelist_module::SCWhitelistModule
     + multiversx_sc_modules::only_admin::OnlyAdminModule
+    + crate::redistribute_rewards::RedistributeRewardsModule
 {
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(

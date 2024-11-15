@@ -37,9 +37,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         updateEnergyForUser => update_energy_for_user
         getCurrentClaimProgress => current_claim_progress
         depositSwapFees => deposit_swap_fees
-        redistributeRewards => redistribute_rewards
         getAccumulatedFees => accumulated_fees
-        getRemainingRewards => remaining_rewards
         setLockedTokensPerBlock => set_locked_tokens_per_block
         getLastLockedTokensAddWeek => last_locked_token_add_week
         getLockedTokensPerBlock => locked_tokens_per_block
@@ -63,6 +61,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getAdmins => admins
         claimRewards => claim_rewards_endpoint
         claimBoostedRewards => claim_boosted_rewards
+        redistributeRewards => redistribute_rewards
+        getRemainingRewards => remaining_rewards
     )
 }
 
