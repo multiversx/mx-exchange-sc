@@ -6,13 +6,16 @@ edition = "2021"
 publish = false
 
 [lib]
-path = "src/contract.rs"
+path = "src/lib.rs"
 
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
 
 [dependencies.multiversx-sc]
 version = "=0.53.2"

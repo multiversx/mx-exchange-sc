@@ -1,79 +1,65 @@
 #![no_std]
-#![allow(deprecated)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub mod config;
-pub mod enable_swap_by_user;
-mod events;
-pub mod factory;
-pub mod multi_pair_swap;
+pub mod events;
+pub mod pair_actions;
+pub mod state;
+pub mod temp_owner;
+pub mod views;
 
-use factory::PairTokens;
+use common_structs::Percent;
 use pair::config::ProxyTrait as _;
 use pair::fee::ProxyTrait as _;
 use pair::{read_pair_storage, ProxyTrait as _};
-use pausable::ProxyTrait as _;
+use pair_actions::create::{CreatePairArgs, PairTokens};
 
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
-const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
-const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
-const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
-const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
+const DEFAULT_TOTAL_FEE_PERCENT: Percent = 300;
+const DEFAULT_SPECIAL_FEE_PERCENT: Percent = 50;
+const MAX_TOTAL_FEE_PERCENT: Percent = 100_000;
+const USER_DEFINED_TOTAL_FEE_PERCENT: Percent = 1_000;
+
+const DEFAULT_TEMPORARY_OWNER_PERIOD_BLOCKS: Blocks = 50;
+
+pub type Blocks = u64;
 
 #[multiversx_sc::contract]
 pub trait Router:
     config::ConfigModule
     + read_pair_storage::ReadPairStorageModule
-    + factory::FactoryModule
     + events::EventsModule
-    + multi_pair_swap::MultiPairSwap
     + token_send::TokenSendModule
-    + enable_swap_by_user::EnableSwapByUserModule
+    + pair_actions::enable_swap_by_user::EnableSwapByUserModule
+    + pair_actions::multi_pair_swap::MultiPairSwap
+    + pair_actions::create::CreateModule
+    + pair_actions::upgrade::UpgradeModule
+    + state::StateModule
+    + temp_owner::TempOwnerModule
+    + views::ViewsModule
 {
     #[init]
     fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
-        self.state().set_if_empty(true);
-        self.pair_creation_enabled().set_if_empty(false);
+        self.state().set(true);
+        self.pair_creation_enabled().set(false);
 
-        self.init_factory(pair_template_address_opt.into_option());
+        self.temporary_owner_period()
+            .set(DEFAULT_TEMPORARY_OWNER_PERIOD_BLOCKS);
+
+        if let OptionalValue::Some(addr) = pair_template_address_opt {
+            self.pair_template_address().set(&addr);
+        }
+
         self.owner().set(&self.blockchain().get_caller());
     }
 
     #[upgrade]
     fn upgrade(&self) {
         self.state().set(false);
-    }
-
-    #[only_owner]
-    #[endpoint]
-    fn pause(&self, address: ManagedAddress) {
-        if address == self.blockchain().get_sc_address() {
-            self.state().set(false);
-        } else {
-            self.check_is_pair_sc(&address);
-            let _: IgnoreValue = self
-                .pair_contract_proxy(address)
-                .pause()
-                .execute_on_dest_context();
-        }
-    }
-
-    #[only_owner]
-    #[endpoint]
-    fn resume(&self, address: ManagedAddress) {
-        if address == self.blockchain().get_sc_address() {
-            self.state().set(true);
-        } else {
-            self.check_is_pair_sc(&address);
-            let _: IgnoreValue = self
-                .pair_contract_proxy(address)
-                .resume()
-                .execute_on_dest_context();
-        }
     }
 
     #[allow_multiple_var_args]
@@ -86,7 +72,8 @@ pub trait Router:
         opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
         mut admins: MultiValueEncoded<ManagedAddress>,
     ) -> ManagedAddress {
-        require!(self.is_active(), "Not active");
+        self.require_active();
+
         let owner = self.owner().get();
         let caller = self.blockchain().get_caller();
 
@@ -130,15 +117,15 @@ pub trait Router:
 
         admins.push(caller.clone());
 
-        let address = self.create_pair(
-            &first_token_id,
-            &second_token_id,
-            &owner,
-            total_fee_percent_requested,
-            special_fee_percent_requested,
-            &initial_liquidity_adder,
+        let address = self.create_pair(CreatePairArgs {
+            first_token_id: &first_token_id,
+            second_token_id: &second_token_id,
+            owner: &owner,
+            total_fee_percent: total_fee_percent_requested,
+            special_fee_percent: special_fee_percent_requested,
+            initial_liquidity_adder: &initial_liquidity_adder,
             admins,
-        );
+        });
 
         self.emit_create_pair_event(
             caller,
@@ -148,6 +135,7 @@ pub trait Router:
             special_fee_percent_requested,
             address.clone(),
         );
+
         address
     }
 
@@ -158,8 +146,7 @@ pub trait Router:
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
     ) {
-        require!(self.is_active(), "Not active");
-
+        self.require_active();
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
             first_token_id.is_valid_esdt_identifier(),
@@ -183,9 +170,9 @@ pub trait Router:
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
     ) {
-        let issue_cost = self.call_value().egld_value().clone_value();
+        self.require_active();
 
-        require!(self.is_active(), "Not active");
+        let issue_cost = self.call_value().egld_value().clone_value();
         let caller = self.blockchain().get_caller();
         if caller != self.owner().get() {
             require!(
@@ -193,9 +180,10 @@ pub trait Router:
                 "Pair creation is disabled"
             );
         }
-        self.check_is_pair_sc(&pair_address);
-        let result = self.get_pair_temporary_owner(&pair_address);
 
+        self.check_is_pair_sc(&pair_address);
+
+        let result = self.get_pair_temporary_owner(&pair_address);
         match result {
             None => {}
             Some(temporary_owner) => {
@@ -203,12 +191,12 @@ pub trait Router:
             }
         };
 
-        let result: TokenIdentifier = self
+        let get_lp_result: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
             .execute_on_dest_context();
         require!(
-            !result.is_valid_esdt_identifier(),
+            !get_lp_result.is_valid_esdt_identifier(),
             "LP Token already issued"
         );
 
@@ -231,17 +219,16 @@ pub trait Router:
                     can_add_special_roles: true,
                 },
             )
-            .async_call()
             .with_callback(
                 self.callbacks()
                     .lp_token_issue_callback(&caller, &pair_address),
             )
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
     #[endpoint(setLocalRoles)]
     fn set_local_roles(&self, pair_address: ManagedAddress) {
-        require!(self.is_active(), "Not active");
+        self.require_active();
         self.check_is_pair_sc(&pair_address);
 
         let pair_token: TokenIdentifier = self
@@ -255,8 +242,7 @@ pub trait Router:
         self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
-            .async_call()
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
     #[only_owner]
@@ -266,8 +252,7 @@ pub trait Router:
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
     ) -> ManagedAddress {
-        require!(self.is_active(), "Not active");
-
+        self.require_active();
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
             first_token_id.is_valid_esdt_identifier(),
@@ -309,7 +294,7 @@ pub trait Router:
         fee_to_address: ManagedAddress,
         fee_token: TokenIdentifier,
     ) {
-        require!(self.is_active(), "Not active");
+        self.require_active();
         self.check_is_pair_sc(&pair_address);
 
         let _: IgnoreValue = self
@@ -326,7 +311,7 @@ pub trait Router:
         fee_to_address: ManagedAddress,
         fee_token: TokenIdentifier,
     ) {
-        require!(self.is_active(), "Not active");
+        self.require_active();
         self.check_is_pair_sc(&pair_address);
 
         let _: IgnoreValue = self
