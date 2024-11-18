@@ -20,15 +20,8 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
-        createPair => create_pair_endpoint
-        upgradePair => upgrade_pair_endpoint
-        issueLpToken => issue_lp_token
-        setLocalRoles => set_local_roles
-        removePair => remove_pair
-        setFeeOn => set_fee_on
-        setFeeOff => set_fee_off
-        setPairCreationEnabled => set_pair_creation_enabled
         setPairTemplateAddress => set_pair_template_address
+        setPairCreationEnabled => set_pair_creation_enabled
         getPairCreationEnabled => pair_creation_enabled
         getOwner => owner
         getPairTemplateAddress => pair_template_address
@@ -39,6 +32,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         setSwapEnabledByUser => set_swap_enabled_by_user
         getEnableSwapByUserConfig => try_get_config
         multiPairSwap => multi_pair_swap
+        createPair => create_pair_endpoint
+        upgradePair => upgrade_pair_endpoint
+        issueLpToken => issue_lp_token
+        setLocalRoles => set_local_roles
+        setFeeOn => set_fee_on
+        setFeeOff => set_fee_off
+        removePair => remove_pair
         pause => pause
         resume => resume
         getState => state

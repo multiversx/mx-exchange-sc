@@ -12,6 +12,12 @@ pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
         self.pair_template_address().set(&address);
     }
 
+    #[only_owner]
+    #[endpoint(setPairCreationEnabled)]
+    fn set_pair_creation_enabled(&self, enabled: bool) {
+        self.pair_creation_enabled().set(enabled);
+    }
+
     fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
         let first_token_id = self.get_first_token_id_mapper(pair_address.clone()).get();
         let second_token_id = self.get_second_token_id_mapper(pair_address.clone()).get();

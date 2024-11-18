@@ -17,8 +17,10 @@ use pausable::{PausableModule, State};
 use router::{
     config::ConfigModule,
     pair_actions::{
-        create::PairTokens, enable_swap_by_user::EnableSwapByUserModule,
+        create::{CreateModule, PairTokens},
+        enable_swap_by_user::EnableSwapByUserModule,
         multi_pair_swap::SWAP_TOKENS_FIXED_INPUT_FUNC_NAME,
+        upgrade::UpgradeModule,
     },
     Router,
 };
