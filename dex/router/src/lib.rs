@@ -15,6 +15,7 @@ use pair::config::ProxyTrait as _;
 use pair::fee::ProxyTrait as _;
 use pair::{read_pair_storage, ProxyTrait as _};
 use pair_actions::create::{CreatePairArgs, PairTokens};
+use state::{ACTIVE, INACTIVE};
 
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
@@ -44,7 +45,7 @@ pub trait Router:
 {
     #[init]
     fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
-        self.state().set(true);
+        self.state().set(ACTIVE);
         self.pair_creation_enabled().set(false);
 
         self.temporary_owner_period()
@@ -59,7 +60,7 @@ pub trait Router:
 
     #[upgrade]
     fn upgrade(&self) {
-        self.state().set(false);
+        self.state().set(INACTIVE);
     }
 
     #[allow_multiple_var_args]
