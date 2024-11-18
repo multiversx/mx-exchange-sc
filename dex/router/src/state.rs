@@ -16,7 +16,7 @@ pub trait StateModule:
     #[endpoint]
     fn pause(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
-            self.state().set(false);
+            self.state().set(INACTIVE);
         } else {
             self.check_is_pair_sc(&address);
 
@@ -31,7 +31,7 @@ pub trait StateModule:
     #[endpoint]
     fn resume(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
-            self.state().set(true);
+            self.state().set(ACTIVE);
         } else {
             self.check_is_pair_sc(&address);
             let _: IgnoreValue = self
