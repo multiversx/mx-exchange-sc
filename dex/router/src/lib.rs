@@ -10,6 +10,7 @@ pub mod state;
 pub mod temp_owner;
 pub mod views;
 
+use config::DISABLED;
 use pair::read_pair_storage;
 use state::{ACTIVE, INACTIVE};
 
@@ -37,7 +38,7 @@ pub trait Router:
     #[init]
     fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
         self.state().set(ACTIVE);
-        self.pair_creation_enabled().set(false);
+        self.pair_creation_enabled().set(DISABLED);
 
         self.temporary_owner_period()
             .set(DEFAULT_TEMPORARY_OWNER_PERIOD_BLOCKS);
@@ -46,7 +47,8 @@ pub trait Router:
             self.pair_template_address().set(&addr);
         }
 
-        self.owner().set(&self.blockchain().get_caller());
+        let caller = self.blockchain().get_caller();
+        self.owner().set(caller);
     }
 
     #[upgrade]

@@ -97,7 +97,7 @@ fn test_router_upgrade_pair() {
             sc.init(OptionalValue::Some(managed_address!(
                 pair_template_wrapper.address_ref()
             )));
-            sc.set_pair_creation_enabled(true);
+            sc.set_pair_creation_enabled();
         })
         .assert_ok();
 

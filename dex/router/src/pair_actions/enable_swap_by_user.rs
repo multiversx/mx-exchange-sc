@@ -147,10 +147,10 @@ pub trait EnableSwapByUserModule:
         );
 
         self.emit_user_swaps_enabled_event(
-            caller,
-            lp_token_safe_price_result.first_token_id,
-            lp_token_safe_price_result.second_token_id,
-            pair_address,
+            &caller,
+            &lp_token_safe_price_result.first_token_id,
+            &lp_token_safe_price_result.second_token_id,
+            &pair_address,
         );
     }
 
@@ -190,6 +190,7 @@ pub trait EnableSwapByUserModule:
             common_token_id: first_result.token_identifier,
             safe_price_in_common_token: BigUint::zero(),
         };
+
         let whitelist = self.common_tokens_for_user_pairs();
         if whitelist.contains(&safe_price_result.first_token_id) {
             safe_price_result.safe_price_in_common_token = first_result.amount;

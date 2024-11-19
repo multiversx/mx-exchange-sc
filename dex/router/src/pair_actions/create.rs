@@ -24,6 +24,13 @@ pub const DEFAULT_SPECIAL_FEE_PERCENT: Percent = 50;
 pub const MAX_TOTAL_FEE_PERCENT: Percent = 100_000;
 pub const USER_DEFINED_TOTAL_FEE_PERCENT: Percent = 1_000;
 
+pub type FeePercentArgType = OptionalValue<MultiValue2<Percent, Percent>>;
+
+pub struct FeePercentResult {
+    pub total_fee_percent_requested: Percent,
+    pub special_fee_percent_requested: Percent,
+}
+
 #[multiversx_sc::module]
 pub trait CreateModule:
     crate::config::ConfigModule
@@ -40,7 +47,7 @@ pub trait CreateModule:
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
         initial_liquidity_adder: ManagedAddress,
-        opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
+        opt_fee_percents: FeePercentArgType,
         mut admins: MultiValueEncoded<ManagedAddress>,
     ) -> ManagedAddress {
         self.require_active();
@@ -48,10 +55,7 @@ pub trait CreateModule:
         let owner = self.owner().get();
         let caller = self.blockchain().get_caller();
         if caller != owner {
-            require!(
-                self.pair_creation_enabled().get(),
-                "Pair creation is disabled"
-            );
+            self.require_pair_creation_enabled();
         }
 
         require!(first_token_id != second_token_id, "Identical tokens");
@@ -67,24 +71,16 @@ pub trait CreateModule:
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(pair_address.is_zero(), "Pair already exists");
 
-        let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
-        let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
-        if caller == owner {
-            match opt_fee_percents {
-                OptionalValue::Some(fee_percents_multi_arg) => {
-                    let fee_percents_tuple = fee_percents_multi_arg.into_tuple();
-                    total_fee_percent_requested = fee_percents_tuple.0;
-                    special_fee_percent_requested = fee_percents_tuple.1;
+        let (total_fee_percent_requested, special_fee_percent_requested) = if caller == owner {
+            let fee_percents = self.get_owner_set_fee_percents(opt_fee_percents);
 
-                    require!(
-                        total_fee_percent_requested >= special_fee_percent_requested
-                            && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
-                        "Bad percents"
-                    );
-                }
-                OptionalValue::None => sc_panic!("Bad percents length"),
-            }
-        }
+            (
+                fee_percents.total_fee_percent_requested,
+                fee_percents.special_fee_percent_requested,
+            )
+        } else {
+            (DEFAULT_TOTAL_FEE_PERCENT, DEFAULT_SPECIAL_FEE_PERCENT)
+        };
 
         admins.push(caller.clone());
 
@@ -99,15 +95,36 @@ pub trait CreateModule:
         });
 
         self.emit_create_pair_event(
-            caller,
-            first_token_id,
-            second_token_id,
+            &caller,
+            &first_token_id,
+            &second_token_id,
             total_fee_percent_requested,
             special_fee_percent_requested,
-            address.clone(),
+            &address,
         );
 
         address
+    }
+
+    fn get_owner_set_fee_percents(&self, opt_fee_percents: FeePercentArgType) -> FeePercentResult {
+        match opt_fee_percents {
+            OptionalValue::Some(fee_percents_multi_arg) => {
+                let fee_percents_tuple = fee_percents_multi_arg.into_tuple();
+                let total_fee_percent_requested = fee_percents_tuple.0;
+                let special_fee_percent_requested = fee_percents_tuple.1;
+                require!(
+                    total_fee_percent_requested >= special_fee_percent_requested
+                        && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
+                    "Bad percents"
+                );
+
+                FeePercentResult {
+                    total_fee_percent_requested,
+                    special_fee_percent_requested,
+                }
+            }
+            OptionalValue::None => sc_panic!("Bad percents length"),
+        }
     }
 
     fn create_pair(&self, args: CreatePairArgs<Self::Api>) -> ManagedAddress {

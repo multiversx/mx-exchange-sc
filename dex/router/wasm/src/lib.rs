@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           29
+// Endpoints:                           30
 // Async Callback:                       1
-// Total number of exported functions:  32
+// Total number of exported functions:  33
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         setPairTemplateAddress => set_pair_template_address
         setPairCreationEnabled => set_pair_creation_enabled
+        setPairCreationDisabled => set_pair_creation_disabled
         getPairCreationEnabled => pair_creation_enabled
         getOwner => owner
         getPairTemplateAddress => pair_template_address
