@@ -94,9 +94,10 @@ fn test_router_upgrade_pair() {
 
     b_mock
         .execute_tx(&owner, &router_wrapper, &rust_zero, |sc| {
-            sc.init(OptionalValue::Some(managed_address!(
-                pair_template_wrapper.address_ref()
-            )));
+            sc.init(
+                managed_token_id!(MEX_TOKEN_ID),
+                OptionalValue::Some(managed_address!(pair_template_wrapper.address_ref())),
+            );
             sc.set_pair_creation_enabled();
         })
         .assert_ok();
@@ -244,7 +245,7 @@ fn user_enable_pair_swaps_through_router_test() {
     // setup router
     b_mock
         .execute_tx(&owner, &router_wrapper, &rust_zero, |sc| {
-            sc.init(OptionalValue::None);
+            sc.init(managed_token_id!(MEX_TOKEN_ID), OptionalValue::None);
 
             sc.pair_map().insert(
                 PairTokens {
@@ -429,7 +430,7 @@ fn user_enable_pair_swaps_fail_test() {
     // setup router
     b_mock
         .execute_tx(&owner, &router_wrapper, &rust_zero, |sc| {
-            sc.init(OptionalValue::None);
+            sc.init(managed_token_id!(MEX_TOKEN_ID), OptionalValue::None);
 
             sc.pair_map().insert(
                 PairTokens {

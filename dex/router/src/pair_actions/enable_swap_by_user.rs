@@ -32,6 +32,8 @@ pub trait EnableSwapByUserModule:
     + read_pair_storage::ReadPairStorageModule
     + crate::events::EventsModule
     + crate::state::StateModule
+    + super::enable_buyback_and_burn::EnableBuybackAndBurnModule
+    + crate::views::ViewsModule
 {
     #[only_owner]
     #[endpoint(configEnableByUserParameters)]
@@ -81,7 +83,8 @@ pub trait EnableSwapByUserModule:
     fn remove_common_tokens_for_user_pairs(&self, tokens: MultiValueEncoded<TokenIdentifier>) {
         let mut whitelist = self.common_tokens_for_user_pairs();
         for token in tokens {
-            let _ = whitelist.swap_remove(&token);
+            let removed = whitelist.swap_remove(&token);
+            require!(removed, "Token not present in whitelist");
         }
     }
 
@@ -138,6 +141,7 @@ pub trait EnableSwapByUserModule:
 
         self.set_fee_percents(pair_address.clone());
         self.pair_resume(pair_address.clone());
+        self.enable_buyback_and_burn(pair_address.clone());
 
         self.send().direct_esdt(
             &caller,

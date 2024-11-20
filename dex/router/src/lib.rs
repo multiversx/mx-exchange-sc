@@ -25,6 +25,7 @@ pub trait Router:
     + events::EventsModule
     + token_send::TokenSendModule
     + pair_actions::enable_swap_by_user::EnableSwapByUserModule
+    + pair_actions::enable_buyback_and_burn::EnableBuybackAndBurnModule
     + pair_actions::multi_pair_swap::MultiPairSwap
     + pair_actions::create::CreateModule
     + pair_actions::upgrade::UpgradeModule
@@ -36,10 +37,15 @@ pub trait Router:
     + views::ViewsModule
 {
     #[init]
-    fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
+    fn init(
+        &self,
+        token_to_buy: TokenIdentifier,
+        pair_template_address_opt: OptionalValue<ManagedAddress>,
+    ) {
+        self.set_token_to_buy(token_to_buy);
+
         self.state().set(ACTIVE);
         self.pair_creation_enabled().set(DISABLED);
-
         self.temporary_owner_period()
             .set(DEFAULT_TEMPORARY_OWNER_PERIOD_BLOCKS);
 

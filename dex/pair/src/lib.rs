@@ -29,7 +29,10 @@ use permissions_module::Permissions;
 #[multiversx_sc::contract]
 pub trait Pair<ContractReader>:
     amm::AmmModule
-    + fee::FeeModule
+    + fee::endpoints::EndpointsModule
+    + fee::impls::ImplsModule
+    + fee::storage::StorageModule
+    + fee::views::ViewsModule
     + liquidity_pool::LiquidityPoolModule
     + config::ConfigModule
     + token_send::TokenSendModule

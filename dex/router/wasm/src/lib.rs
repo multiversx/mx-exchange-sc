@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           30
+// Endpoints:                           31
 // Async Callback:                       1
-// Total number of exported functions:  33
+// Total number of exported functions:  34
 
 #![no_std]
 
@@ -32,6 +32,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeCommonTokensForUserPairs => remove_common_tokens_for_user_pairs
         setSwapEnabledByUser => set_swap_enabled_by_user
         getEnableSwapByUserConfig => try_get_config
+        setTokenToBuy => set_token_to_buy
         multiPairSwap => multi_pair_swap
         createPair => create_pair_endpoint
         upgradePair => upgrade_pair_endpoint

@@ -137,7 +137,7 @@ where
 
         blockchain_wrapper
             .execute_tx(&owner_addr, &router_wrapper, &rust_zero, |sc| {
-                sc.init(OptionalValue::None);
+                sc.init(managed_token_id!(MEX_TOKEN_ID), OptionalValue::None);
 
                 sc.pair_map().insert(
                     PairTokens {

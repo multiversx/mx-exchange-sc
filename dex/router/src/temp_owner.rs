@@ -12,11 +12,8 @@ pub trait TempOwnerModule {
 
     #[only_owner]
     #[endpoint(clearPairTemporaryOwnerStorage)]
-    fn clear_pair_temporary_owner_storage(&self) -> usize {
-        let size = self.pair_temporary_owner().len();
+    fn clear_pair_temporary_owner_storage(&self) {
         self.pair_temporary_owner().clear();
-
-        size
     }
 
     fn get_pair_temporary_owner(&self, pair_address: &ManagedAddress) -> Option<ManagedAddress> {
@@ -24,7 +21,8 @@ pub trait TempOwnerModule {
         match result {
             Some((temporary_owner, creation_block)) => {
                 let expire_block = creation_block + self.temporary_owner_period().get();
-                if expire_block <= self.blockchain().get_block_nonce() {
+                let block_nonce = self.blockchain().get_block_nonce();
+                if expire_block <= block_nonce {
                     self.pair_temporary_owner().remove(pair_address);
 
                     None
