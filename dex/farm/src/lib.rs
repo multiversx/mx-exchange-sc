@@ -5,6 +5,7 @@ multiversx_sc::derive_imports!();
 
 pub mod base_functions;
 pub mod exit_penalty;
+pub mod external_interaction;
 
 use base_functions::{ClaimRewardsResultType, DoubleMultiPayment, Wrapper};
 use common_structs::FarmTokenAttributes;
@@ -29,11 +30,14 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
+    + permissions_hub_module::PermissionsHubModule
+    + original_owner_helper::OriginalOwnerHelperModule
     + sc_whitelist_module::SCWhitelistModule
     + events::EventsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + base_functions::BaseFunctionsModule
     + exit_penalty::ExitPenaltyModule
+    + external_interaction::ExternalInteractionsModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule

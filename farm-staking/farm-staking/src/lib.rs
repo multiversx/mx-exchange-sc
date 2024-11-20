@@ -18,6 +18,7 @@ pub mod claim_only_boosted_staking_rewards;
 pub mod claim_stake_farm_rewards;
 pub mod compound_stake_farm_rewards;
 pub mod custom_rewards;
+pub mod external_interaction;
 pub mod farm_token_roles;
 pub mod stake_farm;
 pub mod token_attributes;
@@ -35,6 +36,8 @@ pub trait FarmStaking:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
+    + permissions_hub_module::PermissionsHubModule
+    + original_owner_helper::OriginalOwnerHelperModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
@@ -49,6 +52,7 @@ pub trait FarmStaking:
     + compound_stake_farm_rewards::CompoundStakeFarmRewardsModule
     + unstake_farm::UnstakeFarmModule
     + unbond_farm::UnbondFarmModule
+    + external_interaction::ExternalInteractionsModule
     + claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule

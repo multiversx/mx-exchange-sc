@@ -41,6 +41,12 @@ path = "../../common/modules/utils"
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
 
+[dependencies.permissions_hub_module]
+path = "../../common/modules/permissions_hub_module"
+
+[dependencies.original_owner_helper]
+path = "../../common/modules/original_owner_helper"
+
 [dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
 
@@ -73,6 +79,9 @@ path = "../../locked-asset/energy-factory"
 
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.permissions-hub]
+path = "../permissions-hub"
 
 [dependencies.multiversx-sc]
 version = "=0.53.2"

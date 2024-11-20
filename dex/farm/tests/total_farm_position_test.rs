@@ -23,6 +23,7 @@ fn total_farm_position_claim_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -128,6 +129,7 @@ fn allow_external_claim_rewards_setting_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -194,6 +196,7 @@ fn total_farm_position_claim_for_other_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -297,6 +300,7 @@ fn farm_total_position_migration_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -414,6 +418,7 @@ fn farm_total_position_exit_migration_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -494,6 +499,7 @@ fn farm_total_position_on_claim_migration_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -584,6 +590,7 @@ fn farm_total_position_on_merge_migration_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -678,6 +685,7 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -758,6 +766,7 @@ fn total_farm_position_owner_change_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
@@ -982,6 +991,7 @@ fn total_farm_position_through_simple_lock_test() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        permissions_hub::contract_obj,
     );
     let rust_zero = rust_biguint!(0);
 

@@ -53,6 +53,12 @@ path = "../../common/modules/pausable"
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
 
+[dependencies.permissions_hub_module]
+path = "../../common/modules/permissions_hub_module"
+
+[dependencies.original_owner_helper]
+path = "../../common/modules/original_owner_helper"
+
 [dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
 
@@ -76,6 +82,9 @@ path = "../../common/common_structs"
 
 [dependencies.common_errors]
 path = "../../common/common_errors"
+
+[dependencies.permissions-hub]
+path = "../../dex/permissions-hub"
 
 [dependencies.multiversx-sc]
 version = "=0.53.2"

@@ -1,0 +1,15 @@
+[package]
+name = "permissions_hub_module"
+version = "0.0.0"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
+
+[lib]
+path = "src/permissions_hub_module.rs"
+
+[dependencies.permissions-hub]
+path = "../../../dex/permissions-hub"
+
+[dependencies.multiversx-sc]
+version = "=0.53.2"
+features = ["esdt-token-payment-legacy-decode"]
