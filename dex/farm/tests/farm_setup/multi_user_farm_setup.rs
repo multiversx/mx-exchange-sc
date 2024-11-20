@@ -657,7 +657,9 @@ where
                 &self.permissions_hub_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.whitelist(managed_address!(address_to_whitelist));
+                    let mut addresses = MultiValueEncoded::new();
+                    addresses.push(managed_address!(address_to_whitelist));
+                    sc.whitelist(addresses);
                 },
             )
             .assert_ok();
@@ -666,7 +668,7 @@ where
     pub fn remove_whitelist_address_on_behalf(
         &mut self,
         user: &Address,
-        address_to_whitelist: &Address,
+        address_to_remove: &Address,
     ) {
         self.b_mock
             .execute_tx(
@@ -674,7 +676,9 @@ where
                 &self.permissions_hub_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.remove_whitelist(managed_address!(address_to_whitelist));
+                    let mut addresses = MultiValueEncoded::new();
+                    addresses.push(managed_address!(address_to_remove));
+                    sc.remove_whitelist(addresses);
                 },
             )
             .assert_ok();

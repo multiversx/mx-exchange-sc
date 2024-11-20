@@ -43,7 +43,13 @@ pub trait ExternalInteractionsModule:
         let caller = self.blockchain().get_caller();
         self.require_user_whitelisted(&user, &caller);
 
-        self.check_additional_payments_original_owner(&user);
+        let payments = self.get_non_empty_payments();
+        let farm_token_mapper = self.farm_token();
+        self.check_additional_payments_original_owner::<FarmTokenAttributes<Self::Api>>(
+            &user,
+            &payments,
+            &farm_token_mapper,
+        );
 
         let boosted_rewards = self.claim_only_boosted_payment(&user);
 
@@ -62,8 +68,14 @@ pub trait ExternalInteractionsModule:
     #[payable("*")]
     #[endpoint(claimRewardsOnBehalf)]
     fn claim_rewards_on_behalf(&self) -> ClaimRewardsResultType<Self::Api> {
-        let user = self.check_and_return_original_owner();
+        let payments = self.get_non_empty_payments();
+        let farm_token_mapper = self.farm_token();
+
         let caller = self.blockchain().get_caller();
+        let user = self.check_and_return_original_owner::<FarmTokenAttributes<Self::Api>>(
+            &payments,
+            &farm_token_mapper,
+        );
         self.require_user_whitelisted(&user, &caller);
 
         let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(user.clone());
@@ -72,55 +84,6 @@ pub trait ExternalInteractionsModule:
         self.send_payment_non_zero(&user, &claim_rewards_result.rewards);
 
         claim_rewards_result.into()
-    }
-
-    fn check_and_return_original_owner(&self) -> ManagedAddress {
-        let payments = self.call_value().all_esdt_transfers().clone_value();
-        let farm_token_mapper = self.farm_token();
-        let mut original_owner = ManagedAddress::zero();
-        for payment in payments.into_iter() {
-            let attributes: FarmTokenAttributes<Self::Api> =
-                farm_token_mapper.get_token_attributes(payment.token_nonce);
-
-            if original_owner.is_zero() {
-                original_owner = attributes.original_owner;
-            } else {
-                require!(
-                    original_owner == attributes.original_owner,
-                    "All position must have the same original owner"
-                );
-            }
-        }
-
-        require!(
-            !original_owner.is_zero(),
-            "Original owner could not be identified"
-        );
-
-        original_owner
-    }
-
-    fn check_additional_payments_original_owner(&self, user: &ManagedAddress) {
-        let payments = self.call_value().all_esdt_transfers().clone_value();
-        if payments.len() == 1 {
-            return;
-        }
-
-        let farm_token_mapper = self.farm_token();
-        let farm_token_id = farm_token_mapper.get_token_id();
-        for payment in payments.into_iter() {
-            if payment.token_identifier != farm_token_id {
-                continue;
-            }
-
-            let attributes: FarmTokenAttributes<Self::Api> =
-                farm_token_mapper.get_token_attributes(payment.token_nonce);
-
-            require!(
-                user == &attributes.original_owner,
-                "Provided address is not the same as the original owner"
-            );
-        }
     }
 
     fn require_user_whitelisted(&self, user: &ManagedAddress, authorized_address: &ManagedAddress) {
