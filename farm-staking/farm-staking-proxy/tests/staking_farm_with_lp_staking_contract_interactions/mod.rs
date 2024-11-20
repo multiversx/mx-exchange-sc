@@ -32,6 +32,7 @@ use farm_staking_proxy::proxy_actions::stake::ProxyStakeModule;
 use farm_staking_proxy::proxy_actions::unstake::ProxyUnstakeModule;
 
 use permissions_hub::PermissionsHub;
+use permissions_hub_module::PermissionsHubModule;
 use sc_whitelist_module::SCWhitelistModule;
 
 use crate::{

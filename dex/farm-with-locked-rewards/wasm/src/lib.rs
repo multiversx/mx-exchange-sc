@@ -56,6 +56,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeAdmin => remove_admin_endpoint
         updateOwnerOrAdmin => update_owner_or_admin_endpoint
         getPermissions => permissions
+        setPermissionsHubAddress => set_permissions_hub_address
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
@@ -68,7 +69,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getPairContractManagedAddress => pair_contract_address
         enterFarmOnBehalf => enter_farm_on_behalf
         claimRewardsOnBehalf => claim_rewards_on_behalf
-        setPermissionsHubAddress => set_permissions_hub_address
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getBoostedYieldsRewardsPercentage => boosted_yields_rewards_percentage
         getAccumulatedRewardsForWeek => accumulated_rewards_for_week

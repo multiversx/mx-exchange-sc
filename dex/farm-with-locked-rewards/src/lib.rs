@@ -29,6 +29,7 @@ pub trait Farm:
     + utils::UtilsModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
+    + permissions_hub_module::PermissionsHubModule
     + sc_whitelist_module::SCWhitelistModule
     + events::EventsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule

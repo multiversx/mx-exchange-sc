@@ -19,6 +19,7 @@ pub trait ExternalInteractionsModule:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
+    + permissions_hub_module::PermissionsHubModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
@@ -128,29 +129,4 @@ pub trait ExternalInteractionsModule:
 
         (virtual_farm_token.payment, claim_result.rewards).into()
     }
-
-    fn require_user_whitelisted(&self, user: &ManagedAddress, authorized_address: &ManagedAddress) {
-        let permissions_hub_address = self.permissions_hub_address().get();
-        let is_whitelisted: bool = self
-            .permissions_hub_proxy(permissions_hub_address)
-            .is_whitelisted(user, authorized_address)
-            .execute_on_dest_context();
-
-        require!(is_whitelisted, "Caller is not whitelisted by the user");
-    }
-
-    #[only_owner]
-    #[endpoint(setPermissionsHubAddress)]
-    fn set_permissions_hub_address(&self, address: ManagedAddress) {
-        self.permissions_hub_address().set(&address);
-    }
-
-    #[proxy]
-    fn permissions_hub_proxy(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> permissions_hub::Proxy<Self::Api>;
-
-    #[storage_mapper("permissionsHubAddress")]
-    fn permissions_hub_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

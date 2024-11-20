@@ -139,6 +139,7 @@ dependencies = [
  "pair",
  "pausable",
  "permissions-hub",
+ "permissions_hub_module",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -184,6 +185,7 @@ dependencies = [
  "multiversx-sc-modules",
  "pausable",
  "permissions-hub",
+ "permissions_hub_module",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -430,6 +432,14 @@ name = "permissions-hub"
 version = "0.0.0"
 dependencies = [
  "multiversx-sc",
+]
+
+[[package]]
+name = "permissions_hub_module"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "permissions-hub",
 ]
 
 [[package]]
