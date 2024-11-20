@@ -25,6 +25,7 @@ use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use permissions_hub::PermissionsHub;
+use permissions_hub_module::PermissionsHubModule;
 use sc_whitelist_module::SCWhitelistModule;
 use week_timekeeping::Epoch;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
