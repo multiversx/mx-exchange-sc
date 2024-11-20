@@ -44,6 +44,9 @@ path = "../../common/modules/permissions_module"
 [dependencies.permissions_hub_module]
 path = "../../common/modules/permissions_hub_module"
 
+[dependencies.original_owner_helper]
+path = "../../common/modules/original_owner_helper"
+
 [dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
 

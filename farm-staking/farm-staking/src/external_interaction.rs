@@ -20,6 +20,7 @@ pub trait ExternalInteractionsModule:
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + permissions_hub_module::PermissionsHubModule
+    + original_owner_helper::OriginalOwnerHelperModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
