@@ -53,7 +53,7 @@ pub trait LkmexTransfer:
         self.set_energy_factory_address(energy_factory_address);
 
         let caller = self.blockchain().get_caller();
-        self.add_permissions(caller, Permissions::OWNER);
+        self.add_permissions(&caller, Permissions::OWNER);
     }
 
     #[upgrade]
