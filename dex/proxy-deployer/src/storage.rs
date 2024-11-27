@@ -1,9 +1,19 @@
-use crate::deploy::ForcedDeployArg;
-
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
+
+#[derive(TypeAbi, TopEncode, TopDecode, Clone, Copy, PartialEq)]
+pub enum DeployerType {
+    None,
+    FarmStaking,
+    FarmWithTopUp,
+}
 
 #[multiversx_sc::module]
 pub trait StorageModule {
+    #[view(getDeployerType)]
+    #[storage_mapper("deployerType")]
+    fn deployer_type(&self) -> SingleValueMapper<DeployerType>;
+
     #[view(getTemplateAddress)]
     #[storage_mapper("templateAddress")]
     fn template_address(&self) -> SingleValueMapper<ManagedAddress>;
@@ -19,7 +29,4 @@ pub trait StorageModule {
 
     #[storage_mapper("allDeployedContracts")]
     fn all_deployed_contracts(&self) -> UnorderedSetMapper<AddressId>;
-
-    #[storage_mapper("forcedDeployArgs")]
-    fn forced_deploy_args(&self) -> SingleValueMapper<ManagedVec<ForcedDeployArg<Self::Api>>>;
 }

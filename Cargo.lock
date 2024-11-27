@@ -1558,13 +1558,11 @@ dependencies = [
 name = "proxy-deployer"
 version = "0.0.0"
 dependencies = [
- "config",
- "farm",
- "farm_token",
+ "common_structs",
+ "farm-staking",
  "multiversx-sc",
  "multiversx-sc-scenario",
  "num-bigint",
- "pausable",
 ]
 
 [[package]]

@@ -159,6 +159,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "farm-staking"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "energy-factory",
+ "energy-query",
+ "events",
+ "farm",
+ "farm-boosted-yields",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "math",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "pair",
+ "pausable",
+ "permissions-hub",
+ "permissions_module",
+ "rewards",
+ "sc_whitelist_module",
+ "token_send",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
 name = "farm_base_impl"
 version = "0.0.0"
 dependencies = [
@@ -407,11 +439,9 @@ dependencies = [
 name = "proxy-deployer"
 version = "0.0.0"
 dependencies = [
- "config",
- "farm",
- "farm_token",
+ "common_structs",
+ "farm-staking",
  "multiversx-sc",
- "pausable",
 ]
 
 [[package]]

@@ -20,8 +20,8 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
-        overwriteForcedDeployArgs => overwrite_forced_deploy_args
-        deployContract => deploy_contract
+        deployFarmStakingContract => deploy_farm_staking_contract
+        getDeployerType => deployer_type
         getTemplateAddress => template_address
         getAddressForToken => get_address_for_token
         getAllUsedTokens => get_all_used_tokens

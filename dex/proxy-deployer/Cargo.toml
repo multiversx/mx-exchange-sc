@@ -8,21 +8,15 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
-[dependencies.farm]
-path = "../farm"
-
-[dependencies.pausable]
-path = "../../common/modules/pausable"
-
-[dependencies.config]
-path = "../../common/modules/farm/config"
-
-[dependencies.farm_token]
-path = "../../common/modules/farm/farm_token"
-
 [dependencies.multiversx-sc]
 version = "=0.53.2"
 features = ["esdt-token-payment-legacy-decode"]
+
+[dependencies.farm-staking]
+path = "../../farm-staking/farm-staking"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

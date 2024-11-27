@@ -1,6 +1,6 @@
 #![no_std]
 
-use deploy::ForcedDeployArgsType;
+use storage::DeployerType;
 
 multiversx_sc::imports!();
 
@@ -10,25 +10,16 @@ pub mod views;
 
 #[multiversx_sc::contract]
 pub trait ProxyDeployer: deploy::DeployModule + storage::StorageModule + views::ViewModule {
-    /// Forced deploy args contain the index of the arg, and the argument itself.
-    ///
-    /// They must be provided in the order expected by the deployed SCs arguments order.
-    ///
-    /// Indexes start from 0
     #[init]
-    fn init(
-        &self,
-        template_address: ManagedAddress,
-        forced_deploy_args: ForcedDeployArgsType<Self::Api>,
-    ) {
+    fn init(&self, template_address: ManagedAddress, deployer_type: DeployerType) {
         require!(
             self.blockchain().is_smart_contract(&template_address),
             "Invalid farm template address"
         );
-
-        self.overwrite_forced_deploy_args(forced_deploy_args);
+        require!(deployer_type != DeployerType::None, "Invalid deployer type");
 
         self.template_address().set(template_address);
+        self.deployer_type().set(deployer_type);
     }
 
     #[upgrade]
