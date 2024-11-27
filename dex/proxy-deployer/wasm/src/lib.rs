@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           10
+// Endpoints:                           11
 // Async Callback (empty):               1
-// Total number of exported functions:  13
+// Total number of exported functions:  14
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         deployFarmStakingContract => deploy_farm_staking_contract
         removeAllByDeployer => remove_all_by_deployer
+        removeSingleContract => remove_single_contract
         getDeployerType => deployer_type
         getTemplateAddress => template_address
         getAddressForToken => get_address_for_token

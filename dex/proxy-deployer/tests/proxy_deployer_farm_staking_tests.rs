@@ -1,8 +1,8 @@
 use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_token::FarmTokenModule;
 use multiversx_sc::imports::StorageTokenWrapper;
-use multiversx_sc_scenario::{managed_biguint, managed_token_id, rust_biguint};
-use proxy_deployer::deploy::DeployModule;
+use multiversx_sc_scenario::{managed_address, managed_biguint, managed_token_id, rust_biguint};
+use proxy_deployer::{deploy::DeployModule, remove_contracts::RemoveContractsModule};
 use proxy_deployer_farm_staking_setup::ProxyDeployerFarmStakingSetup;
 
 pub mod proxy_deployer_farm_staking_setup;
@@ -52,4 +52,26 @@ fn deploy_farm_staking_test() {
             sc.set_per_block_rewards(managed_biguint!(1_000));
         })
         .assert_ok();
+
+    // owner remove the contracts
+    let user_addr = setup.user.clone();
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner,
+            &setup.proxy_deployer_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.remove_all_by_deployer(managed_address!(&user_addr), 1);
+            },
+        )
+        .assert_ok();
+
+    // user try call admin function after removed
+    setup
+        .b_mock
+        .execute_tx(&setup.user, &new_sc_wrapper, &rust_biguint!(0), |sc| {
+            sc.set_per_block_rewards(managed_biguint!(1_000));
+        })
+        .assert_user_error("Permission denied");
 }

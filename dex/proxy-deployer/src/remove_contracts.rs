@@ -26,7 +26,7 @@ pub trait RemoveContractsModule: crate::storage::StorageModule {
         let total_contracts = contracts_mapper.len();
         let to_remove = core::cmp::min(total_contracts, max_to_remove);
         for _ in 0..to_remove {
-            let contract_id = contracts_mapper.get_by_index(0);
+            let contract_id = contracts_mapper.get_by_index(1);
             let contract_address = self.get_by_id(&id_mapper, contract_id);
             let _ = contracts_mapper.swap_remove(&contract_id);
 
@@ -37,6 +37,23 @@ pub trait RemoveContractsModule: crate::storage::StorageModule {
         RemoveResult {
             any_farms_left: total_contracts > max_to_remove,
         }
+    }
+
+    #[only_owner]
+    #[endpoint(removeSingleContract)]
+    fn remove_single_contract(&self, contract: ManagedAddress) {
+        let id_mapper = self.address_id();
+        let contract_id = id_mapper.get_id_non_zero(&contract);
+        let deployer_id = self.contract_owner(contract_id).get();
+        require!(deployer_id != 0, "Contract already removed");
+
+        let _ = self
+            .contracts_by_address(deployer_id)
+            .swap_remove(&contract_id);
+
+        let deployer_address = self.get_by_id(&id_mapper, deployer_id);
+        self.remove_admin(contract, deployer_address);
+        self.remove_contract(contract_id);
     }
 
     fn remove_admin(&self, contract: ManagedAddress, user: ManagedAddress) {
