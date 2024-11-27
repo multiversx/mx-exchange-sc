@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 
 mod pair_setup;
-use disable_add_liq::DisableAddLiqModule;
+use disable_add_liq::{DisableAddLiqModule, ADD_LIQ_ENABLED};
 use fees_collector::{
     config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
 };
@@ -1293,6 +1293,8 @@ fn add_liquidity_through_simple_lock_proxy() {
         .b_mock
         .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
             sc.init();
+            sc.add_liq_enabled().set(ADD_LIQ_ENABLED);
+
             sc.locked_token()
                 .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
             sc.add_lp_to_whitelist(

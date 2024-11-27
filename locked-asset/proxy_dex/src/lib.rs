@@ -49,12 +49,9 @@ pub trait ProxyDexImpl:
         self.require_sc_address(&old_factory_address);
         self.require_sc_address(&energy_factory_address);
 
-        self.old_locked_token_id()
-            .set_if_empty(&old_locked_token_id);
-        self.old_factory_address()
-            .set_if_empty(&old_factory_address);
-        self.energy_factory_address()
-            .set_if_empty(&energy_factory_address);
+        self.old_locked_token_id().set(&old_locked_token_id);
+        self.old_factory_address().set(&old_factory_address);
+        self.energy_factory_address().set(&energy_factory_address);
     }
 
     #[upgrade]

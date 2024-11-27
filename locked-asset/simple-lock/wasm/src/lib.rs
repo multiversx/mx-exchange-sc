@@ -41,7 +41,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getFarmProxyTokenId => farm_proxy_token
         enableAddLiq => enable_add_liq
         disableAddLiq => disable_add_liq
-        isAddLiqDisabled => add_liq_disabled
+        isAddLiqEnabled => add_liq_enabled
     )
 }
 
