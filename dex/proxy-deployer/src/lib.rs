@@ -5,11 +5,17 @@ use storage::DeployerType;
 multiversx_sc::imports!();
 
 pub mod deploy;
+pub mod remove_contracts;
 pub mod storage;
 pub mod views;
 
 #[multiversx_sc::contract]
-pub trait ProxyDeployer: deploy::DeployModule + storage::StorageModule + views::ViewModule {
+pub trait ProxyDeployer:
+    deploy::DeployModule
+    + remove_contracts::RemoveContractsModule
+    + storage::StorageModule
+    + views::ViewModule
+{
     #[init]
     fn init(&self, template_address: ManagedAddress, deployer_type: DeployerType) {
         require!(

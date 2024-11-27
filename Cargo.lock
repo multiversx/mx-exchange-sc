@@ -1563,6 +1563,7 @@ dependencies = [
  "multiversx-sc",
  "multiversx-sc-scenario",
  "num-bigint",
+ "permissions_module",
 ]
 
 [[package]]

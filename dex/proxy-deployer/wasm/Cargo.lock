@@ -442,6 +442,7 @@ dependencies = [
  "common_structs",
  "farm-staking",
  "multiversx-sc",
+ "permissions_module",
 ]
 
 [[package]]

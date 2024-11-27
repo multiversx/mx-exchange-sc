@@ -18,6 +18,9 @@ path = "../../farm-staking/farm-staking"
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 

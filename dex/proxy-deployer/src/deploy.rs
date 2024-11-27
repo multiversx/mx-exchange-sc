@@ -27,12 +27,7 @@ pub trait DeployModule: crate::storage::StorageModule {
             max_apr,
             min_unbond_epochs,
         );
-
-        let address_id = self.address_id().insert_new(&deployed_sc_address);
-        let _ = self.all_deployed_contracts().insert(address_id);
-        self.address_for_token(&farming_token_id).set(address_id);
-
-        let _ = self.all_used_tokens().insert(farming_token_id);
+        self.add_new_contract(&deployed_sc_address, farming_token_id);
 
         deployed_sc_address
     }
@@ -66,6 +61,22 @@ pub trait DeployModule: crate::storage::StorageModule {
             .deploy_from_source(&template, code_metadata);
 
         deployed_sc_address
+    }
+
+    fn add_new_contract(
+        &self,
+        deployed_sc_address: &ManagedAddress,
+        farming_token_id: TokenIdentifier,
+    ) {
+        let contract_id = self.address_id().insert_new(deployed_sc_address);
+        let _ = self.all_deployed_contracts().insert(contract_id);
+        self.address_for_token(&farming_token_id).set(contract_id);
+        let _ = self.all_used_tokens().insert(farming_token_id);
+
+        let caller = self.blockchain().get_caller();
+        let caller_id = self.address_id().get_id_or_insert(&caller);
+        let _ = self.contracts_by_address(caller_id).insert(contract_id);
+        self.contract_owner(contract_id).set(caller_id);
     }
 
     fn require_correct_deployer_type(&self, requested_type: DeployerType) {

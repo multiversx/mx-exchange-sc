@@ -21,6 +21,12 @@ pub trait StorageModule {
     #[storage_mapper("addressId")]
     fn address_id(&self) -> AddressToIdMapper;
 
+    #[storage_mapper("contractOwner")]
+    fn contract_owner(&self, contract_id: AddressId) -> SingleValueMapper<AddressId>;
+
+    #[storage_mapper("contractByAddress")]
+    fn contracts_by_address(&self, address_id: AddressId) -> UnorderedSetMapper<AddressId>;
+
     #[storage_mapper("addrForTok")]
     fn address_for_token(&self, token_id: &TokenIdentifier) -> SingleValueMapper<AddressId>;
 
