@@ -75,3 +75,44 @@ fn deploy_farm_staking_test() {
         })
         .assert_user_error("Permission denied");
 }
+
+#[test]
+fn remove_single_contract_test() {
+    let mut setup = ProxyDeployerFarmStakingSetup::new(
+        proxy_deployer::contract_obj,
+        farm_staking::contract_obj,
+    );
+
+    let new_sc_wrapper = setup.b_mock.prepare_deploy_from_sc(
+        setup.proxy_deployer_wrapper.address_ref(),
+        farm_staking::contract_obj,
+    );
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.user,
+            &setup.proxy_deployer_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.deploy_farm_staking_contract(
+                    managed_token_id!(b"COOLTOK-123456"),
+                    managed_biguint!(7_500),
+                    10,
+                );
+            },
+        )
+        .assert_ok();
+
+    // owner remove the contracts
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner,
+            &setup.proxy_deployer_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.remove_single_contract(managed_address!(new_sc_wrapper.address_ref()));
+            },
+        )
+        .assert_ok();
+}
