@@ -5,6 +5,7 @@ pub mod fuzz_data_tests {
     multiversx_sc::derive_imports!();
 
     use ::config::ConfigModule;
+    use common_structs::Timestamp;
     use farm::*;
     use farm_token::FarmTokenModule;
     use multiversx_sc::codec::Empty;
@@ -24,6 +25,8 @@ pub mod fuzz_data_tests {
     use rand::SeedableRng;
     use std::cell::Cell;
     use std::collections::HashMap;
+    use timestamp_oracle::epoch_to_timestamp::EpochToTimestampModule;
+    use timestamp_oracle::TimestampOracle;
 
     type RustBigUint = num_bigint::BigUint;
 
@@ -65,6 +68,8 @@ pub mod fuzz_data_tests {
     pub const LINEAR_PENALTY_PHASE_DURATION_BLOCKS: u64 = 50;
     pub const FIXED_PENALTY_PHASE_DURATION_BLOCKS: u64 = 25;
     pub const UNLOCK_EPOCH: u64 = 20;
+
+    pub const TIMESTAMP_PER_EPOCH: Timestamp = 24 * 60 * 60;
 
     #[derive(Clone, TopEncode)]
     pub struct FuzzDexExecutorInitArgs {
@@ -394,6 +399,22 @@ pub mod fuzz_data_tests {
             FARM_WASM_PATH,
         );
 
+        let timestamp_oracle_wrapper = blockchain_wrapper.create_sc_account(
+            &rust_zero,
+            Some(&owner_addr),
+            timestamp_oracle::contract_obj,
+            "timestamp oracle",
+        );
+        blockchain_wrapper
+            .execute_tx(&owner_addr, &timestamp_oracle_wrapper, &rust_zero, |sc| {
+                sc.init(0);
+
+                for i in 0..=21 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
+            })
+            .assert_ok();
+
         blockchain_wrapper
             .execute_tx(owner_addr, &farm_wrapper, &rust_zero, |sc| {
                 let reward_token_id = managed_token_id!(reward_token);
@@ -405,6 +426,7 @@ pub mod fuzz_data_tests {
                     farming_token_id,
                     division_safety_constant,
                     ManagedAddress::<DebugApi>::zero(),
+                    managed_address!(timestamp_oracle_wrapper.address_ref()),
                     MultiValueEncoded::new(),
                 );
 

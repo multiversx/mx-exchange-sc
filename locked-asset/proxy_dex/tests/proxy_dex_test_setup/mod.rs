@@ -6,10 +6,7 @@ use common_structs::{
 use config::ConfigModule;
 use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
-use farm_boosted_yields::{
-    boosted_yields_factors::BoostedYieldsFactorsModule,
-    custom_reward_logic::CustomRewardLogicModule,
-};
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm as FarmLocked;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
@@ -363,6 +360,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 managed_address!(owner),
+                managed_address!(timestamp_oracle_addr),
                 MultiValueEncoded::new(),
             );
 
@@ -386,7 +384,6 @@ where
             sc.set_lock_epochs(EPOCHS_IN_YEAR);
             sc.energy_factory_address()
                 .set(managed_address!(simple_lock_addr));
-            sc.set_timestamp_oracle_address(managed_address!(timestamp_oracle_addr));
         })
         .assert_ok();
 

@@ -883,6 +883,7 @@ dependencies = [
  "rewards",
  "router",
  "simple-lock",
+ "timestamp-oracle",
 ]
 
 [[package]]
@@ -1433,6 +1434,7 @@ dependencies = [
  "multiversx-sc-scenario",
  "pair",
  "pausable",
+ "timestamp-oracle",
 ]
 
 [[package]]
