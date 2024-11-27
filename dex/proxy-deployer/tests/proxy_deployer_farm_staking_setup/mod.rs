@@ -1,9 +1,13 @@
+use common_structs::Timestamp;
 use multiversx_sc::types::Address;
 use multiversx_sc_scenario::{
     imports::{BlockchainStateWrapper, ContractObjWrapper},
     managed_address, rust_biguint, DebugApi,
 };
 use proxy_deployer::{storage::DeployerType, ProxyDeployer};
+use timestamp_oracle::{epoch_to_timestamp::EpochToTimestampModule, TimestampOracle};
+
+pub const TIMESTAMP_PER_EPOCH: Timestamp = 24 * 60 * 60;
 
 pub struct ProxyDeployerFarmStakingSetup<ProxyDeployerBuilder, FarmStakingBuilder>
 where
@@ -42,11 +46,28 @@ where
             "farm staking template",
         );
 
+        let timestamp_oracle_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            timestamp_oracle::contract_obj,
+            "timestamp oracle",
+        );
+        b_mock
+            .execute_tx(&owner, &timestamp_oracle_wrapper, &rust_zero, |sc| {
+                sc.init(0);
+
+                for i in 0..=21 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
+            })
+            .assert_ok();
+
         b_mock
             .execute_tx(&owner, &proxy_deployer_wrapper, &rust_zero, |sc| {
                 sc.init(
                     managed_address!(template_wrapper.address_ref()),
                     DeployerType::FarmStaking,
+                    managed_address!(timestamp_oracle_wrapper.address_ref()),
                 );
             })
             .assert_ok();

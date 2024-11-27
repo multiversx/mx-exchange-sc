@@ -48,4 +48,7 @@ pub trait StorageModule {
 
     #[storage_mapper("userBlacklist")]
     fn user_blacklist(&self) -> WhitelistMapper<AddressId>;
+
+    #[storage_mapper("timestampOracleAddress")]
+    fn timestamp_oracle_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

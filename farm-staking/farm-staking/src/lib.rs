@@ -71,6 +71,7 @@ pub trait FarmStaking:
         max_apr: BigUint,
         min_unbond_epochs: u64,
         owner: ManagedAddress,
+        timestamp_oracle_address: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         // farming and reward token are the same
@@ -90,6 +91,8 @@ pub trait FarmStaking:
             "Invalid min unbond epochs"
         );
         self.min_unbond_epochs().set(min_unbond_epochs);
+
+        self.set_timestamp_oracle_address(timestamp_oracle_address);
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set(current_epoch);

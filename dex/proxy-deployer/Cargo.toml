@@ -26,3 +26,9 @@ num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.53.2"
+
+[dev-dependencies.farm_token]
+path = "../../common/modules/farm/farm_token"
+
+[dev-dependencies.timestamp-oracle]
+path = "../../energy-integration/timestamp-oracle"

@@ -156,6 +156,7 @@ where
                     managed_biguint!(MAX_APR),
                     MIN_UNBOND_EPOCHS,
                     ManagedAddress::<DebugApi>::zero(),
+                    managed_address!(timestamp_oracle_wrapper.address_ref()),
                     MultiValueEncoded::new(),
                 );
 
@@ -170,9 +171,6 @@ where
 
                 sc.energy_factory_address()
                     .set(managed_address!(energy_factory_wrapper.address_ref()));
-                sc.set_timestamp_oracle_address(managed_address!(
-                    timestamp_oracle_wrapper.address_ref()
-                ));
 
                 sc.set_permissions_hub_address(managed_address!(
                     permissions_hub_wrapper.address_ref()

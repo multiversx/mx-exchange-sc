@@ -55,6 +55,7 @@ pub trait Farm:
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
         owner: ManagedAddress,
+        timestamp_oracle_address: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         self.base_farm_init(
@@ -64,6 +65,8 @@ pub trait Farm:
             owner,
             admins,
         );
+
+        self.set_timestamp_oracle_address(timestamp_oracle_address);
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set(current_epoch);

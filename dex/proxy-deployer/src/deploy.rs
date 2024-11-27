@@ -60,6 +60,7 @@ pub trait DeployModule: crate::storage::StorageModule {
         let template = self.template_address().get();
         let code_metadata =
             CodeMetadata::PAYABLE_BY_SC | CodeMetadata::READABLE | CodeMetadata::UPGRADEABLE;
+        let timestamp_oracle_address = self.timestamp_oracle_address().get();
 
         let (deployed_sc_address, ()) = self
             .farm_staking_deploy_proxy()
@@ -69,6 +70,7 @@ pub trait DeployModule: crate::storage::StorageModule {
                 max_apr,
                 min_unbond_epochs,
                 owner,
+                timestamp_oracle_address,
                 admins,
             )
             .deploy_from_source(&template, code_metadata);

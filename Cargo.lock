@@ -1560,10 +1560,12 @@ version = "0.0.0"
 dependencies = [
  "common_structs",
  "farm-staking",
+ "farm_token",
  "multiversx-sc",
  "multiversx-sc-scenario",
  "num-bigint",
  "permissions_module",
+ "timestamp-oracle",
 ]
 
 [[package]]

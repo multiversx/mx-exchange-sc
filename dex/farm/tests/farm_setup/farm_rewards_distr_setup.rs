@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
@@ -114,6 +113,7 @@ where
                     farming_token_id,
                     division_safety_constant,
                     ManagedAddress::<DebugApi>::zero(),
+                    managed_address!(timestamp_oracle_wrapper.address_ref()),
                     MultiValueEncoded::new(),
                 );
 
@@ -125,9 +125,6 @@ where
 
                 sc.state().set(State::Active);
                 sc.produce_rewards_enabled().set(true);
-                sc.set_timestamp_oracle_address(managed_address!(
-                    timestamp_oracle_wrapper.address_ref()
-                ));
             })
             .assert_ok();
 

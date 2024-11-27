@@ -179,6 +179,7 @@ where
                     farming_token_id,
                     division_safety_constant,
                     managed_address!(&owner),
+                    managed_address!(timestamp_oracle_wrapper.address_ref()),
                     MultiValueEncoded::new(),
                 );
 
@@ -192,9 +193,6 @@ where
                 sc.produce_rewards_enabled().set(true);
                 sc.set_energy_factory_address(managed_address!(
                     energy_factory_wrapper.address_ref()
-                ));
-                sc.set_timestamp_oracle_address(managed_address!(
-                    timestamp_oracle_wrapper.address_ref()
                 ));
 
                 sc.set_permissions_hub_address(managed_address!(

@@ -17,15 +17,27 @@ pub trait ProxyDeployer:
     + views::ViewModule
 {
     #[init]
-    fn init(&self, template_address: ManagedAddress, deployer_type: DeployerType) {
+    fn init(
+        &self,
+        template_address: ManagedAddress,
+        deployer_type: DeployerType,
+        timestamp_oracle_address: ManagedAddress,
+    ) {
         require!(
             self.blockchain().is_smart_contract(&template_address),
             "Invalid farm template address"
         );
         require!(deployer_type != DeployerType::None, "Invalid deployer type");
+        require!(
+            self.blockchain()
+                .is_smart_contract(&timestamp_oracle_address),
+            "Invalid timestamp oracle address"
+        );
 
         self.template_address().set(template_address);
         self.deployer_type().set(deployer_type);
+        self.timestamp_oracle_address()
+            .set(timestamp_oracle_address);
     }
 
     #[upgrade]
