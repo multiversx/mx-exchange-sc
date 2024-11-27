@@ -22,25 +22,38 @@ pub trait DeployModule: crate::storage::StorageModule {
             "Token already used"
         );
 
+        let caller = self.get_caller_not_blacklisted();
         let deployed_sc_address = self.deploy_farm_staking_from_source(
+            caller.clone(),
             farming_token_id.clone(),
             max_apr,
             min_unbond_epochs,
         );
-        self.add_new_contract(&deployed_sc_address, farming_token_id);
+        self.add_new_contract(&caller, &deployed_sc_address, farming_token_id);
 
         deployed_sc_address
     }
 
+    fn get_caller_not_blacklisted(&self) -> ManagedAddress {
+        let caller = self.blockchain().get_caller();
+        let caller_id = self.address_id().get_id_or_insert(&caller);
+        require!(
+            !self.user_blacklist().contains(&caller_id),
+            "user blacklisted"
+        );
+
+        caller
+    }
+
     fn deploy_farm_staking_from_source(
         &self,
+        caller: ManagedAddress,
         farming_token_id: TokenIdentifier,
         max_apr: BigUint,
         min_unbond_epochs: Epoch,
     ) -> ManagedAddress {
         let owner = self.blockchain().get_owner_address();
 
-        let caller = self.blockchain().get_caller();
         let mut admins = MultiValueEncoded::new();
         admins.push(caller);
 
@@ -65,16 +78,17 @@ pub trait DeployModule: crate::storage::StorageModule {
 
     fn add_new_contract(
         &self,
+        caller: &ManagedAddress,
         deployed_sc_address: &ManagedAddress,
         farming_token_id: TokenIdentifier,
     ) {
         let contract_id = self.address_id().insert_new(deployed_sc_address);
         let _ = self.all_deployed_contracts().insert(contract_id);
         self.address_for_token(&farming_token_id).set(contract_id);
+        self.token_for_address(contract_id).set(&farming_token_id);
         let _ = self.all_used_tokens().insert(farming_token_id);
 
-        let caller = self.blockchain().get_caller();
-        let caller_id = self.address_id().get_id_or_insert(&caller);
+        let caller_id = self.address_id().get_id_non_zero(caller);
         let _ = self.contracts_by_address(caller_id).insert(contract_id);
         self.contract_owner(contract_id).set(caller_id);
     }

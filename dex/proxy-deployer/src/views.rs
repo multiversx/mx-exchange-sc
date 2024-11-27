@@ -16,6 +16,26 @@ pub trait ViewModule: crate::storage::StorageModule {
         OptionalValue::Some(addr)
     }
 
+    #[view(getTokenForAddress)]
+    fn get_token_for_address(
+        &self,
+        contract_address: ManagedAddress,
+    ) -> OptionalValue<TokenIdentifier> {
+        let contract_id = self.address_id().get_id(&contract_address);
+        if contract_id == 0 {
+            return OptionalValue::None;
+        }
+
+        let mapper = self.token_for_address(contract_id);
+        if mapper.is_empty() {
+            return OptionalValue::None;
+        }
+
+        let token_id = mapper.get();
+
+        OptionalValue::Some(token_id)
+    }
+
     #[view(getContractOwner)]
     fn get_contract_owner(
         &self,
@@ -113,12 +133,5 @@ pub trait ViewModule: crate::storage::StorageModule {
         }
 
         items
-    }
-
-    fn get_by_id(&self, id_mapper: &AddressToIdMapper, id: AddressId) -> ManagedAddress {
-        let opt_address = id_mapper.get_address(id);
-        require!(opt_address.is_some(), "Invalid setup");
-
-        unsafe { opt_address.unwrap_unchecked() }
     }
 }
