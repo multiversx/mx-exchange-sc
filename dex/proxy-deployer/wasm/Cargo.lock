@@ -440,8 +440,10 @@ name = "proxy-deployer"
 version = "0.0.0"
 dependencies = [
  "common_structs",
+ "farm-boosted-yields",
  "farm-staking",
  "multiversx-sc",
+ "pausable",
  "permissions_module",
 ]
 

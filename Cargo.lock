@@ -1561,11 +1561,13 @@ name = "proxy-deployer"
 version = "0.0.0"
 dependencies = [
  "common_structs",
+ "farm-boosted-yields",
  "farm-staking",
  "farm_token",
  "multiversx-sc",
  "multiversx-sc-scenario",
  "num-bigint",
+ "pausable",
  "permissions_module",
  "timestamp-oracle",
 ]

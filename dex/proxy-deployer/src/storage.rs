@@ -1,3 +1,5 @@
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactors;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -49,6 +51,11 @@ pub trait StorageModule {
     #[storage_mapper("userBlacklist")]
     fn user_blacklist(&self) -> WhitelistMapper<AddressId>;
 
+    #[view(getTimestampOracleAddress)]
     #[storage_mapper("timestampOracleAddress")]
     fn timestamp_oracle_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getBoostedYieldsFactors)]
+    #[storage_mapper("boostedYieldsFactors")]
+    fn boosted_yields_factors(&self) -> SingleValueMapper<BoostedYieldsFactors<Self::Api>>;
 }

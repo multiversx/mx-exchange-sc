@@ -54,8 +54,10 @@ pub trait DeployModule: crate::storage::StorageModule {
     ) -> ManagedAddress {
         let owner = self.blockchain().get_owner_address();
 
+        let own_sc_address = self.blockchain().get_sc_address();
         let mut admins = MultiValueEncoded::new();
         admins.push(caller);
+        admins.push(own_sc_address);
 
         let template = self.template_address().get();
         let code_metadata =

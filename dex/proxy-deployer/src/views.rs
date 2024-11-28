@@ -3,6 +3,16 @@ multiversx_sc::derive_imports!();
 
 #[multiversx_sc::module]
 pub trait ViewModule: crate::storage::StorageModule {
+    #[view(isUserBlacklisted)]
+    fn is_user_blacklisted(&self, user: ManagedAddress) -> bool {
+        let user_id = self.address_id().get_id(&user);
+        if user_id == NULL_ID {
+            return false;
+        }
+
+        self.user_blacklist().contains(&user_id)
+    }
+
     #[view(getAddressForToken)]
     fn get_address_for_token(&self, token_id: TokenIdentifier) -> OptionalValue<ManagedAddress> {
         let mapper = self.address_for_token(&token_id);
@@ -22,7 +32,7 @@ pub trait ViewModule: crate::storage::StorageModule {
         contract_address: ManagedAddress,
     ) -> OptionalValue<TokenIdentifier> {
         let contract_id = self.address_id().get_id(&contract_address);
-        if contract_id == 0 {
+        if contract_id == NULL_ID {
             return OptionalValue::None;
         }
 
@@ -42,7 +52,7 @@ pub trait ViewModule: crate::storage::StorageModule {
         contract_address: ManagedAddress,
     ) -> OptionalValue<ManagedAddress> {
         let contract_id = self.address_id().get_id(&contract_address);
-        if contract_id == 0 {
+        if contract_id == NULL_ID {
             return OptionalValue::None;
         }
 
@@ -94,7 +104,7 @@ pub trait ViewModule: crate::storage::StorageModule {
     ) -> MultiValueEncoded<ManagedAddress> {
         let id_mapper = self.address_id();
         let user_id = id_mapper.get_id(&user);
-        if user_id == 0 {
+        if user_id == NULL_ID {
             return MultiValueEncoded::new();
         }
 

@@ -11,6 +11,13 @@ pub struct RemoveResult {
 #[multiversx_sc::module]
 pub trait RemoveContractsModule: crate::storage::StorageModule {
     #[only_owner]
+    #[endpoint(blacklistUser)]
+    fn blacklist_user(&self, user: ManagedAddress) {
+        let user_id = self.address_id().get_id_or_insert(&user);
+        self.user_blacklist().add(&user_id);
+    }
+
+    #[only_owner]
     #[endpoint(removeAllByDeployer)]
     fn remove_all_by_deployer(
         &self,
@@ -19,8 +26,6 @@ pub trait RemoveContractsModule: crate::storage::StorageModule {
     ) -> RemoveResult {
         let id_mapper = self.address_id();
         let deployer_id = id_mapper.get_id_non_zero(&deployer_address);
-        self.user_blacklist().add(&deployer_id);
-
         let mut contracts_mapper = self.contracts_by_address(deployer_id);
 
         let total_contracts = contracts_mapper.len();
@@ -69,6 +74,11 @@ pub trait RemoveContractsModule: crate::storage::StorageModule {
         self.address_for_token(&token_for_address).clear();
         self.contract_owner(contract_id).clear();
     }
+
+    // TODO: Remove by deployer
+
+
+    
 
     // For now, both farm and farm_staking use the same internal permissions module.
     //

@@ -21,6 +21,12 @@ path = "../../common/common_structs"
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
 
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
+[dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 
