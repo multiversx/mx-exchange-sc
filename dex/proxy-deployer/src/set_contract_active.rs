@@ -13,6 +13,8 @@ pub trait SetContractActiveModule: crate::storage::StorageModule {
     /// Only callable by contract deployer
     ///
     /// Calling this endpoint multiple times is the same as calling the specific endpoints in farm by the deployer
+    ///
+    /// NOTE: Must issue farm token first!
     #[endpoint(setContractActive)]
     fn set_contract_active(
         &self,
