@@ -61,6 +61,27 @@ pub trait RemoveContractsModule: crate::storage::StorageModule {
         self.remove_contract(contract_id);
     }
 
+    #[endpoint(removeOwnContract)]
+    fn remove_own_contract(&self, contract: ManagedAddress) {
+        let caller = self.blockchain().get_caller();
+        let id_mapper = self.address_id();
+        let caller_id = id_mapper.get_id_non_zero(&caller);
+        let contract_id = id_mapper.get_id_non_zero(&contract);
+        let deployer_id = self.contract_owner(contract_id).get();
+        require!(
+            caller_id == deployer_id,
+            "Only the contract deployer may call this endpoint"
+        );
+
+        let _ = self
+            .contracts_by_address(deployer_id)
+            .swap_remove(&contract_id);
+
+        let deployer_address = self.get_by_id(&id_mapper, deployer_id);
+        self.remove_admin(contract, deployer_address);
+        self.remove_contract(contract_id);
+    }
+
     fn remove_admin(&self, contract: ManagedAddress, user: ManagedAddress) {
         self.remove_user_proxy(contract)
             .remove_admin_endpoint(user)
@@ -74,11 +95,6 @@ pub trait RemoveContractsModule: crate::storage::StorageModule {
         self.address_for_token(&token_for_address).clear();
         self.contract_owner(contract_id).clear();
     }
-
-    // TODO: Remove by deployer
-
-
-    
 
     // For now, both farm and farm_staking use the same internal permissions module.
     //
