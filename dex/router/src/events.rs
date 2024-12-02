@@ -1,3 +1,7 @@
+use common_structs::{Epoch, Percent};
+
+use crate::Blocks;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -6,11 +10,11 @@ pub struct CreatePairEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     first_token_id: TokenIdentifier<M>,
     second_token_id: TokenIdentifier<M>,
-    total_fee_percent: u64,
-    special_fee_percent: u64,
+    total_fee_percent: Percent,
+    special_fee_percent: Percent,
     pair_address: ManagedAddress<M>,
-    block: u64,
-    epoch: u64,
+    block: Blocks,
+    epoch: Epoch,
     timestamp: u64,
 }
 
@@ -30,8 +34,8 @@ pub struct MultiPairSwapEvent<M: ManagedTypeApi> {
     token_out: TokenIdentifier<M>,
     amount_out: BigUint<M>,
     payments_out: ManagedVec<M, EsdtTokenPayment<M>>,
-    block: u64,
-    epoch: u64,
+    block: Blocks,
+    epoch: Epoch,
     timestamp: u64,
 }
 
@@ -42,8 +46,8 @@ pub trait EventsModule {
         caller: ManagedAddress,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        total_fee_percent: u64,
-        special_fee_percent: u64,
+        total_fee_percent: Percent,
+        special_fee_percent: Percent,
         pair_address: ManagedAddress,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -131,7 +135,7 @@ pub trait EventsModule {
         #[indexed] first_token_id: TokenIdentifier,
         #[indexed] second_token_id: TokenIdentifier,
         #[indexed] caller: ManagedAddress,
-        #[indexed] epoch: u64,
+        #[indexed] epoch: Epoch,
         swap_event: CreatePairEvent<Self::Api>,
     );
 
@@ -141,7 +145,7 @@ pub trait EventsModule {
         #[indexed] first_token_id: TokenIdentifier,
         #[indexed] second_token_id: TokenIdentifier,
         #[indexed] caller: ManagedAddress,
-        #[indexed] epoch: u64,
+        #[indexed] epoch: Epoch,
         swap_enabled_event: UserPairSwapEnabledEvent<Self::Api>,
     );
 
@@ -153,7 +157,7 @@ pub trait EventsModule {
         #[indexed] amount_in: BigUint,
         #[indexed] token_out: TokenIdentifier,
         #[indexed] amount_out: BigUint,
-        #[indexed] epoch: u64,
+        #[indexed] epoch: Epoch,
         multi_pair_swap_event: MultiPairSwapEvent<Self::Api>,
     );
 }

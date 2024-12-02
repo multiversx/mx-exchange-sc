@@ -32,8 +32,8 @@ use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::*;
 use pausable::{PausableModule, State};
 use router::config::ConfigModule;
-use router::factory::*;
-use router::multi_pair_swap::*;
+use router::pair_actions::create::PairTokens;
+use router::pair_actions::multi_pair_swap::*;
 use router::*;
 
 #[allow(dead_code)]
