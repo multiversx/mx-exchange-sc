@@ -11,18 +11,28 @@ pub trait PermissionsHub {
     #[upgrade]
     fn upgrade(&self) {}
 
-    #[endpoint(whitelist)]
-    fn whitelist(&self, address_to_whitelist: ManagedAddress) {
+    #[endpoint]
+    fn whitelist(&self, addresses_to_whitelist: MultiValueEncoded<ManagedAddress>) {
         let caller = self.blockchain().get_caller();
-        self.user_whitelisted_addresses(&caller)
-            .insert(address_to_whitelist);
+        for address_to_whitelist in addresses_to_whitelist.into_iter() {
+            require!(
+                self.user_whitelisted_addresses(&caller)
+                    .insert(address_to_whitelist),
+                "Address is already whitelisted"
+            );
+        }
     }
 
     #[endpoint(removeWhitelist)]
-    fn remove_whitelist(&self, address_to_remove: ManagedAddress) {
+    fn remove_whitelist(&self, addresses_to_remove: MultiValueEncoded<ManagedAddress>) {
         let caller = self.blockchain().get_caller();
-        self.user_whitelisted_addresses(&caller)
-            .swap_remove(&address_to_remove);
+        for address_to_remove in addresses_to_remove.into_iter() {
+            require!(
+                self.user_whitelisted_addresses(&caller)
+                    .swap_remove(&address_to_remove),
+                "Address is not whitelisted"
+            );
+        }
     }
 
     #[only_owner]

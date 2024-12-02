@@ -27,6 +27,7 @@ use farm_staking::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use permissions_hub::PermissionsHub;
+use permissions_hub_module::PermissionsHubModule;
 use rewards::RewardsModule;
 use timestamp_oracle::epoch_to_timestamp::EpochToTimestampModule;
 use timestamp_oracle::TimestampOracle;
@@ -716,7 +717,9 @@ where
                 &self.permissions_hub_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.whitelist(managed_address!(address_to_whitelist));
+                    let mut addresses = MultiValueEncoded::new();
+                    addresses.push(managed_address!(address_to_whitelist));
+                    sc.whitelist(addresses);
                 },
             )
             .assert_ok();
