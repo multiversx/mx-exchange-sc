@@ -109,7 +109,7 @@ pub trait BoostedYieldsFactorsModule:
         min_energy_amount: BigUint,
         min_farm_amount: BigUint,
     ) {
-        self.require_caller_has_admin_permissions();
+        self.require_caller_has_owner_permissions();
         require!(
             min_energy_amount > 0 && min_farm_amount > 0,
             "Min amounts must be greater than 0"

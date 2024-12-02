@@ -523,9 +523,11 @@ dependencies = [
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
+ "original_owner_helper",
  "pair",
  "pausable",
  "permissions-hub",
+ "permissions_hub_module",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -584,9 +586,11 @@ dependencies = [
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
+ "original_owner_helper",
  "pair",
  "pausable",
  "permissions-hub",
+ "permissions_hub_module",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -629,6 +633,7 @@ dependencies = [
  "pair",
  "pausable",
  "permissions-hub",
+ "permissions_hub_module",
  "rewards",
  "sc_whitelist_module",
  "simple-lock",
@@ -768,8 +773,10 @@ dependencies = [
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
+ "original_owner_helper",
  "pausable",
  "permissions-hub",
+ "permissions_hub_module",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -883,6 +890,7 @@ dependencies = [
  "rewards",
  "router",
  "simple-lock",
+ "timestamp-oracle",
 ]
 
 [[package]]
@@ -1366,6 +1374,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
+name = "original_owner_helper"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "multiversx-sc",
+]
+
+[[package]]
 name = "pair"
 version = "0.0.0"
 dependencies = [
@@ -1433,6 +1449,7 @@ dependencies = [
  "multiversx-sc-scenario",
  "pair",
  "pausable",
+ "timestamp-oracle",
 ]
 
 [[package]]
@@ -1457,6 +1474,14 @@ name = "permissions-hub-meta"
 version = "0.0.0"
 dependencies = [
  "multiversx-sc-meta-lib",
+ "permissions-hub",
+]
+
+[[package]]
+name = "permissions_hub_module"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
  "permissions-hub",
 ]
 
@@ -1558,13 +1583,16 @@ dependencies = [
 name = "proxy-deployer"
 version = "0.0.0"
 dependencies = [
- "config",
- "farm",
+ "common_structs",
+ "farm-boosted-yields",
+ "farm-staking",
  "farm_token",
  "multiversx-sc",
  "multiversx-sc-scenario",
  "num-bigint",
  "pausable",
+ "permissions_module",
+ "timestamp-oracle",
 ]
 
 [[package]]

@@ -79,25 +79,25 @@ where
             .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 sc.init();
                 sc.user_energy(&managed_address!(&first_user))
-                    .set(&Energy::new(
+                    .set(Energy::new(
                         BigInt::from(managed_biguint!(USER_ENERGY)),
                         0,
                         managed_biguint!(0),
                     ));
                 sc.user_energy(&managed_address!(&second_user))
-                    .set(&Energy::new(
+                    .set(Energy::new(
                         BigInt::from(managed_biguint!(USER_ENERGY)),
                         0,
                         managed_biguint!(0),
                     ));
                 sc.user_energy(&managed_address!(&third_user))
-                    .set(&Energy::new(
+                    .set(Energy::new(
                         BigInt::from(managed_biguint!(USER_ENERGY + 210_000)),
                         0,
                         managed_biguint!(0),
                     ));
                 sc.user_energy(&managed_address!(&no_energy_user))
-                    .set(&Energy::new(
+                    .set(Energy::new(
                         BigInt::from(managed_biguint!(0)),
                         0,
                         managed_biguint!(0),

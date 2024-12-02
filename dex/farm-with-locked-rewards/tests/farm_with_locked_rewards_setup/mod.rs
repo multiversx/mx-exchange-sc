@@ -17,16 +17,14 @@ use fees_collector_mock::*;
 
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
-use farm_boosted_yields::{
-    boosted_yields_factors::BoostedYieldsFactorsModule,
-    custom_reward_logic::CustomRewardLogicModule,
-};
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::{external_interaction::ExternalInteractionsModule, Farm};
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc_modules::pause::PauseModule;
 use pausable::{PausableModule, State};
 use permissions_hub::PermissionsHub;
+use permissions_hub_module::PermissionsHubModule;
 use rewards::RewardsModule;
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenModule;
@@ -197,6 +195,7 @@ where
                     farming_token_id,
                     division_safety_constant,
                     managed_address!(&owner),
+                    managed_address!(timestamp_oracle_wrapper.address_ref()),
                     MultiValueEncoded::new(),
                 );
 
@@ -219,9 +218,6 @@ where
                 sc.produce_rewards_enabled().set(true);
                 sc.set_energy_factory_address(managed_address!(
                     energy_factory_wrapper.address_ref()
-                ));
-                sc.set_timestamp_oracle_address(managed_address!(
-                    timestamp_oracle_wrapper.address_ref()
                 ));
                 sc.set_permissions_hub_address(managed_address!(
                     permissions_hub_wrapper.address_ref()
@@ -309,7 +305,7 @@ where
                 &self.energy_factory_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                    sc.user_energy(&managed_address!(user)).set(Energy::new(
                         BigInt::from(managed_biguint!(energy)),
                         last_update_epoch,
                         managed_biguint!(locked_tokens),
@@ -601,7 +597,9 @@ where
                 &self.permissions_hub_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.whitelist(managed_address!(address_to_whitelist));
+                    let mut addresses = MultiValueEncoded::new();
+                    addresses.push(managed_address!(address_to_whitelist));
+                    sc.whitelist(addresses);
                 },
             )
             .assert_ok();

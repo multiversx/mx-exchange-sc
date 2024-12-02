@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                            4
+// Endpoints:                           17
 // Async Callback (empty):               1
-// Total number of exported functions:   7
+// Total number of exported functions:  20
 
 #![no_std]
 
@@ -20,10 +20,23 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
-        deployFarm => deploy_farm
-        callFarmEndpoint => call_farm_endpoint
-        getAllDeployedFarms => get_all_deployed_farms
-        getDeployerFarmAddresses => deployer_farm_addresses
+        deployFarmStakingContract => deploy_farm_staking_contract
+        setContractActive => set_contract_active
+        blacklistUser => blacklist_user
+        removeAllByDeployer => remove_all_by_deployer
+        removeSingleContract => remove_single_contract
+        removeOwnContract => remove_own_contract
+        getDeployerType => deployer_type
+        getTemplateAddress => template_address
+        getTimestampOracleAddress => timestamp_oracle_address
+        getBoostedYieldsFactors => boosted_yields_factors
+        isUserBlacklisted => is_user_blacklisted
+        getAddressForToken => get_address_for_token
+        getTokenForAddress => get_token_for_address
+        getContractOwner => get_contract_owner
+        getAllUsedTokens => get_all_used_tokens
+        getAllDeployedContractsBySc => get_all_deployed_contracts_by_sc
+        getAllDeployedContractsByUser => get_all_deployed_contracts_by_user
     )
 }
 

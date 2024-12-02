@@ -26,3 +26,6 @@ path = "../dex/farm"
 
 [dev-dependencies.pair]
 path = "../dex/pair"
+
+[dev-dependencies.timestamp-oracle]
+path = "../energy-integration/timestamp-oracle"

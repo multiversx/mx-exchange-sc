@@ -203,10 +203,8 @@ where
     let first_reward_share = 0;
     let second_reward_share = 400_000;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
-        + second_reward_share * second_farm_in_amount
-        + total_amount
-        - 1)
-        / total_amount;
+        + second_reward_share * second_farm_in_amount)
+        .div_ceil(total_amount);
 
     farm_setup.stake_farm(
         &user_address,

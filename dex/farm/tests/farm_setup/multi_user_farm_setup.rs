@@ -24,6 +24,7 @@ use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use permissions_hub::PermissionsHub;
+use permissions_hub_module::PermissionsHubModule;
 use sc_whitelist_module::SCWhitelistModule;
 use timestamp_oracle::epoch_to_timestamp::EpochToTimestampModule;
 use timestamp_oracle::TimestampOracle;
@@ -179,6 +180,7 @@ where
                     farming_token_id,
                     division_safety_constant,
                     managed_address!(&owner),
+                    managed_address!(timestamp_oracle_wrapper.address_ref()),
                     MultiValueEncoded::new(),
                 );
 
@@ -192,9 +194,6 @@ where
                 sc.produce_rewards_enabled().set(true);
                 sc.set_energy_factory_address(managed_address!(
                     energy_factory_wrapper.address_ref()
-                ));
-                sc.set_timestamp_oracle_address(managed_address!(
-                    timestamp_oracle_wrapper.address_ref()
                 ));
 
                 sc.set_permissions_hub_address(managed_address!(
@@ -272,7 +271,7 @@ where
                 &self.energy_factory_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                    sc.user_energy(&managed_address!(user)).set(Energy::new(
                         BigInt::from(managed_biguint!(energy)),
                         last_update_epoch,
                         managed_biguint!(locked_tokens),
@@ -690,7 +689,9 @@ where
                 &self.permissions_hub_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.whitelist(managed_address!(address_to_whitelist));
+                    let mut addresses = MultiValueEncoded::new();
+                    addresses.push(managed_address!(address_to_whitelist));
+                    sc.whitelist(addresses);
                 },
             )
             .assert_ok();
@@ -699,7 +700,7 @@ where
     pub fn remove_whitelist_address_on_behalf(
         &mut self,
         user: &Address,
-        address_to_whitelist: &Address,
+        address_to_remove: &Address,
     ) {
         self.b_mock
             .execute_tx(
@@ -707,7 +708,9 @@ where
                 &self.permissions_hub_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.remove_whitelist(managed_address!(address_to_whitelist));
+                    let mut addresses = MultiValueEncoded::new();
+                    addresses.push(managed_address!(address_to_remove));
+                    sc.remove_whitelist(addresses);
                 },
             )
             .assert_ok();

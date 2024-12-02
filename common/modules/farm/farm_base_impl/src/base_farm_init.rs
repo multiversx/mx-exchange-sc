@@ -50,5 +50,7 @@ pub trait BaseFarmInitModule:
             self.add_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
             self.add_permissions_for_all(admins, Permissions::ADMIN);
         };
+
+        self.pause();
     }
 }

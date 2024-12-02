@@ -53,12 +53,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeAdmin => remove_admin_endpoint
         updateOwnerOrAdmin => update_owner_or_admin_endpoint
         getPermissions => permissions
+        setPermissionsHubAddress => set_permissions_hub_address
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
         enterFarmOnBehalf => enter_farm_on_behalf
         claimRewardsOnBehalf => claim_rewards_on_behalf
-        setPermissionsHubAddress => set_permissions_hub_address
         setBoostedYieldsFactors => set_boosted_yields_factors
         getBoostedYieldsFactors => get_boosted_yields_factors
         setTimestampOracleAddress => set_timestamp_oracle_address

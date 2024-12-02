@@ -61,7 +61,7 @@ pub mod fuzz_farm_test {
 
         //randomly add all existing farm positions for merge
         let merge_farm_positions: bool = fuzzer_data.rng.gen();
-        if merge_farm_positions && farm_setup.farmer_info.get(&caller.address).is_some() {
+        if merge_farm_positions && farm_setup.farmer_info.contains_key(&caller.address) {
             for farm_token_nonce in farm_setup.farmer_info.get(&caller.address).unwrap().iter() {
                 let farm_token_amount = fuzzer_data.blockchain_wrapper.get_esdt_balance(
                     &caller.address,
@@ -221,7 +221,7 @@ pub mod fuzz_farm_test {
         // When claiming rewards, the caller uses all his farming positions
         let mut farm_token_amount_check = rust_biguint!(0u64);
         let mut payments = Vec::new();
-        if farm_setup.farmer_info.get(&caller.address).is_some() {
+        if farm_setup.farmer_info.contains_key(&caller.address) {
             for farm_token_nonce in farm_setup.farmer_info.get(&caller.address).unwrap().iter() {
                 let farm_token_amount = fuzzer_data.blockchain_wrapper.get_esdt_balance(
                     &caller.address,
@@ -320,7 +320,7 @@ pub mod fuzz_farm_test {
         // When compounding rewards, the caller uses all his farming positions
         let mut farm_token_amount_check = rust_biguint!(0u64);
         let mut payments = Vec::new();
-        if farm_setup.farmer_info.get(&caller.address).is_some() {
+        if farm_setup.farmer_info.contains_key(&caller.address) {
             for farm_token_nonce in farm_setup.farmer_info.get(&caller.address).unwrap().iter() {
                 let farm_token_amount = fuzzer_data.blockchain_wrapper.get_esdt_balance(
                     &caller.address,

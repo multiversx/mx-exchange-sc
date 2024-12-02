@@ -1,7 +1,6 @@
 use energy_factory::token_whitelist::TokenWhitelistModule;
 use energy_factory::SimpleLockEnergy;
 use energy_query::EnergyQueryModule;
-use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
@@ -273,6 +272,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 ManagedAddress::<DebugApi>::zero(),
+                managed_address!(timestamp_oracle_address),
                 MultiValueEncoded::new(),
             );
 
@@ -290,7 +290,6 @@ where
                 .set(managed_address!(energy_factory_address));
             sc.energy_factory_address()
                 .set(managed_address!(energy_factory_address));
-            sc.set_timestamp_oracle_address(managed_address!(timestamp_oracle_address));
         })
         .assert_ok();
 

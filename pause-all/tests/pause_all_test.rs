@@ -6,6 +6,7 @@ use multiversx_sc_scenario::{
 use pair::Pair;
 use pausable::{PausableModule, State};
 use pause_all::*;
+use timestamp_oracle::{epoch_to_timestamp::EpochToTimestampModule, TimestampOracle};
 
 static REWARD_TOKEN_ID: &[u8] = b"REWARD-123456";
 static FARMING_TOKEN_ID: &[u8] = b"FARMING-123456";
@@ -15,6 +16,8 @@ static FIRST_TOKEN_ID: &[u8] = FARMING_TOKEN_ID;
 static SECOND_TOKEN_ID: &[u8] = b"BEST-123456";
 static TOTAL_FEE_PERCENT: u64 = 50;
 static SPECIAL_FEE_PERCENT: u64 = 50;
+
+pub const TIMESTAMP_PER_EPOCH: u64 = 24 * 60 * 60;
 
 #[test]
 fn pause_all_test() {
@@ -40,6 +43,27 @@ fn pause_all_test() {
         "output/pair.wasm",
     );
 
+    let timestamp_oracle_wrapper = b_mock.create_sc_account(
+        &rust_zero,
+        Some(&owner_address),
+        timestamp_oracle::contract_obj,
+        "timestamp oracle",
+    );
+    b_mock
+        .execute_tx(
+            &owner_address,
+            &timestamp_oracle_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.init(0);
+
+                for i in 0..=21 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
+            },
+        )
+        .assert_ok();
+
     // init farm
     b_mock
         .execute_tx(&owner_address, &farm_sc, &rust_zero, |sc| {
@@ -48,6 +72,7 @@ fn pause_all_test() {
                 managed_token_id!(FARMING_TOKEN_ID),
                 managed_biguint!(DIV_SAFETY),
                 ManagedAddress::<DebugApi>::zero(),
+                managed_address!(timestamp_oracle_wrapper.address_ref()),
                 MultiValueEncoded::new(),
             );
 
