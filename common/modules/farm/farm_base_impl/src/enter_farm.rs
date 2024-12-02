@@ -45,16 +45,12 @@ pub trait BaseEnterFarmModule:
         );
 
         // The order is important - first check and update, then increase position
-        FC::check_and_update_user_farm_position(
-            self,
+        self.check_and_update_user_farm_position::<FC::AttributesType>(
             &caller,
             &enter_farm_context.additional_farm_tokens,
+            &self.farm_token(),
         );
-        FC::increase_user_farm_position(
-            self,
-            &caller,
-            &enter_farm_context.farming_token_payment.amount,
-        );
+        self.increase_user_farm_position(&caller, &enter_farm_context.farming_token_payment.amount);
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 

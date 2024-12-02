@@ -227,14 +227,10 @@ dependencies = [
 name = "farm_token"
 version = "0.0.0"
 dependencies = [
- "common_errors",
  "common_structs",
- "config",
  "multiversx-sc",
  "multiversx-sc-modules",
- "pausable",
  "permissions_module",
- "token_send",
 ]
 
 [[package]]
