@@ -23,6 +23,7 @@ pub trait UnstakeFarmModule:
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
@@ -99,6 +100,8 @@ pub trait UnstakeFarmModule:
             exit_result.reward_payment.clone(),
             exit_result.storage_cache,
         );
+
+        self.update_start_of_epoch_timestamp();
 
         (unbond_farm_token, exit_result.reward_payment).into()
     }

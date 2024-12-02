@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 mod pair_setup;
 use fees_collector::{
     config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,

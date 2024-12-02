@@ -21,13 +21,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 
 [[package]]
-name = "common-types"
-version = "0.0.0"
-dependencies = [
- "multiversx-sc",
-]
-
-[[package]]
 name = "common_errors"
 version = "0.0.0"
 dependencies = [
@@ -138,6 +131,7 @@ dependencies = [
  "multiversx-sc-modules",
  "pair",
  "pausable",
+ "permissions-hub",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -151,12 +145,15 @@ dependencies = [
 name = "farm-boosted-yields"
 version = "0.0.0"
 dependencies = [
- "common-types",
+ "common_structs",
  "config",
  "energy-query",
+ "math",
  "multiversx-sc",
  "pausable",
  "permissions_module",
+ "timestamp-oracle",
+ "utils",
  "week-timekeeping",
  "weekly-rewards-splitting",
 ]
@@ -183,6 +180,7 @@ dependencies = [
  "multiversx-sc-modules",
  "pair",
  "pausable",
+ "permissions-hub",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -260,8 +258,8 @@ dependencies = [
 name = "fees-collector"
 version = "0.0.0"
 dependencies = [
- "common-types",
  "common_errors",
+ "common_structs",
  "energy-factory",
  "energy-query",
  "locking_module",
@@ -445,6 +443,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "permissions-hub"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+]
+
+[[package]]
 name = "permissions_module"
 version = "0.0.0"
 dependencies = [
@@ -531,6 +536,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "timestamp-oracle"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "multiversx-sc",
+]
+
+[[package]]
 name = "token_merge_helper"
 version = "0.0.0"
 dependencies = [
@@ -580,7 +593,7 @@ dependencies = [
 name = "week-timekeeping"
 version = "0.0.0"
 dependencies = [
- "common-types",
+ "common_structs",
  "multiversx-sc",
 ]
 
@@ -588,7 +601,7 @@ dependencies = [
 name = "weekly-rewards-splitting"
 version = "0.0.0"
 dependencies = [
- "common-types",
+ "common_structs",
  "energy-query",
  "math",
  "multiversx-sc",

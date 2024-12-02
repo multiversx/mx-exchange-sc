@@ -24,6 +24,7 @@ pub trait StakeFarmModule:
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
@@ -73,6 +74,7 @@ pub trait StakeFarmModule:
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.migrate_old_farm_positions(&original_caller);
+
         let boosted_rewards = self.claim_only_boosted_payment(&original_caller);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
@@ -95,6 +97,8 @@ pub trait StakeFarmModule:
             enter_result.created_with_merge,
             enter_result.storage_cache,
         );
+
+        self.update_start_of_epoch_timestamp();
 
         (new_farm_token, boosted_rewards_payment).into()
     }

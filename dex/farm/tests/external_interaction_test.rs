@@ -18,6 +18,7 @@ fn test_enter_and_claim_farm_on_behalf() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -66,6 +67,7 @@ fn test_multiple_positions_on_behalf() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -171,6 +173,7 @@ fn test_enter_and_claim_farm_on_behalf_not_whitelisted_error() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -223,6 +226,7 @@ fn test_wrong_original_owner_on_behalf_validation() {
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 

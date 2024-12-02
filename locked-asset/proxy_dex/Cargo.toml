@@ -88,3 +88,6 @@ path = "../../common/modules/farm/rewards"
 
 [dev-dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"
+
+[dev-dependencies.timestamp-oracle]
+path = "../../energy-integration/timestamp-oracle"

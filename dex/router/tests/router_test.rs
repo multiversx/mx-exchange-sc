@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 mod router_setup;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,

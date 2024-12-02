@@ -11,7 +11,6 @@ pub trait FarmDeployModule {
         &self,
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
-        pair_contract_address: ManagedAddress,
     ) -> ManagedAddress {
         let owner = self.blockchain().get_owner_address();
         let caller = self.blockchain().get_caller();
@@ -27,7 +26,6 @@ pub trait FarmDeployModule {
                 reward_token_id,
                 farming_token_id,
                 DIVISION_SAFETY_CONST,
-                pair_contract_address,
                 owner,
                 admins_list,
             )

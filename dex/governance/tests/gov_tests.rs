@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use multiversx_sc::codec::multi_types::{MultiValue2, OptionalValue};
 use multiversx_sc::types::MultiValueEncoded;
 use multiversx_sc::types::{Address, EsdtLocalRole, EsdtTokenPayment, ManagedVec};
