@@ -147,7 +147,11 @@ pub trait FarmStaking:
         let token_mapper = self.farm_token();
         token_mapper.require_all_same_token(&payments);
 
-        FC::check_and_update_user_farm_position(self, orig_caller, &payments);
+        self.check_and_update_user_farm_position::<FC::AttributesType>(
+            orig_caller,
+            &payments,
+            &self.farm_token(),
+        );
 
         self.merge_from_payments_and_burn(payments, &token_mapper)
     }
