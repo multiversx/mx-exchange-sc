@@ -23,6 +23,7 @@ pub trait ClaimStakeFarmRewardsModule:
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
@@ -62,6 +63,7 @@ pub trait ClaimStakeFarmRewardsModule:
         opt_new_farming_amount: Option<BigUint>,
     ) -> ClaimRewardsResultType<Self::Api> {
         self.migrate_old_farm_positions(&original_caller);
+
         let payment = self.call_value().single_esdt();
         let mut claim_result = self
             .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
@@ -107,6 +109,8 @@ pub trait ClaimStakeFarmRewardsModule:
             claim_result.created_with_merge,
             claim_result.storage_cache,
         );
+
+        self.update_start_of_epoch_timestamp();
 
         (virtual_farm_token.payment, claim_result.rewards).into()
     }

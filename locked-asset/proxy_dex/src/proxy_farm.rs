@@ -234,6 +234,7 @@ pub trait ProxyFarmModule:
         (initial_proxy_farming_tokens, exit_result.reward_tokens).into()
     }
 
+    // Code can technically be removed, but the proxy_dex would still need it if it ever interacts with older farm contracts
     fn handle_farm_penalty_and_get_output_proxy_farming_token(
         &self,
         caller: &ManagedAddress,

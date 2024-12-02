@@ -1,4 +1,4 @@
-#![allow(deprecated)]
+#![allow(clippy::too_many_arguments)]
 
 pub mod constants;
 pub mod staking_farm_with_lp_external_contracts;
@@ -34,6 +34,7 @@ fn test_all_setup() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 }
 
@@ -46,6 +47,7 @@ fn test_stake_farm_proxy() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000; // safe price of USER_TOTAL_LP_TOKENS in RIDE tokens
@@ -62,6 +64,7 @@ fn test_claim_rewards_farm_proxy_full() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -91,6 +94,7 @@ fn test_claim_rewards_farm_proxy_half() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -120,6 +124,7 @@ fn test_claim_rewards_farm_proxy_twice() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -164,6 +169,7 @@ fn test_unstake_through_proxy_no_claim() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -196,6 +202,7 @@ fn unstake_through_proxy_after_claim() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -238,6 +245,7 @@ fn unstake_partial_position_test() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -355,6 +363,7 @@ fn unbond_test() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let expected_staking_token_amount = 1_001_000_000;
@@ -401,6 +410,7 @@ fn farm_staking_compound_rewards_and_unstake_test() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let farming_amount = 500_000_000;
 
@@ -433,6 +443,7 @@ fn test_stake_farm_through_proxy_with_merging() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let first_dual_yield_token_nonce = setup.stake_farm_lp_proxy(1, 400_000_000, 1, 400_000_000);
@@ -510,6 +521,7 @@ fn test_farm_stake_proxy_merging_boosted_rewards() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // Boosted rewards setup
@@ -656,6 +668,7 @@ fn original_caller_negative_test() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let user = setup.user_addr.clone();
@@ -699,6 +712,7 @@ fn claim_for_others_positive_test() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // Boosted rewards setup
@@ -896,6 +910,7 @@ fn stake_farm_through_proxy_migration_test() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     let user = setup.user_addr.clone();
@@ -905,6 +920,7 @@ fn stake_farm_through_proxy_migration_test() {
 
     setup.check_user_total_staking_farm_position(&user, user_total_staking_farm_position);
     setup.check_user_total_lp_farm_position(&user, user_total_lp_farm_position);
+
     let dual_yield_token_nonce1 = setup.stake_farm_lp_proxy(1, farm_amount, 1, farm_amount);
     let dual_yield_token_nonce2 = setup.stake_farm_lp_proxy(1, farm_amount, 2, farm_amount);
     let dual_yield_token_nonce3 = setup.stake_farm_lp_proxy(1, farm_amount, 3, farm_amount);
@@ -1010,10 +1026,10 @@ fn stake_farm_through_proxy_migration_test() {
     setup.unstake_proxy(
         dual_yield_token_nonce3,
         farm_amount / 2,
-        49950000,
+        50000000,
         0,
         0,
-        49950000,
+        50000000,
         10,
     );
 
@@ -1031,6 +1047,7 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // Boosted rewards setup
@@ -1244,6 +1261,7 @@ fn test_multiple_positions_on_behalf() {
         permissions_hub::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     // Boosted rewards setup

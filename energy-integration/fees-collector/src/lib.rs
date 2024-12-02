@@ -2,7 +2,7 @@
 
 multiversx_sc::imports!();
 
-use common_types::{PaymentsVec, Week};
+use common_structs::{PaymentsVec, Week};
 use core::marker::PhantomData;
 use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
 

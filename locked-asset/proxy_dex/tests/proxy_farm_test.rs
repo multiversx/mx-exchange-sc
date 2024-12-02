@@ -1,13 +1,9 @@
-#![allow(deprecated)]
-
 mod proxy_dex_test_setup;
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::Energy;
-use farm::exit_penalty::DEFAULT_PENALTY_PERCENT;
-use farm::MAX_PERCENT;
 use multiversx_sc::{
     codec::{multi_types::OptionalValue, Empty},
     types::{BigInt, EsdtLocalRole, EsdtTokenPayment},
@@ -33,6 +29,7 @@ fn farm_proxy_setup_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 }
 
@@ -43,6 +40,7 @@ fn farm_proxy_actions_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -270,6 +268,7 @@ fn farm_with_wrapped_lp_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     setup
@@ -453,7 +452,7 @@ fn farm_with_wrapped_lp_test() {
         )
         .assert_ok();
 
-    let penalty_amount = &expected_lp_token_amount / 2u64 * DEFAULT_PENALTY_PERCENT / MAX_PERCENT;
+    let penalty_amount = rust_biguint!(0); //&expected_lp_token_amount / 2u64 * DEFAULT_PENALTY_PERCENT / MAX_PERCENT;
 
     // check proxy received only part of LP tokens back
     setup.b_mock.check_esdt_balance(
@@ -470,13 +469,12 @@ fn farm_with_wrapped_lp_test() {
         &(&expected_lp_token_amount / 2u64),
         None,
     );
-    // user received 495_000_000 locked tokens in the new token
-    // less than half of the original 1_000_000_000, i.e. 500_000_000
-    let locked_token_after_exit = rust_biguint!(495_000_000);
+
+    let locked_token_after_exit = rust_biguint!(1_000_000_000);
     setup.b_mock.check_nft_balance(
         &first_user,
         WRAPPED_LP_TOKEN_ID,
-        2,
+        1,
         &(&expected_lp_token_amount / 2u64 - &penalty_amount),
         Some(&WrappedLpTokenAttributes::<DebugApi> {
             locked_tokens: EsdtTokenPayment::new(
@@ -486,7 +484,7 @@ fn farm_with_wrapped_lp_test() {
             ),
             lp_token_id: managed_token_id!(LP_TOKEN_ID),
             lp_token_amount: managed_biguint!(
-                expected_lp_token_amount.to_u64().unwrap() / 2u64
+                expected_lp_token_amount.to_u64().unwrap()  //  / 2u64
                     - penalty_amount.to_u64().unwrap()
             ),
         }),
@@ -496,9 +494,7 @@ fn farm_with_wrapped_lp_test() {
     setup
         .b_mock
         .execute_query(&setup.simple_lock_wrapper, |sc| {
-            let new_user_balance = managed_biguint!(USER_BALANCE)
-                - locked_token_amount.to_u64().unwrap() / 2u64
-                + locked_token_after_exit.to_u64().unwrap();
+            let new_user_balance = managed_biguint!(USER_BALANCE);
             let expected_energy_amount =
                 managed_biguint!(LOCK_OPTIONS[0] - current_epoch) * &new_user_balance;
 
@@ -522,6 +518,7 @@ fn farm_proxy_claim_energy_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -660,6 +657,7 @@ fn farm_proxy_partial_exit_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -838,6 +836,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_locked_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -954,7 +953,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
     // rewards for the full position only applies for the boosted rewards
     let tokens_received_at_exit = rust_biguint!(PER_BLOCK_REWARD_AMOUNT * 100 / 2)
         + rust_biguint!(USER_BALANCE / 2)
-        - rust_biguint!(USER_BALANCE / 2) * DEFAULT_PENALTY_PERCENT / MAX_PERCENT;
+        - rust_biguint!(0); // rust_biguint!(USER_BALANCE / 2) * DEFAULT_PENALTY_PERCENT / MAX_PERCENT;
 
     setup.b_mock.check_nft_balance::<Empty>(
         &first_user,
@@ -1020,6 +1019,7 @@ fn different_farm_locked_token_nonce_merging_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1173,7 +1173,7 @@ fn different_farm_locked_token_nonce_merging_test() {
         &first_user,
         LOCKED_TOKEN_ID,
         3,
-        &rust_biguint!(1_980_000_000_000_000_000u64),
+        &rust_biguint!(2_000_000_000_000_000_000u64),
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
             original_token_nonce: 0,
@@ -1189,6 +1189,7 @@ fn total_farm_mechanism_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1420,6 +1421,7 @@ fn increase_proxy_farm_lkmex_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -1501,6 +1503,7 @@ fn increase_proxy_farm_proxy_lp_energy() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     setup
@@ -1741,6 +1744,7 @@ fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     setup
@@ -1986,6 +1990,7 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
 
     setup
@@ -2228,6 +2233,7 @@ fn original_caller_negative_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -2332,6 +2338,7 @@ fn total_farm_position_migration_through_proxy_dex_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -2467,6 +2474,7 @@ fn increase_proxy_farm_legacy_token_energy_negative_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
@@ -2510,6 +2518,7 @@ fn total_farm_position_migration_mechanism_test() {
         pair::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
+        timestamp_oracle::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_locked_wrapper.address_ref().clone();

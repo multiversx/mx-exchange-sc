@@ -21,13 +21,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 
 [[package]]
-name = "common-types"
-version = "0.0.0"
-dependencies = [
- "multiversx-sc",
-]
-
-[[package]]
 name = "common_errors"
 version = "0.0.0"
 dependencies = [
@@ -85,8 +78,8 @@ dependencies = [
 name = "fees-collector"
 version = "0.0.0"
 dependencies = [
- "common-types",
  "common_errors",
+ "common_structs",
  "energy-factory",
  "energy-query",
  "locking_module",
@@ -390,7 +383,7 @@ dependencies = [
 name = "week-timekeeping"
 version = "0.0.0"
 dependencies = [
- "common-types",
+ "common_structs",
  "multiversx-sc",
 ]
 
@@ -398,7 +391,7 @@ dependencies = [
 name = "weekly-rewards-splitting"
 version = "0.0.0"
 dependencies = [
- "common-types",
+ "common_structs",
  "energy-query",
  "math",
  "multiversx-sc",

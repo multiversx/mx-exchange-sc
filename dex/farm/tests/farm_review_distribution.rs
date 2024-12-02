@@ -8,7 +8,11 @@ use multiversx_sc_scenario::rust_biguint;
 #[test]
 fn test_overview() {
     let per_block_reward_amount = rust_biguint!(100);
-    let mut farm_setup = FarmRewardsDistrSetup::new(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = FarmRewardsDistrSetup::new(
+        farm::contract_obj,
+        per_block_reward_amount,
+        timestamp_oracle::contract_obj,
+    );
     let alice = farm_setup.new_address_with_lp_tokens(rust_biguint!(5_000));
     let bob = farm_setup.new_address_with_lp_tokens(rust_biguint!(5_000));
     let eve = farm_setup.new_address_with_lp_tokens(rust_biguint!(5_000));
@@ -63,7 +67,11 @@ fn test_overview() {
 #[test]
 fn test_overview_but_changes_in_per_reward_block() {
     let per_block_reward_amount = rust_biguint!(100);
-    let mut farm_setup = FarmRewardsDistrSetup::new(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = FarmRewardsDistrSetup::new(
+        farm::contract_obj,
+        per_block_reward_amount,
+        timestamp_oracle::contract_obj,
+    );
     let alice = farm_setup.new_address_with_lp_tokens(rust_biguint!(5_000));
     let bob = farm_setup.new_address_with_lp_tokens(rust_biguint!(5_000));
     let eve = farm_setup.new_address_with_lp_tokens(rust_biguint!(5_000));
@@ -136,7 +144,11 @@ fn exp18(value: u64) -> RustBigUint {
 #[test]
 fn test_overview_realistic_numbers() {
     let per_block_reward_amount = exp18(100);
-    let mut farm_setup = FarmRewardsDistrSetup::new(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = FarmRewardsDistrSetup::new(
+        farm::contract_obj,
+        per_block_reward_amount,
+        timestamp_oracle::contract_obj,
+    );
     let alice = farm_setup.new_address_with_lp_tokens(exp18(5_000));
     let bob = farm_setup.new_address_with_lp_tokens(exp18(5_000));
     let eve = farm_setup.new_address_with_lp_tokens(exp18(5_000));
@@ -206,7 +218,11 @@ fn exp21(value: u64) -> RustBigUint {
 #[test]
 fn test_billion_to_trillion() {
     let per_block_reward_amount = exp21(100);
-    let mut farm_setup = FarmRewardsDistrSetup::new(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = FarmRewardsDistrSetup::new(
+        farm::contract_obj,
+        per_block_reward_amount,
+        timestamp_oracle::contract_obj,
+    );
     let alice = farm_setup.new_address_with_lp_tokens(exp21(5_000));
     let bob = farm_setup.new_address_with_lp_tokens(exp21(5_000));
     let eve = farm_setup.new_address_with_lp_tokens(exp21(5_000));
@@ -272,7 +288,11 @@ fn test_billion_to_trillion() {
 #[test]
 fn test_rv_earn_twice() {
     let per_block_reward_amount = rust_biguint!(100);
-    let mut farm_setup = FarmRewardsDistrSetup::new(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = FarmRewardsDistrSetup::new(
+        farm::contract_obj,
+        per_block_reward_amount,
+        timestamp_oracle::contract_obj,
+    );
     let alice = farm_setup.new_address_with_lp_tokens(rust_biguint!(5_000));
     let bob = farm_setup.new_address_with_lp_tokens(rust_biguint!(5_000));
     farm_setup.step(

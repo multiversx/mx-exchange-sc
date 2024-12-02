@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           72
+// Endpoints:                           73
 // Async Callback:                       1
-// Total number of exported functions:  75
+// Total number of exported functions:  76
 
 #![no_std]
 
@@ -72,14 +72,15 @@ multiversx_sc_wasm_adapter::endpoints! {
         stakeFarmOnBehalf => stake_farm_on_behalf
         claimRewardsOnBehalf => claim_rewards_on_behalf
         claimBoostedRewards => claim_boosted_rewards
+        setBoostedYieldsFactors => set_boosted_yields_factors
+        getBoostedYieldsFactors => get_boosted_yields_factors
+        setTimestampOracleAddress => set_timestamp_oracle_address
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getBoostedYieldsRewardsPercentage => boosted_yields_rewards_percentage
         getAccumulatedRewardsForWeek => accumulated_rewards_for_week
         getFarmSupplyForWeek => farm_supply_for_week
         getRemainingBoostedRewardsToDistribute => remaining_boosted_rewards_to_distribute
         getUndistributedBoostedRewards => undistributed_boosted_rewards
-        setBoostedYieldsFactors => set_boosted_yields_factors
-        getBoostedYieldsFactors => get_boosted_yields_factors
         getCurrentWeek => get_current_week
         getFirstWeekStartEpoch => first_week_start_epoch
         getLastActiveWeekForUser => get_last_active_week_for_user_view

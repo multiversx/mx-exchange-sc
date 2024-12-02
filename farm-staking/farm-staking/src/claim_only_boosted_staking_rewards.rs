@@ -26,6 +26,7 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule
     + crate::custom_rewards::CustomRewardsModule
 {
     #[endpoint(claimBoostedRewards)]

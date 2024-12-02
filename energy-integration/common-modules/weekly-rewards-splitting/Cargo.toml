@@ -17,11 +17,17 @@ path = "../energy-query"
 [dependencies.week-timekeeping]
 path = "../week-timekeeping"
 
-[dependencies.common-types]
-path = "../../common-types"
+[dependencies.common_structs]
+path = "../../../common/common_structs"
 
 [dependencies.unwrappable]
 path = "../../../common/traits/unwrappable"
 
 [dependencies.math]
 path = "../../../common/modules/math"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.53.2"

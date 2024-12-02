@@ -34,14 +34,14 @@ impl TopDecode for Permissions {
 
 impl TypeAbiFrom<Self> for Permissions {}
 
- impl TypeAbi for Permissions {
-     type Unmanaged = Self;
+impl TypeAbi for Permissions {
+    type Unmanaged = Self;
 
-     fn type_name() -> multiversx_sc::abi::TypeName {
-         core::any::type_name::<u32>().into()
-     }
+    fn type_name() -> multiversx_sc::abi::TypeName {
+        core::any::type_name::<u32>().into()
+    }
 
-     fn type_name_rust() -> multiversx_sc::abi::TypeName {
-         core::any::type_name::<u32>().into()
-     }
- }
+    fn type_name_rust() -> multiversx_sc::abi::TypeName {
+        core::any::type_name::<u32>().into()
+    }
+}

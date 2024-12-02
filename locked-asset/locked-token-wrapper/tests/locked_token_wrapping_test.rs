@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
 use locked_token_wrapper::{

@@ -71,18 +71,22 @@ impl<M: ManagedTypeApi> Into<FarmTokenAttributes<M>> for StakingFarmTokenAttribu
 }
 
 impl<M: ManagedTypeApi> FarmToken<M> for StakingFarmTokenAttributes<M> {
+    #[inline]
     fn get_reward_per_share(&self) -> BigUint<M> {
         self.reward_per_share.clone()
     }
 
+    #[inline]
     fn get_compounded_rewards(&self) -> BigUint<M> {
         self.compounded_reward.clone()
     }
 
+    #[inline]
     fn get_initial_farming_tokens(&self) -> BigUint<M> {
         &self.current_farm_amount - &self.compounded_reward
     }
 
+    #[inline]
     fn get_original_owner(&self) -> ManagedAddress<M> {
         self.original_owner.clone()
     }

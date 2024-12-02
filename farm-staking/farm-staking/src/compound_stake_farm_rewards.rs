@@ -21,6 +21,7 @@ pub trait CompoundStakeFarmRewardsModule:
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
@@ -34,6 +35,7 @@ pub trait CompoundStakeFarmRewardsModule:
     fn compound_rewards(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         self.migrate_old_farm_positions(&caller);
+
         let payments = self.get_non_empty_payments();
         let compound_result =
             self.compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments);
@@ -51,6 +53,8 @@ pub trait CompoundStakeFarmRewardsModule:
             compound_result.created_with_merge,
             compound_result.storage_cache,
         );
+
+        self.update_start_of_epoch_timestamp();
 
         new_farm_token
     }

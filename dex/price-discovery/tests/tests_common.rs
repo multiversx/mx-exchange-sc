@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use multiversx_sc::codec::Empty;
 use multiversx_sc::types::{Address, EsdtLocalRole};
 use multiversx_sc_scenario::whitebox_legacy::TxResult;

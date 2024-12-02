@@ -4,7 +4,7 @@ use common_structs::FarmTokenAttributes;
 
 use crate::{
     base_functions::{self, ClaimRewardsResultType, Wrapper},
-    exit_penalty, EnterFarmResultType,
+    EnterFarmResultType,
 };
 
 #[multiversx_sc::module]
@@ -21,7 +21,6 @@ pub trait ExternalInteractionsModule:
     + events::EventsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + base_functions::BaseFunctionsModule
-    + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
@@ -30,6 +29,7 @@ pub trait ExternalInteractionsModule:
     + farm_base_impl::exit_farm::BaseExitFarmModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule

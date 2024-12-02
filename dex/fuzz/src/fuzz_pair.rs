@@ -1,6 +1,5 @@
 #[cfg(test)]
 pub mod fuzz_pair_test {
-    #![allow(deprecated)]
 
     multiversx_sc::imports!();
     multiversx_sc::derive_imports!();

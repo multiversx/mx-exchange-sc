@@ -4,7 +4,7 @@ multiversx_sc::imports!();
 
 use core::convert::TryInto;
 
-pub use common_types::{Epoch, Week};
+pub use common_structs::{Epoch, Week};
 
 pub const EPOCHS_IN_WEEK: Epoch = 7;
 pub const FIRST_WEEK: Week = 1;

@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_types::Week;
+use common_structs::Week;
 use energy_query::Energy;
 
 use crate::ClaimProgress;
@@ -34,10 +34,12 @@ pub trait UpdateClaimProgressEnergyModule:
         let current_user_energy = self.get_energy_entry(caller);
 
         let progress_mapper = self.current_claim_progress(caller);
-        let opt_progress_for_update = if !progress_mapper.is_empty() {
-            Some(progress_mapper.get())
+        let (enter_timestamp, opt_progress_for_update) = if !progress_mapper.is_empty() {
+            let progress = progress_mapper.get();
+
+            (progress.enter_timestamp, Some(progress))
         } else {
-            None
+            (self.blockchain().get_block_timestamp(), None)
         };
         self.update_user_energy_for_current_week(
             caller,
@@ -50,6 +52,7 @@ pub trait UpdateClaimProgressEnergyModule:
             progress_mapper.set(&ClaimProgress {
                 week: current_week,
                 energy: current_user_energy,
+                enter_timestamp,
             });
         } else {
             progress_mapper.clear();

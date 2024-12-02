@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use common_structs::FarmTokenAttributes;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::imports::ContractBase;

@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{BigInt, EsdtLocalRole, MultiValueEncoded};

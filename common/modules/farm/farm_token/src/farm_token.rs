@@ -3,7 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::Nonce;
+use common_structs::{Nonce, PaymentsVec};
 
 #[multiversx_sc::module]
 pub trait FarmTokenModule:
@@ -31,7 +31,7 @@ pub trait FarmTokenModule:
         );
     }
 
-    fn burn_farm_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
+    fn burn_farm_tokens_from_payments(&self, payments: &PaymentsVec<Self::Api>) {
         let mut total_amount = BigUint::zero();
         for entry in payments.iter() {
             total_amount += &entry.amount;
@@ -47,7 +47,7 @@ pub trait FarmTokenModule:
         token_id: TokenIdentifier,
         amount: BigUint,
         attributes: &T,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         let new_nonce = self
             .send()
             .esdt_nft_create_compact(&token_id, &amount, attributes);
@@ -61,7 +61,7 @@ pub trait FarmTokenModule:
         self.farm_token_supply().update(|x| *x -= amount);
     }
 
-    fn burn_farm_token_payment(&self, payment: &EsdtTokenPayment<Self::Api>) {
+    fn burn_farm_token_payment(&self, payment: &EsdtTokenPayment) {
         self.burn_farm_tokens(
             &payment.token_identifier,
             payment.token_nonce,
@@ -72,7 +72,7 @@ pub trait FarmTokenModule:
     fn get_farm_token_attributes<T: TopDecode>(
         &self,
         token_id: &TokenIdentifier,
-        token_nonce: u64,
+        token_nonce: Nonce,
     ) -> T {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),

@@ -1,5 +1,4 @@
 #![no_std]
-#![allow(deprecated)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -231,12 +230,11 @@ pub trait Router:
                     can_add_special_roles: true,
                 },
             )
-            .async_call()
             .with_callback(
                 self.callbacks()
                     .lp_token_issue_callback(&caller, &pair_address),
             )
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
     #[endpoint(setLocalRoles)]
@@ -255,8 +253,7 @@ pub trait Router:
         self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
-            .async_call()
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
     #[only_owner]

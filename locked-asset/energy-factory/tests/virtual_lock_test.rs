@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 mod energy_factory_setup;
 
 use energy_factory::virtual_lock::VirtualLockModule;

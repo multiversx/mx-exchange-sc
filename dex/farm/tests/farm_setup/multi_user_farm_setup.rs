@@ -1,9 +1,9 @@
 #![allow(dead_code)]
-#![allow(deprecated)]
 
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmTokenAttributes, Timestamp};
 use config::ConfigModule;
 use farm::external_interaction::ExternalInteractionsModule;
+use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
@@ -21,12 +21,13 @@ use energy_query::{Energy, EnergyQueryModule};
 use energy_update::EnergyUpdate;
 use farm::Farm;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
-use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use permissions_hub::PermissionsHub;
 use permissions_hub_module::PermissionsHubModule;
 use sc_whitelist_module::SCWhitelistModule;
+use timestamp_oracle::epoch_to_timestamp::EpochToTimestampModule;
+use timestamp_oracle::TimestampOracle;
 use week_timekeeping::Epoch;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 
@@ -43,6 +44,7 @@ pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const TIMESTAMP_PER_EPOCH: Timestamp = 24 * 60 * 60;
 
 pub struct RawFarmTokenAttributes {
     pub reward_per_share_bytes: Vec<u8>,
@@ -61,11 +63,13 @@ pub struct MultiUserFarmSetup<
     FarmObjBuilder,
     EnergyFactoryBuilder,
     EnergyUpdateObjBuilder,
+    TimestampOracleObjBuilder,
     PermissionsHubObjBuilder,
 > where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
     EnergyUpdateObjBuilder: 'static + Copy + Fn() -> energy_update::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
@@ -79,27 +83,38 @@ pub struct MultiUserFarmSetup<
         ContractObjWrapper<energy_factory_mock::ContractObj<DebugApi>, EnergyFactoryBuilder>,
     pub eu_wrapper:
         ContractObjWrapper<energy_update::ContractObj<DebugApi>, EnergyUpdateObjBuilder>,
+    pub timestamp_oracle_wrapper:
+        ContractObjWrapper<timestamp_oracle::ContractObj<DebugApi>, TimestampOracleObjBuilder>,
     pub permissions_hub_wrapper:
         ContractObjWrapper<permissions_hub::ContractObj<DebugApi>, PermissionsHubObjBuilder>,
 }
 
-impl<FarmObjBuilder, EnergyFactoryBuilder, EnergyUpdateObjBuilder, PermissionsHubObjBuilder>
+impl<
+        FarmObjBuilder,
+        EnergyFactoryBuilder,
+        EnergyUpdateObjBuilder,
+        TimestampOracleObjBuilder,
+        PermissionsHubObjBuilder,
+    >
     MultiUserFarmSetup<
         FarmObjBuilder,
         EnergyFactoryBuilder,
         EnergyUpdateObjBuilder,
+        TimestampOracleObjBuilder,
         PermissionsHubObjBuilder,
     >
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
     EnergyUpdateObjBuilder: 'static + Copy + Fn() -> energy_update::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
     pub fn new(
         farm_builder: FarmObjBuilder,
         energy_factory_builder: EnergyFactoryBuilder,
         eu_builder: EnergyUpdateObjBuilder,
+        timestamp_oracle_builder: TimestampOracleObjBuilder,
         permissions_hub_builder: PermissionsHubObjBuilder,
     ) -> Self {
         let rust_zero = rust_biguint!(0);
@@ -125,6 +140,22 @@ where
             })
             .assert_ok();
 
+        let timestamp_oracle_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            timestamp_oracle_builder,
+            "timestamp oracle",
+        );
+        b_mock
+            .execute_tx(&owner, &timestamp_oracle_wrapper, &rust_zero, |sc| {
+                sc.init(0);
+
+                for i in 0..=100 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
+            })
+            .assert_ok();
+
         let permissions_hub_wrapper = b_mock.create_sc_account(
             &rust_zero,
             Some(&owner),
@@ -143,13 +174,11 @@ where
                 let reward_token_id = managed_token_id!(REWARD_TOKEN_ID);
                 let farming_token_id = managed_token_id!(FARMING_TOKEN_ID);
                 let division_safety_constant = managed_biguint!(DIV_SAFETY);
-                let pair_address = managed_address!(&Address::zero());
 
                 sc.init(
                     reward_token_id,
                     farming_token_id,
                     division_safety_constant,
-                    pair_address,
                     managed_address!(&owner),
                     MultiValueEncoded::new(),
                 );
@@ -164,6 +193,9 @@ where
                 sc.produce_rewards_enabled().set(true);
                 sc.set_energy_factory_address(managed_address!(
                     energy_factory_wrapper.address_ref()
+                ));
+                sc.set_timestamp_oracle_address(managed_address!(
+                    timestamp_oracle_wrapper.address_ref()
                 ));
 
                 sc.set_permissions_hub_address(managed_address!(
@@ -223,6 +255,7 @@ where
             farm_wrapper,
             energy_factory_wrapper,
             eu_wrapper,
+            timestamp_oracle_wrapper,
             permissions_hub_wrapper,
         }
     }

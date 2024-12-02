@@ -1,12 +1,10 @@
-#![allow(deprecated)]
-
 mod farm_setup;
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use farm_setup::multi_user_farm_setup::{
     MultiUserFarmSetup, NonceAmountPair, BOOSTED_YIELDS_PERCENTAGE, MAX_PERCENTAGE,
-    PER_BLOCK_REWARD_AMOUNT,
+    PER_BLOCK_REWARD_AMOUNT, TIMESTAMP_PER_EPOCH,
 };
 use multiversx_sc::types::EsdtLocalRole;
 use multiversx_sc_scenario::{
@@ -19,10 +17,12 @@ use crate::farm_setup::multi_user_farm_setup::{FARMING_TOKEN_ID, FARM_TOKEN_ID, 
 #[test]
 fn total_farm_position_claim_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -125,10 +125,12 @@ fn total_farm_position_claim_test() {
 #[test]
 fn allow_external_claim_rewards_setting_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -192,10 +194,12 @@ fn allow_external_claim_rewards_setting_test() {
 #[test]
 fn total_farm_position_claim_for_other_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -296,10 +300,12 @@ fn total_farm_position_claim_for_other_test() {
 #[test]
 fn farm_total_position_migration_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -414,10 +420,12 @@ fn farm_total_position_migration_test() {
 #[test]
 fn farm_total_position_exit_migration_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -495,10 +503,12 @@ fn farm_total_position_exit_migration_test() {
 #[test]
 fn farm_total_position_on_claim_migration_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -586,10 +596,12 @@ fn farm_total_position_on_claim_migration_test() {
 #[test]
 fn farm_total_position_on_merge_migration_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
@@ -680,17 +692,19 @@ fn farm_total_position_on_merge_migration_test() {
 #[test]
 fn no_boosted_rewards_penalty_for_no_energy_test() {
     DebugApi::dummy();
-    DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
-    farm_setup.b_mock.set_block_epoch(5);
+    farm_setup.b_mock.set_block_epoch(0);
+    farm_setup.b_mock.set_block_timestamp(1);
 
     let temp_user = farm_setup.third_user.clone();
 
@@ -712,6 +726,10 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
 
     // random tx on end of the week, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(7 * TIMESTAMP_PER_EPOCH - 1);
+
     farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
     farm_setup.set_user_energy(&temp_user, 1, 6, 1);
     farm_setup.enter_farm(&temp_user, 1);
@@ -720,6 +738,9 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
     // advance to week 2
     farm_setup.b_mock.set_block_nonce(20);
     farm_setup.b_mock.set_block_epoch(13);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(14 * TIMESTAMP_PER_EPOCH - 1);
 
     // User unlocks XMEX and has no energy
     farm_setup.set_user_energy(&first_user, 0, 13, 1);
@@ -734,12 +755,19 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
 
     // random tx on end of the week, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(20);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(21 * TIMESTAMP_PER_EPOCH - 1);
+
     farm_setup.set_user_energy(&temp_user, 1, 20, 1);
     farm_setup.enter_farm(&temp_user, 1);
     farm_setup.exit_farm(&temp_user, 6, 1);
 
     // advance to week 4
-    farm_setup.b_mock.set_block_epoch(25);
+    farm_setup.b_mock.set_block_epoch(27);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(28 * TIMESTAMP_PER_EPOCH - 1);
 
     // first user claims 3 weeks worth of rewards (2-4)
     let total_farm_tokens = farm_in_amount * 2;
@@ -762,16 +790,19 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
 #[test]
 fn total_farm_position_owner_change_test() {
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
-    farm_setup.b_mock.set_block_epoch(2);
+    farm_setup.b_mock.set_block_epoch(0);
+    farm_setup.b_mock.set_block_timestamp(1);
 
     // first user enters farm 6 times
     let farm_token_amount = 10_000_000;
@@ -796,11 +827,11 @@ fn total_farm_position_owner_change_test() {
     assert_eq!(farm_setup.last_farm_token_nonce, 6);
 
     // First user transfers 5 position to second user
-    farm_setup.send_farm_position(&first_user, &second_user, 1, farm_token_amount, 0, 2);
-    farm_setup.send_farm_position(&first_user, &second_user, 2, farm_token_amount, 0, 2);
-    farm_setup.send_farm_position(&first_user, &second_user, 3, farm_token_amount, 0, 2);
-    farm_setup.send_farm_position(&first_user, &second_user, 4, farm_token_amount, 0, 2);
-    farm_setup.send_farm_position(&first_user, &second_user, 5, farm_token_amount, 0, 2);
+    farm_setup.send_farm_position(&first_user, &second_user, 1, farm_token_amount, 0, 0);
+    farm_setup.send_farm_position(&first_user, &second_user, 2, farm_token_amount, 0, 0);
+    farm_setup.send_farm_position(&first_user, &second_user, 3, farm_token_amount, 0, 0);
+    farm_setup.send_farm_position(&first_user, &second_user, 4, farm_token_amount, 0, 0);
+    farm_setup.send_farm_position(&first_user, &second_user, 5, farm_token_amount, 0, 0);
 
     // Total farm position unchanged as users only transfered the farm positions
     farm_setup.check_user_total_farm_position(&first_user, first_user_total_position);
@@ -828,6 +859,10 @@ fn total_farm_position_owner_change_test() {
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_nonce(10);
     farm_setup.b_mock.set_block_epoch(6);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(7 * TIMESTAMP_PER_EPOCH - 1);
+
     farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
@@ -835,9 +870,13 @@ fn total_farm_position_owner_change_test() {
     farm_setup.exit_farm(&third_user, 10, 1);
 
     // advance 1 week
-    farm_setup.b_mock.set_block_epoch(10);
-    farm_setup.set_user_energy(&first_user, 1_000, 10, 1);
-    farm_setup.set_user_energy(&second_user, 4_000, 10, 1);
+    farm_setup.b_mock.set_block_epoch(13);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(14 * TIMESTAMP_PER_EPOCH - 1);
+
+    farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
+    farm_setup.set_user_energy(&second_user, 4_000, 13, 1);
 
     // Second user claims with half a position from the first user
     let base_rewards_amount = 535;
@@ -859,7 +898,7 @@ fn total_farm_position_owner_change_test() {
         &rust_biguint!(half_token_amount),
         Some(&FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(107142857),
-            entering_epoch: 2,
+            entering_epoch: 0,
             compounded_reward: managed_biguint!(0),
             current_farm_amount: managed_biguint!(half_token_amount),
             original_owner: managed_address!(&second_user),
@@ -874,7 +913,7 @@ fn total_farm_position_owner_change_test() {
 
     // random tx on end of week 2, to cummulate rewards
     farm_setup.b_mock.set_block_nonce(20);
-    farm_setup.b_mock.set_block_epoch(13);
+
     farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 13, 1);
     farm_setup.set_user_energy(&third_user, 1, 13, 1);
@@ -882,9 +921,13 @@ fn total_farm_position_owner_change_test() {
     farm_setup.exit_farm(&third_user, 12, 1);
 
     // advance 1 week
-    farm_setup.b_mock.set_block_epoch(15);
-    farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
-    farm_setup.set_user_energy(&second_user, 4_000, 15, 1);
+    farm_setup.b_mock.set_block_epoch(20);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(21 * TIMESTAMP_PER_EPOCH - 1);
+
+    farm_setup.set_user_energy(&first_user, 1_000, 20, 1);
+    farm_setup.set_user_energy(&second_user, 4_000, 20, 1);
 
     // Second user exits farm with half of a position previously owned by user 1
     second_user_reward_balance += 1071; // base rewards
@@ -901,7 +944,7 @@ fn total_farm_position_owner_change_test() {
 
     // random tx on end of week 3, to cummulate rewards
     farm_setup.b_mock.set_block_nonce(30);
-    farm_setup.b_mock.set_block_epoch(20);
+
     farm_setup.set_user_energy(&first_user, 1_000, 20, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 20, 1);
     farm_setup.set_user_energy(&third_user, 1, 20, 1);
@@ -909,9 +952,13 @@ fn total_farm_position_owner_change_test() {
     farm_setup.exit_farm(&third_user, 13, 1);
 
     // advance 1 week
-    farm_setup.b_mock.set_block_epoch(25);
-    farm_setup.set_user_energy(&first_user, 1_000, 25, 1);
-    farm_setup.set_user_energy(&second_user, 4_000, 25, 1);
+    farm_setup.b_mock.set_block_epoch(27);
+    farm_setup
+        .b_mock
+        .set_block_timestamp(28 * TIMESTAMP_PER_EPOCH - 1);
+
+    farm_setup.set_user_energy(&first_user, 1_000, 27, 1);
+    farm_setup.set_user_energy(&second_user, 4_000, 27, 1);
 
     // First user claims rewards
     let first_user_received_reward_amt =
@@ -957,7 +1004,7 @@ fn total_farm_position_owner_change_test() {
         &rust_biguint!(half_token_amount * 3),
         Some(&FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(35714286),
-            entering_epoch: 2,
+            entering_epoch: 0,
             compounded_reward: managed_biguint!(0),
             current_farm_amount: managed_biguint!(half_token_amount * 3),
             original_owner: managed_address!(&second_user),
@@ -987,10 +1034,12 @@ fn total_farm_position_through_simple_lock_test() {
     const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
 
     DebugApi::dummy();
+
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
         energy_factory_mock::contract_obj,
         energy_update::contract_obj,
+        timestamp_oracle::contract_obj,
         permissions_hub::contract_obj,
     );
     let rust_zero = rust_biguint!(0);

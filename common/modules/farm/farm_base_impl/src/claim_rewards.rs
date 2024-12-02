@@ -81,7 +81,11 @@ pub trait BaseClaimRewardsModule:
         );
         storage_cache.reward_reserve -= &reward;
 
-        FC::check_and_update_user_farm_position(self, &caller, &payments);
+        self.check_and_update_user_farm_position::<FC::AttributesType>(
+            &caller,
+            &payments,
+            &self.farm_token(),
+        );
 
         let farm_token_mapper = self.farm_token();
         let base_attributes = FC::create_claim_rewards_initial_attributes(

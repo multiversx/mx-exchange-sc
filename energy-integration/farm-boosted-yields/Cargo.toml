@@ -29,5 +29,14 @@ path = "../common-modules/weekly-rewards-splitting"
 [dependencies.energy-query]
 path = "../common-modules/energy-query"
 
-[dependencies.common-types]
-path = "../common-types"
+[dependencies.timestamp-oracle]
+path = "../timestamp-oracle"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
+[dependencies.math]
+path = "../../common/modules/math"

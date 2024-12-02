@@ -89,3 +89,6 @@ path = "../../locked-asset/simple-lock"
 
 [dev-dependencies.locking_module]
 path = "../../common/modules/locking_module"
+
+[dev-dependencies.timestamp-oracle]
+path = "../../energy-integration/timestamp-oracle"

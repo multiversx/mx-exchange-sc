@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_types::Week;
+use common_structs::Week;
 
 pub const BLOCKS_IN_WEEK: u64 = 100_800;
 
