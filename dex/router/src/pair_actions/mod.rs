@@ -1,4 +1,5 @@
 pub mod create;
+pub mod enable_buyback_and_burn;
 pub mod enable_swap_by_user;
 pub mod fees;
 pub mod multi_pair_swap;

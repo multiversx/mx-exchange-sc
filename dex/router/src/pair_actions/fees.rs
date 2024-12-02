@@ -1,4 +1,4 @@
-use pair::fee::ProxyTrait as _;
+use pair::fee::endpoints::ProxyTrait as _;
 
 multiversx_sc::imports!();
 
@@ -20,10 +20,9 @@ pub trait FeesModule:
         self.require_active();
         self.check_is_pair_sc(&pair_address);
 
-        let _: IgnoreValue = self
-            .pair_contract_proxy_fees(pair_address)
-            .set_fee_on(true, fee_to_address, fee_token)
-            .execute_on_dest_context();
+        self.pair_contract_proxy_fees(pair_address)
+            .set_fee_on(fee_to_address, fee_token)
+            .execute_on_dest_context()
     }
 
     #[only_owner]
@@ -37,10 +36,9 @@ pub trait FeesModule:
         self.require_active();
         self.check_is_pair_sc(&pair_address);
 
-        let _: IgnoreValue = self
-            .pair_contract_proxy_fees(pair_address)
-            .set_fee_on(false, fee_to_address, fee_token)
-            .execute_on_dest_context();
+        self.pair_contract_proxy_fees(pair_address)
+            .set_fee_off(fee_to_address, fee_token)
+            .execute_on_dest_context()
     }
 
     #[proxy]

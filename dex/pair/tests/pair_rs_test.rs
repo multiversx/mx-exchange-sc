@@ -19,9 +19,9 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     whitebox_legacy::TxTokenTransfer, DebugApi,
 };
+use pair::fee::endpoints::EndpointsModule;
 use pair::{
     config::MAX_PERCENTAGE,
-    fee::FeeModule,
     locking_wrapper::LockingWrapperModule,
     pair_actions::swap::SwapModule,
     safe_price::{PriceObservation, Round, SafePriceModule},

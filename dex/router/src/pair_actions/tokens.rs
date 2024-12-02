@@ -25,10 +25,7 @@ pub trait TokensModule:
         let issue_cost = self.call_value().egld_value().clone_value();
         let caller = self.blockchain().get_caller();
         if caller != self.owner().get() {
-            require!(
-                self.pair_creation_enabled().get(),
-                "Pair creation is disabled"
-            );
+            self.require_pair_creation_enabled();
         }
 
         self.check_is_pair_sc(&pair_address);
@@ -105,6 +102,7 @@ pub trait TokensModule:
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(address);
+
                 let _: IgnoreValue = self
                     .pair_contract_proxy_tokens(address.clone())
                     .set_lp_token_identifier(token_id.unwrap_esdt())

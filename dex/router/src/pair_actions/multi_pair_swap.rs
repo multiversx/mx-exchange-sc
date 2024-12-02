@@ -88,7 +88,7 @@ pub trait MultiPairSwap:
         payments.push(last_payment);
         self.send().direct_multi(&caller, &payments);
 
-        self.emit_multi_pair_swap_event(caller, token_id, amount, payments.clone());
+        self.emit_multi_pair_swap_event(&caller, &token_id, &amount, &payments);
 
         payments
     }
