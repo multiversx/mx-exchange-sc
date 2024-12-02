@@ -18,12 +18,12 @@ pub mod claim_only_boosted_staking_rewards;
 pub mod claim_stake_farm_rewards;
 pub mod compound_stake_farm_rewards;
 pub mod custom_rewards;
+pub mod external_interaction;
 pub mod farm_token_roles;
 pub mod stake_farm;
 pub mod token_attributes;
 pub mod unbond_farm;
 pub mod unstake_farm;
-pub mod external_interaction;
 
 #[multiversx_sc::contract]
 pub trait FarmStaking:
@@ -54,6 +54,7 @@ pub trait FarmStaking:
     + claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
@@ -82,30 +83,30 @@ pub trait FarmStaking:
         );
 
         require!(max_apr > 0u64, "Invalid max APR percentage");
-        self.max_annual_percentage_rewards().set_if_empty(&max_apr);
+        self.max_annual_percentage_rewards().set(&max_apr);
 
         require!(
             min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
             "Invalid min unbond epochs"
         );
-        self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
+        self.min_unbond_epochs().set(min_unbond_epochs);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
-
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+        self.first_week_start_epoch().set(current_epoch);
     }
 
     #[upgrade]
-    fn upgrade(&self) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
+    fn upgrade(&self, timestamp_oracle_address: ManagedAddress) {
+        if self.first_week_start_epoch().is_empty() {
+            let current_epoch = self.blockchain().get_block_epoch();
+            self.first_week_start_epoch().set(current_epoch);
+        }
 
         // Farm position migration code
         let farm_token_mapper = self.farm_token();
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
+
+        self.set_timestamp_oracle_address(timestamp_oracle_address);
     }
 
     #[payable("*")]
@@ -122,6 +123,8 @@ pub trait FarmStaking:
 
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
+
+        self.update_start_of_epoch_timestamp();
 
         (merged_farm_token, boosted_rewards_payment).into()
     }
@@ -144,7 +147,11 @@ pub trait FarmStaking:
         let token_mapper = self.farm_token();
         token_mapper.require_all_same_token(&payments);
 
-        FC::check_and_update_user_farm_position(self, orig_caller, &payments);
+        self.check_and_update_user_farm_position::<FC::AttributesType>(
+            orig_caller,
+            &payments,
+            &self.farm_token(),
+        );
 
         self.merge_from_payments_and_burn(payments, &token_mapper)
     }
@@ -158,6 +165,8 @@ pub trait FarmStaking:
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
         self.boosted_yields_rewards_percentage().set(percentage);
+
+        self.update_start_of_epoch_timestamp();
     }
 
     #[view(calculateRewardsForGivenPosition)]

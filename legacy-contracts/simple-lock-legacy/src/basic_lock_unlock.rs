@@ -6,9 +6,7 @@ use crate::{
 };
 
 #[multiversx_sc::module]
-pub trait BasicLockUnlock:
-    crate::locked_token::LockedTokenModule
-{
+pub trait BasicLockUnlock: crate::locked_token::LockedTokenModule {
     fn unlock_and_send(
         &self,
         to: &ManagedAddress,

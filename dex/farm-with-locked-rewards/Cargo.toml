@@ -92,3 +92,6 @@ version = "=0.53.2"
 
 [dev-dependencies.simple-lock]
 path = "../../locked-asset/simple-lock"
+
+[dev-dependencies.timestamp-oracle]
+path = "../../energy-integration/timestamp-oracle"

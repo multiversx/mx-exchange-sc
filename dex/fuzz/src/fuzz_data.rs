@@ -1,12 +1,10 @@
 #[cfg(test)]
 pub mod fuzz_data_tests {
-    #![allow(deprecated)]
 
     multiversx_sc::imports!();
     multiversx_sc::derive_imports!();
 
     use ::config::ConfigModule;
-    use farm::exit_penalty::ExitPenaltyModule;
     use farm::*;
     use farm_token::FarmTokenModule;
     use multiversx_sc::codec::Empty;
@@ -41,8 +39,6 @@ pub mod fuzz_data_tests {
     pub const WEME_FARM_TOKEN_ID: &[u8] = b"WEMEFARM-abcdef";
     pub const WEBU_FARM_TOKEN_ID: &[u8] = b"WEBUFARM-abcdef";
     pub const MEX_FARM_TOKEN_ID: &[u8] = b"MEXFARM-abcdef";
-    pub const MIN_FARMING_EPOCHS: u64 = 2;
-    pub const FARM_PENALTY_PERCENT: u64 = 10;
     pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
     pub const USER_TOTAL_MEX_TOKENS: u64 = 100_000_000_000;
     pub const USER_TOTAL_WEGLD_TOKENS: u64 = 100_000_000_000;
@@ -403,13 +399,11 @@ pub mod fuzz_data_tests {
                 let reward_token_id = managed_token_id!(reward_token);
                 let farming_token_id = managed_token_id!(farming_token);
                 let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-                let pair_address = managed_address!(&Address::zero());
 
                 sc.init(
                     reward_token_id,
                     farming_token_id,
                     division_safety_constant,
-                    pair_address,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::new(),
                 );
@@ -419,8 +413,6 @@ pub mod fuzz_data_tests {
 
                 sc.per_block_reward_amount()
                     .set(&to_managed_biguint(per_block_reward_amount));
-                sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
-                sc.penalty_percent().set(FARM_PENALTY_PERCENT);
 
                 sc.state().set(State::Active);
                 sc.produce_rewards_enabled().set(true);

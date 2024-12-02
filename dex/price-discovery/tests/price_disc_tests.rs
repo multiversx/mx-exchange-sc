@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use multiversx_sc::codec::Empty;
 use multiversx_sc_scenario::{managed_biguint, managed_token_id_wrapped};
 use multiversx_sc_scenario::{rust_biguint, DebugApi};

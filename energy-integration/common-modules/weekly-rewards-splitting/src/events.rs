@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-pub use common_types::{Epoch, Week};
+pub use common_structs::{Epoch, Week};
 use energy_query::Energy;
 
 #[multiversx_sc::module]

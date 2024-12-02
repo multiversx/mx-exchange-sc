@@ -1,7 +1,7 @@
 #![allow(dead_code)]
-#![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
+use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
@@ -13,13 +13,16 @@ use multiversx_sc_scenario::{
 type RustBigUint = num_bigint::BigUint;
 
 use config::*;
-use farm::exit_penalty::ExitPenaltyModule;
 use farm::*;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use pair::pair_actions::add_liq::AddLiquidityModule as _;
 use pair::{config::ConfigModule as OtherConfigModule, Pair};
 use pausable::{PausableModule, State};
+use timestamp_oracle::epoch_to_timestamp::EpochToTimestampModule;
+use timestamp_oracle::TimestampOracle;
+
+use super::multi_user_farm_setup::TIMESTAMP_PER_EPOCH;
 
 pub const FARM_WASM_PATH: &str = "farm/output/farm.wasm";
 pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
@@ -29,8 +32,6 @@ pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
 pub const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-pub const MIN_FARMING_EPOCHS: u64 = 2;
-pub const PENALTY_PERCENT: u64 = 10;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 pub const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
@@ -43,42 +44,63 @@ pub const LOCKED_TOKEN_ID: &[u8] = b"XMEX-123456";
 pub const LOCKED_LP_TOKEN_ID: &[u8] = b"LKLP-123456";
 pub const FARM_PROXY_TOKEN_ID: &[u8] = b"PROXY-123456";
 
-pub struct SingleUserFarmSetup<FarmObjBuilder, PairObjBuilder>
+pub struct SingleUserFarmSetup<FarmObjBuilder, PairObjBuilder, TimestampOracleObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
 {
     pub blockchain_wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
     pub user_address: Address,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    pub timestamp_oracle_wrapper:
+        ContractObjWrapper<timestamp_oracle::ContractObj<DebugApi>, TimestampOracleObjBuilder>,
 }
 
-impl<FarmObjBuilder, PairObjBuilder> SingleUserFarmSetup<FarmObjBuilder, PairObjBuilder>
+impl<FarmObjBuilder, PairObjBuilder, TimestampOracleObjBuilder>
+    SingleUserFarmSetup<FarmObjBuilder, PairObjBuilder, TimestampOracleObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
 {
-    pub fn new(farm_builder: FarmObjBuilder, pair_builder: PairObjBuilder) -> Self {
+    pub fn new(
+        farm_builder: FarmObjBuilder,
+        pair_builder: PairObjBuilder,
+        timestamp_oracle_builder: TimestampOracleObjBuilder,
+    ) -> Self {
         let rust_zero = rust_biguint!(0u64);
-        let mut blockchain_wrapper = BlockchainStateWrapper::new();
-        let owner_addr = blockchain_wrapper.create_user_account(&rust_zero);
+        let mut b_mock = BlockchainStateWrapper::new();
+        let owner = b_mock.create_user_account(&rust_zero);
 
-        let pair_wrapper = blockchain_wrapper.create_sc_account(
+        let timestamp_oracle_wrapper = b_mock.create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
-            pair_builder,
-            PAIR_WASM_PATH,
+            Some(&owner),
+            timestamp_oracle_builder,
+            "timestamp oracle",
         );
+        b_mock
+            .execute_tx(&owner, &timestamp_oracle_wrapper, &rust_zero, |sc| {
+                sc.init(0);
+
+                for i in 0..=21 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
+            })
+            .assert_ok();
+
+        let pair_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner), pair_builder, PAIR_WASM_PATH);
 
         // init pair contract
-        blockchain_wrapper
-            .execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
+        b_mock
+            .execute_tx(&owner, &pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(MEX_TOKEN_ID);
-                let router_address = managed_address!(&owner_addr);
-                let router_owner_address = managed_address!(&owner_addr);
+                let router_address = managed_address!(&owner);
+                let router_owner_address = managed_address!(&owner);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
 
@@ -101,33 +123,23 @@ where
             .assert_ok();
 
         let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
-        blockchain_wrapper.set_esdt_local_roles(
-            pair_wrapper.address_ref(),
-            LP_TOKEN_ID,
-            &lp_token_roles[..],
-        );
+        b_mock.set_esdt_local_roles(pair_wrapper.address_ref(), LP_TOKEN_ID, &lp_token_roles[..]);
 
-        let farm_wrapper = blockchain_wrapper.create_sc_account(
-            &rust_zero,
-            Some(&owner_addr),
-            farm_builder,
-            FARM_WASM_PATH,
-        );
+        let farm_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner), farm_builder, FARM_WASM_PATH);
 
         // init farm contract
 
-        blockchain_wrapper
-            .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+        b_mock
+            .execute_tx(&owner, &farm_wrapper, &rust_zero, |sc| {
                 let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
                 let farming_token_id = managed_token_id!(LP_TOKEN_ID);
                 let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-                let pair_address = managed_address!(&Address::zero());
 
                 sc.init(
                     reward_token_id,
                     farming_token_id,
                     division_safety_constant,
-                    pair_address,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::new(),
                 );
@@ -137,16 +149,17 @@ where
 
                 sc.per_block_reward_amount()
                     .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
-                sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
-                sc.penalty_percent().set(PENALTY_PERCENT);
 
                 sc.state().set(State::Active);
                 sc.produce_rewards_enabled().set(true);
+                sc.set_timestamp_oracle_address(managed_address!(
+                    timestamp_oracle_wrapper.address_ref()
+                ));
             })
             .assert_ok();
 
-        blockchain_wrapper
-            .execute_tx(&owner_addr, &farm_wrapper, &rust_biguint!(0), |sc| {
+        b_mock
+            .execute_tx(&owner, &farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.set_boosted_yields_factors(
                     managed_biguint!(MAX_REWARDS_FACTOR),
                     managed_biguint!(USER_REWARDS_ENERGY_CONST),
@@ -162,39 +175,40 @@ where
             EsdtLocalRole::NftAddQuantity,
             EsdtLocalRole::NftBurn,
         ];
-        blockchain_wrapper.set_esdt_local_roles(
+        b_mock.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             FARM_TOKEN_ID,
             &farm_token_roles[..],
         );
 
         let farming_token_roles = [EsdtLocalRole::Burn];
-        blockchain_wrapper.set_esdt_local_roles(
+        b_mock.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             LP_TOKEN_ID,
             &farming_token_roles[..],
         );
 
         let reward_token_roles = [EsdtLocalRole::Mint];
-        blockchain_wrapper.set_esdt_local_roles(
+        b_mock.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             MEX_TOKEN_ID,
             &reward_token_roles[..],
         );
 
-        let user_addr = blockchain_wrapper.create_user_account(&rust_biguint!(100_000_000));
-        blockchain_wrapper.set_esdt_balance(
+        let user_addr = b_mock.create_user_account(&rust_biguint!(100_000_000));
+        b_mock.set_esdt_balance(
             &user_addr,
             LP_TOKEN_ID,
             &rust_biguint!(USER_TOTAL_LP_TOKENS),
         );
 
         SingleUserFarmSetup {
-            blockchain_wrapper,
-            owner_address: owner_addr,
+            blockchain_wrapper: b_mock,
+            owner_address: owner,
             user_address: user_addr,
             farm_wrapper,
             pair_wrapper,
+            timestamp_oracle_wrapper,
         }
     }
 

@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_types::Week;
+use common_structs::Week;
 
 #[multiversx_sc::module]
 pub trait FeesCollectorEventsModule {

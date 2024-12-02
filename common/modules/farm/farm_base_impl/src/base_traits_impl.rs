@@ -4,10 +4,8 @@ use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
 use config::ConfigModule;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
-use farm_token::FarmTokenModule;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
-use multiversx_sc_modules::transfer_role_proxy::PaymentsVec;
 use rewards::RewardsModule;
 
 pub trait AllBaseFarmImplTraits:
@@ -183,79 +181,6 @@ pub trait FarmContract {
         };
 
         new_attributes.into()
-    }
-
-    fn get_exit_penalty(
-        _sc: &Self::FarmSc,
-        _total_exit_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
-        _token_attributes: &Self::AttributesType,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        BigUint::zero()
-    }
-
-    fn apply_penalty(
-        _sc: &Self::FarmSc,
-        _total_exit_amount: &mut BigUint<<Self::FarmSc as ContractBase>::Api>,
-        _token_attributes: &Self::AttributesType,
-        _storage_cache: &StorageCache<Self::FarmSc>,
-    ) {
-    }
-
-    fn check_and_update_user_farm_position(
-        sc: &Self::FarmSc,
-        user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        farm_positions: &PaymentsVec<<Self::FarmSc as ContractBase>::Api>,
-    ) {
-        let farm_token_mapper = sc.farm_token();
-        for farm_position in farm_positions {
-            farm_token_mapper.require_same_token(&farm_position.token_identifier);
-
-            if sc.is_old_farm_position(farm_position.token_nonce) {
-                continue;
-            }
-
-            let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
-                farm_token_mapper.get_token_attributes(farm_position.token_nonce);
-
-            if &token_attributes.original_owner != user {
-                Self::decrease_user_farm_position(sc, &farm_position);
-                Self::increase_user_farm_position(sc, user, &farm_position.amount);
-            }
-        }
-    }
-
-    #[inline]
-    fn increase_user_farm_position(
-        sc: &Self::FarmSc,
-        user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        increase_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
-    ) {
-        sc.user_total_farm_position(user)
-            .update(|total_farm_position| *total_farm_position += increase_farm_position_amount);
-    }
-
-    fn decrease_user_farm_position(
-        sc: &Self::FarmSc,
-        farm_position: &EsdtTokenPayment<<Self::FarmSc as ContractBase>::Api>,
-    ) {
-        if sc.is_old_farm_position(farm_position.token_nonce) {
-            return;
-        }
-
-        let farm_token_mapper = sc.farm_token();
-        let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
-            farm_token_mapper.get_token_attributes(farm_position.token_nonce);
-
-        let user_total_farm_position_mapper =
-            sc.user_total_farm_position(&token_attributes.original_owner);
-        let mut user_total_farm_position = user_total_farm_position_mapper.get();
-
-        if user_total_farm_position > farm_position.amount {
-            user_total_farm_position -= &farm_position.amount;
-            user_total_farm_position_mapper.set(user_total_farm_position);
-        } else {
-            user_total_farm_position_mapper.clear();
-        }
     }
 }
 

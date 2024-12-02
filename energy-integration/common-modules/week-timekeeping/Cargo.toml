@@ -11,5 +11,5 @@ path = "src/lib.rs"
 version = "=0.53.2"
 features = ["esdt-token-payment-legacy-decode"]
 
-[dependencies.common-types]
-path = "../../common-types"
+[dependencies.common_structs]
+path = "../../../common/common_structs"

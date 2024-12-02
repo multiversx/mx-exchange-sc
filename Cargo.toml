@@ -31,6 +31,8 @@ members = [
   "energy-integration/fees-collector/meta",
   "energy-integration/governance-v2",
   "energy-integration/governance-v2/meta",
+  "energy-integration/timestamp-oracle",
+  "energy-integration/timestamp-oracle/meta",
 
   "farm-staking/farm-staking",
   "farm-staking/farm-staking/meta",
