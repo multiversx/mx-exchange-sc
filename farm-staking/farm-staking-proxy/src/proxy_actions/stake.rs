@@ -95,12 +95,11 @@ pub trait ProxyStakeModule:
         };
         let new_dual_yield_tokens =
             self.create_dual_yield_tokens(&dual_yield_token_mapper, &new_attributes);
-        let output_payments = StakeProxyResult {
+
+        StakeProxyResult {
             dual_yield_tokens: new_dual_yield_tokens,
             staking_boosted_rewards: staking_farm_enter_result.boosted_rewards,
             lp_farm_boosted_rewards,
-        };
-
-        output_payments
+        }
     }
 }
