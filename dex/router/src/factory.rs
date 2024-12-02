@@ -2,6 +2,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use crate::config;
+use pair::read_pair_storage;
 
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
@@ -19,7 +20,7 @@ pub struct PairContractMetadata<M: ManagedTypeApi> {
 }
 
 #[multiversx_sc::module]
-pub trait FactoryModule: config::ConfigModule {
+pub trait FactoryModule: config::ConfigModule + read_pair_storage::ReadPairStorageModule {
     #[proxy]
     fn pair_contract_deploy_proxy(&self) -> pair::Proxy<Self::Api>;
 
@@ -71,13 +72,6 @@ pub trait FactoryModule: config::ConfigModule {
             },
             new_address.clone(),
         );
-        self.address_pair_map().insert(
-            new_address.clone(),
-            PairTokens {
-                first_token_id: first_token_id.clone(),
-                second_token_id: second_token_id.clone(),
-            },
-        );
         self.pair_temporary_owner().insert(
             new_address.clone(),
             (
@@ -88,32 +82,16 @@ pub trait FactoryModule: config::ConfigModule {
         new_address
     }
 
-    fn upgrade_pair(
-        &self,
-        pair_address: ManagedAddress,
-        first_token_id: &TokenIdentifier,
-        second_token_id: &TokenIdentifier,
-        owner: &ManagedAddress,
-        _initial_liquidity_adder: &ManagedAddress,
-        total_fee_percent: u64,
-        special_fee_percent: u64,
-    ) {
-        self.pair_contract_deploy_proxy()
-            .contract(pair_address)
-            .init(
-                first_token_id,
-                second_token_id,
-                self.blockchain().get_sc_address(),
-                owner,
-                total_fee_percent,
-                special_fee_percent,
-                ManagedAddress::zero(),
-                MultiValueEncoded::new(),
-            )
-            .upgrade_from_source(
-                &self.pair_template_address().get(),
-                CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC,
-            );
+    fn upgrade_pair(&self, pair_address: ManagedAddress) {
+        let pair_template_address = self.pair_template_address().get();
+        let code_metadata =
+            CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC;
+        self.tx()
+            .to(pair_address)
+            .raw_upgrade()
+            .from_source(pair_template_address)
+            .code_metadata(code_metadata)
+            .upgrade_async_call_and_exit();
     }
 
     #[view(getAllPairsManagedAddresses)]
@@ -172,13 +150,6 @@ pub trait FactoryModule: config::ConfigModule {
                 .unwrap_or_else(ManagedAddress::zero);
         }
         address
-    }
-
-    #[view(getPairTokens)]
-    fn get_pair_tokens(&self, pair_address: ManagedAddress) -> PairTokens<Self::Api> {
-        let pair_tokens_opt = self.address_pair_map().get(&pair_address);
-        require!(pair_tokens_opt.is_some(), "Pair address not found");
-        pair_tokens_opt.unwrap()
     }
 
     fn get_pair_temporary_owner(&self, pair_address: &ManagedAddress) -> Option<ManagedAddress> {

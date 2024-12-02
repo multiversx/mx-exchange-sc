@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(deprecated)]
 
 multiversx_sc::imports!();
 
@@ -20,7 +21,7 @@ pub trait LockedTokenWrapper:
         self.energy_factory_address().set(&energy_factory_address);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     #[payable("*")]
@@ -44,11 +45,6 @@ pub trait LockedTokenWrapper:
     #[endpoint(unwrapLockedToken)]
     fn unwrap_locked_token_endpoint(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
-        require!(
-            !self.blockchain().is_smart_contract(&caller),
-            "SCs cannot unwrap locked tokens"
-        );
-
         let payment = self.call_value().single_esdt();
         let locked_token_id = self.get_locked_token_id();
         let original_locked_tokens = self.unwrap_locked_token(locked_token_id, payment);

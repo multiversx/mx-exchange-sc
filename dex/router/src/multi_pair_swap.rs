@@ -1,11 +1,9 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use pair::pair_actions::swap::ProxyTrait as _;
-
-use crate::config;
-
 use super::factory;
+use crate::{config, events};
+use pair::{pair_actions::swap::ProxyTrait as _, read_pair_storage};
 
 type SwapOperationType<M> =
     MultiValue4<ManagedAddress<M>, ManagedBuffer<M>, TokenIdentifier<M>, BigUint<M>>;
@@ -15,11 +13,18 @@ pub const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 
 #[multiversx_sc::module]
 pub trait MultiPairSwap:
-    config::ConfigModule + factory::FactoryModule + token_send::TokenSendModule
+    config::ConfigModule
+    + read_pair_storage::ReadPairStorageModule
+    + factory::FactoryModule
+    + token_send::TokenSendModule
+    + events::EventsModule
 {
     #[payable("*")]
     #[endpoint(multiPairSwap)]
-    fn multi_pair_swap(&self, swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>) -> ManagedVec<EsdtTokenPayment> {
+    fn multi_pair_swap(
+        &self,
+        swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
+    ) -> ManagedVec<EsdtTokenPayment> {
         require!(self.is_active(), "Not active");
 
         let (token_id, nonce, amount) = self.call_value().single_esdt().into_tuple();
@@ -35,7 +40,7 @@ pub trait MultiPairSwap:
 
         let caller = self.blockchain().get_caller();
         let mut payments = ManagedVec::new();
-        let mut last_payment = EsdtTokenPayment::new(token_id, nonce, amount);
+        let mut last_payment = EsdtTokenPayment::new(token_id.clone(), nonce, amount.clone());
 
         for entry in swap_operations.into_iter() {
             let (pair_address, function, token_wanted, amount_wanted) = entry.into_tuple();
@@ -59,7 +64,10 @@ pub trait MultiPairSwap:
                 );
 
                 last_payment = payment;
-                payments.push(residuum);
+
+                if residuum.amount > 0 {
+                    payments.push(residuum);
+                }
             } else {
                 sc_panic!("Invalid function to call");
             }
@@ -67,6 +75,8 @@ pub trait MultiPairSwap:
 
         payments.push(last_payment);
         self.send().direct_multi(&caller, &payments);
+
+        self.emit_multi_pair_swap_event(caller, token_id, amount, payments.clone());
 
         payments
     }

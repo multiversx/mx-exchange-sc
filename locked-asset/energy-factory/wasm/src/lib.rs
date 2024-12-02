@@ -5,13 +5,12 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
+// Upgrade:                              1
 // Endpoints:                           34
 // Async Callback:                       1
-// Total number of exported functions:  36
+// Total number of exported functions:  37
 
 #![no_std]
-#![allow(internal_features)]
-#![feature(lang_items)]
 
 multiversx_sc_wasm_adapter::allocator!();
 multiversx_sc_wasm_adapter::panic_handler!();
@@ -24,6 +23,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         lockTokens => lock_tokens_endpoint
         unlockTokens => unlock_tokens_endpoint
         extendLockPeriod => extend_lock_period
+        adjustUserEnergy => adjust_user_energy
         issueLockedToken => issue_locked_token
         getLockedTokenId => locked_token
         getBaseAssetTokenId => base_asset_token_id

@@ -1,6 +1,8 @@
 #![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
+use farm_with_locked_rewards::Farm;
+use multiversx_sc::{codec::Empty, imports::OptionalValue};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -334,4 +336,242 @@ fn total_farm_position_claim_with_locked_rewards_test() {
             &rust_biguint!(first_received_reward_amt),
             None,
         );
+}
+
+#[test]
+fn claim_only_boosted_rewards_per_week_test() {
+    DebugApi::dummy();
+    let mut farm_setup = FarmSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    let temp_user = farm_setup.third_user.clone();
+
+    // first user enter farm
+    let farm_in_amount = 100_000_000;
+    let first_user = farm_setup.first_user.clone();
+    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+
+    farm_setup.check_farm_token_supply(farm_in_amount);
+    farm_setup.check_farm_rps(0u64);
+
+    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_epoch(6);
+    farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
+    farm_setup.set_user_energy(&temp_user, 1, 6, 1);
+    farm_setup.enter_farm(&temp_user, 1);
+    farm_setup.exit_farm(&temp_user, 2, 1);
+
+    farm_setup.check_farm_rps(75_000_000u64);
+
+    // advance 1 week
+    farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
+    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_epoch(13);
+
+    let boosted_rewards = 2_500;
+    let second_week_received_reward_amt =
+        farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user, 1);
+
+    assert_eq!(second_week_received_reward_amt, boosted_rewards);
+    farm_setup.check_farm_rps(150_000_000u64);
+
+    // advance 1 week
+    farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
+    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_epoch(15);
+    let third_week_received_reward_amt =
+        farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user, 1);
+
+    assert_eq!(third_week_received_reward_amt, boosted_rewards);
+    farm_setup.check_farm_rps(225_000_000u64);
+
+    farm_setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_REWARD_TOKEN_ID,
+        1,
+        &rust_biguint!(boosted_rewards * 2),
+        None,
+    );
+}
+
+#[test]
+fn claim_rewards_per_week_test() {
+    DebugApi::dummy();
+    let mut farm_setup = FarmSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    let temp_user = farm_setup.third_user.clone();
+
+    // first user enter farm
+    let farm_in_amount = 100_000_000;
+    let first_user = farm_setup.first_user.clone();
+    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+
+    farm_setup.check_farm_token_supply(farm_in_amount);
+    farm_setup.check_farm_rps(0u64);
+
+    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_epoch(6);
+    farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
+    farm_setup.set_user_energy(&temp_user, 1, 6, 1);
+    farm_setup.enter_farm(&temp_user, 1);
+    farm_setup.exit_farm(&temp_user, 2, 1);
+
+    farm_setup.check_farm_rps(75_000_000u64);
+    let base_rewards_per_week = 7_500;
+    let boosted_rewards_per_week = 2_500;
+    let total_rewards_per_week = base_rewards_per_week + boosted_rewards_per_week;
+
+    // advance 1 week
+    farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
+    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_epoch(13);
+
+    let second_week_received_reward_amt = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
+
+    assert_eq!(
+        second_week_received_reward_amt,
+        total_rewards_per_week + base_rewards_per_week
+    );
+    farm_setup.check_farm_rps(150_000_000u64);
+
+    // advance 1 week
+    farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
+    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_epoch(15);
+    let third_week_received_reward_amt = farm_setup.claim_rewards(&first_user, 3, farm_in_amount);
+
+    assert_eq!(third_week_received_reward_amt, total_rewards_per_week);
+    farm_setup.check_farm_rps(225_000_000u64);
+
+    farm_setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_REWARD_TOKEN_ID,
+        1,
+        &rust_biguint!(total_rewards_per_week * 2 + base_rewards_per_week),
+        None,
+    );
+}
+
+#[test]
+fn claim_boosted_rewards_with_zero_position_test() {
+    DebugApi::dummy();
+    let mut farm_setup = FarmSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    let temp_user = farm_setup.third_user.clone();
+
+    // first user enter farm
+    let farm_in_amount = 100_000_000;
+    let first_user = farm_setup.first_user.clone();
+    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+
+    farm_setup.check_farm_token_supply(farm_in_amount);
+    farm_setup.check_farm_rps(0u64);
+
+    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_epoch(6);
+    farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
+    farm_setup.set_user_energy(&temp_user, 1, 6, 1);
+    farm_setup.enter_farm(&temp_user, 1);
+    farm_setup.exit_farm(&temp_user, 2, 1);
+
+    farm_setup.check_farm_rps(75_000_000u64);
+
+    // advance 1 week
+    farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
+    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_epoch(13);
+
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &temp_user,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(&temp_user)));
+            },
+        )
+        .assert_error(4, "User total farm position is empty!");
+
+    farm_setup.check_farm_rps(75_000_000u64);
+
+    // advance 1 week
+    let boosted_rewards = 2_500;
+    farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
+    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_epoch(15);
+    let third_week_received_reward_amt =
+        farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user, 1);
+
+    assert_eq!(third_week_received_reward_amt, boosted_rewards);
+    farm_setup.check_farm_rps(225_000_000u64);
+
+    farm_setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_REWARD_TOKEN_ID,
+        1,
+        &rust_biguint!(boosted_rewards),
+        None,
+    );
+}
+
+#[test]
+fn claim_boosted_rewards_user_energy_not_registered_test() {
+    DebugApi::dummy();
+    let mut farm_setup = FarmSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    let first_user = farm_setup.first_user.clone();
+    let farm_in_amount = 100_000_000;
+
+    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+
+    // Attempt to claim boosted rewards without entering the farm
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &first_user,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(&first_user)));
+            },
+        )
+        .assert_error(4, "User total farm position is empty!");
+
+    // User enters the farm
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+
+    // Now the user should be able to claim boosted rewards
+    // Rewards computation is out of scope
+    farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user, 0);
 }

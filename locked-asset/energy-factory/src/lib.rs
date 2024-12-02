@@ -91,7 +91,7 @@ pub trait SimpleLockEnergy:
         self.set_paused(true);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens
@@ -229,5 +229,34 @@ pub trait SimpleLockEnergy:
         );
 
         output_tokens
+    }
+
+    #[only_owner]
+    #[endpoint(adjustUserEnergy)]
+    fn adjust_user_energy(
+        &self,
+        args: MultiValueEncoded<MultiValue3<ManagedAddress, BigInt, BigInt>>,
+    ) {
+        for arg in args {
+            let (user, energy_amount, token_amount) = arg.into_tuple();
+            require!(!self.user_energy(&user).is_empty(), "User energy not found");
+            let old_energy = self.get_updated_energy_entry_for_user(&user);
+            let new_energy_amount = old_energy.get_energy_amount_raw() + &energy_amount;
+            let new_total_locked_tokens = if token_amount >= 0 {
+                old_energy.get_total_locked_tokens() + &token_amount.magnitude()
+            } else {
+                let token_amount_magnitude = token_amount.magnitude();
+                require!(
+                    old_energy.get_total_locked_tokens() >= &token_amount_magnitude,
+                    "Insufficient locked tokens"
+                );
+                old_energy.get_total_locked_tokens() - &token_amount_magnitude
+            };
+
+            let current_epoch = self.blockchain().get_block_epoch();
+            let new_energy = Energy::new(new_energy_amount, current_epoch, new_total_locked_tokens);
+
+            self.set_energy_entry(&user, new_energy);
+        }
     }
 }

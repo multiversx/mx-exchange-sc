@@ -2,9 +2,13 @@
 
 mod energy_factory_setup;
 
-use energy_factory::energy::EnergyModule;
+use energy_factory::{
+    energy::EnergyModule, locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy,
+};
 use energy_factory_setup::*;
 use multiversx_sc::types::BigUint;
+use num_bigint::BigInt;
+use num_traits::{FromPrimitive, Zero};
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use multiversx_sc_scenario::{
@@ -315,6 +319,7 @@ fn reduce_lock_period_test() {
 fn extend_locking_period_test() {
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
+    let random_user = setup.b_mock.create_user_account(&rust_biguint!(0u64));
     let half_balance = USER_BALANCE / 2;
 
     let current_epoch = 1;
@@ -329,7 +334,7 @@ fn extend_locking_period_test() {
         )
         .assert_ok();
 
-    // extend to 3 years - unsupported option
+    // extend to a random period - unsupported option
     setup
         .extend_locking_period(
             &first_user,
@@ -337,10 +342,11 @@ fn extend_locking_period_test() {
             1,
             half_balance,
             3 * EPOCHS_IN_YEAR,
+            None,
         )
         .assert_user_error("Invalid lock choice");
 
-    // extend to 10 years
+    // extend to a whitelisted period, but for a different user
     setup
         .extend_locking_period(
             &first_user,
@@ -348,8 +354,33 @@ fn extend_locking_period_test() {
             1,
             half_balance,
             LOCK_OPTIONS[1],
+            Some(random_user),
+        )
+        .assert_user_error("May not use the optional destination argument here");
+
+    // extend to the second option - should work as intended
+    // 1 epoch has passed
+    let energy_per_epoch = rust_biguint!(500_000_000_000_000_000u64);
+    let energy_before = setup.get_user_energy(&first_user); // 179_500_000_000_000_000_000
+    assert_eq!(
+        energy_before,
+        LOCK_OPTIONS[0] * energy_per_epoch.clone() - energy_per_epoch.clone()
+    );
+    setup
+        .extend_locking_period(
+            &first_user,
+            LOCKED_TOKEN_ID,
+            1,
+            half_balance,
+            LOCK_OPTIONS[1],
+            None,
         )
         .assert_ok();
+    let energy_after = setup.get_user_energy(&first_user); // 359_500_000_000_000_000_000
+    assert_eq!(
+        energy_after,
+        LOCK_OPTIONS[1] * energy_per_epoch.clone() - energy_per_epoch.clone()
+    );
 
     let new_unlock_epoch = to_start_of_month(current_epoch + LOCK_OPTIONS[1]);
     setup.b_mock.check_nft_balance(
@@ -376,6 +407,7 @@ fn extend_locking_period_test() {
             2,
             half_balance,
             LOCK_OPTIONS[0],
+            None,
         )
         .assert_user_error("New lock period must be longer than the current one");
 }
@@ -460,4 +492,239 @@ fn energy_deplete_test() {
             );
         })
         .assert_ok();
+}
+
+#[test]
+fn extend_lock_period_endpoint_test() {
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
+    let first_user = setup.first_user.clone();
+
+    let current_epoch = 1;
+    setup.b_mock.set_block_epoch(current_epoch);
+
+    setup
+        .lock(
+            &first_user,
+            BASE_ASSET_TOKEN_ID,
+            USER_BALANCE,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.sc_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.extend_lock_period(100, managed_address!(&first_user));
+            },
+        )
+        .assert_user_error("Invalid lock choice");
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.sc_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.extend_lock_period(LOCK_OPTIONS[0], managed_address!(&first_user));
+            },
+        )
+        .assert_user_error("May not call this endpoint. Use lockTokens instead");
+
+    let energy_per_epoch = rust_biguint!(USER_BALANCE);
+    let energy_before = setup.get_user_energy(&first_user);
+    assert_eq!(
+        energy_before,
+        LOCK_OPTIONS[0] * energy_per_epoch.clone() - energy_per_epoch.clone()
+    );
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &first_user,
+            &setup.sc_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.token_transfer_whitelist()
+                    .add(&managed_address!(&first_user));
+                sc.extend_lock_period(LOCK_OPTIONS[1], managed_address!(&first_user));
+            },
+        )
+        .assert_ok();
+
+    let energy_after = setup.get_user_energy(&first_user);
+    assert_eq!(
+        energy_after,
+        LOCK_OPTIONS[1] * energy_per_epoch.clone() - energy_per_epoch.clone()
+    );
+}
+
+#[test]
+fn adjust_user_energy_test() {
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
+    let user = setup.first_user.clone();
+    let user_balance = 1_000_000u64;
+
+    // Initial lock to create user energy
+    setup
+        .lock(&user, BASE_ASSET_TOKEN_ID, user_balance, LOCK_OPTIONS[0])
+        .assert_ok();
+
+    // Check initial energy
+    let initial_locked_tokens = rust_biguint!(user_balance);
+    let initial_energy = initial_locked_tokens.clone() * LOCK_OPTIONS[0];
+    assert_eq!(setup.get_user_locked_tokens(&user), initial_locked_tokens);
+    assert_eq!(setup.get_user_energy(&user), initial_energy);
+
+    // Case 1: Positive energy, positive token amount
+    let adjustment1_energy = 1_000_000i64;
+    let adjustment1_tokens = 500_000i64;
+    setup.adjust_user_energy(&user, adjustment1_energy, adjustment1_tokens);
+
+    let locked_tokens1 = setup.get_user_locked_tokens(&user);
+    let energy1 = setup.get_user_energy(&user);
+    assert_eq!(
+        locked_tokens1,
+        &initial_locked_tokens + &rust_biguint!(adjustment1_tokens)
+    );
+    assert_eq!(
+        energy1,
+        &initial_energy + &rust_biguint!(adjustment1_energy)
+    );
+
+    // Case 2: Positive energy, negative token amount
+    let adjustment2_energy = 800_000i64;
+    let adjustment2_tokens = -300_000i64;
+    setup.adjust_user_energy(&user, adjustment2_energy, adjustment2_tokens);
+
+    let locked_tokens2 = setup.get_user_locked_tokens(&user);
+    let energy2 = setup.get_user_energy(&user);
+    assert_eq!(
+        locked_tokens2,
+        &locked_tokens1 - &rust_biguint!(adjustment2_tokens.unsigned_abs())
+    );
+    assert_eq!(energy2, &energy1 + &rust_biguint!(adjustment2_energy));
+
+    // Case 3: Negative energy, positive token amount
+    let adjustment3_energy = -1_500_000i64;
+    let adjustment3_tokens = 200_000i64;
+    setup.adjust_user_energy(&user, adjustment3_energy, adjustment3_tokens);
+
+    let locked_tokens3 = setup.get_user_locked_tokens(&user);
+    let energy3 = setup.get_user_energy(&user);
+    assert_eq!(
+        locked_tokens3,
+        &locked_tokens2 + &rust_biguint!(adjustment3_tokens)
+    );
+    assert_eq!(
+        energy3,
+        &energy2 - &rust_biguint!(adjustment3_energy.unsigned_abs())
+    );
+
+    // Case 4: Negative energy, negative token amount
+    let adjustment4_energy = -700_000i64;
+    let adjustment4_tokens = -100_000i64;
+    setup.adjust_user_energy(&user, adjustment4_energy, adjustment4_tokens);
+
+    let locked_tokens4 = setup.get_user_locked_tokens(&user);
+    let energy4 = setup.get_user_energy(&user);
+    assert_eq!(
+        locked_tokens4,
+        &locked_tokens3 - &rust_biguint!(adjustment4_tokens.unsigned_abs())
+    );
+    assert_eq!(
+        energy4,
+        &energy3 - &rust_biguint!(adjustment4_energy.unsigned_abs())
+    );
+
+    // Bring energy to negative value
+    let adjustment5_energy = -500_000_000i64; // Adjust to negative energy
+    let adjustment5_tokens = 0i64; // Positive token amount
+    setup.adjust_user_energy(&user, adjustment5_energy, adjustment5_tokens);
+
+    let locked_tokens5 = setup.get_user_locked_tokens(&user);
+    let energy5 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens5,
+        &locked_tokens4 + &rust_biguint!(adjustment5_tokens)
+    );
+    assert!(energy5 < BigInt::zero()); // Energy should be negative
+
+    // Replay Case 1 on negative energy
+    let adjustment6_energy = 500_000i64;
+    let adjustment6_tokens = 200_000i64;
+    setup.adjust_user_energy(&user, adjustment6_energy, adjustment6_tokens);
+
+    let locked_tokens6 = setup.get_user_locked_tokens(&user);
+    let energy6 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens6,
+        &locked_tokens5 + &rust_biguint!(adjustment6_tokens)
+    );
+    assert_eq!(
+        energy6,
+        &energy5 + &BigInt::from_i64(adjustment6_energy).unwrap()
+    );
+    assert!(energy6 < BigInt::zero()); // Energy should remain negative
+
+    // Replay Case 2 on negative energy
+    let adjustment7_energy = 300_000i64;
+    let adjustment7_tokens = -100_000i64;
+    setup.adjust_user_energy(&user, adjustment7_energy, adjustment7_tokens);
+
+    let locked_tokens7 = setup.get_user_locked_tokens(&user);
+    let energy7 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens7,
+        &locked_tokens6 - &rust_biguint!(adjustment7_tokens.unsigned_abs())
+    );
+    assert_eq!(
+        energy7,
+        &energy6 + &BigInt::from_i64(adjustment7_energy).unwrap()
+    );
+    assert!(energy7 < BigInt::zero()); // Energy should remain negative
+
+    // Replay Case 3 on negative energy
+    let adjustment8_energy = -500_000i64;
+    let adjustment8_tokens = 100_000i64;
+    setup.adjust_user_energy(&user, adjustment8_energy, adjustment8_tokens);
+
+    let locked_tokens8 = setup.get_user_locked_tokens(&user);
+    let energy8 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens8,
+        &locked_tokens7 + &rust_biguint!(adjustment8_tokens)
+    );
+    assert_eq!(
+        energy8,
+        &energy7 + &BigInt::from_i64(adjustment8_energy).unwrap()
+    );
+    assert!(energy8 < BigInt::zero()); // Energy should remain negative
+
+    // Replay Case 4 on negative energy
+    let adjustment9_energy = -300_000i64;
+    let adjustment9_tokens = -50_000i64;
+    setup.adjust_user_energy(&user, adjustment9_energy, adjustment9_tokens);
+
+    let locked_tokens9 = setup.get_user_locked_tokens(&user);
+    let energy9 = setup.get_user_energy_raw(&user);
+    assert_eq!(
+        locked_tokens9,
+        &locked_tokens8 - &rust_biguint!(adjustment9_tokens.unsigned_abs())
+    );
+    assert_eq!(
+        energy9,
+        &energy8 + &BigInt::from_i64(adjustment9_energy).unwrap()
+    );
+    assert!(energy9 < BigInt::zero()); // Energy should remain negative
 }

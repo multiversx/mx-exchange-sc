@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(clippy::too_many_arguments)]
-#![feature(exact_size_is_empty)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -16,9 +14,12 @@ use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
 use farm_base_impl::base_traits_impl::FarmContract;
+use fixed_supply_token::FixedSupplyToken;
 
 pub type EnterFarmResultType<M> = DoubleMultiPayment<M>;
 pub type ExitFarmWithPartialPosResultType<M> = DoubleMultiPayment<M>;
+
+pub const MAX_PERCENT: u64 = 10_000;
 
 #[multiversx_sc::contract]
 pub trait Farm:
@@ -82,7 +83,7 @@ pub trait Farm:
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
@@ -193,11 +194,21 @@ pub trait Farm:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let merged_farm_token = self.merge_farm_tokens::<Wrapper<Self>>();
+        let merged_farm_token = self.merge_and_update_farm_tokens(orig_caller);
+
         self.send_payment_non_zero(&caller, &merged_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
         (merged_farm_token, boosted_rewards_payment).into()
+    }
+
+    fn merge_and_update_farm_tokens(&self, orig_caller: ManagedAddress) -> EsdtTokenPayment {
+        let mut output_attributes = self.merge_and_return_attributes::<Wrapper<Self>>(&orig_caller);
+        output_attributes.original_owner = orig_caller;
+
+        let new_token_amount = output_attributes.get_total_supply();
+        self.farm_token()
+            .nft_create(new_token_amount, &output_attributes)
     }
 
     #[endpoint(claimBoostedRewards)]
@@ -210,17 +221,27 @@ pub trait Farm:
             OptionalValue::Some(user) => user,
             OptionalValue::None => &caller,
         };
-        let user_total_farm_position = self.get_user_total_farm_position(user);
         if user != &caller {
             require!(
-                user_total_farm_position.allow_external_claim_boosted_rewards,
+                self.allow_external_claim(user).get(),
                 "Cannot claim rewards for this address"
             );
         }
 
+        require!(
+            !self.user_total_farm_position(user).is_empty(),
+            "User total farm position is empty!"
+        );
+
+        let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
         let boosted_rewards = self.claim_only_boosted_payment(user);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
+
+        self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
 
         self.send_payment_non_zero(user, &boosted_rewards_payment);
 
@@ -243,6 +264,17 @@ pub trait Farm:
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards::<Wrapper<Self>>(per_block_amount);
+    }
+
+    #[endpoint(setBoostedYieldsRewardsPercentage)]
+    fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
+        self.require_caller_has_admin_permissions();
+        require!(percentage <= MAX_PERCENT, "Invalid percentage");
+
+        let mut storage_cache = StorageCache::new(self);
+        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+
+        self.boosted_yields_rewards_percentage().set(percentage);
     }
 
     #[view(calculateRewardsForGivenPosition)]

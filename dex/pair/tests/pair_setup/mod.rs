@@ -1,6 +1,6 @@
 use multiversx_sc::codec::multi_types::MultiValue3;
 use multiversx_sc::types::{
-    Address, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, MultiValueEncoded,
+    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, MultiValueEncoded,
 };
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
@@ -22,6 +22,7 @@ pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 use pair::config::ConfigModule as PairConfigModule;
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::swap::SwapModule;
+use pair::safe_price::SafePriceModule;
 use pair::safe_price_view::*;
 use pair::*;
 use pausable::{PausableModule, State};
@@ -274,6 +275,15 @@ where
         );
     }
 
+    pub fn check_lp_amount(&mut self, expected_amount: u64) {
+        self.b_mock
+            .execute_query(&self.pair_wrapper, |sc| {
+                let lp_amount = sc.lp_token_supply().get();
+                assert_eq!(lp_amount, managed_biguint!(expected_amount));
+            })
+            .assert_ok();
+    }
+
     pub fn check_price_observation(
         &mut self,
         pair_address: &Address,
@@ -355,6 +365,55 @@ where
                 expected_payment.amount,
                 managed_biguint!(expected_token_amount)
             );
+        });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn check_lp_tokens_safe_price(
+        &mut self,
+        pair_address: &Address,
+        start_round: u64,
+        end_round: u64,
+        lp_token_amount: u64,
+        expected_first_token_id: &[u8],
+        expected_first_token_amount: u64,
+        expected_second_token_id: &[u8],
+        expected_second_token_amount: u64,
+    ) {
+        let _ = self.b_mock.execute_query(&self.pair_wrapper, |sc| {
+            let lp_tokens_safe_price = sc.get_lp_tokens_safe_price(
+                managed_address!(pair_address),
+                start_round,
+                end_round,
+                managed_biguint!(lp_token_amount),
+            );
+            let (first_payment, second_payment) = lp_tokens_safe_price.into_tuple();
+            assert_eq!(
+                first_payment.token_identifier,
+                managed_token_id!(expected_first_token_id)
+            );
+            assert_eq!(
+                first_payment.amount,
+                managed_biguint!(expected_first_token_amount)
+            );
+            assert_eq!(
+                second_payment.token_identifier,
+                managed_token_id!(expected_second_token_id)
+            );
+            assert_eq!(
+                second_payment.amount,
+                managed_biguint!(expected_second_token_amount)
+            );
+        });
+    }
+
+    pub fn set_price_observation_as_old(&mut self, observation_index: usize) {
+        let _ = self.b_mock.execute_query(&self.pair_wrapper, |sc| {
+            let mut price_observations = sc.price_observations();
+
+            let mut price_observation = price_observations.get(observation_index);
+            price_observation.lp_supply_accumulated = BigUint::zero();
+            price_observations.set(observation_index, &price_observation);
         });
     }
 

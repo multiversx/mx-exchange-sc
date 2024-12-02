@@ -1,0 +1,13 @@
+[package]
+name = "farm-staking-proxy-v13-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+authors = ["MultiversX <contact@multiversx.com>"]
+
+[dependencies.farm-staking-proxy-v13]
+path = ".."
+
+[dependencies.multiversx-sc-meta-lib]
+version = "0.53.2"
+default-features = false

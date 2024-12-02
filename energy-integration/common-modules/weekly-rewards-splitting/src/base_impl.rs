@@ -3,16 +3,32 @@ multiversx_sc::imports!();
 use common_types::PaymentsVec;
 use week_timekeeping::Week;
 
-use crate::{events, ClaimProgress};
+use crate::{
+    events, global_info::WeeklyRewardsGlobalInfo,
+    update_claim_progress_energy::UpdateClaimProgressEnergyModule, ClaimProgress,
+};
 
-pub trait AllBaseWeeklyRewardsSplittingImplTraits =
+pub trait AllBaseWeeklyRewardsSplittingImplTraits:
     crate::WeeklyRewardsSplittingModule
+    + energy_query::EnergyQueryModule
+    + week_timekeeping::WeekTimekeepingModule
+    + crate::global_info::WeeklyRewardsGlobalInfo
+    + crate::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + events::WeeklyRewardsSplittingEventsModule
+    + crate::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+{
+}
+
+impl<T> AllBaseWeeklyRewardsSplittingImplTraits for T where
+    T: crate::WeeklyRewardsSplittingModule
         + energy_query::EnergyQueryModule
         + week_timekeeping::WeekTimekeepingModule
         + crate::global_info::WeeklyRewardsGlobalInfo
         + crate::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
         + events::WeeklyRewardsSplittingEventsModule
-        + crate::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
+        + crate::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+{
+}
 
 pub trait WeeklyRewardsSplittingTraitsModule {
     type WeeklyRewardsSplittingMod: AllBaseWeeklyRewardsSplittingImplTraits;

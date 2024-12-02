@@ -1,0 +1,18 @@
+[package]
+edition = "2021"
+name = "locked-asset-distribution"
+publish = false
+version = "0.0.0"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.multiversx-sc]
+version = "=0.53.2"
+features = ["esdt-token-payment-legacy-decode"]
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.53.2"
