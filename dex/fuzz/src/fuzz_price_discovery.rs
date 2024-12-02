@@ -289,7 +289,7 @@ pub mod fuzz_price_discovery_test {
 
         if redeem_token_before < redeem_token_amount_in {
             if redeem_token_amount_in > rust_zero {
-                redeem_token_amount_in = redeem_token_before.clone();
+                redeem_token_amount_in.clone_from(&redeem_token_before);
             } else {
                 println!("Price discovery redeem error: Not enough tokens");
                 fuzzer_data.statistics.price_discovery_redeem_misses += 1;

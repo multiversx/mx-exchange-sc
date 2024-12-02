@@ -401,12 +401,12 @@ pub mod fuzz_data_tests {
 
         let timestamp_oracle_wrapper = blockchain_wrapper.create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
+            Some(owner_addr),
             timestamp_oracle::contract_obj,
             "timestamp oracle",
         );
         blockchain_wrapper
-            .execute_tx(&owner_addr, &timestamp_oracle_wrapper, &rust_zero, |sc| {
+            .execute_tx(owner_addr, &timestamp_oracle_wrapper, &rust_zero, |sc| {
                 sc.init(0);
 
                 for i in 0..=21 {

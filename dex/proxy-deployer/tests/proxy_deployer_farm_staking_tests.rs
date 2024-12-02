@@ -216,7 +216,7 @@ fn views_test() {
         .b_mock
         .execute_query(&setup.proxy_deployer_wrapper, |sc| {
             let is_blacklisted = sc.is_user_blacklisted(managed_address!(&user_addr));
-            assert_eq!(is_blacklisted, false);
+            assert!(!is_blacklisted);
 
             let addr_for_tok = sc
                 .get_address_for_token(managed_token_id!(farming_token_id))
