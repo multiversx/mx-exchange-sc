@@ -25,23 +25,25 @@ pub trait FeesAccumulationModule:
             self.known_tokens().contains(&payment.token_identifier),
             "Invalid payment token"
         );
-        let current_week = self.get_current_week();
 
         if payment.token_nonce > 0 {
             require!(
                 payment.token_identifier == self.locked_token_id().get(),
                 "Invalid locked token"
             );
+
             self.send().esdt_local_burn(
                 &payment.token_identifier,
                 payment.token_nonce,
                 &payment.amount,
             );
         }
+
+        let current_week = self.get_current_week();
         self.accumulated_fees(current_week, &payment.token_identifier)
             .update(|amt| *amt += &payment.amount);
 
-        self.emit_deposit_swap_fees_event(caller, current_week, payment);
+        self.emit_deposit_swap_fees_event(&caller, current_week, &payment);
     }
 
     fn get_and_clear_accumulated_fees(

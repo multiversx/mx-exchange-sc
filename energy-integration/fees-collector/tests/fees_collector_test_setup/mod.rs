@@ -1,5 +1,6 @@
 #![allow(deprecated)]
 
+use claim::ClaimModule;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -148,9 +149,13 @@ where
 
         b_mock
             .execute_tx(&owner_address, &fc_wrapper, &rust_zero, |sc| {
+                let mut admins = MultiValueEncoded::new();
+                admins.push(managed_address!(&owner_address));
+
                 sc.init(
                     managed_token_id!(LOCKED_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
+                    admins,
                 );
 
                 let _ = sc

@@ -5,6 +5,7 @@ mod fees_collector_test_setup;
 use energy_query::Energy;
 use fees_collector::additional_locked_tokens::{AdditionalLockedTokensModule, BLOCKS_IN_WEEK};
 use fees_collector::fees_accumulation::FeesAccumulationModule;
+use fees_collector::redistribute_rewards::RedistributeRewardsModule;
 use fees_collector_test_setup::*;
 use multiversx_sc::types::{BigInt, EsdtTokenPayment, ManagedVec};
 use multiversx_sc_scenario::{
@@ -1417,5 +1418,198 @@ fn additional_locked_tokens_test() {
                 BLOCKS_IN_WEEK * 1_000u64
             );
         })
+        .assert_ok();
+}
+
+#[test]
+fn redistribute_rewards_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
+
+    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let third_user = fc_setup.b_mock.create_user_account(&rust_zero);
+
+    fc_setup.set_energy(&first_user, 50, 3_000);
+    fc_setup.set_energy(&second_user, 50, 9_000);
+    fc_setup.set_energy(&third_user, 1, 1);
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+    fc_setup.claim(&third_user).assert_ok();
+
+    // advance to week 2 (inactive week)
+    fc_setup.advance_week();
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.set_energy(&third_user, 1, 1);
+    fc_setup.claim(&third_user).assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            let mut expected_total_rewards = ManagedVec::new();
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(FIRST_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 10),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(SECOND_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 20),
+            ));
+            assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
+        })
+        .assert_ok();
+
+    // advance to week 3 (inactive week)
+    fc_setup.advance_week();
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.set_energy(&third_user, 1, 1);
+    fc_setup.claim(&third_user).assert_ok();
+
+    // advance to week 4 (active week)
+    fc_setup.advance_week();
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.set_energy(&third_user, 1, 1);
+    fc_setup.claim(&third_user).assert_ok();
+
+    // advance to week 5 (active week)
+    fc_setup.advance_week();
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.set_energy(&third_user, 1, 1);
+    fc_setup.claim(&third_user).assert_ok();
+
+    // advance to week 6 (active week)
+    fc_setup.advance_week();
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.set_energy(&third_user, 1, 1);
+    fc_setup.claim(&third_user).assert_ok();
+
+    // advance to week 7 (active week)
+    fc_setup.advance_week();
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.set_energy(&third_user, 1, 1);
+    fc_setup.claim(&third_user).assert_ok();
+
+    // advance to week 8 (active week)
+    fc_setup.advance_week();
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.set_energy(&third_user, 1, 1);
+    fc_setup.claim(&third_user).assert_ok();
+
+    // advance to week 9 (active week)
+    fc_setup.advance_week();
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.set_energy(&third_user, 1, 1);
+    fc_setup.claim(&third_user).assert_ok();
+
+    // advance to week 10 (active week)
+    fc_setup.advance_week();
+
+    fc_setup
+        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
+        .assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .assert_ok();
+
+    fc_setup.set_energy(&third_user, 1, 1);
+    fc_setup.claim(&third_user).assert_ok();
+
+    // redist rewards
+    fc_setup
+        .b_mock
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.redistribute_rewards(1, 5);
+
+                // Rewards were put in current_week storage (i.e. 10)
+
+                let first_token_balance = sc
+                    .accumulated_fees(10, &managed_token_id!(FIRST_TOKEN_ID))
+                    .get();
+                let second_token_balance = sc
+                    .accumulated_fees(10, &managed_token_id!(SECOND_TOKEN_ID))
+                    .get();
+
+                // i.e. 6 weeks worth of rewards minus what the third user claimed
+                assert_eq!(
+                    first_token_balance,
+                    managed_biguint!(599_952_417_140_485_515u64)
+                );
+                assert_eq!(
+                    second_token_balance,
+                    managed_biguint!(299_976_208_570_242_758)
+                );
+            },
+        )
         .assert_ok();
 }
