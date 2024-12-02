@@ -434,7 +434,7 @@ pub mod fuzz_data_tests {
                 sc.farm_token().set_token_id(farm_token_id);
 
                 sc.per_block_reward_amount()
-                    .set(&to_managed_biguint(per_block_reward_amount));
+                    .set(to_managed_biguint(per_block_reward_amount));
 
                 sc.state().set(State::Active);
                 sc.produce_rewards_enabled().set(true);

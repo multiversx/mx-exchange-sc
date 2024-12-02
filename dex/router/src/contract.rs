@@ -39,7 +39,7 @@ pub trait Router:
         self.pair_creation_enabled().set_if_empty(false);
 
         self.init_factory(pair_template_address_opt.into_option());
-        self.owner().set(&self.blockchain().get_caller());
+        self.owner().set(self.blockchain().get_caller());
     }
 
     #[upgrade]
