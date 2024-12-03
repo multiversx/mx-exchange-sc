@@ -14,7 +14,6 @@ pub trait ExternalInteractionsModule:
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
@@ -68,8 +67,10 @@ pub trait ExternalInteractionsModule:
         let enter_result = self.enter_farm_base::<FarmStakingWrapper<Self>>(user.clone(), payments);
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
-        self.send_payment_non_zero(&caller, &new_farm_token);
-        self.send_payment_non_zero(&user, &boosted_rewards_payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &new_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&user, &boosted_rewards_payment);
 
         self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
 
@@ -117,8 +118,10 @@ pub trait ExternalInteractionsModule:
         virtual_farm_token.payment.token_nonce = new_farm_token_nonce;
 
         let caller = self.blockchain().get_caller();
-        self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
-        self.send_payment_non_zero(&user, &claim_result.rewards);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &virtual_farm_token.payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&user, &claim_result.rewards);
 
         self.emit_claim_rewards_event(
             &caller,

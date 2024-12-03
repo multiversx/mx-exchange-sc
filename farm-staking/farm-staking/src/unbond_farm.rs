@@ -10,7 +10,6 @@ pub trait UnbondFarmModule:
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
@@ -53,7 +52,8 @@ pub trait UnbondFarmModule:
         let caller = self.blockchain().get_caller();
         let farming_tokens =
             EsdtTokenPayment::new(storage_cache.farming_token_id.clone(), 0, payment.amount);
-        self.send_payment_non_zero(&caller, &farming_tokens);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &farming_tokens);
 
         self.update_start_of_epoch_timestamp();
 

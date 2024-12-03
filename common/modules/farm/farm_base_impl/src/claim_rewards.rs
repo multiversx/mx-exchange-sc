@@ -24,7 +24,6 @@ where
 pub trait BaseClaimRewardsModule:
     rewards::RewardsModule
     + config::ConfigModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule

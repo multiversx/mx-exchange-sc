@@ -32,9 +32,16 @@ pub trait ProxyExternalInteractionsModule:
 
         let output_payments = self.stake_farm_tokens_common(original_owner.clone(), payments);
 
-        self.send_payment_non_zero(&original_owner, &output_payments.lp_farm_boosted_rewards);
-        self.send_payment_non_zero(&original_owner, &output_payments.staking_boosted_rewards);
-        self.send_payment_non_zero(&caller, &output_payments.dual_yield_tokens);
+        self.send().direct_non_zero_esdt_payment(
+            &original_owner,
+            &output_payments.lp_farm_boosted_rewards,
+        );
+        self.send().direct_non_zero_esdt_payment(
+            &original_owner,
+            &output_payments.staking_boosted_rewards,
+        );
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &output_payments.dual_yield_tokens);
 
         output_payments
     }
@@ -50,9 +57,12 @@ pub trait ProxyExternalInteractionsModule:
 
         let claim_result = self.claim_dual_yield_common(original_owner.clone(), payment);
 
-        self.send_payment_non_zero(&original_owner, &claim_result.lp_farm_rewards);
-        self.send_payment_non_zero(&original_owner, &claim_result.staking_farm_rewards);
-        self.send_payment_non_zero(&caller, &claim_result.new_dual_yield_tokens);
+        self.send()
+            .direct_non_zero_esdt_payment(&original_owner, &claim_result.lp_farm_rewards);
+        self.send()
+            .direct_non_zero_esdt_payment(&original_owner, &claim_result.staking_farm_rewards);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &claim_result.new_dual_yield_tokens);
 
         claim_result
     }

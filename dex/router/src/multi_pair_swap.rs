@@ -16,7 +16,6 @@ pub trait MultiPairSwap:
     config::ConfigModule
     + read_pair_storage::ReadPairStorageModule
     + factory::FactoryModule
-    + token_send::TokenSendModule
     + events::EventsModule
 {
     #[payable("*")]

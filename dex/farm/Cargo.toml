@@ -26,9 +26,6 @@ path = "../../common/modules/farm/events"
 [dependencies.contexts]
 path = "../../common/modules/farm/contexts"
 
-[dependencies.token_send]
-path = "../../common/modules/token_send"
-
 [dependencies.utils]
 path = "../../common/modules/utils"
 

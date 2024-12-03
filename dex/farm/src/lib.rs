@@ -22,7 +22,6 @@ pub const MAX_PERCENT: u64 = 10_000;
 pub trait Farm:
     rewards::RewardsModule
     + config::ConfigModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
@@ -105,8 +104,10 @@ pub trait Farm:
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
         let new_farm_token = self.enter_farm::<Wrapper<Self>>(orig_caller.clone());
-        self.send_payment_non_zero(&caller, &new_farm_token);
-        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &new_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &boosted_rewards_payment);
         self.update_energy_and_progress(&orig_caller);
 
         self.update_start_of_epoch_timestamp();
@@ -126,8 +127,10 @@ pub trait Farm:
         self.migrate_old_farm_positions(&orig_caller);
 
         let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
-        self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
-        self.send_payment_non_zero(&caller, &claim_rewards_result.rewards);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &claim_rewards_result.new_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &claim_rewards_result.rewards);
 
         self.update_start_of_epoch_timestamp();
 
@@ -146,7 +149,8 @@ pub trait Farm:
         self.migrate_old_farm_positions(&orig_caller);
 
         let output_farm_token_payment = self.compound_rewards::<Wrapper<Self>>(orig_caller.clone());
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &output_farm_token_payment);
         self.update_energy_and_progress(&orig_caller);
 
         self.update_start_of_epoch_timestamp();
@@ -167,8 +171,10 @@ pub trait Farm:
         let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller.clone(), payment);
 
         self.decrease_old_farm_positions(migrated_amount, &orig_caller);
-        self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
-        self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &exit_farm_result.farming_tokens);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &exit_farm_result.rewards);
         self.clear_user_energy_if_needed(&orig_caller);
 
         self.update_start_of_epoch_timestamp();
@@ -192,8 +198,10 @@ pub trait Farm:
 
         let merged_farm_token = self.merge_and_update_farm_tokens(orig_caller);
 
-        self.send_payment_non_zero(&caller, &merged_farm_token);
-        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &merged_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &boosted_rewards_payment);
 
         self.update_start_of_epoch_timestamp();
 
@@ -241,7 +249,8 @@ pub trait Farm:
 
         self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
 
-        self.send_payment_non_zero(user, &boosted_rewards_payment);
+        self.send()
+            .direct_non_zero_esdt_payment(user, &boosted_rewards_payment);
 
         // Don't need to call update here too, the internal functions call it already
 

@@ -20,7 +20,6 @@ use farm_base_impl::base_traits_impl::FarmContract;
 pub trait Farm:
     rewards::RewardsModule
     + config::ConfigModule
-    + token_send::TokenSendModule
     + locking_module::lock_with_energy_module::LockWithEnergyModule
     + farm_token::FarmTokenModule
     + utils::UtilsModule
@@ -111,7 +110,8 @@ pub trait Farm:
         );
 
         let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(orig_caller.clone());
-        self.send_payment_non_zero(&caller, &new_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &new_farm_token);
         self.update_energy_and_progress(&orig_caller);
 
         self.update_start_of_epoch_timestamp();
@@ -130,7 +130,8 @@ pub trait Farm:
         self.migrate_old_farm_positions(&orig_caller);
 
         let claim_rewards_result = self.claim_rewards::<NoMintWrapper<Self>>(orig_caller.clone());
-        self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &claim_rewards_result.new_farm_token);
 
         let rewards_payment = claim_rewards_result.rewards;
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
@@ -161,7 +162,8 @@ pub trait Farm:
         self.decrease_old_farm_positions(migrated_amount, &orig_caller);
 
         let rewards = exit_farm_result.rewards;
-        self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &exit_farm_result.farming_tokens);
 
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             rewards.token_identifier.clone(),
@@ -190,7 +192,8 @@ pub trait Farm:
         let boosted_rewards = self.claim_only_boosted_payment(&orig_caller);
 
         let merged_farm_token = self.merge_and_update_farm_tokens(orig_caller.clone());
-        self.send_payment_non_zero(&caller, &merged_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &merged_farm_token);
 
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             self.reward_token_id().get(),

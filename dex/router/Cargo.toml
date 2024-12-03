@@ -8,9 +8,6 @@ publish = false
 [lib]
 path = "src/contract.rs"
 
-[dependencies.token_send]
-path = "../../common/modules/token_send"
-
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 

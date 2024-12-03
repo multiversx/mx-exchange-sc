@@ -1,3 +1,8 @@
+use multiversx_sc::{
+    api::{CallTypeApi, StorageReadApi},
+    contract_base::SendWrapper,
+};
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -48,15 +53,11 @@ pub struct StakeProxyResult<M: ManagedTypeApi> {
     pub lp_farm_boosted_rewards: EsdtTokenPayment<M>,
 }
 
-impl<M: ManagedTypeApi> StakeProxyResult<M> {
-    pub fn send_and_return<SC: token_send::TokenSendModule<Api = M>>(
-        self,
-        sc: &SC,
-        to: &ManagedAddress<M>,
-    ) -> Self {
-        sc.send_payment_non_zero(to, &self.dual_yield_tokens);
-        sc.send_payment_non_zero(to, &self.staking_boosted_rewards);
-        sc.send_payment_non_zero(to, &self.lp_farm_boosted_rewards);
+impl<M: ManagedTypeApi + CallTypeApi + StorageReadApi> StakeProxyResult<M> {
+    pub fn send_and_return(self, send_wrapper: SendWrapper<M>, to: &ManagedAddress<M>) -> Self {
+        send_wrapper.direct_non_zero_esdt_payment(to, &self.dual_yield_tokens);
+        send_wrapper.direct_non_zero_esdt_payment(to, &self.staking_boosted_rewards);
+        send_wrapper.direct_non_zero_esdt_payment(to, &self.lp_farm_boosted_rewards);
 
         self
     }

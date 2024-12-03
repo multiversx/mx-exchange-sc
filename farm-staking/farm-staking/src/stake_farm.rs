@@ -12,7 +12,6 @@ pub trait StakeFarmModule:
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
@@ -83,8 +82,10 @@ pub trait StakeFarmModule:
             self.enter_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payments);
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
-        self.send_payment_non_zero(&caller, &new_farm_token);
-        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &new_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &boosted_rewards_payment);
 
         self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
 

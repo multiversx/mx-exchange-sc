@@ -21,7 +21,6 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + energy_query::EnergyQueryModule
-    + token_send::TokenSendModule
     + events::EventsModule
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
@@ -58,7 +57,8 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
 
         self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
 
-        self.send_payment_non_zero(user, &boosted_rewards_payment);
+        self.send()
+            .direct_non_zero_esdt_payment(user, &boosted_rewards_payment);
 
         boosted_rewards_payment
     }

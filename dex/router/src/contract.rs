@@ -30,7 +30,6 @@ pub trait Router:
     + factory::FactoryModule
     + events::EventsModule
     + multi_pair_swap::MultiPairSwap
-    + token_send::TokenSendModule
     + enable_swap_by_user::EnableSwapByUserModule
 {
     #[init]

@@ -35,7 +35,8 @@ pub trait WrappedLpTokenMerge:
         let merged_tokens = self
             .merge_wrapped_lp_tokens(&caller, wrapped_lp_tokens)
             .payment;
-        self.send_payment_non_zero(&caller, &merged_tokens);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &merged_tokens);
 
         merged_tokens
     }

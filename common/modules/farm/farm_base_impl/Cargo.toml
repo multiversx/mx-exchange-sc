@@ -22,9 +22,6 @@ path = "../events"
 [dependencies.contexts]
 path = "../contexts"
 
-[dependencies.token_send]
-path = "../../token_send"
-
 [dependencies.token_merge_helper]
 path = "../../token_merge_helper"
 

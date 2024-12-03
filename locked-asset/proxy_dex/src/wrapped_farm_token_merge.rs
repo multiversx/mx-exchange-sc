@@ -40,7 +40,8 @@ pub trait WrappedFarmTokenMerge:
         let merged_tokens = self
             .merge_wrapped_farm_tokens(&caller, farm_address, wrapped_farm_tokens)
             .payment;
-        self.send_payment_non_zero(&caller, &merged_tokens);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &merged_tokens);
 
         merged_tokens
     }
