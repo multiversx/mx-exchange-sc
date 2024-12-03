@@ -22,7 +22,6 @@ where
 pub trait BaseExitFarmModule:
     rewards::RewardsModule
     + config::ConfigModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule

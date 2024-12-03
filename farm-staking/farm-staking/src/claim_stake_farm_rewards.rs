@@ -11,7 +11,6 @@ pub trait ClaimStakeFarmRewardsModule:
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
@@ -98,8 +97,10 @@ pub trait ClaimStakeFarmRewardsModule:
         virtual_farm_token.payment.token_nonce = new_farm_token_nonce;
 
         let caller = self.blockchain().get_caller();
-        self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
-        self.send_payment_non_zero(&caller, &claim_result.rewards);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &virtual_farm_token.payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &claim_result.rewards);
 
         self.emit_claim_rewards_event(
             &caller,

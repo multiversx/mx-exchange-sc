@@ -44,7 +44,6 @@ impl<M: ManagedTypeApi> Into<ExitFarmResultType<M>> for ExitFarmResultWrapper<M>
 pub trait BaseFunctionsModule:
     rewards::RewardsModule
     + config::ConfigModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule

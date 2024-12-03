@@ -9,7 +9,6 @@ pub trait CompoundStakeFarmRewardsModule:
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
@@ -41,7 +40,8 @@ pub trait CompoundStakeFarmRewardsModule:
             self.compound_rewards_base::<FarmStakingWrapper<Self>>(caller.clone(), payments);
 
         let new_farm_token = compound_result.new_farm_token.payment.clone();
-        self.send_payment_non_zero(&caller, &new_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &new_farm_token);
 
         self.set_farm_supply_for_current_week(&compound_result.storage_cache.farm_token_supply);
 

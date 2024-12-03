@@ -44,9 +44,6 @@ path = "../../common/modules/farm/contexts"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
-[dependencies.token_send]
-path = "../../common/modules/token_send"
-
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 

@@ -12,7 +12,6 @@ use crate::NoMintWrapper;
 pub trait ExternalInteractionsModule:
     rewards::RewardsModule
     + config::ConfigModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
@@ -57,7 +56,8 @@ pub trait ExternalInteractionsModule:
 
         let boosted_rewards = self.claim_only_boosted_payment(&user);
         let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(user.clone());
-        self.send_payment_non_zero(&caller, &new_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &new_farm_token);
 
         let locked_rewards_payment = if boosted_rewards == 0 {
             let locked_token_id = self.get_locked_token_id();
@@ -90,7 +90,8 @@ pub trait ExternalInteractionsModule:
 
         let claim_rewards_result = self.claim_rewards::<NoMintWrapper<Self>>(user.clone());
 
-        self.send_payment_non_zero(&caller, &claim_rewards_result.new_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &claim_rewards_result.new_farm_token);
 
         let rewards_payment = claim_rewards_result.rewards;
         let locked_rewards_payment = if rewards_payment.amount == 0 {

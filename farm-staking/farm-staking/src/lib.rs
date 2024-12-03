@@ -5,6 +5,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use base_impl_wrapper::FarmStakingWrapper;
+use common_structs::Epoch;
 use contexts::storage_cache::StorageCache;
 use farm::{base_functions::DoubleMultiPayment, MAX_PERCENT};
 use farm_base_impl::base_traits_impl::FarmContract;
@@ -31,7 +32,6 @@ pub trait FarmStaking:
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
@@ -71,7 +71,7 @@ pub trait FarmStaking:
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
         max_apr: BigUint,
-        min_unbond_epochs: u64,
+        min_unbond_epochs: Epoch,
         owner: ManagedAddress,
         timestamp_oracle_address: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
@@ -126,8 +126,10 @@ pub trait FarmStaking:
 
         let merged_farm_token = self.merge_and_update_farm_tokens(caller.clone());
 
-        self.send_payment_non_zero(&caller, &merged_farm_token);
-        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &merged_farm_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &boosted_rewards_payment);
 
         self.update_start_of_epoch_timestamp();
 

@@ -24,6 +24,9 @@ path = "../../common/modules/permissions_module"
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 
+[dependencies.utils]
+path = "../../common/modules/utils"
+
 [dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"
 

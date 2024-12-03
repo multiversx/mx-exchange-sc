@@ -25,7 +25,7 @@ pub trait ProxyStakeModule:
 
         let output_payments = self.stake_farm_tokens_common(orig_caller, payments);
 
-        output_payments.send_and_return(self, &caller)
+        output_payments.send_and_return(self.send(), &caller)
     }
 
     fn stake_farm_tokens_common(

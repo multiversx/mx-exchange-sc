@@ -11,7 +11,6 @@ pub trait UnstakeFarmModule:
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
-    + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
@@ -88,7 +87,8 @@ pub trait UnstakeFarmModule:
         let unbond_farm_token =
             self.create_and_send_unbond_tokens(&caller, farm_token_id, unbond_token_amount);
 
-        self.send_payment_non_zero(&caller, &exit_result.reward_payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &exit_result.reward_payment);
 
         self.clear_user_energy_if_needed(&original_caller);
         self.set_farm_supply_for_current_week(&exit_result.storage_cache.farm_token_supply);

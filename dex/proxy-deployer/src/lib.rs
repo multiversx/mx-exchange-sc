@@ -18,6 +18,7 @@ pub trait ProxyDeployer:
     + remove_contracts::RemoveContractsModule
     + storage::StorageModule
     + views::ViewModule
+    + utils::UtilsModule
 {
     #[init]
     fn init(
@@ -27,16 +28,9 @@ pub trait ProxyDeployer:
         timestamp_oracle_address: ManagedAddress,
         boosted_yields_factors: BoostedYieldsFactors<Self::Api>,
     ) {
-        require!(
-            self.blockchain().is_smart_contract(&template_address),
-            "Invalid farm template address"
-        );
+        self.require_sc_address(&template_address);
+        self.require_sc_address(&timestamp_oracle_address);
         require!(deployer_type != DeployerType::None, "Invalid deployer type");
-        require!(
-            self.blockchain()
-                .is_smart_contract(&timestamp_oracle_address),
-            "Invalid timestamp oracle address"
-        );
 
         self.template_address().set(template_address);
         self.deployer_type().set(deployer_type);

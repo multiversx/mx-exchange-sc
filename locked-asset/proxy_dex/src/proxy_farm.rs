@@ -104,8 +104,10 @@ pub trait ProxyFarmModule:
             }
         };
 
-        self.send_payment_non_zero(&caller, &new_wrapped_farm_token.payment);
-        self.send_payment_non_zero(&caller, &enter_result.rewards);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &new_wrapped_farm_token.payment);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &enter_result.rewards);
 
         self.emit_enter_farm_proxy_event(
             &original_caller,
@@ -218,8 +220,10 @@ pub trait ProxyFarmModule:
                 exit_result.farming_tokens.amount,
             );
 
-        self.send_payment_non_zero(&caller, &initial_proxy_farming_tokens);
-        self.send_payment_non_zero(&caller, &exit_result.reward_tokens);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &initial_proxy_farming_tokens);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &exit_result.reward_tokens);
 
         wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
@@ -322,8 +326,10 @@ pub trait ProxyFarmModule:
         let new_wrapped_token =
             wrapped_farm_token_mapper.nft_create(new_token_amount, &new_wrapped_farm_attributes);
 
-        self.send_payment_non_zero(&caller, &new_wrapped_token);
-        self.send_payment_non_zero(&caller, &claim_result.rewards);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &new_wrapped_token);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &claim_result.rewards);
 
         // Burn farm token
         wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);

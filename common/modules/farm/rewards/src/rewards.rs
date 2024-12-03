@@ -15,6 +15,7 @@ pub trait RewardsModule:
             !self.produce_rewards_enabled().get(),
             "Producing rewards is already enabled"
         );
+
         let current_nonce = self.blockchain().get_block_nonce();
         self.produce_rewards_enabled().set(true);
         self.last_reward_block_nonce().set(current_nonce);
