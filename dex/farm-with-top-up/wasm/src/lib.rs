@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           60
+// Endpoints:                           64
 // Async Callback:                       1
-// Total number of exported functions:  63
+// Total number of exported functions:  67
 
 #![no_std]
 
@@ -26,10 +26,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         exitFarm => exit_farm_endpoint
         mergeFarmTokens => merge_farm_tokens_endpoint
         claimBoostedRewards => claim_boosted_rewards
-        startProduceRewards => start_produce_rewards_endpoint
-        endProduceRewards => end_produce_rewards_endpoint
-        setPerBlockRewardAmount => set_per_block_rewards_endpoint
-        setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage
         calculateRewardsForGivenPosition => calculate_rewards_for_given_position
         getRewardPerShare => reward_per_share
         getRewardReserve => reward_reserve
@@ -80,6 +76,14 @@ multiversx_sc_wasm_adapter::endpoints! {
         getCurrentClaimProgress => current_claim_progress
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
+        topUpRewards => top_up_rewards
+        withdrawRewards => withdraw_rewards
+        startProduceRewards => start_produce_rewards_endpoint
+        endProduceRewards => end_produce_rewards
+        setPerBlockRewardAmount => set_per_block_rewards
+        setBoostedYieldsRewardsPercentage => set_boosted_yields_rewards_percentage
+        getAccumulatedRewards => accumulated_rewards
+        getRewardCapacity => reward_capacity
     )
 }
 
