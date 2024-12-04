@@ -84,6 +84,7 @@ pub trait SetContractActiveModule:
             .execute_on_dest_context()
     }
 
+    // Both contracts have the same code for this at the moment. If this ever changes, make a separate endpoint and proxy for each
     #[proxy]
     fn set_contract_active_proxy(
         &self,

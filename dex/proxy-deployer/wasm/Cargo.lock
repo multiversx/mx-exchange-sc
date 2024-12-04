@@ -191,6 +191,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "farm-with-top-up"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "energy-query",
+ "events",
+ "farm-boosted-yields",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "original_owner_helper",
+ "pair",
+ "pausable",
+ "permissions-hub",
+ "permissions_hub_module",
+ "permissions_module",
+ "rewards",
+ "sc_whitelist_module",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
 name = "farm_base_impl"
 version = "0.0.0"
 dependencies = [
@@ -457,6 +487,7 @@ dependencies = [
  "common_structs",
  "farm-boosted-yields",
  "farm-staking",
+ "farm-with-top-up",
  "multiversx-sc",
  "pausable",
  "permissions_module",

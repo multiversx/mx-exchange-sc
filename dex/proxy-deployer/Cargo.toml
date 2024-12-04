@@ -15,6 +15,9 @@ features = ["esdt-token-payment-legacy-decode"]
 [dependencies.farm-staking]
 path = "../../farm-staking/farm-staking"
 
+[dependencies.farm-with-top-up]
+path = "../farm-with-top-up"
+
 [dependencies.common_structs]
 path = "../../common/common_structs"
 

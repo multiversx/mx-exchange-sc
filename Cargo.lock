@@ -1624,6 +1624,7 @@ dependencies = [
  "common_structs",
  "farm-boosted-yields",
  "farm-staking",
+ "farm-with-top-up",
  "farm_token",
  "multiversx-sc",
  "multiversx-sc-scenario",
