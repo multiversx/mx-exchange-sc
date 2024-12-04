@@ -4,10 +4,11 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 pub mod base_functions;
+pub mod custom_rewards;
 pub mod external_interaction;
 
-use base_functions::{ClaimRewardsResultType, DoubleMultiPayment, Wrapper};
-use common_structs::FarmTokenAttributes;
+use base_functions::{ClaimRewardsResultType, DoubleMultiPayment, FarmWithTopUpWrapper};
+use common_structs::{FarmTokenAttributes, Percent};
 use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::FarmContract;
@@ -16,10 +17,10 @@ use fixed_supply_token::FixedSupplyToken;
 pub type EnterFarmResultType<M> = DoubleMultiPayment<M>;
 pub type ExitFarmWithPartialPosResultType<M> = DoubleMultiPayment<M>;
 
-pub const MAX_PERCENT: u64 = 10_000;
+pub const MAX_PERCENT: Percent = 10_000;
 
 #[multiversx_sc::contract]
-pub trait Farm:
+pub trait FarmWithTopUp:
     rewards::RewardsModule
     + config::ConfigModule
     + farm_token::FarmTokenModule
@@ -49,6 +50,7 @@ pub trait Farm:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + custom_rewards::CustomRewardsModule
 {
     #[init]
     fn init(
@@ -103,7 +105,7 @@ pub trait Farm:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let new_farm_token = self.enter_farm::<Wrapper<Self>>(orig_caller.clone());
+        let new_farm_token = self.enter_farm::<FarmWithTopUpWrapper<Self>>(orig_caller.clone());
         self.send()
             .direct_non_zero_esdt_payment(&caller, &new_farm_token);
         self.send()
@@ -126,7 +128,7 @@ pub trait Farm:
 
         self.migrate_old_farm_positions(&orig_caller);
 
-        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
+        let claim_rewards_result = self.claim_rewards::<FarmWithTopUpWrapper<Self>>(orig_caller);
         self.send()
             .direct_non_zero_esdt_payment(&caller, &claim_rewards_result.new_farm_token);
         self.send()
@@ -148,7 +150,8 @@ pub trait Farm:
 
         self.migrate_old_farm_positions(&orig_caller);
 
-        let output_farm_token_payment = self.compound_rewards::<Wrapper<Self>>(orig_caller.clone());
+        let output_farm_token_payment =
+            self.compound_rewards::<FarmWithTopUpWrapper<Self>>(orig_caller.clone());
         self.send()
             .direct_non_zero_esdt_payment(&caller, &output_farm_token_payment);
         self.update_energy_and_progress(&orig_caller);
@@ -168,7 +171,8 @@ pub trait Farm:
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
         let payment = self.call_value().single_esdt();
         let migrated_amount = self.migrate_old_farm_positions(&orig_caller);
-        let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller.clone(), payment);
+        let exit_farm_result =
+            self.exit_farm::<FarmWithTopUpWrapper<Self>>(orig_caller.clone(), payment);
 
         self.decrease_old_farm_positions(migrated_amount, &orig_caller);
         self.send()
@@ -209,7 +213,8 @@ pub trait Farm:
     }
 
     fn merge_and_update_farm_tokens(&self, orig_caller: ManagedAddress) -> EsdtTokenPayment {
-        let mut output_attributes = self.merge_and_return_attributes::<Wrapper<Self>>(&orig_caller);
+        let mut output_attributes =
+            self.merge_and_return_attributes::<FarmWithTopUpWrapper<Self>>(&orig_caller);
         output_attributes.original_owner = orig_caller;
 
         let new_token_amount = output_attributes.get_total_supply();
@@ -241,7 +246,7 @@ pub trait Farm:
 
         let mut storage_cache = StorageCache::new(self);
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
-        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+        FarmWithTopUpWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
         let boosted_rewards = self.claim_only_boosted_payment(user);
         let boosted_rewards_payment =
@@ -257,43 +262,6 @@ pub trait Farm:
         boosted_rewards_payment
     }
 
-    #[endpoint(startProduceRewards)]
-    fn start_produce_rewards_endpoint(&self) {
-        self.require_caller_has_admin_permissions();
-        self.start_produce_rewards();
-
-        self.update_start_of_epoch_timestamp();
-    }
-
-    #[endpoint(endProduceRewards)]
-    fn end_produce_rewards_endpoint(&self) {
-        self.require_caller_has_admin_permissions();
-        self.end_produce_rewards::<Wrapper<Self>>();
-
-        self.update_start_of_epoch_timestamp();
-    }
-
-    #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
-        self.require_caller_has_admin_permissions();
-        self.set_per_block_rewards::<Wrapper<Self>>(per_block_amount);
-
-        self.update_start_of_epoch_timestamp();
-    }
-
-    #[endpoint(setBoostedYieldsRewardsPercentage)]
-    fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
-        self.require_caller_has_admin_permissions();
-        require!(percentage <= MAX_PERCENT, "Invalid percentage");
-
-        let mut storage_cache = StorageCache::new(self);
-        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
-
-        self.boosted_yields_rewards_percentage().set(percentage);
-
-        self.update_start_of_epoch_timestamp();
-    }
-
     #[view(calculateRewardsForGivenPosition)]
     fn calculate_rewards_for_given_position(
         &self,
@@ -304,9 +272,9 @@ pub trait Farm:
         self.require_queried();
 
         let mut storage_cache = StorageCache::new(self);
-        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+        FarmWithTopUpWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        Wrapper::<Self>::calculate_rewards(
+        FarmWithTopUpWrapper::<Self>::calculate_rewards(
             self,
             &user,
             &farm_token_amount,

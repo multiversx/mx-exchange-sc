@@ -7,7 +7,7 @@ multiversx_sc::derive_imports!();
 use core::marker::PhantomData;
 
 use common_errors::ERROR_ZERO_AMOUNT;
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmTokenAttributes, Nonce};
 use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
@@ -16,7 +16,7 @@ pub type DoubleMultiPayment<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayme
 pub type ClaimRewardsResultType<M> = DoubleMultiPayment<M>;
 pub type ExitFarmResultType<M> = DoubleMultiPayment<M>;
 
-pub const DEFAULT_FARM_POSITION_MIGRATION_NONCE: u64 = 1;
+pub const DEFAULT_FARM_POSITION_MIGRATION_NONCE: Nonce = 1;
 
 pub struct ClaimRewardsResultWrapper<M: ManagedTypeApi> {
     pub new_farm_token: EsdtTokenPayment<M>,
@@ -66,6 +66,7 @@ pub trait BaseFunctionsModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + crate::custom_rewards::CustomRewardsModule
 {
     fn enter_farm<FC: FarmContract<FarmSc = Self>>(
         &self,
@@ -190,7 +191,7 @@ pub trait BaseFunctionsModule:
     }
 
     fn claim_only_boosted_payment(&self, caller: &ManagedAddress) -> BigUint {
-        let reward = Wrapper::<Self>::calculate_boosted_rewards(self, caller);
+        let reward = FarmWithTopUpWrapper::<Self>::calculate_boosted_rewards(self, caller);
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }
@@ -261,13 +262,29 @@ pub trait BaseFunctionsModule:
     }
 }
 
-pub struct Wrapper<T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule> {
+pub struct FarmWithTopUpWrapper<
+    T: crate::custom_rewards::CustomRewardsModule
+        + rewards::RewardsModule
+        + config::ConfigModule
+        + farm_token::FarmTokenModule
+        + pausable::PausableModule
+        + permissions_module::PermissionsModule
+        + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+        + farm_boosted_yields::FarmBoostedYieldsModule,
+> {
     _phantom: PhantomData<T>,
 }
 
-impl<T> Wrapper<T>
+impl<T> FarmWithTopUpWrapper<T>
 where
-    T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule,
+    T: crate::custom_rewards::CustomRewardsModule
+        + rewards::RewardsModule
+        + config::ConfigModule
+        + farm_token::FarmTokenModule
+        + pausable::PausableModule
+        + permissions_module::PermissionsModule
+        + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+        + farm_boosted_yields::FarmBoostedYieldsModule,
 {
     pub fn calculate_boosted_rewards(
         sc: &<Self as FarmContract>::FarmSc,
@@ -279,28 +296,72 @@ where
     }
 }
 
-impl<T> FarmContract for Wrapper<T>
+impl<T> FarmContract for FarmWithTopUpWrapper<T>
 where
-    T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule,
+    T: crate::custom_rewards::CustomRewardsModule
+        + rewards::RewardsModule
+        + config::ConfigModule
+        + farm_token::FarmTokenModule
+        + pausable::PausableModule
+        + permissions_module::PermissionsModule
+        + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+        + farm_boosted_yields::FarmBoostedYieldsModule,
 {
     type FarmSc = T;
     type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
+
+    #[inline]
+    fn mint_rewards(
+        _sc: &Self::FarmSc,
+        _token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
+        _amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+    ) {
+    }
+
+    fn mint_per_block_rewards(
+        sc: &Self::FarmSc,
+        _token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        let current_block_nonce = sc.blockchain().get_block_nonce();
+        let last_reward_nonce = sc.last_reward_block_nonce().get();
+        if current_block_nonce <= last_reward_nonce {
+            return BigUint::zero();
+        }
+
+        let extra_rewards =
+            Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
+        sc.last_reward_block_nonce().set(current_block_nonce);
+
+        extra_rewards
+    }
 
     fn generate_aggregated_rewards(
         sc: &Self::FarmSc,
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
-        let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
-        if total_reward > 0u64 {
-            storage_cache.reward_reserve += &total_reward;
-            let split_rewards = sc.take_reward_slice(total_reward);
+        let accumulated_rewards_mapper = sc.accumulated_rewards();
+        let mut accumulated_rewards = accumulated_rewards_mapper.get();
+        let reward_capacity = sc.reward_capacity().get();
+        let remaining_rewards = &reward_capacity - &accumulated_rewards;
 
-            if storage_cache.farm_token_supply != 0u64 {
-                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
-                    / &storage_cache.farm_token_supply;
-                storage_cache.reward_per_share += &increase;
-            }
+        let mut total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
+        total_reward = core::cmp::min(total_reward, remaining_rewards);
+        if total_reward == 0 {
+            return;
         }
+
+        storage_cache.reward_reserve += &total_reward;
+        accumulated_rewards += &total_reward;
+        accumulated_rewards_mapper.set(&accumulated_rewards);
+
+        let split_rewards = sc.take_reward_slice(total_reward);
+        if storage_cache.farm_token_supply == 0 {
+            return;
+        }
+
+        let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+            / &storage_cache.farm_token_supply;
+        storage_cache.reward_per_share += &increase;
     }
 
     fn calculate_rewards(

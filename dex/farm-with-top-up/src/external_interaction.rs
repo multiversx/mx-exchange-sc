@@ -3,7 +3,7 @@ multiversx_sc::imports!();
 use common_structs::FarmTokenAttributes;
 
 use crate::{
-    base_functions::{self, ClaimRewardsResultType, Wrapper},
+    base_functions::{self, ClaimRewardsResultType, FarmWithTopUpWrapper},
     EnterFarmResultType,
 };
 
@@ -37,6 +37,7 @@ pub trait ExternalInteractionsModule:
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + crate::custom_rewards::CustomRewardsModule
 {
     #[payable("*")]
     #[endpoint(enterFarmOnBehalf)]
@@ -57,7 +58,7 @@ pub trait ExternalInteractionsModule:
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
-        let new_farm_token = self.enter_farm::<Wrapper<Self>>(user.clone());
+        let new_farm_token = self.enter_farm::<FarmWithTopUpWrapper<Self>>(user.clone());
         self.send()
             .direct_non_zero_esdt_payment(&caller, &new_farm_token);
         self.send()
@@ -81,7 +82,7 @@ pub trait ExternalInteractionsModule:
         );
         self.require_user_whitelisted(&user, &caller);
 
-        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(user.clone());
+        let claim_rewards_result = self.claim_rewards::<FarmWithTopUpWrapper<Self>>(user.clone());
 
         self.send()
             .direct_non_zero_esdt_payment(&caller, &claim_rewards_result.new_farm_token);

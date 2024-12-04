@@ -7,7 +7,9 @@ use pausable::ProxyTrait as _;
 multiversx_sc::imports!();
 
 #[multiversx_sc::module]
-pub trait SetContractActiveModule: crate::storage::StorageModule {
+pub trait SetContractActiveModule:
+    crate::storage::StorageModule + crate::remove_contracts::RemoveContractsModule
+{
     /// Boosted yields percent must be >= 0 (0%) and <= 10_000 (100%)
     ///
     /// Only callable by contract deployer
@@ -37,7 +39,11 @@ pub trait SetContractActiveModule: crate::storage::StorageModule {
         self.set_rewards_per_block(contract.clone(), rewards_per_block);
         self.set_boosted_yields_factors(contract.clone(), boosted_yields_factors);
         self.set_boosted_yields_percent(contract.clone(), boosted_yields_percent);
-        self.unpause_contract(contract);
+        self.unpause_contract(contract.clone());
+
+        // Contract was only added as admin so we don't have to change all the permissions around
+        let own_sc_address = self.blockchain().get_sc_address();
+        self.remove_admin(contract, own_sc_address);
     }
 
     fn set_rewards_per_block(&self, contract: ManagedAddress, rewards_per_block: BigUint) {

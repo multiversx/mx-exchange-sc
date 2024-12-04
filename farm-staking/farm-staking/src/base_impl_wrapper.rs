@@ -74,6 +74,7 @@ where
     type FarmSc = T;
     type AttributesType = StakingFarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
 
+    #[inline]
     fn mint_rewards(
         _sc: &Self::FarmSc,
         _token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
