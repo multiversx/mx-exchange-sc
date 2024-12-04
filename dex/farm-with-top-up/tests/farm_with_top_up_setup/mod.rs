@@ -1,9 +1,9 @@
-use common_structs::Timestamp;
+use common_structs::{Nonce, Timestamp};
 use config::ConfigModule;
 use farm_token::FarmTokenModule;
-use farm_with_top_up::FarmWithTopUp;
+use farm_with_top_up::{custom_rewards::CustomRewardsModule, FarmWithTopUp};
 use multiversx_sc::{
-    imports::StorageTokenWrapper,
+    imports::{OptionalValue, StorageTokenWrapper},
     types::{Address, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
@@ -21,6 +21,7 @@ pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 pub const DIV_SAFETY: u64 = 1_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
 pub const FARMING_TOKEN_BALANCE: u64 = 200_000_000;
+pub const REWARD_TOKEN_BALANCE: u64 = 500_000_000;
 pub const TIMESTAMP_PER_EPOCH: Timestamp = 24 * 60 * 60;
 
 pub struct FarmWithTopUpSetup<FarmObjBuilder, TimestampOracleObjBuilder, PermissionsHubObjBuilder>
@@ -93,13 +94,15 @@ where
                 let farming_token_id = managed_token_id!(FARMING_TOKEN_ID);
                 let division_safety_constant = managed_biguint!(DIV_SAFETY);
 
+                let mut admins = MultiValueEncoded::new();
+                admins.push(managed_address!(&owner));
                 sc.init(
                     reward_token_id,
                     farming_token_id,
                     division_safety_constant,
                     managed_address!(&owner),
                     managed_address!(timestamp_oracle_wrapper.address_ref()),
-                    MultiValueEncoded::new(),
+                    admins,
                 );
 
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
@@ -148,6 +151,12 @@ where
             &rust_biguint!(FARMING_TOKEN_BALANCE),
         );
 
+        b_mock.set_esdt_balance(
+            &owner,
+            REWARD_TOKEN_ID,
+            &rust_biguint!(REWARD_TOKEN_BALANCE),
+        );
+
         FarmWithTopUpSetup {
             b_mock,
             owner,
@@ -156,5 +165,55 @@ where
             timestamp_oracle_wrapper,
             permissions_hub_wrapper,
         }
+    }
+
+    pub fn admin_deposit_rewards(&mut self, rew_amount: u64) {
+        self.b_mock
+            .execute_esdt_transfer(
+                &self.owner,
+                &self.farm_wrapper,
+                REWARD_TOKEN_ID,
+                0,
+                &rust_biguint!(rew_amount),
+                |sc| {
+                    sc.top_up_rewards();
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn user_enter_farm(&mut self, farming_amount: u64) {
+        self.b_mock
+            .execute_esdt_transfer(
+                &self.user,
+                &self.farm_wrapper,
+                FARMING_TOKEN_ID,
+                0,
+                &rust_biguint!(farming_amount),
+                |sc| {
+                    sc.enter_farm_endpoint(OptionalValue::None);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn user_claim_rewards(&mut self, farm_token_nonce: Nonce, farm_token_amount: u64) -> Nonce {
+        let mut farm_token_nonce_out = 0;
+        self.b_mock
+            .execute_esdt_transfer(
+                &self.user,
+                &self.farm_wrapper,
+                FARM_TOKEN_ID,
+                farm_token_nonce,
+                &rust_biguint!(farm_token_amount),
+                |sc| {
+                    let (new_farm_token, _rewards) =
+                        sc.claim_rewards_endpoint(OptionalValue::None).into_tuple();
+                    farm_token_nonce_out = new_farm_token.token_nonce;
+                },
+            )
+            .assert_ok();
+
+        farm_token_nonce_out
     }
 }
