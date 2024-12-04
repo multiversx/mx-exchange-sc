@@ -87,7 +87,6 @@ where
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let current_block_nonce = sc.blockchain().get_block_nonce();
         let last_reward_nonce = sc.last_reward_block_nonce().get();
-
         if current_block_nonce <= last_reward_nonce {
             return BigUint::zero();
         }
