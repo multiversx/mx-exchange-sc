@@ -5,6 +5,8 @@ members = [
   "dex",
   "dex/farm",
   "dex/farm/meta",
+  "dex/farm-with-top-up",
+  "dex/farm-with-top-up/meta",
   "dex/farm-with-locked-rewards",
   "dex/farm-with-locked-rewards/meta",
   "dex/pair",

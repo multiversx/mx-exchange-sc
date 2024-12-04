@@ -792,6 +792,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "farm-with-top-up"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "energy-factory-mock",
+ "energy-query",
+ "energy-update",
+ "events",
+ "farm-boosted-yields",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "original_owner_helper",
+ "pair",
+ "pausable",
+ "permissions-hub",
+ "permissions_hub_module",
+ "permissions_module",
+ "rewards",
+ "sc_whitelist_module",
+ "simple-lock",
+ "timestamp-oracle",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
+name = "farm-with-top-up-abi"
+version = "0.0.0"
+dependencies = [
+ "farm-with-top-up",
+ "multiversx-sc-meta-lib",
+]
+
+[[package]]
 name = "farm_base_impl"
 version = "0.0.0"
 dependencies = [

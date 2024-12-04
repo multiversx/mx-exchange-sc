@@ -1,0 +1,100 @@
+[package]
+name = "farm-with-top-up"
+version = "0.0.0"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.farm_base_impl]
+path = "../../common/modules/farm/farm_base_impl"
+
+[dependencies.config]
+path = "../../common/modules/farm/config"
+
+[dependencies.farm_token]
+path = "../../common/modules/farm/farm_token"
+
+[dependencies.rewards]
+path = "../../common/modules/farm/rewards"
+
+[dependencies.events]
+path = "../../common/modules/farm/events"
+
+[dependencies.contexts]
+path = "../../common/modules/farm/contexts"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
+
+[dependencies.permissions_hub_module]
+path = "../../common/modules/permissions_hub_module"
+
+[dependencies.original_owner_helper]
+path = "../../common/modules/original_owner_helper"
+
+[dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
+[dependencies.pair]
+path = "../pair"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.common_errors]
+path = "../../common/common_errors"
+
+[dependencies.mergeable]
+path = "../../common/traits/mergeable"
+
+[dependencies.fixed-supply-token]
+path = "../../common/traits/fixed-supply-token"
+
+[dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"
+
+[dependencies.week-timekeeping]
+path = "../../energy-integration/common-modules/week-timekeeping"
+
+[dependencies.weekly-rewards-splitting]
+path = "../../energy-integration/common-modules/weekly-rewards-splitting"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.permissions-hub]
+path = "../permissions-hub"
+
+[dependencies.multiversx-sc]
+version = "=0.53.2"
+features = ["esdt-token-payment-legacy-decode"]
+
+[dependencies.multiversx-sc-modules]
+version = "=0.53.2"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.energy-update]
+path = "../../energy-integration/energy-update"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.53.2"
+
+[dev-dependencies.energy-factory-mock]
+path = "../../energy-integration/energy-factory-mock"
+
+[dev-dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
+
+[dev-dependencies.timestamp-oracle]
+path = "../../energy-integration/timestamp-oracle"
