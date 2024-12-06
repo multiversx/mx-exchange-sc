@@ -110,3 +110,68 @@ The interaction scripts for this contract are located in the dex subdirectory of
 ## Deployment
 
 The deployment of this contract is done using interaction scripts and it is managed by its admin.
+
+# Farm With Locked Rewards OnBehalf Operations
+
+## Abstract
+
+The Farm With Locked Rewards OnBehalf operations extend the Farm With Locked Rewards smart contract with the ability to allow whitelisted contracts to perform actions on behalf of users, enabling enhanced protocol composability while maintaining security through integration with the Permissions Hub.
+
+## Introduction
+
+This module allows third-party contracts to perform farm operations on behalf of users, after being explicitly whitelisted through the Permissions Hub. Users maintain full control over their assets by managing contract permissions, while protocols can build more complex DeFi interactions.
+
+## Endpoints
+
+### enterFarmOnBehalf
+
+```rust
+#[payable("*")]
+#[endpoint(enterFarmOnBehalf)]
+fn enter_farm_on_behalf(&self, user: ManagedAddress) -> EnterFarmResultType<Self::Api>
+```
+
+The enterFarmOnBehalf function allows whitelisted contracts to enter farm positions on behalf of users. It receives several arguments:
+
+- __user__ - The address of the user for whom the operation is being performed. This address must have whitelisted the caller contract through the Permissions Hub.
+- __payment__ - The tokens to be used are received as payment in the transaction.
+
+The function performs the following steps:
+1. Validates that the caller is whitelisted by the user through Permissions Hub
+2. Processes the farming tokens payment
+3. Claims any pending boosted rewards for the original owner
+4. Performs the enter farm operation on behalf of the original owner
+5. Sends the new farm token to the caller
+6. Sends the locked rewards, if any, to the original owner
+7. Updates energy and progress for the original owner
+
+### claimRewardsOnBehalf
+
+```rust
+#[payable("*")]
+#[endpoint(claimRewardsOnBehalf)]
+fn claim_rewards_on_behalf(&self) -> ClaimRewardsResultType<Self::Api>
+```
+
+The claimRewardsOnBehalf function enables whitelisted contracts to claim rewards on behalf of the users. This function does not require any address parameter, as the original owner is read from the farm position metadata. The operation requires:
+
+- __payment__ - The farm token must be received as payment in the transaction.
+
+The function performs these steps:
+1. Processes the farm token payment
+2. Extracts the original owner from the farm token attributes
+3. Validates that the caller is whitelisted by the original owner
+4. Claims and sends locked rewards to the original owner
+5. Sends the new farm token to the caller
+
+## Storage
+
+The contract relies on the Permissions Hub for permission management, thus no additional storage, other than the one holding the Permissions Hub SC address, is required. All whitelisting data is managed through the Permissions Hub contract.
+
+## Deployment
+
+The onBehalf features are part of the core farm contract and require:
+
+1. A deployed Permissions Hub contract
+2. Configuration of the Permissions Hub address in the farm contract
+3. User whitelisting of contracts that will perform onBehalf operations
