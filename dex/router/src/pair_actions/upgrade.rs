@@ -27,6 +27,7 @@ pub trait UpgradeModule:
             second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
+
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(!pair_address.is_zero(), "Pair does not exists");
 

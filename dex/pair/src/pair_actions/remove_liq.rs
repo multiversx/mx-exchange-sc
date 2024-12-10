@@ -16,7 +16,10 @@ pub trait RemoveLiquidityModule:
     + crate::locking_wrapper::LockingWrapperModule
     + crate::events::EventsModule
     + crate::safe_price::SafePriceModule
-    + crate::fee::FeeModule
+    + crate::fee::endpoints::EndpointsModule
+    + crate::fee::impls::ImplsModule
+    + crate::fee::storage::StorageModule
+    + crate::fee::views::ViewsModule
     + crate::config::ConfigModule
     + token_send::TokenSendModule
     + permissions_module::PermissionsModule

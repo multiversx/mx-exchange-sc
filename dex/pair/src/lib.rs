@@ -29,7 +29,10 @@ use permissions_module::Permissions;
 #[multiversx_sc::contract]
 pub trait Pair<ContractReader>:
     amm::AmmModule
-    + fee::FeeModule
+    + fee::endpoints::EndpointsModule
+    + fee::impls::ImplsModule
+    + fee::storage::StorageModule
+    + fee::views::ViewsModule
     + liquidity_pool::LiquidityPoolModule
     + config::ConfigModule
     + token_send::TokenSendModule
@@ -76,25 +79,26 @@ pub trait Pair<ContractReader>:
         self.state().set(State::Inactive);
 
         self.router_address().set(&router_address);
-        self.first_token_id().set_if_empty(&first_token_id);
-        self.second_token_id().set_if_empty(&second_token_id);
-        let initial_liquidity_adder_opt = if !initial_liquidity_adder.is_zero() {
+        self.first_token_id().set(first_token_id);
+        self.second_token_id().set(second_token_id);
+
+        let opt_initial_liquidity_adder = if !initial_liquidity_adder.is_zero() {
             Some(initial_liquidity_adder)
         } else {
             None
         };
         self.initial_liquidity_adder()
-            .set_if_empty(&initial_liquidity_adder_opt);
+            .set(&opt_initial_liquidity_adder);
 
         if admins.is_empty() {
             // backwards compatibility
             let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
-            self.add_permissions(router_address, all_permissions.clone());
-            self.add_permissions(router_owner_address, all_permissions);
+            self.add_permissions(&router_address, all_permissions.clone());
+            self.add_permissions(&router_owner_address, all_permissions);
         } else {
-            self.add_permissions(router_address, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions(&router_address, Permissions::OWNER | Permissions::PAUSE);
             self.add_permissions(
-                router_owner_address,
+                &router_owner_address,
                 Permissions::OWNER | Permissions::PAUSE,
             );
             self.add_permissions_for_all(admins, Permissions::ADMIN);
@@ -121,6 +125,7 @@ pub trait Pair<ContractReader>:
             token_identifier.is_valid_esdt_identifier(),
             ERROR_NOT_AN_ESDT
         );
+
         self.lp_token_identifier().set(&token_identifier);
     }
 }
