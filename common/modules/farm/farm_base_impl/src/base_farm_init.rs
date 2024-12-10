@@ -38,16 +38,16 @@ pub trait BaseFarmInitModule:
         self.farming_token_id().set_if_empty(&farming_token_id);
 
         if !owner.is_zero() {
-            self.add_permissions(owner, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions(&owner, Permissions::OWNER | Permissions::PAUSE);
         }
 
         let caller = self.blockchain().get_caller();
         if admins.is_empty() {
             // backwards compatibility
             let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
-            self.add_permissions(caller, all_permissions);
+            self.add_permissions(&caller, all_permissions);
         } else {
-            self.add_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions(&caller, Permissions::OWNER | Permissions::PAUSE);
             self.add_permissions_for_all(admins, Permissions::ADMIN);
         };
     }

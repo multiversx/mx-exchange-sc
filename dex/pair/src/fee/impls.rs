@@ -1,16 +1,11 @@
-multiversx_sc::imports!();
-multiversx_sc::derive_imports!();
-
-use super::amm;
-use super::config;
-use super::errors::*;
-use super::liquidity_pool;
-use crate::config::MAX_PERCENTAGE;
-use crate::contexts::base::StorageCache;
-use crate::contexts::base::SwapTokensOrder;
-
 use common_structs::TokenPair;
 use fees_collector::fees_accumulation::ProxyTrait as _;
+
+use crate::{
+    config::MAX_PERCENTAGE, StorageCache, SwapTokensOrder, ERROR_NOTHING_TO_DO_WITH_FEE_SLICE,
+};
+
+multiversx_sc::imports!();
 
 mod self_proxy {
     multiversx_sc::imports!();
@@ -24,104 +19,15 @@ mod self_proxy {
 }
 
 #[multiversx_sc::module]
-pub trait FeeModule:
-    config::ConfigModule
-    + liquidity_pool::LiquidityPoolModule
-    + amm::AmmModule
+pub trait ImplsModule:
+    crate::config::ConfigModule
+    + crate::liquidity_pool::LiquidityPoolModule
+    + crate::amm::AmmModule
     + token_send::TokenSendModule
     + permissions_module::PermissionsModule
     + pausable::PausableModule
+    + super::storage::StorageModule
 {
-    #[view(getFeeState)]
-    fn is_fee_enabled(&self) -> bool {
-        !self.destination_map().is_empty() || !self.fees_collector_address().is_empty()
-    }
-
-    #[endpoint(whitelist)]
-    fn whitelist_endpoint(&self, address: ManagedAddress) {
-        self.require_caller_has_owner_permissions();
-        let is_new = self.whitelist().insert(address);
-        require!(is_new, ERROR_ALREADY_WHITELISTED);
-    }
-
-    #[endpoint(removeWhitelist)]
-    fn remove_whitelist(&self, address: ManagedAddress) {
-        self.require_caller_has_owner_permissions();
-        let is_removed = self.whitelist().remove(&address);
-        require!(is_removed, ERROR_NOT_WHITELISTED);
-    }
-
-    #[endpoint(addTrustedSwapPair)]
-    fn add_trusted_swap_pair(
-        &self,
-        pair_address: ManagedAddress,
-        first_token: TokenIdentifier,
-        second_token: TokenIdentifier,
-    ) {
-        self.require_caller_has_owner_permissions();
-        require!(first_token != second_token, ERROR_SAME_TOKENS);
-        let token_pair = TokenPair {
-            first_token,
-            second_token,
-        };
-        let is_new = self
-            .trusted_swap_pair()
-            .insert(token_pair, pair_address)
-            .is_none();
-        require!(is_new, ERROR_PAIR_ALREADY_TRUSTED);
-    }
-
-    #[endpoint(removeTrustedSwapPair)]
-    fn remove_trusted_swap_pair(
-        &self,
-        first_token: TokenIdentifier,
-        second_token: TokenIdentifier,
-    ) {
-        self.require_caller_has_owner_permissions();
-        let token_pair = TokenPair {
-            first_token: first_token.clone(),
-            second_token: second_token.clone(),
-        };
-
-        let mut is_removed = self.trusted_swap_pair().remove(&token_pair).is_some();
-        if !is_removed {
-            let token_pair_reversed = TokenPair {
-                first_token: second_token,
-                second_token: first_token,
-            };
-            is_removed = self
-                .trusted_swap_pair()
-                .remove(&token_pair_reversed)
-                .is_some();
-            require!(is_removed, ERROR_PAIR_NOT_TRUSTED);
-        }
-    }
-
-    /// `fees_collector_cut_percentage` of the special fees are sent to the fees_collector_address SC
-    ///
-    /// For example, if special fees is 5%, and fees_collector_cut_percentage is 10%,
-    /// then of the 5%, 10% are reserved, and only the rest are split between other pair contracts.
-    #[endpoint(setupFeesCollector)]
-    fn setup_fees_collector(
-        &self,
-        fees_collector_address: ManagedAddress,
-        fees_collector_cut_percentage: u64,
-    ) {
-        self.require_caller_has_owner_permissions();
-        require!(
-            self.blockchain().is_smart_contract(&fees_collector_address),
-            "Invalid fees collector address"
-        );
-        require!(
-            fees_collector_cut_percentage > 0 && fees_collector_cut_percentage <= MAX_PERCENTAGE,
-            "Invalid fees percentage"
-        );
-
-        self.fees_collector_address().set(&fees_collector_address);
-        self.fees_collector_cut_percentage()
-            .set(fees_collector_cut_percentage);
-    }
-
     fn send_fee(
         &self,
         storage_cache: &mut StorageCache<Self>,
@@ -304,13 +210,6 @@ pub trait FeeModule:
             .execute_on_dest_context();
     }
 
-    #[inline]
-    fn burn(&self, token: &TokenIdentifier, amount: &BigUint) {
-        if amount > &0 {
-            self.send().esdt_local_burn(token, 0, amount);
-        }
-    }
-
     fn get_extern_swap_pair_address(
         &self,
         first_token: &TokenIdentifier,
@@ -346,55 +245,11 @@ pub trait FeeModule:
         }
     }
 
-    #[endpoint(setFeeOn)]
-    fn set_fee_on(
-        &self,
-        enabled: bool,
-        fee_to_address: ManagedAddress,
-        fee_token: TokenIdentifier,
-    ) {
-        self.require_caller_has_owner_permissions();
-        let is_dest = self
-            .destination_map()
-            .keys()
-            .any(|dest_address| dest_address == fee_to_address);
-
-        if enabled {
-            require!(!is_dest, ERROR_ALREADY_FEE_DEST);
-            self.destination_map().insert(fee_to_address, fee_token);
-        } else {
-            require!(is_dest, ERROR_NOT_FEE_DEST);
-            let dest_fee_token = self.destination_map().get(&fee_to_address).unwrap();
-            require!(fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
-            self.destination_map().remove(&fee_to_address);
+    #[inline]
+    fn burn(&self, token: &TokenIdentifier, amount: &BigUint) {
+        if amount > &0 {
+            self.send().esdt_local_burn(token, 0, amount);
         }
-    }
-
-    #[view(getFeeDestinations)]
-    fn get_fee_destinations(&self) -> MultiValueEncoded<(ManagedAddress, TokenIdentifier)> {
-        let mut result = MultiValueEncoded::new();
-        for pair in self.destination_map().iter() {
-            result.push((pair.0, pair.1))
-        }
-        result
-    }
-
-    #[view(getTrustedSwapPairs)]
-    fn get_trusted_swap_pairs(&self) -> MultiValueEncoded<(TokenPair<Self::Api>, ManagedAddress)> {
-        let mut result = MultiValueEncoded::new();
-        for pair in self.trusted_swap_pair().iter() {
-            result.push((pair.0, pair.1))
-        }
-        result
-    }
-
-    #[view(getWhitelistedManagedAddresses)]
-    fn get_whitelisted_managed_addresses(&self) -> MultiValueEncoded<ManagedAddress> {
-        let mut result = MultiValueEncoded::new();
-        for pair in self.whitelist().iter() {
-            result.push(pair);
-        }
-        result
     }
 
     #[proxy]
@@ -402,21 +257,4 @@ pub trait FeeModule:
 
     #[proxy]
     fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
-
-    #[view(getFeesCollectorAddress)]
-    #[storage_mapper("feesCollectorAddress")]
-    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getFeesCollectorCutPercentage)]
-    #[storage_mapper("feesCollectorCutPercentage")]
-    fn fees_collector_cut_percentage(&self) -> SingleValueMapper<u64>;
-
-    #[storage_mapper("fee_destination")]
-    fn destination_map(&self) -> MapMapper<ManagedAddress, TokenIdentifier>;
-
-    #[storage_mapper("trusted_swap_pair")]
-    fn trusted_swap_pair(&self) -> MapMapper<TokenPair<Self::Api>, ManagedAddress>;
-
-    #[storage_mapper("whitelist")]
-    fn whitelist(&self) -> SetMapper<ManagedAddress>;
 }

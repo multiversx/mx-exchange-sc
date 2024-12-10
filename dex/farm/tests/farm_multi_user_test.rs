@@ -254,7 +254,7 @@ fn farm_change_boosted_yields_factors_test() {
                 BoostedYieldsConfig::new(current_week - 1, default_factors.clone());
             assert_eq!(expected_config, sc.boosted_yields_config().get());
 
-            sc.add_permissions(managed_address!(&farm_addr), Permissions::all());
+            sc.add_permissions(&managed_address!(&farm_addr), Permissions::all());
             sc.set_boosted_yields_factors(
                 managed_biguint!(1u64),
                 managed_biguint!(1u64),

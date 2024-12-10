@@ -26,7 +26,7 @@ pub trait PausableModule: permissions_module::PermissionsModule {
         self.require_caller_has_owner_permissions();
 
         for address in address_list {
-            self.remove_permissions(address, Permissions::PAUSE);
+            self.remove_permissions(&address, Permissions::PAUSE);
         }
     }
 
