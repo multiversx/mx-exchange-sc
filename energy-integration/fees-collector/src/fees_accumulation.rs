@@ -30,17 +30,7 @@ pub trait FeesAccumulationModule:
         );
 
         if payment.token_nonce == 0 {
-            let opt_pair = self.get_pair(payment.token_identifier.clone());
-            if let Some(pair_address) = opt_pair {
-                let base_token_id = self.base_token_id().get();
-                payment = self.swap_to_common_token(pair_address, payment, base_token_id.clone());
-
-                // just a sanity check
-                require!(
-                    payment.token_identifier == base_token_id,
-                    "Wrong token received from pair"
-                );
-            }
+            self.try_swap_to_base_token(&mut payment);
         } else {
             self.burn_locked_token(&payment);
         }
@@ -63,6 +53,24 @@ pub trait FeesAccumulationModule:
         } else {
             None
         }
+    }
+
+    fn try_swap_to_base_token(&self, payment: &mut EsdtTokenPayment) {
+        let opt_pair = self.get_pair(payment.token_identifier.clone());
+        if opt_pair.is_none() {
+            return;
+        }
+
+        let pair_address = unsafe { opt_pair.unwrap_unchecked() };
+        let base_token_id = self.base_token_id().get();
+        *payment =
+            self.swap_to_common_token(pair_address, (*payment).clone(), base_token_id.clone());
+
+        // just a sanity check
+        require!(
+            payment.token_identifier == base_token_id,
+            "Wrong token received from pair"
+        );
     }
 
     fn burn_locked_token(&self, payment: &EsdtTokenPayment) {
