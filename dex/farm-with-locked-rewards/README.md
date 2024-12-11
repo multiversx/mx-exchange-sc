@@ -164,6 +164,10 @@ The function performs these steps:
 4. Claims and sends locked rewards to the original owner
 5. Sends the new farm token to the caller
 
+## exitOnBehalf
+The exit operation remains under the direct control of the position owner to ensure maximum security. When third-party contracts interact with farming positions through onBehalf operations, they receive and hold the position tokens. These tokens maintain the original owner information in their attributes, protecting the user's ownership rights. To exit their position, users must first reclaim their position tokens from the third-party contract through that protocol's specific mechanisms. Once users have regained control of their position tokens, they can perform the standard exit operation directly through the specific xExchange contract. 
+This design ensures users maintain ultimate control over their funds while allowing protocols to build complex DeFi interactions.
+
 ## Storage
 
 The contract relies on the Permissions Hub for permission management, thus no additional storage, other than the one holding the Permissions Hub SC address, is required. All whitelisting data is managed through the Permissions Hub contract.
