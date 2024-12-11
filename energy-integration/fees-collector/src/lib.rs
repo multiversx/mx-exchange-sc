@@ -6,6 +6,7 @@ pub mod additional_locked_tokens;
 pub mod claim;
 pub mod config;
 pub mod events;
+pub mod external_sc_interactions;
 pub mod fees_accumulation;
 pub mod redistribute_rewards;
 
@@ -29,16 +30,24 @@ pub trait FeesCollector:
     + multiversx_sc_modules::only_admin::OnlyAdminModule
     + claim::ClaimModule
     + redistribute_rewards::RedistributeRewardsModule
+    + external_sc_interactions::router::RouterInteractionsModule
+    + external_sc_interactions::pair::PairInteractionsModule
 {
     #[init]
     fn init(
         &self,
         locked_token_id: TokenIdentifier,
         energy_factory_address: ManagedAddress,
+        router_address: ManagedAddress,
+        base_token_id: TokenIdentifier,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         self.require_valid_token_id(&locked_token_id);
         self.require_sc_address(&energy_factory_address);
+        self.require_valid_token_id(&base_token_id);
+
+        self.set_router_address(router_address);
+        self.set_base_token_id(base_token_id);
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set(current_epoch);

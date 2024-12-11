@@ -155,6 +155,8 @@ where
                 sc.init(
                     managed_token_id!(LOCKED_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
+                    managed_address!(energy_factory_wrapper.address_ref()), // unused
+                    managed_token_id!(b"RANDTOK-123456"),                   // unused
                     admins,
                 );
 

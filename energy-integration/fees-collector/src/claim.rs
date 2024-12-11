@@ -24,6 +24,8 @@ pub trait ClaimModule:
     + sc_whitelist_module::SCWhitelistModule
     + multiversx_sc_modules::only_admin::OnlyAdminModule
     + crate::redistribute_rewards::RedistributeRewardsModule
+    + crate::external_sc_interactions::router::RouterInteractionsModule
+    + crate::external_sc_interactions::pair::PairInteractionsModule
 {
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(

@@ -112,6 +112,8 @@ where
                 sc.init(
                     managed_token_id!(XMEX_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
+                    managed_address!(energy_factory_wrapper.address_ref()), // unused
+                    managed_token_id!(b"RANDTOK-123456"),                   // unused
                     MultiValueEncoded::new(),
                 );
             })

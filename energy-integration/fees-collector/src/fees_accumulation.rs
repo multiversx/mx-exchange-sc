@@ -8,6 +8,9 @@ pub trait FeesAccumulationModule:
     crate::config::ConfigModule
     + crate::events::FeesCollectorEventsModule
     + week_timekeeping::WeekTimekeepingModule
+    + crate::external_sc_interactions::router::RouterInteractionsModule
+    + crate::external_sc_interactions::pair::PairInteractionsModule
+    + utils::UtilsModule
 {
     /// Pair SC will deposit the fees through this endpoint
     /// Deposits for current week are accessible starting next week
@@ -20,23 +23,26 @@ pub trait FeesAccumulationModule:
             "Only known contracts can deposit"
         );
 
-        let payment = self.call_value().single_esdt();
+        let mut payment = self.call_value().single_esdt();
         require!(
             self.known_tokens().contains(&payment.token_identifier),
             "Invalid payment token"
         );
 
-        if payment.token_nonce > 0 {
-            require!(
-                payment.token_identifier == self.locked_token_id().get(),
-                "Invalid locked token"
-            );
+        if payment.token_nonce == 0 {
+            let opt_pair = self.get_pair(payment.token_identifier.clone());
+            if let Some(pair_address) = opt_pair {
+                let base_token_id = self.base_token_id().get();
+                payment = self.swap_to_common_token(pair_address, payment, base_token_id.clone());
 
-            self.send().esdt_local_burn(
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
+                // just a sanity check
+                require!(
+                    payment.token_identifier == base_token_id,
+                    "Wrong token received from pair"
+                );
+            }
+        } else {
+            self.burn_locked_token(&payment);
         }
 
         let current_week = self.get_current_week();
@@ -57,6 +63,19 @@ pub trait FeesAccumulationModule:
         } else {
             None
         }
+    }
+
+    fn burn_locked_token(&self, payment: &EsdtTokenPayment) {
+        require!(
+            payment.token_identifier == self.locked_token_id().get(),
+            "Invalid locked token"
+        );
+
+        self.send().esdt_local_burn(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+        );
     }
 
     #[view(getAccumulatedFees)]
