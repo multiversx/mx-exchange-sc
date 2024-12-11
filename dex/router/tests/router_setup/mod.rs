@@ -42,7 +42,7 @@ where
     RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
-    pub blockchain_wrapper: BlockchainStateWrapper,
+    pub b_mock: BlockchainStateWrapper,
     pub owner_address: Address,
     pub user_address: Address,
     pub router_wrapper: ContractObjWrapper<router::ContractObj<DebugApi>, RouterObjBuilder>,
@@ -57,31 +57,23 @@ where
 {
     pub fn new(router_builder: RouterObjBuilder, pair_builder: PairObjBuilder) -> Self {
         let rust_zero = rust_biguint!(0u64);
-        let mut blockchain_wrapper = BlockchainStateWrapper::new();
-        let owner_addr = blockchain_wrapper.create_user_account(&rust_zero);
+        let mut b_mock = BlockchainStateWrapper::new();
+        let owner_addr = b_mock.create_user_account(&rust_zero);
 
-        let router_wrapper = blockchain_wrapper.create_sc_account(
+        let router_wrapper = b_mock.create_sc_account(
             &rust_zero,
             Some(&owner_addr),
             router_builder,
             ROUTER_WASM_PATH,
         );
 
-        let mex_pair_wrapper = blockchain_wrapper.create_sc_account(
-            &rust_zero,
-            Some(&owner_addr),
-            pair_builder,
-            PAIR_WASM_PATH,
-        );
+        let mex_pair_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner_addr), pair_builder, PAIR_WASM_PATH);
 
-        let usdc_pair_wrapper = blockchain_wrapper.create_sc_account(
-            &rust_zero,
-            Some(&owner_addr),
-            pair_builder,
-            PAIR_WASM_PATH,
-        );
+        let usdc_pair_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner_addr), pair_builder, PAIR_WASM_PATH);
 
-        blockchain_wrapper
+        b_mock
             .execute_tx(&owner_addr, &mex_pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(MEX_TOKEN_ID);
@@ -108,7 +100,7 @@ where
             })
             .assert_ok();
 
-        blockchain_wrapper
+        b_mock
             .execute_tx(&owner_addr, &usdc_pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(USDC_TOKEN_ID);
@@ -135,7 +127,7 @@ where
             })
             .assert_ok();
 
-        blockchain_wrapper
+        b_mock
             .execute_tx(&owner_addr, &router_wrapper, &rust_zero, |sc| {
                 sc.init(OptionalValue::None);
 
@@ -157,38 +149,38 @@ where
             .assert_ok();
 
         let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
-        blockchain_wrapper.set_esdt_local_roles(
+        b_mock.set_esdt_local_roles(
             mex_pair_wrapper.address_ref(),
             LPMEX_TOKEN_ID,
             &lp_token_roles[..],
         );
 
         let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
-        blockchain_wrapper.set_esdt_local_roles(
+        b_mock.set_esdt_local_roles(
             usdc_pair_wrapper.address_ref(),
             LPUSDC_TOKEN_ID,
             &lp_token_roles[..],
         );
 
-        let user_addr = blockchain_wrapper.create_user_account(&rust_biguint!(100_000_000));
-        blockchain_wrapper.set_esdt_balance(
+        let user_addr = b_mock.create_user_account(&rust_biguint!(100_000_000));
+        b_mock.set_esdt_balance(
             &user_addr,
             WEGLD_TOKEN_ID,
             &rust_biguint!(USER_TOTAL_WEGLD_TOKENS),
         );
-        blockchain_wrapper.set_esdt_balance(
+        b_mock.set_esdt_balance(
             &user_addr,
             MEX_TOKEN_ID,
             &rust_biguint!(USER_TOTAL_MEX_TOKENS),
         );
-        blockchain_wrapper.set_esdt_balance(
+        b_mock.set_esdt_balance(
             &user_addr,
             USDC_TOKEN_ID,
             &rust_biguint!(USER_TOTAL_USDC_TOKENS),
         );
 
         RouterSetup {
-            blockchain_wrapper,
+            b_mock,
             owner_address: owner_addr,
             user_address: user_addr,
             router_wrapper,
@@ -211,7 +203,7 @@ where
             },
         ];
 
-        self.blockchain_wrapper
+        self.b_mock
             .execute_esdt_multi_transfer(
                 &self.user_address,
                 &self.mex_pair_wrapper,
@@ -238,7 +230,7 @@ where
             },
         ];
 
-        self.blockchain_wrapper
+        self.b_mock
             .execute_esdt_multi_transfer(
                 &self.user_address,
                 &self.usdc_pair_wrapper,
@@ -261,7 +253,7 @@ where
     ) {
         let payment_amount_big = rust_biguint!(payment_amount);
 
-        self.blockchain_wrapper
+        self.b_mock
             .execute_esdt_transfer(
                 &self.user_address,
                 &self.router_wrapper,
