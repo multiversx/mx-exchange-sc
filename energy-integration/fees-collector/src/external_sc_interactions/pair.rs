@@ -10,7 +10,7 @@ mod pair_proxy {
         fn swap_tokens_fixed_input(
             &self,
             token_out: TokenIdentifier,
-            amount_out_min: BigUint, // TOOD: Must be at least 1
+            amount_out_min: BigUint,
         ) -> EsdtTokenPayment;
     }
 }
