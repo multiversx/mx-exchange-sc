@@ -27,8 +27,12 @@ pub trait RouterInteractionsModule: crate::config::ConfigModule + utils::UtilsMo
 
     // Mimics the "get_pair" logic from router. Way cheaper than doing an external call.
     fn get_pair(&self, other_token_id: TokenIdentifier) -> Option<ManagedAddress> {
-        let router_address = self.router_address().get();
         let base_token_id = self.base_token_id().get();
+        if other_token_id == base_token_id {
+            return None;
+        }
+
+        let router_address = self.router_address().get();
         let pair_map_mapper = self.pair_map(router_address);
 
         let opt_address = pair_map_mapper.get(&PairTokens {
