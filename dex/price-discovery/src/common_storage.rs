@@ -1,3 +1,5 @@
+use crate::Timestamp;
+
 multiversx_sc::imports!();
 
 pub const MAX_PERCENTAGE: u64 = 10_000_000_000_000; // 100%
@@ -20,11 +22,7 @@ pub trait CommonStorageModule {
     #[storage_mapper("acceptedTokenBalance")]
     fn accepted_token_balance(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getStartBlock)]
-    #[storage_mapper("startBlock")]
-    fn start_block(&self) -> SingleValueMapper<u64>;
-
-    #[view(getEndBlock)]
-    #[storage_mapper("endBlock")]
-    fn end_block(&self) -> SingleValueMapper<u64>;
+    #[view(getStartTime)]
+    #[storage_mapper("startTime")]
+    fn start_time(&self) -> SingleValueMapper<Timestamp>;
 }

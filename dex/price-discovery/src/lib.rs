@@ -2,6 +2,8 @@
 
 multiversx_sc::imports!();
 
+use events::{DepositEventArgs, RedeemEventArgs, WithdrawEventArgs};
+
 use crate::{
     common_storage::MAX_PERCENTAGE,
     redeem_token::{ACCEPTED_TOKEN_REDEEM_NONCE, LAUNCHED_TOKEN_REDEEM_NONCE},
@@ -12,6 +14,11 @@ pub mod events;
 pub mod phase;
 pub mod redeem_token;
 
+pub type Nonce = u64;
+pub type Block = u64;
+pub type Epoch = u64;
+pub type Timestamp = u64;
+
 static INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
 static BELOW_MIN_PRICE_ERR_MSG: &[u8] = b"Launched token below min price";
 const MAX_TOKEN_DECIMALS: u32 = 18;
@@ -20,7 +27,6 @@ const MAX_TOKEN_DECIMALS: u32 = 18;
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + events::EventsModule
-    + locking_module::locking_module::LockingModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -33,15 +39,10 @@ pub trait PriceDiscovery:
         accepted_token_id: EgldOrEsdtTokenIdentifier,
         launched_token_decimals: u32,
         min_launched_token_price: BigUint,
-        start_block: u64,
-        no_limit_phase_duration_blocks: u64,
-        linear_penalty_phase_duration_blocks: u64,
-        fixed_penalty_phase_duration_blocks: u64,
-        unlock_epoch: u64,
-        penalty_min_percentage: BigUint,
-        penalty_max_percentage: BigUint,
-        fixed_penalty_percentage: BigUint,
-        locking_sc_address: ManagedAddress,
+        min_launched_tokens: BigUint,
+        start_time: Timestamp,
+        user_deposit_withdraw_time: Timestamp,
+        owner_deposit_withdraw_time: Timestamp,
     ) {
         require!(
             launched_token_id.is_valid_esdt_identifier(),
@@ -52,65 +53,36 @@ pub trait PriceDiscovery:
             accepted_token_id != launched_token_id,
             "Launched and accepted token must be different"
         );
-
         require!(
             launched_token_decimals <= MAX_TOKEN_DECIMALS,
             "Launched token has too many decimals"
         );
 
-        let current_block = self.blockchain().get_block_nonce();
+        let current_time = self.blockchain().get_block_timestamp();
         require!(
-            current_block < start_block,
-            "Start block cannot be in the past"
+            current_time < start_time,
+            "Start time cannot be in the past"
+        );
+        require!(
+            user_deposit_withdraw_time > 0 && owner_deposit_withdraw_time > 0,
+            "Invalid timestamps"
         );
 
-        let end_block = start_block
-            + no_limit_phase_duration_blocks
-            + linear_penalty_phase_duration_blocks
-            + fixed_penalty_phase_duration_blocks;
+        require!(min_launched_tokens > 0, "Invalid min launched tokens");
 
-        require!(
-            penalty_min_percentage <= penalty_max_percentage,
-            "Min percentage higher than max percentage"
-        );
-        require!(
-            penalty_max_percentage < MAX_PERCENTAGE,
-            "Max percentage higher than 100%"
-        );
-        require!(
-            fixed_penalty_percentage < MAX_PERCENTAGE,
-            "Fixed percentage higher than 100%"
-        );
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            unlock_epoch > current_epoch,
-            "Unlock epoch cannot be in the past"
-        );
-
-        self.launched_token_id().set(&launched_token_id);
-        self.accepted_token_id().set(&accepted_token_id);
-        self.start_block().set(start_block);
-        self.end_block().set(end_block);
-        self.unlock_epoch().set(unlock_epoch);
+        self.launched_token_id().set(launched_token_id);
+        self.accepted_token_id().set(accepted_token_id);
+        self.start_time().set(start_time);
+        self.user_deposit_withdraw_time()
+            .set(owner_deposit_withdraw_time);
+        self.owner_deposit_withdraw_time()
+            .set(owner_deposit_withdraw_time);
 
         let price_precision = 10u64.pow(launched_token_decimals);
         self.price_precision().set(price_precision);
         self.min_launched_token_price()
-            .set(&min_launched_token_price);
-
-        self.no_limit_phase_duration_blocks()
-            .set(no_limit_phase_duration_blocks);
-        self.linear_penalty_phase_duration_blocks()
-            .set(linear_penalty_phase_duration_blocks);
-        self.fixed_penalty_phase_duration_blocks()
-            .set(fixed_penalty_phase_duration_blocks);
-        self.penalty_min_percentage().set(&penalty_min_percentage);
-        self.penalty_max_percentage().set(&penalty_max_percentage);
-        self.fixed_penalty_percentage()
-            .set(&fixed_penalty_percentage);
-
-        self.set_locking_sc_address(locking_sc_address);
+            .set(min_launched_token_price);
+        self.min_launched_tokens().set(min_launched_tokens);
     }
 
     #[upgrade]
@@ -148,15 +120,15 @@ pub trait PriceDiscovery:
         let payment_result =
             self.mint_and_send_redeem_token(&caller, redeem_token_nonce, payment_amount.clone());
 
-        self.emit_deposit_event(
-            payment_token,
-            payment_amount.clone(),
-            payment_result.token_identifier.clone(),
+        self.emit_deposit_event(DepositEventArgs {
+            token_id_in: payment_token,
+            token_amount_in: payment_amount.clone(),
+            redeem_token_id: payment_result.token_identifier.clone(),
             redeem_token_nonce,
-            payment_amount,
+            redeem_token_amount: payment_amount,
             current_price,
-            phase,
-        );
+            current_phase: phase,
+        });
 
         payment_result
     }
@@ -203,15 +175,15 @@ pub trait PriceDiscovery:
         self.send()
             .direct(&caller, &refund_token_id, 0, &withdraw_amount);
 
-        self.emit_withdraw_event(
-            refund_token_id.clone(),
-            withdraw_amount.clone(),
-            payment_token,
-            payment_nonce,
-            payment_amount,
+        self.emit_withdraw_event(WithdrawEventArgs {
+            token_id_out: refund_token_id.clone(),
+            token_amount_out: withdraw_amount.clone(),
+            redeem_token_id: payment_token,
+            redeem_token_nonce: payment_nonce,
+            redeem_token_amount: payment_amount,
             current_price,
-            phase,
-        );
+            current_phase: phase,
+        });
 
         EgldOrEsdtTokenPayment::new(refund_token_id, 0, withdraw_amount)
     }
@@ -246,13 +218,13 @@ pub trait PriceDiscovery:
             );
         }
 
-        self.emit_redeem_event(
-            payment_token,
-            payment_nonce,
-            payment_amount,
-            bought_tokens.token_identifier.clone(),
-            bought_tokens.amount.clone(),
-        );
+        self.emit_redeem_event(RedeemEventArgs {
+            redeem_token_id: payment_token,
+            redeem_token_nonce: payment_nonce,
+            redeem_token_amount: payment_amount,
+            bought_token_id: bought_tokens.token_identifier.clone(),
+            bought_token_amount: bought_tokens.amount.clone(),
+        });
 
         bought_tokens
     }
@@ -307,6 +279,9 @@ pub trait PriceDiscovery:
     #[view(getMinLaunchedTokenPrice)]
     #[storage_mapper("minLaunchedTokenPrice")]
     fn min_launched_token_price(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("minLaunchedTokens")]
+    fn min_launched_tokens(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getPricePrecision)]
     #[storage_mapper("pricePrecision")]
