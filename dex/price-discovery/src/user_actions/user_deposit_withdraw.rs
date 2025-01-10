@@ -2,7 +2,6 @@ use crate::events::{DepositEventArgs, WithdrawEventArgs};
 
 multiversx_sc::imports!();
 
-static BELOW_MIN_PRICE_ERR_MSG: &[u8] = b"Launched token below min price";
 pub static INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
 
 #[multiversx_sc::module]

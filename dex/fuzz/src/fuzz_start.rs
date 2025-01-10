@@ -10,7 +10,6 @@ mod test {
     use crate::fuzz_data::fuzz_data_tests::*;
     use crate::fuzz_farm::fuzz_farm_test::*;
     use crate::fuzz_pair::fuzz_pair_test::*;
-    use crate::fuzz_price_discovery::fuzz_price_discovery_test::*;
 
     use multiversx_sc_scenario::DebugApi;
 
@@ -26,12 +25,7 @@ mod test {
             .expect("Incorrect output");
         let seed = seed_base.as_secs() * 1000 + seed_base.subsec_nanos() as u64 / 1_000_000; //in ms
 
-        let mut fuzzer_data = FuzzerData::new(
-            seed,
-            pair::contract_obj,
-            farm::contract_obj,
-            price_discovery::contract_obj,
-        );
+        let mut fuzzer_data = FuzzerData::new(seed, pair::contract_obj, farm::contract_obj);
 
         println!("Started fuzz testing with seed: {}", (seed));
 
@@ -43,9 +37,6 @@ mod test {
             (5, fuzzer_data.fuzz_args.exit_farm_prob),
             (6, fuzzer_data.fuzz_args.claim_rewards_prob),
             (7, fuzzer_data.fuzz_args.compound_rewards_prob),
-            (8, fuzzer_data.fuzz_args.price_discovery_deposit_prob),
-            (9, fuzzer_data.fuzz_args.price_discovery_withdraw_prob),
-            (10, fuzzer_data.fuzz_args.price_discovery_redeem_prob),
         ];
 
         let mut block_epoch = 1;
@@ -92,18 +83,6 @@ mod test {
                     println!("Event no. {}: Compound reward", (block_nonce));
                     compound_rewards(&mut fuzzer_data);
                 }
-                8 => {
-                    println!("Event no. {}: Price discovery deposit", (block_nonce));
-                    price_discovery_deposit(&mut fuzzer_data);
-                }
-                9 => {
-                    println!("Event no. {}: Price discovery withdraw", (block_nonce));
-                    price_discovery_withdraw(&mut fuzzer_data);
-                }
-                10 => {
-                    println!("Event no. {}: Price discovery redeem", (block_nonce));
-                    price_discovery_redeem(&mut fuzzer_data);
-                }
                 _ => println!("No event triggered"),
             }
         }
@@ -111,13 +90,12 @@ mod test {
         print_statistics(&mut fuzzer_data, seed);
     }
 
-    fn print_statistics<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
+    fn print_statistics<PairObjBuilder, FarmObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
         seed: u64,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         println!();
         println!("Statistics:");
@@ -199,33 +177,6 @@ mod test {
         println!(
             "compoundRewardsMisses: {}",
             fuzzer_data.statistics.compound_rewards_misses
-        );
-        println!();
-        println!(
-            "priceDiscoveryDepositHits: {}",
-            fuzzer_data.statistics.price_discovery_deposit_hits
-        );
-        println!(
-            "priceDiscoveryDepositMisses: {}",
-            fuzzer_data.statistics.price_discovery_deposit_misses
-        );
-        println!();
-        println!(
-            "priceDiscoveryWithdrawHits: {}",
-            fuzzer_data.statistics.price_discovery_withdraw_hits
-        );
-        println!(
-            "priceDiscoveryWithdrawMisses: {}",
-            fuzzer_data.statistics.price_discovery_withdraw_misses
-        );
-        println!();
-        println!(
-            "priceDiscoveryRedeemHits: {}",
-            fuzzer_data.statistics.price_discovery_redeem_hits
-        );
-        println!(
-            "priceDiscoveryRedeemMisses: {}",
-            fuzzer_data.statistics.price_discovery_redeem_misses
         );
         println!();
     }

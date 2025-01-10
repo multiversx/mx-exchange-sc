@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           27
+// Endpoints:                           12
 // Async Callback:                       1
-// Total number of exported functions:  30
+// Total number of exported functions:  15
 
 #![no_std]
 
@@ -20,33 +20,18 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
-        deposit => deposit
-        withdraw => withdraw
-        redeem => redeem
-        getCurrentPrice => calculate_price
-        getMinLaunchedTokenPrice => min_launched_token_price
-        getPricePrecision => price_precision
-        getLaunchedTokenId => launched_token_id
-        getAcceptedTokenId => accepted_token_id
-        getLaunchedTokenBalance => launched_token_balance
-        getAcceptedTokenBalance => accepted_token_balance
-        getStartBlock => start_block
-        getEndBlock => end_block
-        setLockingScAddress => set_locking_sc_address
-        setUnlockEpoch => set_unlock_epoch
-        getLockingScAddress => locking_sc_address
-        getUnlockEpoch => unlock_epoch
         getCurrentPhase => get_current_phase
-        getNoLimitPhaseDurationBlocks => no_limit_phase_duration_blocks
-        getLinearPenaltyPhaseDurationBlocks => linear_penalty_phase_duration_blocks
-        getFixedPenaltyPhaseDurationBlocks => fixed_penalty_phase_duration_blocks
-        getPenaltyMinPercentage => penalty_min_percentage
-        getPenaltyMaxPercentage => penalty_max_percentage
-        getFixedPenaltyPercentage => fixed_penalty_percentage
+        getUserDepositWithdrawTime => user_deposit_withdraw_time
+        getOwnerDepositWithdrawTime => owner_deposit_withdraw_time
         issueRedeemToken => issue_redeem_token
-        createInitialRedeemTokens => create_initial_redeem_tokens
         getRedeemTokenId => redeem_token
         getRedeemTokenTotalCirculatingSupply => redeem_token_total_circulating_supply
+        userDeposit => user_deposit
+        userWithdraw => user_withdraw
+        ownerDeposit => owner_deposit
+        ownerWithdraw => owner_withdraw
+        redeem => redeem
+        getCurrentPrice => get_current_price
     )
 }
 

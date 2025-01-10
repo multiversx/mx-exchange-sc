@@ -16,12 +16,11 @@ pub mod fuzz_pair_test {
         add_liq::AddLiquidityModule, remove_liq::RemoveLiquidityModule, swap::SwapModule,
     };
 
-    pub fn add_liquidity<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
+    pub fn add_liquidity<PairObjBuilder, FarmObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
@@ -119,12 +118,11 @@ pub mod fuzz_pair_test {
         }
     }
 
-    pub fn remove_liquidity<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
+    pub fn remove_liquidity<PairObjBuilder, FarmObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
@@ -212,12 +210,11 @@ pub mod fuzz_pair_test {
         }
     }
 
-    pub fn swap_pair<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder, PriceDiscObjBuilder>,
+    pub fn swap_pair<PairObjBuilder, FarmObjBuilder>(
+        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
