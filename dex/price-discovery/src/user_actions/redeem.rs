@@ -37,18 +37,7 @@ pub trait RedeemModule:
         }
 
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
-        let redeem_token_id = self.redeem_token().get_token_id();
-        require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
-
-        let bought_tokens = self.compute_user_bought_tokens(&payment_amount);
-        self.burn_redeem_token_without_supply_decrease(&payment_amount);
-
-        self.send().direct(
-            &caller,
-            &bought_tokens.token_identifier,
-            0,
-            &bought_tokens.amount,
-        );
+        let bought_tokens = self.user_redeem(&caller, &payment_token, &payment_amount);
 
         self.emit_redeem_event(RedeemEventArgs {
             opt_redeem_token_id: Some(&payment_token),
@@ -67,6 +56,28 @@ pub trait RedeemModule:
             .direct(owner, &accepted_token_id, 0, &accepted_token_balance);
 
         EgldOrEsdtTokenPayment::new(accepted_token_id, 0, accepted_token_balance)
+    }
+
+    fn user_redeem(
+        &self,
+        user: &ManagedAddress,
+        payment_token: &TokenIdentifier,
+        payment_amount: &BigUint,
+    ) -> EgldOrEsdtTokenPayment {
+        let redeem_token_id = self.redeem_token().get_token_id();
+        require!(payment_token == &redeem_token_id, INVALID_PAYMENT_ERR_MSG);
+
+        let bought_tokens = self.compute_user_bought_tokens(payment_amount);
+        self.burn_redeem_token_without_supply_decrease(payment_amount);
+
+        self.send().direct(
+            user,
+            &bought_tokens.token_identifier,
+            0,
+            &bought_tokens.amount,
+        );
+
+        bought_tokens
     }
 
     fn compute_user_bought_tokens(&self, redeem_token_amount: &BigUint) -> EgldOrEsdtTokenPayment {
