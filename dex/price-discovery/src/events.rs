@@ -1,69 +1,55 @@
-use crate::{phase::Phase, Block, Epoch, Nonce, Timestamp};
+use crate::{Block, Epoch, Timestamp};
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode)]
-pub struct DepositEvent<M: ManagedTypeApi> {
-    token_id_in: EgldOrEsdtTokenIdentifier<M>,
-    token_amount_in: BigUint<M>,
-    redeem_token_id: TokenIdentifier<M>,
-    redeem_token_nonce: Nonce,
-    redeem_token_amount: BigUint<M>,
-    launched_token_amount: BigUint<M>,
-    accepted_token_amount: BigUint<M>,
-    current_price: BigUint<M>,
-    current_phase: Phase,
+pub struct DepositEvent<'a, M: ManagedTypeApi> {
+    token_id_in: &'a EgldOrEsdtTokenIdentifier<M>,
+    token_amount_in: &'a BigUint<M>,
+    redeem_token_id: &'a TokenIdentifier<M>,
+    redeem_token_amount: &'a BigUint<M>,
+    launched_token_amount: &'a BigUint<M>,
+    accepted_token_amount: &'a BigUint<M>,
 }
 
-pub struct DepositEventArgs<M: ManagedTypeApi> {
-    pub token_id_in: EgldOrEsdtTokenIdentifier<M>,
-    pub token_amount_in: BigUint<M>,
-    pub redeem_token_id: TokenIdentifier<M>,
-    pub redeem_token_nonce: Nonce,
-    pub redeem_token_amount: BigUint<M>,
-    pub current_price: BigUint<M>,
-    pub current_phase: Phase,
+pub struct DepositEventArgs<'a, M: ManagedTypeApi> {
+    pub token_id_in: &'a EgldOrEsdtTokenIdentifier<M>,
+    pub token_amount_in: &'a BigUint<M>,
+    pub redeem_token_id: &'a TokenIdentifier<M>,
+    pub redeem_token_amount: &'a BigUint<M>,
 }
 
 #[derive(TypeAbi, TopEncode)]
-pub struct WithdrawEvent<M: ManagedTypeApi> {
-    token_id_out: EgldOrEsdtTokenIdentifier<M>,
-    token_amount_out: BigUint<M>,
-    redeem_token_id: TokenIdentifier<M>,
-    redeem_token_nonce: Nonce,
-    redeem_token_amount: BigUint<M>,
-    launched_token_amount: BigUint<M>,
-    accepted_token_amount: BigUint<M>,
-    current_price: BigUint<M>,
-    current_phase: Phase,
+pub struct WithdrawEvent<'a, M: ManagedTypeApi> {
+    token_id_out: &'a EgldOrEsdtTokenIdentifier<M>,
+    token_amount_out: &'a BigUint<M>,
+    redeem_token_id: &'a TokenIdentifier<M>,
+    redeem_token_amount: &'a BigUint<M>,
+    launched_token_amount: &'a BigUint<M>,
+    accepted_token_amount: &'a BigUint<M>,
 }
 
-pub struct WithdrawEventArgs<M: ManagedTypeApi> {
-    pub token_id_out: EgldOrEsdtTokenIdentifier<M>,
-    pub token_amount_out: BigUint<M>,
-    pub redeem_token_id: TokenIdentifier<M>,
-    pub redeem_token_nonce: Nonce,
-    pub redeem_token_amount: BigUint<M>,
-    pub current_price: BigUint<M>,
-    pub current_phase: Phase,
+pub struct WithdrawEventArgs<'a, M: ManagedTypeApi> {
+    pub token_id_out: &'a EgldOrEsdtTokenIdentifier<M>,
+    pub token_amount_out: &'a BigUint<M>,
+    pub redeem_token_id: &'a TokenIdentifier<M>,
+    pub redeem_token_amount: &'a BigUint<M>,
 }
 
 #[derive(TypeAbi, TopEncode)]
-pub struct RedeemEvent<M: ManagedTypeApi> {
-    redeem_token_id: TokenIdentifier<M>,
-    redeem_token_nonce: Nonce,
-    redeem_token_amount: BigUint<M>,
-    bought_token_id: EgldOrEsdtTokenIdentifier<M>,
-    bought_token_amount: BigUint<M>,
+pub struct RedeemEvent<'a, M: ManagedTypeApi> {
+    opt_redeem_token_id: Option<&'a TokenIdentifier<M>>,
+    redeem_token_amount: &'a BigUint<M>,
+    bought_token_id: &'a EgldOrEsdtTokenIdentifier<M>,
+    bought_token_amount: &'a BigUint<M>,
 }
 
-pub struct RedeemEventArgs<M: ManagedTypeApi> {
-    pub redeem_token_id: TokenIdentifier<M>,
-    pub redeem_token_nonce: Nonce,
-    pub redeem_token_amount: BigUint<M>,
-    pub bought_token_id: EgldOrEsdtTokenIdentifier<M>,
-    pub bought_token_amount: BigUint<M>,
+pub struct RedeemEventArgs<'a, M: ManagedTypeApi> {
+    pub opt_redeem_token_id: Option<&'a TokenIdentifier<M>>,
+    pub redeem_token_amount: &'a BigUint<M>,
+    pub bought_token_id: &'a EgldOrEsdtTokenIdentifier<M>,
+    pub bought_token_amount: &'a BigUint<M>,
 }
 
 pub struct GenericEventData<M: ManagedTypeApi> {
@@ -89,12 +75,9 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
                 token_id_in: args.token_id_in,
                 token_amount_in: args.token_amount_in,
                 redeem_token_id: args.redeem_token_id,
-                redeem_token_nonce: args.redeem_token_nonce,
                 redeem_token_amount: args.redeem_token_amount,
-                launched_token_amount,
-                accepted_token_amount,
-                current_price: args.current_price,
-                current_phase: args.current_phase,
+                launched_token_amount: &launched_token_amount,
+                accepted_token_amount: &accepted_token_amount,
             },
         );
     }
@@ -113,12 +96,9 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
                 token_id_out: args.token_id_out,
                 token_amount_out: args.token_amount_out,
                 redeem_token_id: args.redeem_token_id,
-                redeem_token_nonce: args.redeem_token_nonce,
                 redeem_token_amount: args.redeem_token_amount,
-                launched_token_amount,
-                accepted_token_amount,
-                current_price: args.current_price,
-                current_phase: args.current_phase,
+                launched_token_amount: &launched_token_amount,
+                accepted_token_amount: &accepted_token_amount,
             },
         );
     }
@@ -132,8 +112,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
             generic_event_data.epoch,
             generic_event_data.timestamp,
             RedeemEvent {
-                redeem_token_id: args.redeem_token_id,
-                redeem_token_nonce: args.redeem_token_nonce,
+                opt_redeem_token_id: args.opt_redeem_token_id,
                 redeem_token_amount: args.redeem_token_amount,
                 bought_token_id: args.bought_token_id,
                 bought_token_amount: args.bought_token_amount,
