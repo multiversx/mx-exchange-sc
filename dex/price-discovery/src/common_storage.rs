@@ -12,7 +12,6 @@ pub trait CommonStorageModule {
     #[storage_mapper("launchedTokenBalance")]
     fn launched_token_balance(&self) -> SingleValueMapper<BigUint>;
 
-    // TODO: Check on owner deposit/withdraw
     #[storage_mapper("minLaunchedTokens")]
     fn min_launched_tokens(&self) -> SingleValueMapper<BigUint>;
 
