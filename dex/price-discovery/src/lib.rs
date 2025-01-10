@@ -8,7 +8,7 @@ pub mod common_storage;
 pub mod events;
 pub mod phase;
 pub mod redeem_token;
-pub mod user_deposit_withdraw;
+pub mod user_actions;
 pub mod views;
 
 pub type Nonce = u64;
@@ -24,7 +24,7 @@ pub trait PriceDiscovery:
     + events::EventsModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
-    + user_deposit_withdraw::UserDepositWithdrawModule
+    + user_actions::user_deposit_withdraw::UserDepositWithdrawModule
     + views::ViewsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
