@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_types::Week;
+use common_structs::Week;
 use energy_query::Energy;
 use week_timekeeping::EPOCHS_IN_WEEK;
 

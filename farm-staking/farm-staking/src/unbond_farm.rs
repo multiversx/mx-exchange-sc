@@ -20,6 +20,7 @@ pub trait UnbondFarmModule:
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
@@ -53,6 +54,8 @@ pub trait UnbondFarmModule:
         let farming_tokens =
             EsdtTokenPayment::new(storage_cache.farming_token_id.clone(), 0, payment.amount);
         self.send_payment_non_zero(&caller, &farming_tokens);
+
+        self.update_start_of_epoch_timestamp();
 
         farming_tokens
     }

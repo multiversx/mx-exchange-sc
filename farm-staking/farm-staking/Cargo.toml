@@ -98,3 +98,6 @@ num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.53.2"
+
+[dev-dependencies.timestamp-oracle]
+path = "../../energy-integration/timestamp-oracle"

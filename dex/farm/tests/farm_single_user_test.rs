@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 mod farm_setup;
 
 use config::ConfigModule;
@@ -13,12 +11,20 @@ use sc_whitelist_module::SCWhitelistModule;
 
 #[test]
 fn test_farm_setup() {
-    let _ = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
+    let _ = SingleUserFarmSetup::new(
+        farm::contract_obj,
+        pair::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 }
 
 #[test]
 fn test_enter_farm() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(
+        farm::contract_obj,
+        pair::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -28,7 +34,11 @@ fn test_enter_farm() {
 
 #[test]
 fn test_exit_farm() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(
+        farm::contract_obj,
+        pair::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -52,36 +62,12 @@ fn test_exit_farm() {
 }
 
 #[test]
-fn test_exit_farm_with_penalty() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
-
-    let farm_in_amount = 100_000_000;
-    let expected_farm_token_nonce = 1;
-    farm_setup.enter_farm(farm_in_amount, &[], expected_farm_token_nonce, 0, 0, 0);
-    farm_setup.check_farm_token_supply(farm_in_amount);
-
-    farm_setup.set_block_epoch(1);
-    farm_setup.set_block_nonce(10);
-
-    let expected_farm_token_amount =
-        farm_in_amount - farm_in_amount * PENALTY_PERCENT / MAX_PERCENT;
-    let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
-    let expected_lp_token_balance =
-        rust_biguint!(USER_TOTAL_LP_TOKENS - farm_in_amount * PENALTY_PERCENT / MAX_PERCENT);
-    farm_setup.exit_farm(
-        farm_in_amount,
-        expected_farm_token_nonce,
-        expected_mex_out,
-        expected_farm_token_amount,
-        &rust_biguint!(expected_mex_out),
-        &expected_lp_token_balance,
-    );
-    farm_setup.check_farm_token_supply(0);
-}
-
-#[test]
 fn test_claim_rewards() {
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(
+        farm::contract_obj,
+        pair::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -106,15 +92,18 @@ fn test_claim_rewards() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 }
 
-fn steps_enter_farm_twice<FarmObjBuilder, PairObjBuilder>(
+fn steps_enter_farm_twice<FarmObjBuilder, PairObjBuilder, TimestampOracleObjBuilder>(
     farm_builder: FarmObjBuilder,
     pair_builder: PairObjBuilder,
-) -> SingleUserFarmSetup<FarmObjBuilder, PairObjBuilder>
+    timestamp_oracle_builder: TimestampOracleObjBuilder,
+) -> SingleUserFarmSetup<FarmObjBuilder, PairObjBuilder, TimestampOracleObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
 {
-    let mut farm_setup = SingleUserFarmSetup::new(farm_builder, pair_builder);
+    let mut farm_setup =
+        SingleUserFarmSetup::new(farm_builder, pair_builder, timestamp_oracle_builder);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -157,12 +146,20 @@ where
 
 #[test]
 fn test_enter_farm_twice() {
-    let _ = steps_enter_farm_twice(farm::contract_obj, pair::contract_obj);
+    let _ = steps_enter_farm_twice(
+        farm::contract_obj,
+        pair::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
 }
 
 #[test]
 fn test_exit_farm_after_enter_twice() {
-    let mut farm_setup = steps_enter_farm_twice(farm::contract_obj, pair::contract_obj);
+    let mut farm_setup = steps_enter_farm_twice(
+        farm::contract_obj,
+        pair::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
     let farm_in_amount = 100_000_000;
     let second_farm_in_amount = 200_000_000;
     let total_farm_token = farm_in_amount + second_farm_in_amount;
@@ -213,7 +210,11 @@ fn test_farm_through_simple_lock() {
 
     DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
-    let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj, pair::contract_obj);
+    let mut farm_setup = SingleUserFarmSetup::new(
+        farm::contract_obj,
+        pair::contract_obj,
+        timestamp_oracle::contract_obj,
+    );
     let b_mock = &mut farm_setup.blockchain_wrapper;
 
     // setup simple lock SC

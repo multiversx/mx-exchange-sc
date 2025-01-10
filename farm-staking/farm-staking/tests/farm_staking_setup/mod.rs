@@ -1,6 +1,6 @@
-#![allow(deprecated)]
-
+use common_structs::Timestamp;
 use external_interaction::ExternalInteractionsModule;
+use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use farm_staking::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
 use farm_staking::compound_stake_farm_rewards::CompoundStakeFarmRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
@@ -29,6 +29,8 @@ use pausable::{PausableModule, State};
 use permissions_hub::PermissionsHub;
 use permissions_hub_module::PermissionsHubModule;
 use rewards::RewardsModule;
+use timestamp_oracle::epoch_to_timestamp::EpochToTimestampModule;
+use timestamp_oracle::TimestampOracle;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"RIDE-abcdef"; // reward token ID
 pub static FARMING_TOKEN_ID: &[u8] = b"RIDE-abcdef"; // farming token ID
@@ -48,18 +50,25 @@ pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
-pub const WITHDRAW_AMOUNT_TOO_HIGH: &str =
+pub static WITHDRAW_AMOUNT_TOO_HIGH: &str =
     "Withdraw amount is higher than the remaining uncollected rewards!";
+
+pub const TIMESTAMP_PER_EPOCH: Timestamp = 24 * 60 * 60;
 
 pub struct NonceAmountPair {
     pub nonce: u64,
     pub amount: u64,
 }
 
-pub struct FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder, PermissionsHubObjBuilder>
-where
+pub struct FarmStakingSetup<
+    FarmObjBuilder,
+    EnergyFactoryBuilder,
+    TimestampOracleObjBuilder,
+    PermissionsHubObjBuilder,
+> where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
@@ -71,42 +80,66 @@ where
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
     pub permissions_hub_wrapper:
         ContractObjWrapper<permissions_hub::ContractObj<DebugApi>, PermissionsHubObjBuilder>,
+    pub timestamp_oracle_wrapper:
+        ContractObjWrapper<timestamp_oracle::ContractObj<DebugApi>, TimestampOracleObjBuilder>,
 }
 
-impl<FarmObjBuilder, EnergyFactoryBuilder, PermissionsHubObjBuilder>
-    FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder, PermissionsHubObjBuilder>
+impl<FarmObjBuilder, EnergyFactoryBuilder, TimestampOracleObjBuilder, PermissionsHubObjBuilder>
+    FarmStakingSetup<
+        FarmObjBuilder,
+        EnergyFactoryBuilder,
+        TimestampOracleObjBuilder,
+        PermissionsHubObjBuilder,
+    >
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
     pub fn new(
         farm_builder: FarmObjBuilder,
         energy_factory_builder: EnergyFactoryBuilder,
+        timestamp_oracle_builder: TimestampOracleObjBuilder,
         permissions_hub_builder: PermissionsHubObjBuilder,
     ) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
-        let owner_addr = b_mock.create_user_account(&rust_zero);
+        let owner = b_mock.create_user_account(&rust_zero);
         let farm_wrapper =
-            b_mock.create_sc_account(&rust_zero, Some(&owner_addr), farm_builder, "farm-staking");
+            b_mock.create_sc_account(&rust_zero, Some(&owner), farm_builder, "farm-staking");
 
         let energy_factory_wrapper = b_mock.create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
+            Some(&owner),
             energy_factory_builder,
             "energy_factory.wasm",
         );
 
+        let timestamp_oracle_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            timestamp_oracle_builder,
+            "timestamp oracle",
+        );
+        b_mock
+            .execute_tx(&owner, &timestamp_oracle_wrapper, &rust_zero, |sc| {
+                sc.init(0);
+
+                for i in 0..=100 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
+            })
+            .assert_ok();
         let permissions_hub_wrapper = b_mock.create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
+            Some(&owner),
             permissions_hub_builder,
             "permissions_hub.wasm",
         );
 
         b_mock
-            .execute_tx(&owner_addr, &permissions_hub_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner, &permissions_hub_wrapper, &rust_zero, |sc| {
                 sc.init();
             })
             .assert_ok();
@@ -114,7 +147,7 @@ where
         // init farm contract
 
         b_mock
-            .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner, &farm_wrapper, &rust_zero, |sc| {
                 let farming_token_id = managed_token_id!(FARMING_TOKEN_ID);
                 let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
 
@@ -138,6 +171,9 @@ where
 
                 sc.energy_factory_address()
                     .set(managed_address!(energy_factory_wrapper.address_ref()));
+                sc.set_timestamp_oracle_address(managed_address!(
+                    timestamp_oracle_wrapper.address_ref()
+                ));
 
                 sc.set_permissions_hub_address(managed_address!(
                     permissions_hub_wrapper.address_ref()
@@ -145,10 +181,10 @@ where
             })
             .assert_ok();
 
-        b_mock.set_esdt_balance(&owner_addr, REWARD_TOKEN_ID, &TOTAL_REWARDS_AMOUNT.into());
+        b_mock.set_esdt_balance(&owner, REWARD_TOKEN_ID, &TOTAL_REWARDS_AMOUNT.into());
         b_mock
             .execute_esdt_transfer(
-                &owner_addr,
+                &owner,
                 &farm_wrapper,
                 REWARD_TOKEN_ID,
                 0,
@@ -192,11 +228,12 @@ where
 
         FarmStakingSetup {
             b_mock,
-            owner_address: owner_addr,
+            owner_address: owner,
             user_address: user_addr,
             user_address2: user_addr2,
             farm_wrapper,
             energy_factory_wrapper,
+            timestamp_oracle_wrapper,
             permissions_hub_wrapper,
         }
     }

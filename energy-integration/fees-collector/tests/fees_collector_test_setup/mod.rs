@@ -1,5 +1,4 @@
-#![allow(deprecated)]
-
+use common_structs::{Epoch, Percent, Timestamp};
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -19,17 +18,18 @@ use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 use week_timekeeping::{Week, WeekTimekeepingModule, EPOCHS_IN_WEEK};
 
-pub const INIT_EPOCH: u64 = 5;
-pub const EPOCHS_IN_YEAR: u64 = 360;
+pub const INIT_EPOCH: Epoch = 5;
+pub const INIT_TIMESTAMP: Timestamp = 5 * 24 * 60 * 60;
+pub const EPOCHS_IN_YEAR: Epoch = 360;
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
-pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
+pub static LOCK_OPTIONS: &[Epoch] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static FIRST_TOKEN_ID: &[u8] = b"FIRST-123456";
 pub static SECOND_TOKEN_ID: &[u8] = b"SECOND-123456";
 pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
-pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
+pub static PENALTY_PERCENTAGES: &[Percent] = &[4_000, 6_000, 8_000];
 
 pub struct FeesCollectorSetup<FeesCollectorObjBuilder, EnergyFactoryObjBuilder>
 where
@@ -123,6 +123,7 @@ where
         );
 
         b_mock.set_block_epoch(INIT_EPOCH);
+        b_mock.set_block_timestamp(INIT_TIMESTAMP);
 
         // setup energy factory
         b_mock

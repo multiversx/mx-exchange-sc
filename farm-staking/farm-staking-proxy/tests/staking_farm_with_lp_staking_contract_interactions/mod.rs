@@ -1,6 +1,5 @@
-#![allow(deprecated)]
-
 use common_structs::FarmTokenAttributes;
+use common_structs::Timestamp;
 use config::ConfigModule;
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
@@ -34,6 +33,7 @@ use farm_staking_proxy::proxy_actions::unstake::ProxyUnstakeModule;
 use permissions_hub::PermissionsHub;
 use permissions_hub_module::PermissionsHubModule;
 use sc_whitelist_module::SCWhitelistModule;
+use timestamp_oracle::{epoch_to_timestamp::EpochToTimestampModule, TimestampOracle};
 
 use crate::{
     constants::*,
@@ -48,6 +48,8 @@ pub struct NonceAmountPair {
     pub amount: u64,
 }
 
+pub const TIMESTAMP_PER_EPOCH: Timestamp = 24 * 60 * 60;
+
 pub struct FarmStakingSetup<
     PairObjBuilder,
     FarmObjBuilder,
@@ -55,6 +57,7 @@ pub struct FarmStakingSetup<
     PermissionsHubObjBuilder,
     StakingContractObjBuilder,
     ProxyContractObjBuilder,
+    TimestampOracleObjBuilder,
 > where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
@@ -62,6 +65,7 @@ pub struct FarmStakingSetup<
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     ProxyContractObjBuilder: 'static + Copy + Fn() -> farm_staking_proxy::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
 {
     pub owner_addr: Address,
     pub user_addr: Address,
@@ -77,6 +81,8 @@ pub struct FarmStakingSetup<
         ContractObjWrapper<farm_staking::ContractObj<DebugApi>, StakingContractObjBuilder>,
     pub proxy_wrapper:
         ContractObjWrapper<farm_staking_proxy::ContractObj<DebugApi>, ProxyContractObjBuilder>,
+    pub timestamp_oracle_wrapper:
+        ContractObjWrapper<timestamp_oracle::ContractObj<DebugApi>, TimestampOracleObjBuilder>,
 }
 
 impl<
@@ -86,6 +92,7 @@ impl<
         PermissionsHubObjBuilder,
         StakingContractObjBuilder,
         ProxyContractObjBuilder,
+        TimestampOracleObjBuilder,
     >
     FarmStakingSetup<
         PairObjBuilder,
@@ -94,6 +101,7 @@ impl<
         PermissionsHubObjBuilder,
         StakingContractObjBuilder,
         ProxyContractObjBuilder,
+        TimestampOracleObjBuilder,
     >
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
@@ -102,6 +110,7 @@ where
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     ProxyContractObjBuilder: 'static + Copy + Fn() -> farm_staking_proxy::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
 {
     pub fn new(
         pair_builder: PairObjBuilder,
@@ -110,31 +119,51 @@ where
         permissions_hub_builder: PermissionsHubObjBuilder,
         staking_farm_builder: StakingContractObjBuilder,
         proxy_builder: ProxyContractObjBuilder,
+        timestamp_oracle_builder: TimestampOracleObjBuilder,
     ) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
-        let owner_addr = b_mock.create_user_account(&rust_zero);
+        let owner = b_mock.create_user_account(&rust_zero);
         let user_addr = b_mock.create_user_account(&rust_biguint!(100_000_000));
 
         let energy_factory_wrapper =
-            setup_energy_factory(&owner_addr, &mut b_mock, energy_factory_builder);
-        let pair_wrapper = setup_pair(&owner_addr, &user_addr, &mut b_mock, pair_builder);
+            setup_energy_factory(&owner, &mut b_mock, energy_factory_builder);
+        let pair_wrapper = setup_pair(&owner, &user_addr, &mut b_mock, pair_builder);
+
+        let timestamp_oracle_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            timestamp_oracle_builder,
+            "timestamp oracle",
+        );
+        b_mock
+            .execute_tx(&owner, &timestamp_oracle_wrapper, &rust_zero, |sc| {
+                sc.init(0);
+
+                for i in 0..=100 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
+            })
+            .assert_ok();
+
         let lp_farm_wrapper = setup_lp_farm(
-            &owner_addr,
+            &owner,
             &user_addr,
             energy_factory_wrapper.address_ref(),
             &mut b_mock,
             lp_farm_builder,
             USER_TOTAL_LP_TOKENS,
+            timestamp_oracle_wrapper.address_ref(),
         );
         let staking_farm_wrapper = setup_staking_farm(
-            &owner_addr,
+            &owner,
             energy_factory_wrapper.address_ref(),
             &mut b_mock,
             staking_farm_builder,
+            timestamp_oracle_wrapper.address_ref(),
         );
         let proxy_wrapper = setup_proxy(
-            &owner_addr,
+            &owner,
             lp_farm_wrapper.address_ref(),
             staking_farm_wrapper.address_ref(),
             pair_wrapper.address_ref(),
@@ -143,7 +172,7 @@ where
         );
 
         add_proxy_to_whitelist(
-            &owner_addr,
+            &owner,
             proxy_wrapper.address_ref(),
             &mut b_mock,
             &staking_farm_wrapper,
@@ -151,13 +180,13 @@ where
 
         let permissions_hub_wrapper = b_mock.create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
+            Some(&owner),
             permissions_hub_builder,
             "permissions_hub.wasm",
         );
 
         b_mock
-            .execute_tx(&owner_addr, &proxy_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner, &proxy_wrapper, &rust_zero, |sc| {
                 sc.set_permissions_hub_address(managed_address!(
                     permissions_hub_wrapper.address_ref()
                 ));
@@ -165,24 +194,24 @@ where
             .assert_ok();
 
         b_mock
-            .execute_tx(&owner_addr, &permissions_hub_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner, &permissions_hub_wrapper, &rust_zero, |sc| {
                 sc.init();
             })
             .assert_ok();
 
         b_mock
-            .execute_tx(&owner_addr, &lp_farm_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner, &lp_farm_wrapper, &rust_zero, |sc| {
                 sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
             })
             .assert_ok();
         b_mock
-            .execute_tx(&owner_addr, &energy_factory_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 sc.add_sc_address_to_whitelist(managed_address!(lp_farm_wrapper.address_ref()));
             })
             .assert_ok();
 
         FarmStakingSetup {
-            owner_addr,
+            owner_addr: owner,
             user_addr,
             b_mock,
             pair_wrapper,
@@ -191,6 +220,7 @@ where
             permissions_hub_wrapper,
             staking_farm_wrapper,
             proxy_wrapper,
+            timestamp_oracle_wrapper,
         }
     }
 

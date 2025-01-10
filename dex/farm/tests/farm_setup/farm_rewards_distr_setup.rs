@@ -1,21 +1,25 @@
 #![allow(dead_code)]
-#![allow(deprecated)]
 
+use farm_boosted_yields::custom_reward_logic::CustomRewardLogicModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc_scenario::managed_address;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox_legacy::TxTokenTransfer, whitebox_legacy::*, DebugApi,
+    managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::TxTokenTransfer,
+    whitebox_legacy::*, DebugApi,
 };
 pub type RustBigUint = num_bigint::BigUint;
 
 use config::*;
-use farm::exit_penalty::ExitPenaltyModule;
 use farm::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use rewards::*;
+use timestamp_oracle::epoch_to_timestamp::EpochToTimestampModule;
+use timestamp_oracle::TimestampOracle;
+
+use super::multi_user_farm_setup::TIMESTAMP_PER_EPOCH;
 
 pub const FARM_WASM_PATH: &str = "farm/output/farm.wasm";
 
@@ -52,44 +56,63 @@ impl Expected {
     }
 }
 
-pub struct FarmRewardsDistrSetup<FarmObjBuilder>
+pub struct FarmRewardsDistrSetup<FarmObjBuilder, TimestampOracleObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
 {
     pub blockchain_wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
+    pub timestamp_oracle_wrapper:
+        ContractObjWrapper<timestamp_oracle::ContractObj<DebugApi>, TimestampOracleObjBuilder>,
 }
 
-impl<FarmObjBuilder> FarmRewardsDistrSetup<FarmObjBuilder>
+impl<FarmObjBuilder, TimestampOracleObjBuilder>
+    FarmRewardsDistrSetup<FarmObjBuilder, TimestampOracleObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    TimestampOracleObjBuilder: 'static + Copy + Fn() -> timestamp_oracle::ContractObj<DebugApi>,
 {
-    pub fn new(farm_builder: FarmObjBuilder, per_block_reward_amount: RustBigUint) -> Self {
+    pub fn new(
+        farm_builder: FarmObjBuilder,
+        per_block_reward_amount: RustBigUint,
+        timestamp_oracle_builder: TimestampOracleObjBuilder,
+    ) -> Self {
         let rust_zero = rust_biguint!(0u64);
-        let mut blockchain_wrapper = BlockchainStateWrapper::new();
-        let owner_addr = blockchain_wrapper.create_user_account(&rust_zero);
-        let farm_wrapper = blockchain_wrapper.create_sc_account(
+        let mut b_mock = BlockchainStateWrapper::new();
+        let owner = b_mock.create_user_account(&rust_zero);
+        let farm_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner), farm_builder, FARM_WASM_PATH);
+
+        let timestamp_oracle_wrapper = b_mock.create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
-            farm_builder,
-            FARM_WASM_PATH,
+            Some(&owner),
+            timestamp_oracle_builder,
+            "timestamp oracle",
         );
+        b_mock
+            .execute_tx(&owner, &timestamp_oracle_wrapper, &rust_zero, |sc| {
+                sc.init(0);
+
+                for i in 0..=21 {
+                    sc.set_start_timestamp_for_epoch(i, i * TIMESTAMP_PER_EPOCH + 1);
+                }
+            })
+            .assert_ok();
 
         // init farm contract
 
-        blockchain_wrapper
-            .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+        b_mock
+            .execute_tx(&owner, &farm_wrapper, &rust_zero, |sc| {
                 let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
                 let farming_token_id = managed_token_id!(LP_TOKEN_ID);
                 let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-                let pair_address = managed_address!(&Address::zero());
 
                 sc.init(
                     reward_token_id,
                     farming_token_id,
                     division_safety_constant,
-                    pair_address,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::new(),
                 );
@@ -99,11 +122,12 @@ where
 
                 sc.per_block_reward_amount()
                     .set(&to_managed_biguint(per_block_reward_amount));
-                sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
-                sc.penalty_percent().set(PENALTY_PERCENT);
 
                 sc.state().set(State::Active);
                 sc.produce_rewards_enabled().set(true);
+                sc.set_timestamp_oracle_address(managed_address!(
+                    timestamp_oracle_wrapper.address_ref()
+                ));
             })
             .assert_ok();
 
@@ -112,30 +136,31 @@ where
             EsdtLocalRole::NftAddQuantity,
             EsdtLocalRole::NftBurn,
         ];
-        blockchain_wrapper.set_esdt_local_roles(
+        b_mock.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             FARM_TOKEN_ID,
             &farm_token_roles[..],
         );
 
         let farming_token_roles = [EsdtLocalRole::Burn];
-        blockchain_wrapper.set_esdt_local_roles(
+        b_mock.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             LP_TOKEN_ID,
             &farming_token_roles[..],
         );
 
         let reward_token_roles = [EsdtLocalRole::Mint];
-        blockchain_wrapper.set_esdt_local_roles(
+        b_mock.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             MEX_TOKEN_ID,
             &reward_token_roles[..],
         );
 
         FarmRewardsDistrSetup {
-            blockchain_wrapper,
-            owner_address: owner_addr,
+            blockchain_wrapper: b_mock,
+            owner_address: owner,
             farm_wrapper,
+            timestamp_oracle_wrapper,
         }
     }
 
