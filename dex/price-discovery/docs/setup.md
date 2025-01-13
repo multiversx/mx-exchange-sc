@@ -16,6 +16,7 @@ Next we define the length of the phases. Over the start-end period, we define mu
 - start_time - phase 1 timestamp start
 - user_deposit_withdraw_time - phase 1 duration
 - owner_deposit_withdraw_time - phase 2 duration
+- owner_address - address of the owner, i.e. the one who will deposit/withdraw the launched tokens. Doesn't have to be the contract's owner.
 
 ```rust
 #[init]
