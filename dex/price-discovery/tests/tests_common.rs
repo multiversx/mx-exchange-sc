@@ -20,11 +20,12 @@ pub static LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
 pub static ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
 pub static REDEEM_TOKEN_ID: &[u8] = b"GIBREWARDS-123456";
 pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
+pub const USER_BALANCE: u64 = 1_000_000_000;
 
 pub const START_TIME: Timestamp = 10;
 pub const USER_DEPOSIT_TIME: Timestamp = 5;
 pub const OWNER_DEPOSIT_TIME: Timestamp = 5;
-pub const END_BLOCK: u64 = START_TIME + USER_DEPOSIT_TIME + OWNER_DEPOSIT_TIME;
+// pub const END_TIME: u64 = START_TIME + USER_DEPOSIT_TIME + OWNER_DEPOSIT_TIME;
 pub const MIN_LAUNCHED_TOKENS: u64 = 1_000;
 
 pub struct PriceDiscSetup<PriceDiscObjBuilder>
@@ -57,17 +58,17 @@ where
         b_mock.set_esdt_balance(
             &owner_address,
             LAUNCHED_TOKEN_ID,
-            &(prev_owner_balance + rust_biguint!(5_000_000_000)),
+            &(prev_owner_balance + rust_biguint!(USER_BALANCE)),
         );
         b_mock.set_esdt_balance(
             &first_user_address,
             ACCEPTED_TOKEN_ID,
-            &rust_biguint!(1_000_000_000),
+            &rust_biguint!(USER_BALANCE),
         );
         b_mock.set_esdt_balance(
             &second_user_address,
             ACCEPTED_TOKEN_ID,
-            &rust_biguint!(1_000_000_000),
+            &rust_biguint!(USER_BALANCE),
         );
 
         // set sc roles and initial minted SFTs (only needed for the purpose of SFT add quantity)
@@ -107,71 +108,77 @@ where
         }
     }
 
-    pub fn call_user_deposit(&mut self, user: &Address, amount: u64) {
-        self.b_mock
-            .execute_esdt_transfer(
-                user,
-                &self.pd_wrapper,
-                ACCEPTED_TOKEN_ID,
-                0,
-                &rust_biguint!(amount),
-                |sc| {
-                    sc.user_deposit();
-                },
-            )
-            .assert_ok();
+    pub fn call_user_deposit(&mut self, user: &Address, amount: u64) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            user,
+            &self.pd_wrapper,
+            ACCEPTED_TOKEN_ID,
+            0,
+            &rust_biguint!(amount),
+            |sc| {
+                sc.user_deposit();
+            },
+        )
     }
 
-    pub fn call_user_withdraw(&mut self, user: &Address, amount: u64) {
-        self.b_mock
-            .execute_esdt_transfer(
-                user,
-                &self.pd_wrapper,
-                REDEEM_TOKEN_ID,
-                0,
-                &rust_biguint!(amount),
-                |sc| {
-                    sc.user_withdraw();
-                },
-            )
-            .assert_ok();
+    pub fn call_user_withdraw(&mut self, user: &Address, amount: u64) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            user,
+            &self.pd_wrapper,
+            REDEEM_TOKEN_ID,
+            0,
+            &rust_biguint!(amount),
+            |sc| {
+                sc.user_withdraw();
+            },
+        )
     }
 
-    pub fn call_owner_deposit(&mut self, user: &Address, amount: u64) {
-        self.b_mock
-            .execute_esdt_transfer(
-                user,
-                &self.pd_wrapper,
-                LAUNCHED_TOKEN_ID,
-                0,
-                &rust_biguint!(amount),
-                |sc| {
-                    sc.owner_deposit();
-                },
-            )
-            .assert_ok();
+    pub fn call_owner_deposit(&mut self, amount: u64) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            &self.owner_address,
+            &self.pd_wrapper,
+            LAUNCHED_TOKEN_ID,
+            0,
+            &rust_biguint!(amount),
+            |sc| {
+                sc.owner_deposit();
+            },
+        )
     }
 
-    pub fn call_owner_withdraw(&mut self, user: &Address, amount: u64) {
-        self.b_mock
-            .execute_tx(user, &self.pd_wrapper, &rust_biguint!(0), |sc| {
+    pub fn call_owner_withdraw(&mut self, amount: u64) -> TxResult {
+        self.b_mock.execute_tx(
+            &self.owner_address,
+            &self.pd_wrapper,
+            &rust_biguint!(0),
+            |sc| {
                 sc.owner_withdraw(managed_biguint!(amount));
-            })
-            .assert_ok();
+            },
+        )
     }
 
-    pub fn call_redeem(&mut self, user: &Address, amount: u64) {
-        self.b_mock
-            .execute_esdt_transfer(
-                user,
-                &self.pd_wrapper,
-                REDEEM_TOKEN_ID,
-                0,
-                &rust_biguint!(amount),
-                |sc| {
-                    sc.redeem();
-                },
-            )
-            .assert_ok();
+    pub fn call_user_redeem(&mut self, user: &Address, amount: u64) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            user,
+            &self.pd_wrapper,
+            REDEEM_TOKEN_ID,
+            0,
+            &rust_biguint!(amount),
+            |sc| {
+                sc.redeem();
+            },
+        )
+    }
+
+    pub fn call_owner_redeem(&mut self) -> TxResult {
+        self.b_mock.execute_tx(
+            &self.owner_address,
+            &self.pd_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.redeem();
+            },
+        )
     }
 }

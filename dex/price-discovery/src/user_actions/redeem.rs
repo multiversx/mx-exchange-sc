@@ -48,6 +48,12 @@ pub trait RedeemModule:
     }
 
     fn owner_redeem(&self, owner: &ManagedAddress) -> EgldOrEsdtTokenPayment {
+        let launched_token_supply = self.launched_token_balance().get();
+        require!(
+            launched_token_supply > 0,
+            "May not withdraw tokens as launched tokens were not deposited"
+        );
+
         let accepted_token_id = self.accepted_token_id().get();
         let accepted_token_balance = self.accepted_token_balance().get();
         self.send()
@@ -64,6 +70,15 @@ pub trait RedeemModule:
     ) -> EgldOrEsdtTokenPayment {
         let redeem_token_id = self.redeem_token().get_token_id();
         require!(payment_token == &redeem_token_id, INVALID_PAYMENT_ERR_MSG);
+
+        let launched_token_supply = self.launched_token_balance().get();
+        if launched_token_supply == 0 {
+            let accepted_token_id = self.accepted_token_id().get();
+            self.send()
+                .direct(user, &accepted_token_id, 0, payment_amount);
+
+            return EgldOrEsdtTokenPayment::new(accepted_token_id, 0, payment_amount.clone());
+        }
 
         let bought_tokens = self.compute_user_bought_tokens(payment_amount);
         self.burn_redeem_token_without_supply_decrease(payment_amount);
