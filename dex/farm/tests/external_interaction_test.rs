@@ -323,7 +323,7 @@ fn test_wrong_original_owner_on_behalf_validation() {
         .execute_esdt_transfer(
             &blacklisted_address,
             &farm_setup.farm_wrapper,
-            &FARMING_TOKEN_ID,
+            FARMING_TOKEN_ID,
             0,
             &rust_biguint!(farm_token_amount),
             |sc| {
