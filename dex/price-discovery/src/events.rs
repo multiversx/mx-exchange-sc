@@ -4,23 +4,31 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode)]
-pub struct DepositEvent<'a, M: ManagedTypeApi> {
-    token_id_in: &'a EgldOrEsdtTokenIdentifier<M>,
+pub struct UserDepositEvent<'a, M: ManagedTypeApi> {
     token_amount_in: &'a BigUint<M>,
     redeem_token_id: &'a TokenIdentifier<M>,
     redeem_token_amount: &'a BigUint<M>,
-    launched_token_amount: &'a BigUint<M>,
     accepted_token_amount: &'a BigUint<M>,
 }
 
 #[derive(TypeAbi, TopEncode)]
-pub struct WithdrawEvent<'a, M: ManagedTypeApi> {
-    token_id_out: &'a EgldOrEsdtTokenIdentifier<M>,
+pub struct UserWithdrawEvent<'a, M: ManagedTypeApi> {
     token_amount_out: &'a BigUint<M>,
     redeem_token_id: &'a TokenIdentifier<M>,
     redeem_token_amount: &'a BigUint<M>,
-    launched_token_amount: &'a BigUint<M>,
     accepted_token_amount: &'a BigUint<M>,
+}
+
+#[derive(TypeAbi, TopEncode)]
+pub struct OwnerDepositEvent<'a, M: ManagedTypeApi> {
+    token_amount_in: &'a BigUint<M>,
+    launched_token_amount: &'a BigUint<M>,
+}
+
+#[derive(TypeAbi, TopEncode)]
+pub struct OwnerWithdrawEvent<'a, M: ManagedTypeApi> {
+    token_amount_out: &'a BigUint<M>,
+    launched_token_amount: &'a BigUint<M>,
 }
 
 #[derive(TypeAbi, TopEncode)]
@@ -40,56 +48,80 @@ pub struct GenericEventData<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait EventsModule: crate::common_storage::CommonStorageModule {
-    fn emit_deposit_event(
+    fn emit_user_deposit_event(
         &self,
-        token_id_in: &EgldOrEsdtTokenIdentifier,
         token_amount_in: &BigUint,
         redeem_token_id: &TokenIdentifier,
         redeem_token_amount: &BigUint,
     ) {
         let generic_event_data = self.get_generic_event_data();
-        let launched_token_amount = self.launched_token_balance().get();
         let accepted_token_amount = self.accepted_token_balance().get();
 
-        self.deposit_event(
+        self.user_deposit_event(
             &generic_event_data.caller,
             generic_event_data.block,
             generic_event_data.epoch,
             generic_event_data.timestamp,
-            DepositEvent {
-                token_id_in,
+            UserDepositEvent {
                 token_amount_in,
                 redeem_token_id,
                 redeem_token_amount,
-                launched_token_amount: &launched_token_amount,
                 accepted_token_amount: &accepted_token_amount,
             },
         );
     }
 
-    fn emit_withdraw_event(
+    fn emit_user_withdraw_event(
         &self,
-        token_id_out: &EgldOrEsdtTokenIdentifier,
         token_amount_out: &BigUint,
         redeem_token_id: &TokenIdentifier,
         redeem_token_amount: &BigUint,
     ) {
         let generic_event_data = self.get_generic_event_data();
-        let launched_token_amount = self.launched_token_balance().get();
         let accepted_token_amount = self.accepted_token_balance().get();
 
-        self.withdraw_event(
+        self.user_withdraw_event(
             &generic_event_data.caller,
             generic_event_data.block,
             generic_event_data.epoch,
             generic_event_data.timestamp,
-            WithdrawEvent {
-                token_id_out,
+            UserWithdrawEvent {
                 token_amount_out,
                 redeem_token_id,
                 redeem_token_amount,
-                launched_token_amount: &launched_token_amount,
                 accepted_token_amount: &accepted_token_amount,
+            },
+        );
+    }
+
+    fn emit_owner_deposit_event(&self, token_amount_in: &BigUint) {
+        let generic_event_data = self.get_generic_event_data();
+        let launched_token_amount = self.launched_token_balance().get();
+
+        self.owner_deposit_event(
+            &generic_event_data.caller,
+            generic_event_data.block,
+            generic_event_data.epoch,
+            generic_event_data.timestamp,
+            OwnerDepositEvent {
+                token_amount_in,
+                launched_token_amount: &launched_token_amount,
+            },
+        );
+    }
+
+    fn emit_owner_withdraw_event(&self, token_amount_out: &BigUint) {
+        let generic_event_data = self.get_generic_event_data();
+        let launched_token_amount = self.launched_token_balance().get();
+
+        self.owner_withdraw_event(
+            &generic_event_data.caller,
+            generic_event_data.block,
+            generic_event_data.epoch,
+            generic_event_data.timestamp,
+            OwnerWithdrawEvent {
+                token_amount_out,
+                launched_token_amount: &launched_token_amount,
             },
         );
     }
@@ -131,24 +163,44 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         }
     }
 
-    #[event("depositEvent")]
-    fn deposit_event(
+    #[event("userDepositEvent")]
+    fn user_deposit_event(
         &self,
         #[indexed] caller: &ManagedAddress,
         #[indexed] block: Block,
         #[indexed] epoch: Epoch,
         #[indexed] timestamp: Timestamp,
-        deposit_event: DepositEvent<Self::Api>,
+        deposit_event: UserDepositEvent<Self::Api>,
     );
 
-    #[event("withdrawEvent")]
-    fn withdraw_event(
+    #[event("userWithdrawEvent")]
+    fn user_withdraw_event(
         &self,
         #[indexed] caller: &ManagedAddress,
         #[indexed] block: Block,
         #[indexed] epoch: Epoch,
         #[indexed] timestamp: Timestamp,
-        withdraw_event: WithdrawEvent<Self::Api>,
+        withdraw_event: UserWithdrawEvent<Self::Api>,
+    );
+
+    #[event("ownerDepositEvent")]
+    fn owner_deposit_event(
+        &self,
+        #[indexed] caller: &ManagedAddress,
+        #[indexed] block: Block,
+        #[indexed] epoch: Epoch,
+        #[indexed] timestamp: Timestamp,
+        deposit_event: OwnerDepositEvent<Self::Api>,
+    );
+
+    #[event("ownerWithdrawEvent")]
+    fn owner_withdraw_event(
+        &self,
+        #[indexed] caller: &ManagedAddress,
+        #[indexed] block: Block,
+        #[indexed] epoch: Epoch,
+        #[indexed] timestamp: Timestamp,
+        withdraw_event: OwnerWithdrawEvent<Self::Api>,
     );
 
     #[event("redeemEvent")]

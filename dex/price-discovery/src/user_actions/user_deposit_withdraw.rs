@@ -28,8 +28,7 @@ pub trait UserDepositWithdrawModule:
         let caller = self.blockchain().get_caller();
         let payment_result = self.mint_and_send_redeem_token(&caller, payment_amount.clone());
 
-        self.emit_deposit_event(
-            &payment_token,
+        self.emit_user_deposit_event(
             &payment_amount,
             &payment_result.token_identifier,
             &payment_amount,
@@ -59,12 +58,7 @@ pub trait UserDepositWithdrawModule:
         self.send()
             .direct(&caller, &refund_token_id, 0, &payment_amount);
 
-        self.emit_withdraw_event(
-            &refund_token_id,
-            &payment_amount,
-            &payment_token,
-            &payment_amount,
-        );
+        self.emit_user_withdraw_event(&payment_amount, &payment_token, &payment_amount);
 
         EgldOrEsdtTokenPayment::new(refund_token_id, 0, payment_amount)
     }

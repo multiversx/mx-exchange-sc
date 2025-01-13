@@ -33,11 +33,13 @@ pub trait OwnerDepositWithdrawModule:
         );
 
         self.launched_token_balance()
-            .update(|balance| *balance += payment_amount);
+            .update(|balance| *balance += &payment_amount);
+
+        self.emit_owner_deposit_event(&payment_amount);
     }
 
     #[endpoint(ownerWithdraw)]
-    fn owner_withdraw(&self, amount: BigUint) -> EsdtTokenPayment {
+    fn owner_withdraw(&self, withdraw_amount: BigUint) -> EsdtTokenPayment {
         let phase = self.get_current_phase();
         self.require_owner_deposit_withdraw_allowed(&phase);
 
@@ -46,24 +48,26 @@ pub trait OwnerDepositWithdrawModule:
 
         let current_total_launched_tokens = self.launched_token_balance().get();
         require!(
-            amount > 0 && amount <= current_total_launched_tokens,
+            withdraw_amount > 0 && withdraw_amount <= current_total_launched_tokens,
             INVALID_AMOUNT_ERR_MSG
         );
 
         let min_launched_tokens = self.min_launched_tokens().get();
         require!(
-            &current_total_launched_tokens - &amount >= min_launched_tokens,
+            &current_total_launched_tokens - &withdraw_amount >= min_launched_tokens,
             INVALID_AMOUNT_ERR_MSG
         );
 
         self.launched_token_balance()
-            .update(|balance| *balance -= &amount);
+            .update(|balance| *balance -= &withdraw_amount);
 
         let launched_token_id = self.launched_token_id().get();
         self.send()
-            .direct_esdt(&caller, &launched_token_id, 0, &amount);
+            .direct_esdt(&caller, &launched_token_id, 0, &withdraw_amount);
 
-        EsdtTokenPayment::new(launched_token_id, 0, amount)
+        self.emit_owner_withdraw_event(&withdraw_amount);
+
+        EsdtTokenPayment::new(launched_token_id, 0, withdraw_amount)
     }
 
     fn require_owner_caller(&self, caller: &ManagedAddress) {
