@@ -194,7 +194,7 @@ fn test_enter_and_claim_farm_on_behalf_not_whitelisted_error() {
                 sc.enter_farm_on_behalf(managed_address!(&external_user));
             },
         )
-        .assert_error(4, "Caller is not whitelisted by the user");
+        .assert_error(4, "Caller is not whitelisted by the user or is blacklisted");
 
     let farm_token_amount = 100_000_000;
     farm_setup.whitelist_address_on_behalf(&external_user, &authorized_address);
@@ -214,7 +214,7 @@ fn test_enter_and_claim_farm_on_behalf_not_whitelisted_error() {
                 sc.claim_rewards_on_behalf();
             },
         )
-        .assert_error(4, "Caller is not whitelisted by the user");
+        .assert_error(4, "Caller is not whitelisted by the user or is blacklisted");
 }
 
 #[test]
@@ -283,7 +283,7 @@ fn test_wrong_original_owner_on_behalf_validation() {
         )
         .assert_error(4, "Provided address is not the same as the original owner");
 
-    // Try claim with different original owners
+    // Try claim with multiple positions
     let mut claim_payments = Vec::new();
     claim_payments.push(TxTokenTransfer {
         token_identifier: FARM_TOKEN_ID.to_vec(),
@@ -305,5 +305,30 @@ fn test_wrong_original_owner_on_behalf_validation() {
                 sc.claim_rewards_on_behalf();
             },
         )
-        .assert_error(4, "All position must have the same original owner");
+        .assert_error(4, "incorrect number of ESDT transfers");
+
+    // Check enter on behalf with blacklisted address
+    let blacklisted_address = farm_setup.b_mock.create_user_account(&rust_biguint!(0));
+    farm_setup.whitelist_address_on_behalf(&external_user1, &blacklisted_address);
+    farm_setup.blacklist_address_on_behalf(&blacklisted_address);
+
+    farm_setup.b_mock.set_esdt_balance(
+        &blacklisted_address,
+        FARMING_TOKEN_ID,
+        &rust_biguint!(farm_token_amount),
+    );
+
+    farm_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &blacklisted_address,
+            &farm_setup.farm_wrapper,
+            &FARMING_TOKEN_ID,
+            0,
+            &rust_biguint!(farm_token_amount),
+            |sc| {
+                sc.enter_farm_on_behalf(managed_address!(&external_user1));
+            },
+        )
+        .assert_error(4, "Caller is not whitelisted by the user or is blacklisted");
 }

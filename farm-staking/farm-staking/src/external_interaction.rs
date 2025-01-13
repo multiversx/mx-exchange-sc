@@ -75,7 +75,7 @@ pub trait ExternalInteractionsModule:
         self.update_energy_and_progress(&user);
 
         self.emit_enter_farm_event(
-            &caller,
+            &user,
             enter_result.context.farming_token_payment,
             enter_result.new_farm_token,
             enter_result.created_with_merge,
@@ -88,15 +88,13 @@ pub trait ExternalInteractionsModule:
     #[payable("*")]
     #[endpoint(claimRewardsOnBehalf)]
     fn claim_rewards_on_behalf(&self) -> ClaimRewardsResultType<Self::Api> {
-        let payments = self.get_non_empty_payments();
         let farm_token_mapper = self.farm_token();
         let caller = self.blockchain().get_caller();
-        let user = self.check_and_return_original_owner::<StakingFarmTokenAttributes<Self::Api>>(
-            &payments,
-            &farm_token_mapper,
-        );
+        let user = self
+            .get_claim_original_owner::<StakingFarmTokenAttributes<Self::Api>>(&farm_token_mapper);
         self.require_user_whitelisted(&user, &caller);
 
+        let payments = self.get_non_empty_payments();
         let claim_result = self.claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
             user.clone(),
             payments,
@@ -115,12 +113,11 @@ pub trait ExternalInteractionsModule:
         );
         virtual_farm_token.payment.token_nonce = new_farm_token_nonce;
 
-        let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
         self.send_payment_non_zero(&user, &claim_result.rewards);
 
         self.emit_claim_rewards_event(
-            &caller,
+            &user,
             claim_result.context,
             virtual_farm_token.clone(),
             claim_result.rewards.clone(),

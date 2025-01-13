@@ -685,6 +685,19 @@ where
             .assert_ok();
     }
 
+    pub fn blacklist_address_on_behalf(&mut self, address_to_blacklist: &Address) {
+        self.b_mock
+            .execute_tx(
+                &self.owner,
+                &self.permissions_hub_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.blacklist(managed_address!(address_to_blacklist));
+                },
+            )
+            .assert_ok();
+    }
+
     pub fn enter_farm_on_behalf(
         &mut self,
         caller: &Address,

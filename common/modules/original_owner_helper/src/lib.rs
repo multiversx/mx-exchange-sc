@@ -6,25 +6,14 @@ use common_structs::{FarmToken, PaymentsVec};
 
 #[multiversx_sc::module]
 pub trait OriginalOwnerHelperModule {
-    fn check_and_return_original_owner<T: FarmToken<Self::Api> + TopDecode>(
+    fn get_claim_original_owner<T: FarmToken<Self::Api> + TopDecode>(
         &self,
-        payments: &PaymentsVec<Self::Api>,
         farm_token_mapper: &NonFungibleTokenMapper,
     ) -> ManagedAddress {
-        let mut original_owner = ManagedAddress::zero();
-        for payment in payments.iter() {
-            let attributes: T = farm_token_mapper.get_token_attributes(payment.token_nonce);
-            let payment_original_owner = attributes.get_original_owner();
+        let payment = self.call_value().single_esdt();
 
-            if original_owner.is_zero() {
-                original_owner = payment_original_owner;
-            } else {
-                require!(
-                    original_owner == payment_original_owner,
-                    "All position must have the same original owner"
-                );
-            }
-        }
+        let attributes: T = farm_token_mapper.get_token_attributes(payment.token_nonce);
+        let original_owner = attributes.get_original_owner();
 
         require!(
             !original_owner.is_zero(),

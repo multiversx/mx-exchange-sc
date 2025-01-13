@@ -45,6 +45,8 @@ pub trait ExternalInteractionsModule:
         let caller = self.blockchain().get_caller();
         self.require_user_whitelisted(&user, &caller);
 
+        self.migrate_old_farm_positions(&user);
+
         let payments = self.get_non_empty_payments();
         let farm_token_mapper = self.farm_token();
         self.check_additional_payments_original_owner::<FarmTokenAttributes<Self::Api>>(
@@ -70,15 +72,14 @@ pub trait ExternalInteractionsModule:
     #[payable("*")]
     #[endpoint(claimRewardsOnBehalf)]
     fn claim_rewards_on_behalf(&self) -> ClaimRewardsResultType<Self::Api> {
-        let payments = self.get_non_empty_payments();
         let farm_token_mapper = self.farm_token();
 
         let caller = self.blockchain().get_caller();
-        let user = self.check_and_return_original_owner::<FarmTokenAttributes<Self::Api>>(
-            &payments,
-            &farm_token_mapper,
-        );
+        let user =
+            self.get_claim_original_owner::<FarmTokenAttributes<Self::Api>>(&farm_token_mapper);
         self.require_user_whitelisted(&user, &caller);
+
+        self.migrate_old_farm_positions(&user);
 
         let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(user.clone());
 
