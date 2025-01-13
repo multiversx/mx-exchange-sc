@@ -1,4 +1,4 @@
-// #![allow(deprecated)]
+#![allow(deprecated)]
 
 // use multiversx_sc::codec::Empty;
 // use multiversx_sc_scenario::{managed_biguint, managed_token_id_wrapped};
@@ -7,16 +7,16 @@
 // use price_discovery::redeem_token::*;
 // use price_discovery::PriceDiscovery;
 
-// mod tests_common;
+mod tests_common;
 // use simple_lock::locked_token::LockedTokenAttributes;
-// use tests_common::*;
+use tests_common::*;
 
 // const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000_000_000;
 
-// #[test]
-// fn test_init() {
-//     let _ = init(price_discovery::contract_obj);
-// }
+#[test]
+fn test_init() {
+    let _ = PriceDiscSetup::new(price_discovery::contract_obj);
+}
 
 // #[test]
 // fn test_deposit_launched_tokens_ok() {
