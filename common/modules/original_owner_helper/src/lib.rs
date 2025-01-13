@@ -10,10 +10,28 @@ pub trait OriginalOwnerHelperModule {
         &self,
         farm_token_mapper: &NonFungibleTokenMapper,
     ) -> ManagedAddress {
-        let payment = self.call_value().single_esdt();
+        let payments = self.call_value().all_esdt_transfers();
+        let farm_token_id = farm_token_mapper.get_token_id();
 
-        let attributes: T = farm_token_mapper.get_token_attributes(payment.token_nonce);
-        let original_owner = attributes.get_original_owner();
+        let mut original_owner = ManagedAddress::zero();
+        for payment in payments.into_iter() {
+            require!(
+                payment.token_identifier == farm_token_id,
+                "Invalid payment token"
+            );
+
+            let attributes: T = farm_token_mapper.get_token_attributes(payment.token_nonce);
+            let payment_original_owner = attributes.get_original_owner();
+
+            if original_owner.is_zero() {
+                original_owner = payment_original_owner;
+            } else {
+                require!(
+                    original_owner == payment_original_owner,
+                    "Original owner is not the same for all payments"
+                );
+            }
+        }
 
         require!(
             !original_owner.is_zero(),
