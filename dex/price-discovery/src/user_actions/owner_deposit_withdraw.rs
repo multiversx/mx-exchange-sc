@@ -12,12 +12,14 @@ pub trait OwnerDepositWithdrawModule:
     + crate::redeem_token::RedeemTokenModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    #[only_owner]
     #[payable("*")]
     #[endpoint(ownerDeposit)]
     fn owner_deposit(&self) {
         let phase = self.get_current_phase();
         self.require_owner_deposit_withdraw_allowed(&phase);
+
+        let caller = self.blockchain().get_caller();
+        self.require_owner_caller(&caller);
 
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let launched_token_id = self.launched_token_id().get();
@@ -34,11 +36,13 @@ pub trait OwnerDepositWithdrawModule:
             .update(|balance| *balance += payment_amount);
     }
 
-    #[only_owner]
     #[endpoint(ownerWithdraw)]
     fn owner_withdraw(&self, amount: BigUint) -> EsdtTokenPayment {
         let phase = self.get_current_phase();
         self.require_owner_deposit_withdraw_allowed(&phase);
+
+        let caller = self.blockchain().get_caller();
+        self.require_owner_caller(&caller);
 
         let current_total_launched_tokens = self.launched_token_balance().get();
         require!(
@@ -55,11 +59,15 @@ pub trait OwnerDepositWithdrawModule:
         self.launched_token_balance()
             .update(|balance| *balance -= &amount);
 
-        let caller = self.blockchain().get_caller();
         let launched_token_id = self.launched_token_id().get();
         self.send()
             .direct_esdt(&caller, &launched_token_id, 0, &amount);
 
         EsdtTokenPayment::new(launched_token_id, 0, amount)
+    }
+
+    fn require_owner_caller(&self, caller: &ManagedAddress) {
+        let owner = self.owner_address().get();
+        require!(caller == &owner, "Only owner may call this endpoint");
     }
 }

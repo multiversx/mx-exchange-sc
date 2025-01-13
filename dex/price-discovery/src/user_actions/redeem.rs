@@ -22,7 +22,7 @@ pub trait RedeemModule:
         self.require_redeem_allowed(&phase);
 
         let caller = self.blockchain().get_caller();
-        let owner = self.blockchain().get_owner_address();
+        let owner = self.owner_address().get();
         if caller == owner {
             let redeemed_tokens = self.owner_redeem(&caller);
 
