@@ -1,5 +1,3 @@
-use crate::events::{DepositEventArgs, WithdrawEventArgs};
-
 multiversx_sc::imports!();
 
 pub static INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
@@ -30,12 +28,12 @@ pub trait UserDepositWithdrawModule:
         let caller = self.blockchain().get_caller();
         let payment_result = self.mint_and_send_redeem_token(&caller, payment_amount.clone());
 
-        self.emit_deposit_event(DepositEventArgs {
-            token_id_in: &payment_token,
-            token_amount_in: &payment_amount,
-            redeem_token_id: &payment_result.token_identifier,
-            redeem_token_amount: &payment_amount,
-        });
+        self.emit_deposit_event(
+            &payment_token,
+            &payment_amount,
+            &payment_result.token_identifier,
+            &payment_amount,
+        );
 
         payment_result
     }
@@ -61,12 +59,12 @@ pub trait UserDepositWithdrawModule:
         self.send()
             .direct(&caller, &refund_token_id, 0, &payment_amount);
 
-        self.emit_withdraw_event(WithdrawEventArgs {
-            token_id_out: &refund_token_id,
-            token_amount_out: &payment_amount,
-            redeem_token_id: &payment_token,
-            redeem_token_amount: &payment_amount,
-        });
+        self.emit_withdraw_event(
+            &refund_token_id,
+            &payment_amount,
+            &payment_token,
+            &payment_amount,
+        );
 
         EgldOrEsdtTokenPayment::new(refund_token_id, 0, payment_amount)
     }

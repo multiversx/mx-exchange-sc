@@ -1,6 +1,4 @@
-use crate::{
-    events::RedeemEventArgs, user_actions::user_deposit_withdraw::INVALID_PAYMENT_ERR_MSG,
-};
+use crate::user_actions::user_deposit_withdraw::INVALID_PAYMENT_ERR_MSG;
 
 multiversx_sc::imports!();
 
@@ -26,12 +24,12 @@ pub trait RedeemModule:
         if caller == owner {
             let redeemed_tokens = self.owner_redeem(&caller);
 
-            self.emit_redeem_event(RedeemEventArgs {
-                opt_redeem_token_id: None,
-                redeem_token_amount: &BigUint::zero(),
-                bought_token_id: &redeemed_tokens.token_identifier,
-                bought_token_amount: &redeemed_tokens.amount,
-            });
+            self.emit_redeem_event(
+                None,
+                &BigUint::zero(),
+                &redeemed_tokens.token_identifier,
+                &redeemed_tokens.amount,
+            );
 
             return redeemed_tokens;
         }
@@ -39,12 +37,12 @@ pub trait RedeemModule:
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let bought_tokens = self.user_redeem(&caller, &payment_token, &payment_amount);
 
-        self.emit_redeem_event(RedeemEventArgs {
-            opt_redeem_token_id: Some(&payment_token),
-            redeem_token_amount: &payment_amount,
-            bought_token_id: &bought_tokens.token_identifier,
-            bought_token_amount: &bought_tokens.amount,
-        });
+        self.emit_redeem_event(
+            Some(&payment_token),
+            &payment_amount,
+            &bought_tokens.token_identifier,
+            &bought_tokens.amount,
+        );
 
         bought_tokens
     }

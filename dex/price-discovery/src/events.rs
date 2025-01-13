@@ -13,13 +13,6 @@ pub struct DepositEvent<'a, M: ManagedTypeApi> {
     accepted_token_amount: &'a BigUint<M>,
 }
 
-pub struct DepositEventArgs<'a, M: ManagedTypeApi> {
-    pub token_id_in: &'a EgldOrEsdtTokenIdentifier<M>,
-    pub token_amount_in: &'a BigUint<M>,
-    pub redeem_token_id: &'a TokenIdentifier<M>,
-    pub redeem_token_amount: &'a BigUint<M>,
-}
-
 #[derive(TypeAbi, TopEncode)]
 pub struct WithdrawEvent<'a, M: ManagedTypeApi> {
     token_id_out: &'a EgldOrEsdtTokenIdentifier<M>,
@@ -30,26 +23,12 @@ pub struct WithdrawEvent<'a, M: ManagedTypeApi> {
     accepted_token_amount: &'a BigUint<M>,
 }
 
-pub struct WithdrawEventArgs<'a, M: ManagedTypeApi> {
-    pub token_id_out: &'a EgldOrEsdtTokenIdentifier<M>,
-    pub token_amount_out: &'a BigUint<M>,
-    pub redeem_token_id: &'a TokenIdentifier<M>,
-    pub redeem_token_amount: &'a BigUint<M>,
-}
-
 #[derive(TypeAbi, TopEncode)]
 pub struct RedeemEvent<'a, M: ManagedTypeApi> {
     opt_redeem_token_id: Option<&'a TokenIdentifier<M>>,
     redeem_token_amount: &'a BigUint<M>,
     bought_token_id: &'a EgldOrEsdtTokenIdentifier<M>,
     bought_token_amount: &'a BigUint<M>,
-}
-
-pub struct RedeemEventArgs<'a, M: ManagedTypeApi> {
-    pub opt_redeem_token_id: Option<&'a TokenIdentifier<M>>,
-    pub redeem_token_amount: &'a BigUint<M>,
-    pub bought_token_id: &'a EgldOrEsdtTokenIdentifier<M>,
-    pub bought_token_amount: &'a BigUint<M>,
 }
 
 pub struct GenericEventData<M: ManagedTypeApi> {
@@ -61,7 +40,13 @@ pub struct GenericEventData<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait EventsModule: crate::common_storage::CommonStorageModule {
-    fn emit_deposit_event(&self, args: DepositEventArgs<Self::Api>) {
+    fn emit_deposit_event(
+        &self,
+        token_id_in: &EgldOrEsdtTokenIdentifier,
+        token_amount_in: &BigUint,
+        redeem_token_id: &TokenIdentifier,
+        redeem_token_amount: &BigUint,
+    ) {
         let generic_event_data = self.get_generic_event_data();
         let launched_token_amount = self.launched_token_balance().get();
         let accepted_token_amount = self.accepted_token_balance().get();
@@ -72,17 +57,23 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
             generic_event_data.epoch,
             generic_event_data.timestamp,
             DepositEvent {
-                token_id_in: args.token_id_in,
-                token_amount_in: args.token_amount_in,
-                redeem_token_id: args.redeem_token_id,
-                redeem_token_amount: args.redeem_token_amount,
+                token_id_in,
+                token_amount_in,
+                redeem_token_id,
+                redeem_token_amount,
                 launched_token_amount: &launched_token_amount,
                 accepted_token_amount: &accepted_token_amount,
             },
         );
     }
 
-    fn emit_withdraw_event(&self, args: WithdrawEventArgs<Self::Api>) {
+    fn emit_withdraw_event(
+        &self,
+        token_id_out: &EgldOrEsdtTokenIdentifier,
+        token_amount_out: &BigUint,
+        redeem_token_id: &TokenIdentifier,
+        redeem_token_amount: &BigUint,
+    ) {
         let generic_event_data = self.get_generic_event_data();
         let launched_token_amount = self.launched_token_balance().get();
         let accepted_token_amount = self.accepted_token_balance().get();
@@ -93,17 +84,23 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
             generic_event_data.epoch,
             generic_event_data.timestamp,
             WithdrawEvent {
-                token_id_out: args.token_id_out,
-                token_amount_out: args.token_amount_out,
-                redeem_token_id: args.redeem_token_id,
-                redeem_token_amount: args.redeem_token_amount,
+                token_id_out,
+                token_amount_out,
+                redeem_token_id,
+                redeem_token_amount,
                 launched_token_amount: &launched_token_amount,
                 accepted_token_amount: &accepted_token_amount,
             },
         );
     }
 
-    fn emit_redeem_event(&self, args: RedeemEventArgs<Self::Api>) {
+    fn emit_redeem_event(
+        &self,
+        opt_redeem_token_id: Option<&TokenIdentifier>,
+        redeem_token_amount: &BigUint,
+        bought_token_id: &EgldOrEsdtTokenIdentifier,
+        bought_token_amount: &BigUint,
+    ) {
         let generic_event_data = self.get_generic_event_data();
 
         self.redeem_event(
@@ -112,10 +109,10 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
             generic_event_data.epoch,
             generic_event_data.timestamp,
             RedeemEvent {
-                opt_redeem_token_id: args.opt_redeem_token_id,
-                redeem_token_amount: args.redeem_token_amount,
-                bought_token_id: args.bought_token_id,
-                bought_token_amount: args.bought_token_amount,
+                opt_redeem_token_id,
+                redeem_token_amount,
+                bought_token_id,
+                bought_token_amount,
             },
         )
     }
