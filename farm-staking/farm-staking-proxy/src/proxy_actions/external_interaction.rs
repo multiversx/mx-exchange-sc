@@ -112,7 +112,7 @@ pub trait ProxyExternalInteractionsModule:
 
         let lp_original_owner = lp_attributes.original_owner;
         require!(
-            lp_original_owner != ManagedAddress::zero(),
+            !lp_original_owner.is_zero(),
             "LP Token original owner incorrect"
         );
 
