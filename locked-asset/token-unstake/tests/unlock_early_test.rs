@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod token_unstake_setup;
 
 use energy_factory::energy::EnergyModule;
@@ -7,7 +9,7 @@ use token_unstake_setup::*;
 
 #[test]
 fn double_unlock_early_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut setup =
         TokenUnstakeSetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
     let first_user = setup.first_user.clone();

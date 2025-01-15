@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod pair_setup;
 use fees_collector::{
     config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
@@ -9,10 +11,12 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    whitebox::TxTokenTransfer, DebugApi,
+    whitebox_legacy::TxTokenTransfer, DebugApi,
 };
-// use pair::safe_price::MAX_OBSERVATIONS;
-use pair::{config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule, Pair};
+use pair::{
+    config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule,
+    pair_actions::swap::SwapModule,
+};
 use pair_setup::*;
 use simple_lock::{
     locked_token::{LockedTokenAttributes, LockedTokenModule},
@@ -54,6 +58,35 @@ fn test_swap_fixed_output() {
     );
 
     pair_setup.swap_fixed_output(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 900, 96);
+}
+
+#[test]
+fn test_perfect_swap_fixed_output() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+
+    let token_amount = 1_001_000;
+
+    pair_setup.add_liquidity(
+        token_amount,
+        1_000_000,
+        token_amount,
+        1_000_000,
+        1_000_000,
+        token_amount,
+        token_amount,
+    );
+
+    pair_setup.swap_fixed_output(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 996, 0);
+    pair_setup.b_mock.check_esdt_balance(
+        &pair_setup.user_address,
+        WEGLD_TOKEN_ID,
+        &(rust_biguint!(USER_TOTAL_WEGLD_TOKENS - token_amount - 1_000)),
+    );
+    pair_setup.b_mock.check_esdt_balance(
+        &pair_setup.user_address,
+        MEX_TOKEN_ID,
+        &(rust_biguint!(USER_TOTAL_WEGLD_TOKENS - token_amount + 996)),
+    );
 }
 
 #[test]
@@ -954,7 +987,7 @@ fn test_locked_asset() {
         )
         .assert_ok();
 
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     pair_setup.b_mock.check_nft_balance(
         &pair_setup.user_address,
         LOCKED_TOKEN_ID,
@@ -1075,7 +1108,7 @@ fn add_liquidity_through_simple_lock_proxy() {
     );
 
     pair_setup.b_mock.set_block_epoch(5);
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
 
     // lock some tokens first
     pair_setup

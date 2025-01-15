@@ -4,8 +4,10 @@ version = "0.0.0"
 authors = ["MultiversX <contact@multiversx.com>"]
 edition = "2021"
 publish = false
+
 [dependencies.farm-staking]
 path = ".."
 
 [dependencies.multiversx-sc-meta]
-version = "=0.39.4"
+version = "0.46.1"
+default-features = false

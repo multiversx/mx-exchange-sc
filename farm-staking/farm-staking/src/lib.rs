@@ -2,14 +2,17 @@
 #![allow(clippy::from_over_into)]
 #![feature(trait_alias)]
 
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
+
 use base_impl_wrapper::FarmStakingWrapper;
 use contexts::storage_cache::StorageCache;
+use farm::base_functions::DoubleMultiPayment;
 use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
 use token_attributes::StakingFarmTokenAttributes;
 
-multiversx_sc::imports!();
-multiversx_sc::derive_imports!();
+use crate::custom_rewards::MAX_MIN_UNBOND_EPOCHS;
 
 pub mod base_impl_wrapper;
 pub mod claim_only_boosted_staking_rewards;
@@ -40,7 +43,6 @@ pub trait FarmStaking:
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
-    + farm::progress_update::ProgressUpdateModule
     + utils::UtilsModule
     + farm_token_roles::FarmTokenRolesModule
     + stake_farm::StakeFarmModule
@@ -79,16 +81,41 @@ pub trait FarmStaking:
         );
 
         require!(max_apr > 0u64, "Invalid max APR percentage");
-        self.max_annual_percentage_rewards().set(&max_apr);
+        self.max_annual_percentage_rewards().set_if_empty(&max_apr);
 
-        self.try_set_min_unbond_epochs(min_unbond_epochs);
+        require!(
+            min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
+            "Invalid min unbond epochs"
+        );
+        self.min_unbond_epochs().set_if_empty(min_unbond_epochs);
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
+
+        // Farm position migration code
+        let farm_token_mapper = self.farm_token();
+        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+    }
+
+    #[endpoint]
+    fn upgrade(&self) {
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
+
+        // Farm position migration code
+        let farm_token_mapper = self.farm_token();
+        self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens_endpoint(&self) -> DoubleMultiPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.check_claim_progress_for_merge(&caller);
+        self.migrate_old_farm_positions(&caller);
+
+        let boosted_rewards = self.claim_only_boosted_payment(&caller);
+        let boosted_rewards_payment =
+            EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
 
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
@@ -98,8 +125,9 @@ pub trait FarmStaking:
 
         let merged_farm_token = token_mapper.nft_create(new_token_amount, &output_attributes);
         self.send_payment_non_zero(&caller, &merged_farm_token);
+        self.send_payment_non_zero(&caller, &boosted_rewards_payment);
 
-        merged_farm_token
+        (merged_farm_token, boosted_rewards_payment).into()
     }
 
     #[view(calculateRewardsForGivenPosition)]

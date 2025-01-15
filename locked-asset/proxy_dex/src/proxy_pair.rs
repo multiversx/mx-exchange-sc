@@ -6,19 +6,20 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
+use common_structs::Epoch;
 use fixed_supply_token::FixedSupplyToken;
 
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
     crate::proxy_common::ProxyCommonModule
-    + crate::sc_whitelist::ScWhitelistModule
+    + crate::other_sc_whitelist::OtherScWhitelistModule
     + crate::pair_interactions::PairInteractionsModule
     + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
     + crate::energy_update::EnergyUpdateModule
+    + crate::events::EventsModule
     + energy_query::EnergyQueryModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + crate::events::EventsModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
 {
@@ -142,12 +143,32 @@ pub trait ProxyPairModule:
         self.require_wrapped_lp_token_id_not_empty();
 
         let payment = self.call_value().single_esdt();
+
+        let output_payments = self.remove_liquidity_proxy_common(
+            payment,
+            pair_address,
+            first_token_amount_min,
+            second_token_amount_min,
+        );
+        let caller = self.blockchain().get_caller();
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+
+        output_payments.into()
+    }
+
+    fn remove_liquidity_proxy_common(
+        &self,
+        input_payment: EsdtTokenPayment,
+        pair_address: ManagedAddress,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    ) -> ManagedVec<EsdtTokenPayment> {
         let wrapped_lp_mapper = self.wrapped_lp_token();
-        wrapped_lp_mapper.require_same_token(&payment.token_identifier);
+        wrapped_lp_mapper.require_same_token(&input_payment.token_identifier);
 
         let caller = self.blockchain().get_caller();
         let attributes: WrappedLpTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_lp_mapper);
+            self.get_attributes_as_part_of_fixed_supply(&input_payment, &wrapped_lp_mapper);
 
         let remove_liq_result = self.call_remove_liquidity(
             pair_address.clone(),
@@ -205,20 +226,71 @@ pub trait ProxyPairModule:
         let other_tokens = received_token_refs.other_token_ref.clone();
         output_payments.push(other_tokens);
 
-        wrapped_lp_mapper.nft_burn(payment.token_nonce, &payment.amount);
-
-        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+        wrapped_lp_mapper.nft_burn(input_payment.token_nonce, &input_payment.amount);
 
         self.emit_remove_liquidity_proxy_event(
             &caller,
             &pair_address,
-            payment,
+            input_payment,
             attributes,
             remove_liq_result.first_token_received,
             remove_liq_result.second_token_received,
         );
 
-        output_payments.into()
+        output_payments
+    }
+
+    #[payable("*")]
+    #[endpoint(increaseProxyPairTokenEnergy)]
+    fn increase_proxy_pair_token_energy_endpoint(&self, lock_epochs: Epoch) -> EsdtTokenPayment {
+        self.require_wrapped_lp_token_id_not_empty();
+
+        let payment = self.call_value().single_esdt();
+        let wrapped_lp_mapper = self.wrapped_lp_token();
+        wrapped_lp_mapper.require_same_token(&payment.token_identifier);
+
+        let caller = self.blockchain().get_caller();
+        let old_attributes: WrappedLpTokenAttributes<Self::Api> =
+            self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_lp_mapper);
+
+        let new_locked_tokens =
+            self.increase_proxy_pair_token_energy(caller.clone(), lock_epochs, &old_attributes);
+        let new_token_attributes = WrappedLpTokenAttributes {
+            locked_tokens: new_locked_tokens,
+            lp_token_id: old_attributes.lp_token_id,
+            lp_token_amount: old_attributes.lp_token_amount,
+        };
+
+        self.send().esdt_local_burn(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+        );
+
+        let new_token_amount = new_token_attributes.get_total_supply();
+
+        wrapped_lp_mapper.nft_create_and_send(&caller, new_token_amount, &new_token_attributes)
+    }
+
+    fn increase_proxy_pair_token_energy(
+        &self,
+        user: ManagedAddress,
+        lock_epochs: Epoch,
+        old_attributes: &WrappedLpTokenAttributes<Self::Api>,
+    ) -> EsdtTokenPayment {
+        let new_locked_token_id = self.get_locked_token_id();
+        require!(
+            old_attributes.locked_tokens.token_identifier == new_locked_token_id,
+            "Invalid payment"
+        );
+
+        let energy_factory_addr = self.energy_factory_address().get();
+        self.call_increase_energy(
+            user,
+            old_attributes.locked_tokens.clone(),
+            lock_epochs,
+            energy_factory_addr,
+        )
     }
 
     fn require_wrapped_lp_token_id_not_empty(&self) {

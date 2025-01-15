@@ -86,25 +86,17 @@ pub trait WeeklyRewardsSplittingModule:
 
         let mut all_rewards = ManagedVec::new();
 
-        // for the case when a user locks, enters the weekly rewards, and then unlocks.
-        // Then, they wait for a long period, and start claiming,
-        // getting rewards they shouldn't have access to.
-        // In this case, they receive no rewards, and their progress is reset
-        if current_user_energy.get_energy_amount_raw()
-            >= calculated_energy_for_current_epoch.get_energy_amount_raw()
-        {
-            let total_weeks_to_claim = current_week - claim_progress.week;
-            if total_weeks_to_claim > USER_MAX_CLAIM_WEEKS {
-                let extra_weeks = total_weeks_to_claim - USER_MAX_CLAIM_WEEKS;
-                claim_progress.advance_multiple_weeks(extra_weeks);
-            }
+        let total_weeks_to_claim = current_week - claim_progress.week;
+        if total_weeks_to_claim > USER_MAX_CLAIM_WEEKS {
+            let extra_weeks = total_weeks_to_claim - USER_MAX_CLAIM_WEEKS;
+            claim_progress.advance_multiple_weeks(extra_weeks);
+        }
 
-            let weeks_to_claim = core::cmp::min(total_weeks_to_claim, USER_MAX_CLAIM_WEEKS);
-            for _ in 0..weeks_to_claim {
-                let rewards_for_week = self.claim_single(wrapper, &mut claim_progress);
-                if !rewards_for_week.is_empty() {
-                    all_rewards.append_vec(rewards_for_week);
-                }
+        let weeks_to_claim = core::cmp::min(total_weeks_to_claim, USER_MAX_CLAIM_WEEKS);
+        for _ in 0..weeks_to_claim {
+            let rewards_for_week = self.claim_single(wrapper, &mut claim_progress);
+            if !rewards_for_week.is_empty() {
+                all_rewards.append_vec(rewards_for_week);
             }
         }
 

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use multiversx_sc::{
@@ -7,7 +9,7 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 
@@ -25,6 +27,7 @@ use multiversx_sc_modules::pause::PauseModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenModule;
+use week_timekeeping::Epoch;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_REWARD_TOKEN_ID: &[u8] = b"LOCKED-123456";
@@ -45,6 +48,14 @@ pub const EPOCHS_IN_YEAR: u64 = 360;
 
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
+
+pub struct RawFarmTokenAttributes {
+    pub reward_per_share_bytes: Vec<u8>,
+    pub entering_epoch: Epoch,
+    pub compounded_reward_bytes: Vec<u8>,
+    pub current_farm_amount_bytes: Vec<u8>,
+    pub original_owner_bytes: [u8; 32],
+}
 
 pub struct FarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
@@ -300,12 +311,50 @@ where
         attributes: FarmTokenAttributes<DebugApi>,
     ) -> u64 {
         let mut result = 0;
+
+        let raw_attributes = RawFarmTokenAttributes {
+            reward_per_share_bytes: attributes
+                .reward_per_share
+                .to_bytes_be()
+                .as_slice()
+                .to_vec(),
+            entering_epoch: attributes.entering_epoch,
+            compounded_reward_bytes: attributes
+                .compounded_reward
+                .to_bytes_be()
+                .as_slice()
+                .to_vec(),
+            current_farm_amount_bytes: attributes
+                .current_farm_amount
+                .to_bytes_be()
+                .as_slice()
+                .to_vec(),
+            original_owner_bytes: attributes.original_owner.to_byte_array(),
+        };
+
         self.b_mock
             .execute_query(&self.farm_wrapper, |sc| {
+                let attributes_managed = FarmTokenAttributes {
+                    reward_per_share: multiversx_sc::types::BigUint::<DebugApi>::from_bytes_be(
+                        &raw_attributes.reward_per_share_bytes,
+                    ),
+                    entering_epoch: raw_attributes.entering_epoch,
+                    compounded_reward: multiversx_sc::types::BigUint::<DebugApi>::from_bytes_be(
+                        &raw_attributes.compounded_reward_bytes,
+                    ),
+                    current_farm_amount: multiversx_sc::types::BigUint::<DebugApi>::from_bytes_be(
+                        &raw_attributes.current_farm_amount_bytes,
+                    ),
+                    original_owner:
+                        multiversx_sc::types::ManagedAddress::<DebugApi>::new_from_bytes(
+                            &raw_attributes.original_owner_bytes,
+                        ),
+                };
+
                 let result_managed = sc.calculate_rewards_for_given_position(
                     managed_address!(user),
                     managed_biguint!(farm_token_amount),
-                    attributes,
+                    attributes_managed,
                 );
                 result = result_managed.to_u64().unwrap();
             })
@@ -342,17 +391,13 @@ where
                     assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
                     assert_eq!(out_farm_token.amount, managed_biguint!(farm_token_amount));
 
+                    assert_eq!(
+                        out_reward_token.token_identifier,
+                        managed_token_id!(LOCKED_REWARD_TOKEN_ID)
+                    );
                     if out_reward_token.amount > 0 {
-                        assert_eq!(
-                            out_reward_token.token_identifier,
-                            managed_token_id!(LOCKED_REWARD_TOKEN_ID)
-                        );
                         assert_eq!(out_reward_token.token_nonce, 1);
                     } else {
-                        assert_eq!(
-                            out_reward_token.token_identifier,
-                            managed_token_id!(REWARD_TOKEN_ID)
-                        );
                         assert_eq!(out_reward_token.token_nonce, 0);
                     }
 
@@ -364,25 +409,16 @@ where
         result
     }
 
-    pub fn exit_farm(
-        &mut self,
-        user: &Address,
-        farm_token_nonce: u64,
-        farm_token_amount: u64,
-        exit_farm_amount: u64,
-    ) {
+    pub fn exit_farm(&mut self, user: &Address, farm_token_nonce: u64, exit_farm_amount: u64) {
         self.b_mock
             .execute_esdt_transfer(
                 user,
                 &self.farm_wrapper,
                 FARM_TOKEN_ID,
                 farm_token_nonce,
-                &rust_biguint!(farm_token_amount),
+                &rust_biguint!(exit_farm_amount),
                 |sc| {
-                    let _ = sc.exit_farm_endpoint(
-                        managed_biguint!(exit_farm_amount),
-                        OptionalValue::Some(managed_address!(user)),
-                    );
+                    let _ = sc.exit_farm_endpoint(OptionalValue::Some(managed_address!(user)));
                 },
             )
             .assert_ok();

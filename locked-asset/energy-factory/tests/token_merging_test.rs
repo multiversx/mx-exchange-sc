@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod energy_factory_setup;
 
 use energy_factory::{
@@ -17,7 +19,8 @@ use multiversx_sc::{
 };
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
-    managed_address, managed_token_id, whitebox::BlockchainStateWrapper, whitebox::TxTokenTransfer,
+    managed_address, managed_token_id, whitebox_legacy::BlockchainStateWrapper,
+    whitebox_legacy::TxTokenTransfer,
 };
 use simple_lock::{
     basic_lock_unlock::BasicLockUnlock,
@@ -28,7 +31,7 @@ use multiversx_sc_scenario::{managed_token_id_wrapped, rust_biguint, DebugApi};
 
 #[test]
 fn token_merging_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
 
@@ -98,7 +101,7 @@ fn token_merging_test() {
 
 #[test]
 fn token_merging_different_years_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
 
@@ -168,7 +171,7 @@ fn token_merging_different_years_test() {
 
 #[test]
 fn token_merging_different_years2_test() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
 
@@ -238,7 +241,7 @@ fn token_merging_different_years2_test() {
 
 #[test]
 fn test_specific_tokens_merge() {
-    let _ = DebugApi::dummy();
+    DebugApi::dummy();
     let rust_zero = rust_biguint!(0u64);
     let mut b_mock = BlockchainStateWrapper::new();
     let owner = b_mock.create_user_account(&rust_zero);
@@ -362,6 +365,65 @@ fn test_specific_tokens_merge() {
             original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 4_110,
+        }),
+    );
+}
+
+#[test]
+fn merge_same_schedule_test() {
+    DebugApi::dummy();
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
+    let user = setup.first_user.clone();
+    let unlock_epoch = to_start_of_month(LOCK_OPTIONS[0]);
+
+    let first_token_amount = 400_000;
+    setup
+        .lock(
+            &user,
+            BASE_ASSET_TOKEN_ID,
+            first_token_amount,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    let second_token_amount = 100_000;
+    setup
+        .lock(
+            &user,
+            BASE_ASSET_TOKEN_ID,
+            second_token_amount,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    let payments = [
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(400_000),
+        },
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(100_000),
+        },
+    ];
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&user, &setup.sc_wrapper, &payments[..], |sc| {
+            let _ = sc.merge_tokens_endpoint(OptionalValue::None);
+        })
+        .assert_ok();
+
+    setup.b_mock.check_nft_balance(
+        &user,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(first_token_amount + second_token_amount),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch,
         }),
     );
 }

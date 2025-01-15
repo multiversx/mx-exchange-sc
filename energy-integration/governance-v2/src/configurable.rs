@@ -1,4 +1,4 @@
-use crate::{errors::ERROR_NOT_AN_ESDT, FULL_PERCENTAGE};
+use crate::errors::ERROR_NOT_AN_ESDT;
 
 multiversx_sc::imports!();
 
@@ -11,7 +11,7 @@ multiversx_sc::imports!();
 ///
 /// Voting is done through tokens ownership.
 ///
-/// The module provides the following configurable parameters:  
+/// The module provides the following configurable parameters:
 /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
 /// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have  
 /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
@@ -38,6 +38,8 @@ const MAX_QUORUM: u64 = 6_000; // 60%
 const MIN_MIN_FEE_FOR_PROPOSE: u64 = 1;
 const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
 const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
+pub const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
+pub const FULL_PERCENTAGE: u64 = 10_000;
 
 #[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule {

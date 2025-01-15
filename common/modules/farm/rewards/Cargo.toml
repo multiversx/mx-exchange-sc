@@ -6,6 +6,7 @@ edition = "2021"
 
 [lib]
 path = "src/rewards.rs"
+
 [dependencies.common_structs]
 path = "../../../common_structs"
 
@@ -28,8 +29,8 @@ path = "../../pausable"
 path = "../../permissions_module"
 
 [dependencies.multiversx-sc]
-version = "=0.39.4"
+version = "=0.46.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.39.4"
+version = "=0.46.1"

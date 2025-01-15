@@ -1,9 +1,12 @@
+#![allow(deprecated)]
+
+use farm_staking::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 
 pub type RustBigUint = num_bigint::BigUint;
@@ -40,6 +43,8 @@ pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const WITHDRAW_AMOUNT_TOO_HIGH: &str =
+    "Withdraw amount is higher than the remaining uncollected rewards!";
 
 pub struct FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
@@ -274,6 +279,37 @@ where
         );
     }
 
+    pub fn claim_boosted_rewards_for_user(
+        &mut self,
+        owner: &Address,
+        broker: &Address,
+        expected_reward_token_out: u64,
+        expected_user_reward_token_balance: &RustBigUint,
+    ) {
+        self.b_mock
+            .execute_tx(broker, &self.farm_wrapper, &rust_biguint!(0u64), |sc| {
+                let payment_result =
+                    sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(owner)));
+
+                assert_eq!(
+                    payment_result.token_identifier,
+                    managed_token_id!(REWARD_TOKEN_ID)
+                );
+                assert_eq!(payment_result.token_nonce, 0);
+                assert_eq!(
+                    payment_result.amount,
+                    managed_biguint!(expected_reward_token_out)
+                );
+            })
+            .assert_ok();
+
+        self.b_mock.check_esdt_balance(
+            &self.user_address,
+            REWARD_TOKEN_ID,
+            expected_user_reward_token_balance,
+        );
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn unstake_farm(
         &mut self,
@@ -294,10 +330,9 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let multi_result =
-                        sc.unstake_farm(managed_biguint!(farm_token_amount), OptionalValue::None);
+                    let multi_result = sc.unstake_farm(OptionalValue::None);
 
-                    let (first_result, second_result, _) = multi_result.into_tuple();
+                    let (first_result, second_result) = multi_result.into_tuple();
 
                     assert_eq!(
                         first_result.token_identifier,
@@ -383,6 +418,30 @@ where
             .assert_ok();
     }
 
+    pub fn check_rewards_capacity(&mut self, expected_farm_token_supply: u64) {
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let actual_farm_supply = sc.reward_capacity().get();
+                assert_eq!(
+                    managed_biguint!(expected_farm_token_supply),
+                    actual_farm_supply
+                );
+            })
+            .assert_ok();
+    }
+
+    pub fn allow_external_claim_rewards(&mut self, user: &Address) {
+        self.b_mock
+            .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                sc.user_total_farm_position(&managed_address!(user)).update(
+                    |user_total_farm_position| {
+                        user_total_farm_position.allow_external_claim_boosted_rewards = true;
+                    },
+                );
+            })
+            .assert_ok();
+    }
+
     pub fn set_block_nonce(&mut self, block_nonce: u64) {
         self.b_mock.set_block_nonce(block_nonce);
     }
@@ -444,5 +503,36 @@ where
                 },
             )
             .assert_ok();
+    }
+
+    pub fn withdraw_rewards(&mut self, withdraw_amount: &RustBigUint) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.withdraw_rewards(withdraw_amount.into());
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn withdraw_rewards_with_error(
+        &mut self,
+        withdraw_amount: &RustBigUint,
+        expected_status: u64,
+        expected_message: &str,
+    ) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.withdraw_rewards(withdraw_amount.into());
+                },
+            )
+            .assert_error(expected_status, expected_message)
     }
 }

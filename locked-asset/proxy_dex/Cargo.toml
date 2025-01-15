@@ -6,6 +6,7 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
+
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
@@ -44,11 +45,11 @@ path = "../../common/traits/mergeable"
 path = "../../common/traits/fixed-supply-token"
 
 [dependencies.multiversx-sc]
-version = "=0.39.4"
+version = "=0.46.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.39.4"
+version = "=0.46.1"
 
 [dependencies.energy-factory]
 path = "../energy-factory"
@@ -59,13 +60,16 @@ path = "../../energy-integration/common-modules/energy-query"
 [dependencies.simple-lock]
 path = "../simple-lock"
 
+[dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"
 hex = "0.4"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.39.4"
+version = "=0.46.1"
 
 [dev-dependencies.pausable]
 path = "../../common/modules/pausable"
@@ -81,9 +85,6 @@ path = "../../common/modules/farm/farm_token"
 
 [dev-dependencies.rewards]
 path = "../../common/modules/farm/rewards"
-
-[dev-dependencies.sc_whitelist_module]
-path = "../../common/modules/sc_whitelist_module"
 
 [dev-dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"

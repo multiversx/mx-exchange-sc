@@ -7,6 +7,7 @@ publish = false
 
 [lib]
 path = "src/contract.rs"
+
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
@@ -14,7 +15,7 @@ path = "../../common/modules/token_send"
 path = "../../common/modules/pausable"
 
 [dependencies.multiversx-sc]
-version = "=0.39.4"
+version = "=0.46.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.pair]
@@ -25,5 +26,6 @@ path = "../../common/modules/locking_module"
 
 [dependencies.simple-lock]
 path = "../../locked-asset/simple-lock"
+
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.39.4"
+version = "=0.46.1"

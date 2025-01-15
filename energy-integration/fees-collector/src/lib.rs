@@ -44,17 +44,49 @@ pub trait FeesCollector:
         self.energy_factory_address().set(&energy_factory_address);
     }
 
+    #[endpoint]
+    fn upgrade(&self) {}
+
     #[endpoint(claimRewards)]
-    fn claim_rewards(
+    fn claim_rewards_endpoint(
         &self,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "Cannot claim while paused");
 
-        self.accumulate_additional_locked_tokens();
-
         let caller = self.blockchain().get_caller();
         let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
+
+        self.claim_rewards(caller, original_caller)
+    }
+
+    #[endpoint(claimBoostedRewards)]
+    fn claim_boosted_rewards(
+        &self,
+        opt_original_caller: OptionalValue<ManagedAddress>,
+    ) -> PaymentsVec<Self::Api> {
+        require!(self.not_paused(), "Cannot claim while paused");
+
+        let original_caller = match opt_original_caller {
+            OptionalValue::Some(user) => {
+                require!(
+                    self.allow_external_claim_rewards(&user).get(),
+                    "Cannot claim rewards for this address"
+                );
+                user
+            }
+            OptionalValue::None => self.blockchain().get_caller(),
+        };
+
+        self.claim_rewards(original_caller.clone(), original_caller)
+    }
+
+    fn claim_rewards(
+        &self,
+        caller: ManagedAddress,
+        original_caller: ManagedAddress,
+    ) -> PaymentsVec<Self::Api> {
+        self.accumulate_additional_locked_tokens();
 
         let wrapper = FeesCollectorWrapper::new();
         let mut rewards = self.claim_multi(&wrapper, &original_caller);

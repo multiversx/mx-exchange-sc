@@ -32,7 +32,7 @@ pub trait UtilsModule {
         let payments = self.call_value().all_esdt_transfers();
         require!(!payments.is_empty(), ERR_EMPTY_PAYMENTS);
 
-        payments
+        payments.clone_value()
     }
 
     fn pop_first_payment(
@@ -125,5 +125,9 @@ pub trait UtilsModule {
             !address.is_zero() && self.blockchain().is_smart_contract(address),
             "Invalid SC address"
         );
+    }
+
+    fn require_not_empty_buffer(&self, buffer: &ManagedBuffer) {
+        require!(!buffer.is_empty(), "Empty buffer");
     }
 }

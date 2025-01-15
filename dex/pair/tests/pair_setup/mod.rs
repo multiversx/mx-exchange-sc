@@ -2,9 +2,9 @@ use multiversx_sc::codec::multi_types::MultiValue3;
 use multiversx_sc::types::{
     Address, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, MultiValueEncoded,
 };
-use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 
 pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
@@ -20,6 +20,8 @@ pub const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
 use pair::config::ConfigModule as PairConfigModule;
+use pair::pair_actions::add_liq::AddLiquidityModule;
+use pair::pair_actions::swap::SwapModule;
 use pair::safe_price_view::*;
 use pair::*;
 use pausable::{PausableModule, State};

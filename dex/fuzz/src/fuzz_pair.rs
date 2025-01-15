@@ -1,17 +1,20 @@
 #[cfg(test)]
 pub mod fuzz_pair_test {
+    #![allow(deprecated)]
 
     multiversx_sc::imports!();
     multiversx_sc::derive_imports!();
 
     use multiversx_sc_scenario::{
-        managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer, DebugApi,
+        managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::TxTokenTransfer, DebugApi,
     };
 
     use rand::prelude::*;
 
     use crate::fuzz_data::fuzz_data_tests::*;
-    use pair::*;
+    use pair::pair_actions::{
+        add_liq::AddLiquidityModule, remove_liq::RemoveLiquidityModule, swap::SwapModule,
+    };
 
     pub fn add_liquidity<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
         fuzzer_data: &mut FuzzerData<

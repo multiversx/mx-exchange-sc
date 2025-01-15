@@ -1,23 +1,26 @@
 multiversx_sc::imports!();
 
 use farm::{
-    base_functions::ClaimRewardsResultType, EnterFarmResultType, ExitFarmWithPartialPosResultType,
-    ProxyTrait as _,
+    base_functions::{ClaimRewardsResultType, DoubleMultiPayment},
+    EnterFarmResultType, ExitFarmWithPartialPosResultType,
 };
 use farm_staking::{
     claim_stake_farm_rewards::ProxyTrait as _, stake_farm::ProxyTrait as _,
     unstake_farm::ProxyTrait as _,
 };
-use pair::safe_price_view::ProxyTrait as _;
+use farm_with_locked_rewards::ProxyTrait as _;
+use pair::{
+    pair_actions::{common_result_types::RemoveLiquidityResultType, remove_liq::ProxyTrait as _},
+    safe_price_view::ProxyTrait as _,
+};
 
 use crate::result_types::*;
-use pair::RemoveLiquidityResultType;
 
 pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
 
 #[multiversx_sc::module]
 pub trait ExternalContractsInteractionsModule:
-    crate::lp_farm_token::LpFarmTokenModule + utils::UtilsModule
+    crate::lp_farm_token::LpFarmTokenModule + utils::UtilsModule + energy_query::EnergyQueryModule
 {
     // lp farm
 
@@ -47,40 +50,40 @@ pub trait ExternalContractsInteractionsModule:
         orig_caller: ManagedAddress,
         lp_farm_token_nonce: u64,
         lp_farm_token_amount: BigUint,
-        exit_amount: BigUint,
     ) -> LpFarmExitResult<Self::Api> {
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm_endpoint(exit_amount, orig_caller)
+            .exit_farm_endpoint(orig_caller)
             .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
             .execute_on_dest_context();
-        let (lp_tokens, lp_farm_rewards, remaining_farm_tokens) = exit_farm_result.into_tuple();
+        let (lp_tokens, lp_farm_rewards) = exit_farm_result.into_tuple();
 
         LpFarmExitResult {
             lp_tokens,
             lp_farm_rewards,
-            remaining_farm_tokens,
         }
     }
 
     fn merge_lp_farm_tokens(
         &self,
         orig_caller: ManagedAddress,
-        base_lp_token: EsdtTokenPayment,
-        mut additional_lp_tokens: PaymentsVec<Self::Api>,
-    ) -> EsdtTokenPayment {
-        if additional_lp_tokens.is_empty() {
-            return base_lp_token;
+        base_lp_farm_token: EsdtTokenPayment,
+        mut additional_lp_farm_tokens: PaymentsVec<Self::Api>,
+    ) -> DoubleMultiPayment<Self::Api> {
+        if additional_lp_farm_tokens.is_empty() {
+            let locked_token_id = self.get_locked_token_id();
+            let rewards_payment = EsdtTokenPayment::new(locked_token_id, 0, BigUint::zero());
+            return (base_lp_farm_token, rewards_payment).into();
         }
 
-        additional_lp_tokens.push(base_lp_token);
+        additional_lp_farm_tokens.push(base_lp_farm_token);
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
             .merge_farm_tokens_endpoint(orig_caller)
-            .with_multi_token_transfer(additional_lp_tokens)
+            .with_multi_token_transfer(additional_lp_farm_tokens)
             .execute_on_dest_context()
     }
 
@@ -138,7 +141,6 @@ pub trait ExternalContractsInteractionsModule:
         staking_tokens: EsdtTokenPayment<Self::Api>,
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
-        exit_amount: BigUint,
     ) -> StakingFarmExitResult<Self::Api> {
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let mut payments = ManagedVec::from_single_item(staking_tokens);
@@ -151,40 +153,14 @@ pub trait ExternalContractsInteractionsModule:
         let staking_farm_address = self.staking_farm_address().get();
         let unstake_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
-            .unstake_farm_through_proxy(exit_amount, orig_caller)
+            .unstake_farm_through_proxy(orig_caller)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context();
-        let (unbond_staking_farm_token, staking_rewards, remaining_farm_tokens) =
-            unstake_result.into_tuple();
+        let (unbond_staking_farm_token, staking_rewards) = unstake_result.into_tuple();
 
         StakingFarmExitResult {
             unbond_staking_farm_token,
             staking_rewards,
-            remaining_farm_tokens,
-        }
-    }
-
-    fn staking_farm_unstake_user_position(
-        &self,
-        orig_caller: ManagedAddress,
-        farm_token_nonce: u64,
-        farm_token_amount: BigUint,
-        exit_amount: BigUint,
-    ) -> StakingFarmExitResult<Self::Api> {
-        let staking_farm_token_id = self.staking_farm_token_id().get();
-        let staking_farm_address = self.staking_farm_address().get();
-        let unstake_result: ExitFarmWithPartialPosResultType<Self::Api> = self
-            .staking_farm_proxy_obj(staking_farm_address)
-            .unstake_farm(exit_amount, orig_caller)
-            .with_esdt_transfer((staking_farm_token_id, farm_token_nonce, farm_token_amount))
-            .execute_on_dest_context();
-        let (unbond_staking_farm_token, staking_rewards, remaining_farm_tokens) =
-            unstake_result.into_tuple();
-
-        StakingFarmExitResult {
-            unbond_staking_farm_token,
-            staking_rewards,
-            remaining_farm_tokens,
         }
     }
 
@@ -245,7 +221,10 @@ pub trait ExternalContractsInteractionsModule:
     fn staking_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_staking::Proxy<Self::Api>;
 
     #[proxy]
-    fn lp_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm::Proxy<Self::Api>;
+    fn lp_farm_proxy_obj(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> farm_with_locked_rewards::Proxy<Self::Api>;
 
     #[proxy]
     fn pair_proxy_obj(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;
