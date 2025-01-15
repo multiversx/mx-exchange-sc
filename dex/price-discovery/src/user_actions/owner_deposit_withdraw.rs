@@ -25,15 +25,15 @@ pub trait OwnerDepositWithdrawModule:
         let launched_token_id = self.launched_token_id().get();
         require!(payment_token == launched_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        let min_launched_tokens = self.min_launched_tokens().get();
-        let current_total_launched_tokens = self.launched_token_balance().get();
+        let min_launched_tokens_amount = self.min_launched_tokens().get();
+        let current_total_launched_tokens_amount = self.launched_token_balance().get();
         require!(
-            &current_total_launched_tokens + &payment_amount >= min_launched_tokens,
+            &current_total_launched_tokens_amount + &payment_amount >= min_launched_tokens_amount,
             INVALID_AMOUNT_ERR_MSG
         );
 
         self.launched_token_balance()
-            .update(|balance| *balance += &payment_amount);
+            .set(&current_total_launched_tokens_amount + &payment_amount);
 
         self.emit_owner_deposit_event(&payment_amount);
     }

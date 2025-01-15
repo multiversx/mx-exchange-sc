@@ -50,6 +50,4 @@ pub trait RedeemTokenModule:
     #[view(getRedeemTokenTotalCirculatingSupply)]
     #[storage_mapper("totalCirculatingSupply")]
     fn redeem_token_total_circulating_supply(&self) -> SingleValueMapper<BigUint>;
-
-    // TODO: Save launched token balance somewhere
 }
