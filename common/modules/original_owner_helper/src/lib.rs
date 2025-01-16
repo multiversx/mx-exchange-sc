@@ -6,32 +6,40 @@ use common_structs::{FarmToken, PaymentsVec};
 
 #[multiversx_sc::module]
 pub trait OriginalOwnerHelperModule {
-    fn check_and_return_original_owner<T: FarmToken<Self::Api> + TopDecode>(
+    fn get_claim_original_owner<T: FarmToken<Self::Api> + TopDecode>(
         &self,
-        payments: &PaymentsVec<Self::Api>,
         farm_token_mapper: &NonFungibleTokenMapper,
     ) -> ManagedAddress {
-        let mut original_owner = ManagedAddress::zero();
-        for payment in payments.iter() {
+        let payments = self.call_value().all_esdt_transfers();
+        let farm_token_id = farm_token_mapper.get_token_id();
+
+        let mut opt_original_owner = None;
+        for payment in payments.into_iter() {
+            require!(
+                payment.token_identifier == farm_token_id,
+                "Invalid payment token"
+            );
+
             let attributes: T = farm_token_mapper.get_token_attributes(payment.token_nonce);
             let payment_original_owner = attributes.get_original_owner();
 
-            if original_owner.is_zero() {
-                original_owner = payment_original_owner;
-            } else {
-                require!(
-                    original_owner == payment_original_owner,
-                    "All position must have the same original owner"
-                );
+            match opt_original_owner {
+                Some(ref original_owner) => {
+                    require!(
+                        *original_owner == payment_original_owner,
+                        "Original owner is not the same for all payments"
+                    );
+                }
+                None => opt_original_owner = Some(payment_original_owner),
             }
         }
 
         require!(
-            !original_owner.is_zero(),
+            opt_original_owner.is_some(),
             "Original owner could not be identified"
         );
 
-        original_owner
+        unsafe { opt_original_owner.unwrap_unchecked() }
     }
 
     fn check_additional_payments_original_owner<T: FarmToken<Self::Api> + TopDecode>(
