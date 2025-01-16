@@ -60,6 +60,8 @@ pub trait ExternalInteractionsModule:
             &farm_token_mapper,
         );
 
+        self.migrate_old_farm_positions(&user);
+
         let boosted_rewards = self.claim_only_boosted_payment(&user);
         let boosted_rewards_payment =
             EsdtTokenPayment::new(self.reward_token_id().get(), 0, boosted_rewards);
@@ -93,6 +95,8 @@ pub trait ExternalInteractionsModule:
         let user = self
             .get_claim_original_owner::<StakingFarmTokenAttributes<Self::Api>>(&farm_token_mapper);
         self.require_user_whitelisted(&user, &caller);
+
+        self.migrate_old_farm_positions(&user);
 
         let payments = self.get_non_empty_payments();
         let claim_result = self.claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
