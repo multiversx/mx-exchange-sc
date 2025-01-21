@@ -12,7 +12,10 @@ pub trait PermissionsHubModule {
             .is_whitelisted(user, authorized_address)
             .execute_on_dest_context();
 
-        require!(is_whitelisted, "Caller is not whitelisted by the user");
+        require!(
+            is_whitelisted,
+            "Caller is not whitelisted by the user or is blacklisted"
+        );
     }
 
     #[only_owner]
