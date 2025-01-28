@@ -71,7 +71,7 @@ pub trait PriceDiscovery:
         self.accepted_token_id().set(accepted_token_id);
         self.start_time().set(start_time);
         self.user_deposit_withdraw_time()
-            .set(owner_deposit_withdraw_time);
+            .set(user_deposit_withdraw_time);
         self.owner_deposit_withdraw_time()
             .set(owner_deposit_withdraw_time);
         self.owner_address().set(owner_address);
