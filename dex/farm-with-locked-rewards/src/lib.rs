@@ -301,21 +301,6 @@ pub trait Farm:
             &storage_cache,
         )
     }
-
-    fn send_to_lock_contract_non_zero(
-        &self,
-        token_id: TokenIdentifier,
-        amount: BigUint,
-        destination_address: ManagedAddress,
-        energy_address: ManagedAddress,
-    ) -> EsdtTokenPayment {
-        if amount == 0 {
-            let locked_token_id = self.get_locked_token_id();
-            return EsdtTokenPayment::new(locked_token_id, 0, amount);
-        }
-
-        self.lock_virtual(token_id, amount, destination_address, energy_address)
-    }
 }
 
 pub struct NoMintWrapper<T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule> {
