@@ -46,4 +46,12 @@ fn issue_redeem_token(
 )
 ```
 
+and
+
+```
+#[only_owner]
+#[endpoint(setTransferRole)]
+fn set_transfer_role(&self)
+```
+
 The redeem token is a an ESDT token that the users receive on deposits. Those can then be used to withdraw the initial tokens (or part of them, as per phase restrictions). 

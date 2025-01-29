@@ -96,6 +96,7 @@ where
 
                 sc.redeem_token()
                     .set_token_id(managed_token_id!(REDEEM_TOKEN_ID));
+                sc.transfer_role_set().set(true);
             })
             .assert_ok();
 

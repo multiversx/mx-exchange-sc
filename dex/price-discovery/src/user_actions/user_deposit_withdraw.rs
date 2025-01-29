@@ -15,6 +15,8 @@ pub trait UserDepositWithdrawModule:
     #[payable("*")]
     #[endpoint(userDeposit)]
     fn user_deposit(&self) -> EsdtTokenPayment {
+        self.require_redeem_token_setup_complete();
+
         let phase = self.get_current_phase();
         self.require_user_deposit_withdraw_allowed(&phase);
 
@@ -41,6 +43,8 @@ pub trait UserDepositWithdrawModule:
     #[payable("*")]
     #[endpoint(userWithdraw)]
     fn user_withdraw(&self) -> EgldOrEsdtTokenPayment {
+        self.require_redeem_token_setup_complete();
+
         let phase = self.get_current_phase();
         self.require_user_deposit_withdraw_allowed(&phase);
 

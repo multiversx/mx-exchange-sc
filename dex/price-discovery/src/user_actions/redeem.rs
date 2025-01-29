@@ -16,6 +16,8 @@ pub trait RedeemModule:
     #[payable("*")]
     #[endpoint]
     fn redeem(&self) -> EgldOrEsdtTokenPayment {
+        self.require_redeem_token_setup_complete();
+
         let phase = self.get_current_phase();
         self.require_redeem_allowed(&phase);
 

@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           12
+// Endpoints:                           13
 // Async Callback:                       1
-// Total number of exported functions:  15
+// Total number of exported functions:  16
 
 #![no_std]
 
@@ -24,6 +24,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getUserDepositWithdrawTime => user_deposit_withdraw_time
         getOwnerDepositWithdrawTime => owner_deposit_withdraw_time
         issueRedeemToken => issue_redeem_token
+        setTransferRole => set_transfer_role
         getRedeemTokenId => redeem_token
         getRedeemTokenTotalCirculatingSupply => redeem_token_total_circulating_supply
         userDeposit => user_deposit

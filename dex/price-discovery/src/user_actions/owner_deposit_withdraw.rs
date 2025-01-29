@@ -15,6 +15,8 @@ pub trait OwnerDepositWithdrawModule:
     #[payable("*")]
     #[endpoint(ownerDeposit)]
     fn owner_deposit(&self) {
+        self.require_redeem_token_setup_complete();
+
         let phase = self.get_current_phase();
         self.require_owner_deposit_withdraw_allowed(&phase);
 
@@ -40,6 +42,8 @@ pub trait OwnerDepositWithdrawModule:
 
     #[endpoint(ownerWithdraw)]
     fn owner_withdraw(&self, withdraw_amount: BigUint) -> EsdtTokenPayment {
+        self.require_redeem_token_setup_complete();
+
         let phase = self.get_current_phase();
         self.require_owner_deposit_withdraw_allowed(&phase);
 

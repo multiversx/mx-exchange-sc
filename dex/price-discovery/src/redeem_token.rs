@@ -24,6 +24,43 @@ pub trait RedeemTokenModule:
         );
     }
 
+    #[only_owner]
+    #[endpoint(setTransferRole)]
+    fn set_transfer_role(&self) {
+        self.redeem_token().set_local_roles(
+            &[EsdtLocalRole::Transfer],
+            Some(<Self as RedeemTokenModule>::callbacks(self).set_transfer_role_callback()),
+        );
+    }
+
+    #[callback]
+    fn set_transfer_role_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
+        match result {
+            ManagedAsyncCallResult::Ok(()) => {
+                self.transfer_role_set().set(true);
+            }
+            ManagedAsyncCallResult::Err(_) => {
+                sc_panic!("Failed setting transfer role");
+            }
+        }
+    }
+
+    fn require_redeem_token_issued(&self) {
+        require!(!self.redeem_token().is_empty(), "Redeem token not issued");
+    }
+
+    fn require_redeem_token_transfer_role_set(&self) {
+        require!(
+            self.transfer_role_set().get(),
+            "Redeem token transfer role not set"
+        );
+    }
+
+    fn require_redeem_token_setup_complete(&self) {
+        self.require_redeem_token_issued();
+        self.require_redeem_token_transfer_role_set();
+    }
+
     fn mint_and_send_redeem_token(&self, to: &ManagedAddress, amount: BigUint) -> EsdtTokenPayment {
         self.redeem_token_total_circulating_supply()
             .update(|supply| *supply += &amount);
@@ -46,6 +83,9 @@ pub trait RedeemTokenModule:
     #[view(getRedeemTokenId)]
     #[storage_mapper("redeemTokenId")]
     fn redeem_token(&self) -> FungibleTokenMapper;
+
+    #[storage_mapper("transferRoleSet")]
+    fn transfer_role_set(&self) -> SingleValueMapper<bool>;
 
     #[view(getRedeemTokenTotalCirculatingSupply)]
     #[storage_mapper("totalCirculatingSupply")]
