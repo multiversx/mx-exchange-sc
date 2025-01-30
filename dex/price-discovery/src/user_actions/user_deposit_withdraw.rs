@@ -121,6 +121,21 @@ pub trait UserDepositWithdrawModule:
         }
     }
 
+    #[view(getUserDepositLimit)]
+    fn get_user_deposit_limit(&self, user: ManagedAddress) -> OptionalValue<BigUint> {
+        let user_id = self.id_mapper().get_id(&user);
+        if user_id == NULL_ID {
+            return OptionalValue::None;
+        }
+
+        let user_deposit_limit = self.user_deposit_limit(user_id).get();
+        if user_deposit_limit == 0 {
+            OptionalValue::None
+        } else {
+            OptionalValue::Some(user_deposit_limit)
+        }
+    }
+
     fn require_user_whitelisted(&self, user: &ManagedAddress) -> AddressId {
         let user_id = self.id_mapper().get_id(user);
         require!(

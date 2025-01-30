@@ -18,6 +18,9 @@ pub trait OwnerDepositWithdrawModule:
     fn owner_deposit(&self) {
         self.require_redeem_token_setup_complete();
 
+        let min_launched_tokens = self.min_launched_tokens().get();
+        require!(min_launched_tokens > 0, "Min launched tokens not set yet");
+
         let phase = self.get_current_phase();
         self.require_owner_deposit_withdraw_allowed(&phase);
 
@@ -25,13 +28,9 @@ pub trait OwnerDepositWithdrawModule:
         let launched_token_id = self.launched_token_id().get();
         require!(payment_token == launched_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        let min_launched_tokens_amount = self.min_launched_tokens().get();
         let current_total_launched_tokens_amount = self.launched_token_balance().get();
         let new_total = &current_total_launched_tokens_amount + &payment_amount;
-        require!(
-            new_total >= min_launched_tokens_amount,
-            INVALID_AMOUNT_ERR_MSG
-        );
+        require!(new_total >= min_launched_tokens, INVALID_AMOUNT_ERR_MSG);
 
         self.launched_token_balance().set(new_total);
 
@@ -70,4 +69,21 @@ pub trait OwnerDepositWithdrawModule:
 
         EsdtTokenPayment::new(launched_token_id, 0, withdraw_amount)
     }
+
+    #[endpoint(setMinLaunchedTokens)]
+    fn set_min_launched_tokens(&self, min_launched_tokens: BigUint) {
+        self.require_caller_admin();
+        require!(min_launched_tokens > 0, "Invalid min launched tokens");
+
+        self.min_launched_tokens().set(min_launched_tokens);
+    }
+
+    fn require_caller_admin(&self) {
+        let caller = self.blockchain().get_caller();
+        let admin = self.admin().get();
+        require!(caller == admin, "Only admin may call this function");
+    }
+
+    #[storage_mapper("admin")]
+    fn admin(&self) -> SingleValueMapper<ManagedAddress>;
 }

@@ -35,10 +35,10 @@ pub trait PriceDiscovery:
         launched_token_id: TokenIdentifier,
         accepted_token_id: EgldOrEsdtTokenIdentifier,
         launched_token_decimals: u32,
-        min_launched_tokens: BigUint,
         start_time: Timestamp,
         user_deposit_withdraw_time: Timestamp,
         owner_deposit_withdraw_time: Timestamp,
+        admin: ManagedAddress,
     ) {
         require!(
             launched_token_id.is_valid_esdt_identifier(),
@@ -64,8 +64,6 @@ pub trait PriceDiscovery:
             "Invalid timestamps"
         );
 
-        require!(min_launched_tokens > 0, "Invalid min launched tokens");
-
         self.launched_token_id().set(launched_token_id);
         self.accepted_token_id().set(accepted_token_id);
         self.start_time().set(start_time);
@@ -76,7 +74,8 @@ pub trait PriceDiscovery:
 
         let price_precision = 10u64.pow(launched_token_decimals);
         self.price_precision().set(price_precision);
-        self.min_launched_tokens().set(min_launched_tokens);
+
+        self.admin().set(admin);
     }
 
     #[upgrade]

@@ -6,6 +6,7 @@ use multiversx_sc_scenario::{
 };
 use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 
+use price_discovery::common_storage::CommonStorageModule;
 use price_discovery::redeem_token::*;
 use price_discovery::*;
 
@@ -87,11 +88,14 @@ where
                     managed_token_id!(LAUNCHED_TOKEN_ID),
                     managed_token_id_wrapped!(ACCEPTED_TOKEN_ID),
                     18,
-                    managed_biguint!(MIN_LAUNCHED_TOKENS),
                     START_TIME,
                     USER_DEPOSIT_TIME,
                     OWNER_DEPOSIT_TIME,
+                    managed_address!(&owner_address),
                 );
+
+                sc.min_launched_tokens()
+                    .set(managed_biguint!(MIN_LAUNCHED_TOKENS));
 
                 sc.redeem_token()
                     .set_token_id(managed_token_id!(REDEEM_TOKEN_ID));
