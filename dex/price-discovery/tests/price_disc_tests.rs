@@ -18,6 +18,31 @@ fn user_deposit_too_early_test() {
 }
 
 #[test]
+fn user_deposit_over_limit_test() {
+    let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
+    setup.b_mock.set_block_timestamp(START_TIME + 1);
+
+    setup
+        .call_user_deposit(&setup.second_user_address.clone(), 11_000)
+        .assert_user_error("Exceeded deposit limit");
+}
+
+#[test]
+fn user_not_in_whitelist_try_deposit_test() {
+    let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
+    setup.b_mock.set_block_timestamp(START_TIME + 1);
+
+    let new_user_address = setup.b_mock.create_user_account(&rust_biguint!(0));
+    setup
+        .b_mock
+        .set_esdt_balance(&new_user_address, ACCEPTED_TOKEN_ID, &rust_biguint!(1_000));
+
+    setup
+        .call_user_deposit(&new_user_address, 1_000)
+        .assert_user_error("User not whitelisted");
+}
+
+#[test]
 fn user_deposit_ok_test() {
     let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
 

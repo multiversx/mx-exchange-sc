@@ -80,14 +80,12 @@ pub trait RedeemTokenModule:
         self.redeem_token().burn(amount);
     }
 
-    #[view(getRedeemTokenId)]
     #[storage_mapper("redeemTokenId")]
     fn redeem_token(&self) -> FungibleTokenMapper;
 
     #[storage_mapper("transferRoleSet")]
     fn transfer_role_set(&self) -> SingleValueMapper<bool>;
 
-    #[view(getRedeemTokenTotalCirculatingSupply)]
     #[storage_mapper("totalCirculatingSupply")]
     fn redeem_token_total_circulating_supply(&self) -> SingleValueMapper<BigUint>;
 }

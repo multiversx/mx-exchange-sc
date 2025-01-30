@@ -1,6 +1,6 @@
 #![allow(deprecated)]
 
-use multiversx_sc::types::{Address, EsdtLocalRole};
+use multiversx_sc::types::{Address, EsdtLocalRole, MultiValueEncoded};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id_wrapped, whitebox_legacy::*,
 };
@@ -91,12 +91,22 @@ where
                     START_TIME,
                     USER_DEPOSIT_TIME,
                     OWNER_DEPOSIT_TIME,
-                    managed_address!(&owner_address),
                 );
 
                 sc.redeem_token()
                     .set_token_id(managed_token_id!(REDEEM_TOKEN_ID));
                 sc.transfer_role_set().set(true);
+
+                let mut pairs = MultiValueEncoded::new();
+                pairs.push((managed_address!(&first_user_address), managed_biguint!(0)).into());
+                pairs.push(
+                    (
+                        managed_address!(&second_user_address),
+                        managed_biguint!(10_000),
+                    )
+                        .into(),
+                );
+                sc.add_users_to_whitelist(true, pairs);
             })
             .assert_ok();
 

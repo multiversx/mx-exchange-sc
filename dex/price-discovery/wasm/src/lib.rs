@@ -25,10 +25,10 @@ multiversx_sc_wasm_adapter::endpoints! {
         getOwnerDepositWithdrawTime => owner_deposit_withdraw_time
         issueRedeemToken => issue_redeem_token
         setTransferRole => set_transfer_role
-        getRedeemTokenId => redeem_token
-        getRedeemTokenTotalCirculatingSupply => redeem_token_total_circulating_supply
+        addUsersToWhitelist => add_users_to_whitelist
         userDeposit => user_deposit
         userWithdraw => user_withdraw
+        isUserWhitelisted => is_user_whitelisted
         ownerDeposit => owner_deposit
         ownerWithdraw => owner_withdraw
         redeem => redeem

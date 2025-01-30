@@ -26,7 +26,4 @@ pub trait CommonStorageModule {
 
     #[storage_mapper("pricePrecision")]
     fn price_precision(&self) -> SingleValueMapper<u64>;
-
-    #[storage_mapper("ownerAddress")]
-    fn owner_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

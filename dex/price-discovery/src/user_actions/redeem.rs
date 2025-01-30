@@ -22,8 +22,10 @@ pub trait RedeemModule:
         self.require_redeem_allowed(&phase);
 
         let caller = self.blockchain().get_caller();
-        let owner = self.owner_address().get();
+        let owner = self.blockchain().get_owner_address();
         if caller == owner {
+            self.require_no_payment();
+
             let redeemed_tokens = self.owner_redeem(&caller);
 
             self.emit_redeem_event(
@@ -102,5 +104,18 @@ pub trait RedeemModule:
         let reward_amount = total_token_supply * redeem_token_amount / redeem_token_supply;
 
         EgldOrEsdtTokenPayment::new(launched_token_id, 0, reward_amount)
+    }
+
+    fn require_no_payment(&self) {
+        let payment = self.call_value().egld_or_single_esdt();
+        require!(
+            payment
+                == EgldOrEsdtTokenPayment::new(
+                    EgldOrEsdtTokenIdentifier::egld(),
+                    0,
+                    BigUint::zero()
+                ),
+            "No payment required for owner"
+        );
     }
 }

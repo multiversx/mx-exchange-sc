@@ -39,7 +39,6 @@ pub trait PriceDiscovery:
         start_time: Timestamp,
         user_deposit_withdraw_time: Timestamp,
         owner_deposit_withdraw_time: Timestamp,
-        owner_address: ManagedAddress,
     ) {
         require!(
             launched_token_id.is_valid_esdt_identifier(),
@@ -74,7 +73,6 @@ pub trait PriceDiscovery:
             .set(user_deposit_withdraw_time);
         self.owner_deposit_withdraw_time()
             .set(owner_deposit_withdraw_time);
-        self.owner_address().set(owner_address);
 
         let price_precision = 10u64.pow(launched_token_decimals);
         self.price_precision().set(price_precision);
