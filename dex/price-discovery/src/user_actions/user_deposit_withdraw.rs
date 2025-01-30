@@ -24,7 +24,7 @@ pub trait UserDepositWithdrawModule:
     ) {
         let whitelist_complete_mapper = self.whitelist_complete();
         require!(
-            whitelist_complete_mapper.get() == false,
+            !whitelist_complete_mapper.get(),
             "Whitelist already complete"
         );
 
@@ -122,7 +122,7 @@ pub trait UserDepositWithdrawModule:
     }
 
     fn require_user_whitelisted(&self, user: &ManagedAddress) -> AddressId {
-        let user_id = self.id_mapper().get_id(&user);
+        let user_id = self.id_mapper().get_id(user);
         require!(
             user_id != NULL_ID && self.user_whitelist().contains(&user_id),
             "User not whitelisted"
