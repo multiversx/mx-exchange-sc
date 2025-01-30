@@ -12,10 +12,10 @@ Next we define the length of the phases. Over the start-end period, we define mu
 2) Owner can deposit/withdraw the launched token, but not below _min_launched_tokens_
 3) Users can redeem the launched token, while the owner can redeem the accepted token
 
-- min_launched_tokens - minimum number of launched tokens the owner must deposit
 - start_time - phase 1 timestamp start
 - user_deposit_withdraw_time - phase 1 duration
 - owner_deposit_withdraw_time - phase 2 duration
+- admin - the user that can call the `set_min_launched_tokens` endpoint
 
 ```rust
 #[init]
@@ -24,10 +24,10 @@ fn init(
     launched_token_id: TokenIdentifier,
     accepted_token_id: EgldOrEsdtTokenIdentifier,
     launched_token_decimals: u32,
-    min_launched_tokens: BigUint,
     start_time: Timestamp,
     user_deposit_withdraw_time: Timestamp,
     owner_deposit_withdraw_time: Timestamp,
+    admin: ManagedAddress,
 )
 ```
 
@@ -67,3 +67,10 @@ fn add_users_to_whitelist(
 ```
 
 If the whitelist is complete, pass `true` for the first argument. This ensures the new owner can't add additional addresses after the setup phase is complete.
+
+Later on, the `admin` can call the `setMinLaunchedTokens` to allow the owner to deposit the launched tokens. Until this value is set, the owner may not deposit tokens in the contract.
+
+```rust
+#[endpoint(setMinLaunchedTokens)]
+fn set_min_launched_tokens(&self, min_launched_tokens: BigUint)
+```
