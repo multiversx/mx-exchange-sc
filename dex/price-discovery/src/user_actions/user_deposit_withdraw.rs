@@ -62,7 +62,7 @@ pub trait UserDepositWithdrawModule:
         let accepted_token_id = self.accepted_token_id().get();
         require!(payment_token == accepted_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        self.add_and_require_user_deposit_under_limit(user_id, &payment_amount);
+        self.add_and_require_valid_deposit_amount(user_id, &payment_amount);
 
         self.accepted_token_balance()
             .update(|balance| *balance += &payment_amount);
@@ -154,7 +154,7 @@ pub trait UserDepositWithdrawModule:
         user_id
     }
 
-    fn add_and_require_user_deposit_under_limit(&self, user_id: AddressId, user_deposit: &BigUint) {
+    fn add_and_require_valid_deposit_amount(&self, user_id: AddressId, user_deposit: &BigUint) {
         self.total_user_deposit(user_id).update(|total_deposit| {
             *total_deposit += user_deposit;
 
