@@ -162,11 +162,9 @@ pub trait UserDepositWithdrawModule:
             require!(*total_deposit >= min_deposit, "Not enough tokens deposited");
 
             let limit = self.user_deposit_limit(user_id).get();
-            if limit == 0 {
-                return;
+            if limit > 0 {
+                require!(*total_deposit <= limit, "Exceeded deposit limit");
             }
-
-            require!(*total_deposit <= limit, "Exceeded deposit limit");
         });
     }
 
