@@ -43,6 +43,16 @@ fn user_not_in_whitelist_try_deposit_test() {
 }
 
 #[test]
+fn user_deposit_too_few_tokens_test() {
+    let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
+    setup.b_mock.set_block_timestamp(START_TIME + 1);
+
+    setup
+        .call_user_deposit(&setup.second_user_address.clone(), 99)
+        .assert_user_error("Not enough tokens deposited");
+}
+
+#[test]
 fn user_deposit_ok_test() {
     let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
 
@@ -67,6 +77,21 @@ fn user_deposit_ok_test() {
         REDEEM_TOKEN_ID,
         &rust_biguint!(1_000),
     );
+}
+
+#[test]
+fn user_withdraw_too_much_after_deposit_test() {
+    let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
+
+    setup.b_mock.set_block_timestamp(START_TIME + 1);
+
+    setup
+        .call_user_deposit(&setup.first_user_address.clone(), 1_000)
+        .assert_ok();
+
+    setup
+        .call_user_withdraw(&setup.first_user_address.clone(), 950)
+        .assert_user_error("Withdrawing too many tokens");
 }
 
 #[test]

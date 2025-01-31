@@ -15,6 +15,7 @@ Next we define the length of the phases. Over the start-end period, we define mu
 - start_time - phase 1 timestamp start
 - user_deposit_withdraw_time - phase 1 duration
 - owner_deposit_withdraw_time - phase 2 duration
+- user_min_deposit - the min deposit the user must deposit the first time they interact with the contract. Other deposits are not restricted. The user may either withdraw up to the min deposit value or all the deposited tokens
 - admin - the user that can call the `set_min_launched_tokens` endpoint
 
 ```rust
@@ -27,11 +28,13 @@ fn init(
     start_time: Timestamp,
     user_deposit_withdraw_time: Timestamp,
     owner_deposit_withdraw_time: Timestamp,
+    user_min_deposit: BigUint,
     admin: ManagedAddress,
 )
 ```
 
 After deployment, the SC requires the `redeem_token` to be issued and have its roles set. This is done through the `issue_redeem_token` endpoint:
+
 ```rust
 #[only_owner]
 #[payable("EGLD")]

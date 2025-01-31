@@ -91,6 +91,7 @@ where
                     START_TIME,
                     USER_DEPOSIT_TIME,
                     OWNER_DEPOSIT_TIME,
+                    managed_biguint!(100),
                     managed_address!(&owner_address),
                 );
 

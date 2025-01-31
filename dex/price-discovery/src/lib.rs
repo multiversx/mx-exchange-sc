@@ -38,6 +38,7 @@ pub trait PriceDiscovery:
         start_time: Timestamp,
         user_deposit_withdraw_time: Timestamp,
         owner_deposit_withdraw_time: Timestamp,
+        user_min_deposit: BigUint,
         admin: ManagedAddress,
     ) {
         require!(
@@ -71,6 +72,7 @@ pub trait PriceDiscovery:
             .set(user_deposit_withdraw_time);
         self.owner_deposit_withdraw_time()
             .set(owner_deposit_withdraw_time);
+        self.user_min_deposit().set(user_min_deposit);
 
         let price_precision = 10u64.pow(launched_token_decimals);
         self.price_precision().set(price_precision);

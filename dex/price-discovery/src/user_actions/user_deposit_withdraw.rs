@@ -96,6 +96,13 @@ pub trait UserDepositWithdrawModule:
 
         self.total_user_deposit(user_id).update(|total_deposit| {
             *total_deposit -= &payment_amount;
+
+            if *total_deposit == 0 {
+                return;
+            }
+
+            let min_deposit = self.user_min_deposit().get();
+            require!(*total_deposit >= min_deposit, "Withdrawing too many tokens");
         });
 
         self.burn_redeem_token(&payment_amount);
@@ -136,6 +143,7 @@ pub trait UserDepositWithdrawModule:
         }
     }
 
+    /// Returns the user ID
     fn require_user_whitelisted(&self, user: &ManagedAddress) -> AddressId {
         let user_id = self.id_mapper().get_id(user);
         require!(
@@ -147,18 +155,19 @@ pub trait UserDepositWithdrawModule:
     }
 
     fn add_and_require_user_deposit_under_limit(&self, user_id: AddressId, user_deposit: &BigUint) {
-        let limit = self.user_deposit_limit(user_id).get();
-        let total_deposit = self.total_user_deposit(user_id).update(|total_deposit| {
+        self.total_user_deposit(user_id).update(|total_deposit| {
             *total_deposit += user_deposit;
 
-            (*total_deposit).clone()
+            let min_deposit = self.user_min_deposit().get();
+            require!(*total_deposit >= min_deposit, "Not enough tokens deposited");
+
+            let limit = self.user_deposit_limit(user_id).get();
+            if limit == 0 {
+                return;
+            }
+
+            require!(*total_deposit <= limit, "Exceeded deposit limit");
         });
-
-        if limit == 0 {
-            return;
-        }
-
-        require!(total_deposit <= limit, "Exceeded deposit limit");
     }
 
     #[storage_mapper("idMapper")]
@@ -169,6 +178,9 @@ pub trait UserDepositWithdrawModule:
 
     #[storage_mapper("whitelistComplete")]
     fn whitelist_complete(&self) -> SingleValueMapper<bool>;
+
+    #[storage_mapper("userMinDeposit")]
+    fn user_min_deposit(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("userDepositLimit")]
     fn user_deposit_limit(&self, user_id: AddressId) -> SingleValueMapper<BigUint>;
