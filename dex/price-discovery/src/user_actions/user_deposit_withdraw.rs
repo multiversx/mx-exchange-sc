@@ -10,41 +10,6 @@ pub trait UserDepositWithdrawModule:
     + crate::redeem_token::RedeemTokenModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    /// Pass `whitelist_complete` as `true` if these are the last entries
-    ///
-    /// This ensures the new owner can't add additional addresses after the setup phase
-    ///
-    /// `whitelist` arguments are pairs of (address, max_total_deposit). Pass `0` for `max_total_deposit` if there is no limit
-    #[only_owner]
-    #[endpoint(addUsersToWhitelist)]
-    fn add_users_to_whitelist(
-        &self,
-        whitelist_complete: bool,
-        whitelist: MultiValueEncoded<MultiValue2<ManagedAddress, BigUint>>,
-    ) {
-        let whitelist_complete_mapper = self.whitelist_complete();
-        require!(
-            !whitelist_complete_mapper.get(),
-            "Whitelist already complete"
-        );
-
-        let id_mapper = self.id_mapper();
-        let whitelist_mapper = self.user_whitelist();
-        for pair in whitelist {
-            let (user, limit) = pair.into_tuple();
-            let user_id = id_mapper.insert_new(&user);
-            whitelist_mapper.add(&user_id);
-
-            if limit > 0 {
-                self.user_deposit_limit(user_id).set(limit);
-            }
-        }
-
-        if whitelist_complete {
-            whitelist_complete_mapper.set(true);
-        }
-    }
-
     /// Users can deposit accepted_tokens.
     /// They will receive an ESDT that can be used to withdraw launched tokens
     #[payable("*")]
@@ -119,8 +84,8 @@ pub trait UserDepositWithdrawModule:
     }
 
     #[view(isUserWhitelisted)]
-    fn is_user_whitelisted(&self, user: ManagedAddress) -> bool {
-        let user_id = self.id_mapper().get_id(&user);
+    fn is_user_whitelisted(&self, user: &ManagedAddress) -> bool {
+        let user_id = self.id_mapper().get_id(user);
         if user_id != NULL_ID {
             self.user_whitelist().contains(&user_id)
         } else {
@@ -173,9 +138,6 @@ pub trait UserDepositWithdrawModule:
 
     #[storage_mapper("userWhitelist")]
     fn user_whitelist(&self) -> WhitelistMapper<AddressId>;
-
-    #[storage_mapper("whitelistComplete")]
-    fn whitelist_complete(&self) -> SingleValueMapper<bool>;
 
     #[storage_mapper("userMinDeposit")]
     fn user_min_deposit(&self) -> SingleValueMapper<BigUint>;

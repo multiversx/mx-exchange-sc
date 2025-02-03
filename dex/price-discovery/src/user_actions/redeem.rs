@@ -4,7 +4,8 @@ multiversx_sc::imports!();
 
 #[multiversx_sc::module]
 pub trait RedeemModule:
-    crate::common_storage::CommonStorageModule
+    super::user_deposit_withdraw::UserDepositWithdrawModule
+    + crate::common_storage::CommonStorageModule
     + crate::events::EventsModule
     + crate::phase::PhaseModule
     + crate::redeem_token::RedeemTokenModule
@@ -72,6 +73,8 @@ pub trait RedeemModule:
         payment_token: &TokenIdentifier,
         payment_amount: &BigUint,
     ) -> EgldOrEsdtTokenPayment {
+        require!(self.is_user_whitelisted(user), "User not whitelisted");
+
         let redeem_token_id = self.redeem_token().get_token_id();
         require!(payment_token == &redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 

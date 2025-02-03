@@ -25,6 +25,7 @@ pub trait PriceDiscovery:
     + user_actions::user_deposit_withdraw::UserDepositWithdrawModule
     + user_actions::owner_deposit_withdraw::OwnerDepositWithdrawModule
     + user_actions::redeem::RedeemModule
+    + user_actions::admin_actions::AdminActionsModule
     + views::ViewsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {

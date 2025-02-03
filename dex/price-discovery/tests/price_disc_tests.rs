@@ -352,3 +352,49 @@ fn user_redeem_ok_test() {
         &rust_biguint!(0),
     );
 }
+
+#[test]
+fn refund_user_test() {
+    let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
+
+    setup.b_mock.set_block_timestamp(START_TIME + 1);
+
+    setup
+        .call_user_deposit(&setup.first_user_address.clone(), 1_000)
+        .assert_ok();
+
+    setup
+        .call_refund_user(&setup.first_user_address.clone())
+        .assert_ok();
+
+    setup.b_mock.check_esdt_balance(
+        setup.pd_wrapper.address_ref(),
+        ACCEPTED_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+    setup.b_mock.check_esdt_balance(
+        &setup.first_user_address,
+        ACCEPTED_TOKEN_ID,
+        &rust_biguint!(USER_BALANCE),
+    );
+    setup.b_mock.check_esdt_balance(
+        &setup.first_user_address,
+        REDEEM_TOKEN_ID,
+        &rust_biguint!(1_000),
+    );
+
+    setup
+        .b_mock
+        .set_block_timestamp(START_TIME + USER_DEPOSIT_TIME + 1);
+
+    setup.call_owner_deposit(2_000).assert_ok();
+
+    setup
+        .b_mock
+        .set_block_timestamp(START_TIME + USER_DEPOSIT_TIME + OWNER_DEPOSIT_TIME + 1);
+
+    // user try redeem after refunded
+    setup
+        .call_user_redeem(&setup.first_user_address.clone(), 1_000)
+        .assert_user_error("User not whitelisted");
+}

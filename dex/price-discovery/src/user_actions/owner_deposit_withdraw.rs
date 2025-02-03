@@ -69,21 +69,4 @@ pub trait OwnerDepositWithdrawModule:
 
         EsdtTokenPayment::new(launched_token_id, 0, withdraw_amount)
     }
-
-    #[endpoint(setMinLaunchedTokens)]
-    fn set_min_launched_tokens(&self, min_launched_tokens: BigUint) {
-        self.require_caller_admin();
-        require!(min_launched_tokens > 0, "Invalid min launched tokens");
-
-        self.min_launched_tokens().set(min_launched_tokens);
-    }
-
-    fn require_caller_admin(&self) {
-        let caller = self.blockchain().get_caller();
-        let admin = self.admin().get();
-        require!(caller == admin, "Only admin may call this function");
-    }
-
-    #[storage_mapper("admin")]
-    fn admin(&self) -> SingleValueMapper<ManagedAddress>;
 }

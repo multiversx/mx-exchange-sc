@@ -8,6 +8,7 @@ use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 
 use price_discovery::common_storage::CommonStorageModule;
 use price_discovery::redeem_token::*;
+use price_discovery::user_actions::admin_actions::AdminActionsModule;
 use price_discovery::*;
 
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
@@ -111,7 +112,7 @@ where
                     )
                         .into(),
                 );
-                sc.add_users_to_whitelist(true, pairs);
+                sc.add_users_to_whitelist(pairs);
             })
             .assert_ok();
 
@@ -194,6 +195,20 @@ where
             &rust_biguint!(0),
             |sc| {
                 sc.redeem();
+            },
+        )
+    }
+
+    pub fn call_refund_user(&mut self, user: &Address) -> TxResult {
+        self.b_mock.execute_tx(
+            &self.owner_address,
+            &self.pd_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut users = MultiValueEncoded::new();
+                users.push(managed_address!(user));
+
+                sc.refund_users(users);
             },
         )
     }
