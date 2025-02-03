@@ -29,7 +29,7 @@ pub trait AdminActionsModule:
         let whitelist_mapper = self.user_whitelist();
         for pair in whitelist {
             let (user, limit) = pair.into_tuple();
-            let user_id = id_mapper.get_id_or_insert(&user);
+            let user_id = id_mapper.insert_new(&user);
             whitelist_mapper.add(&user_id);
 
             if limit > 0 {
