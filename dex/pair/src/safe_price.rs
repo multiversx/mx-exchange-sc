@@ -6,7 +6,9 @@ use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 use crate::{amm, config, errors::ERROR_SAFE_PRICE_CURRENT_INDEX};
 
 pub type Round = u64;
+pub type Timestamp = u64;
 
+pub const DEFAULT_ROUND_SAVE_INTERVAL: u64 = 1;
 pub const MAX_OBSERVATIONS: usize = 65_536; // 2^{16} records, to optimise binary search
 
 #[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, TypeAbi, Debug)]
@@ -15,6 +17,7 @@ pub struct PriceObservation<M: ManagedTypeApi> {
     pub second_token_reserve_accumulated: BigUint<M>,
     pub weight_accumulated: u64,
     pub recording_round: Round,
+    pub recording_timestamp: Timestamp,
     pub lp_supply_accumulated: BigUint<M>,
 }
 
@@ -25,6 +28,7 @@ impl<M: ManagedTypeApi> Default for PriceObservation<M> {
             second_token_reserve_accumulated: BigUint::zero(),
             weight_accumulated: 0,
             recording_round: 0,
+            recording_timestamp: 0,
             lp_supply_accumulated: BigUint::zero(),
         }
     }
@@ -47,10 +51,10 @@ impl<M: ManagedTypeApi> NestedDecode for PriceObservation<M> {
         let weight_accumulated = u64::dep_decode(input)?;
         let recording_round = u64::dep_decode(input)?;
 
-        let lp_supply_accumulated = if !input.is_depleted() {
-            BigUint::dep_decode(input)?
+        let (recording_timestamp, lp_supply_accumulated) = if !input.is_depleted() {
+            (u64::dep_decode(input)?, BigUint::dep_decode(input)?)
         } else {
-            BigUint::zero()
+            (0u64, BigUint::zero())
         };
 
         if !input.is_depleted() {
@@ -62,6 +66,7 @@ impl<M: ManagedTypeApi> NestedDecode for PriceObservation<M> {
             second_token_reserve_accumulated,
             weight_accumulated,
             recording_round,
+            recording_timestamp,
             lp_supply_accumulated,
         })
     }
@@ -100,7 +105,14 @@ pub trait SafePriceModule:
             new_index = (safe_price_current_index % MAX_OBSERVATIONS) + 1;
         }
 
-        if last_price_observation.recording_round == current_round {
+        let rounds_since_last_observation = current_round - last_price_observation.recording_round;
+        let safe_price_round_save_interval_mapper = self.safe_price_round_save_interval();
+        let round_save_interval = match safe_price_round_save_interval_mapper.get() {
+            0 => DEFAULT_ROUND_SAVE_INTERVAL,
+            value => value,
+        };
+
+        if rounds_since_last_observation < round_save_interval {
             return;
         }
 
@@ -143,8 +155,19 @@ pub trait SafePriceModule:
         new_price_observation.lp_supply_accumulated += BigUint::from(new_weight) * new_lp_supply;
         new_price_observation.weight_accumulated += new_weight;
         new_price_observation.recording_round = new_round;
+        new_price_observation.recording_timestamp = self.blockchain().get_block_timestamp();
 
         new_price_observation
+    }
+
+    #[only_owner]
+    #[endpoint(setSafePriceRoundSaveInterval)]
+    fn set_safe_price_round_save_interval(&self, new_interval: u64) {
+        require!(
+            new_interval > 0,
+            "Round save interval must be greater than 0"
+        );
+        self.safe_price_round_save_interval().set(new_interval);
     }
 
     #[storage_mapper("price_observations")]
@@ -153,4 +176,8 @@ pub trait SafePriceModule:
     #[view(getSafePriceCurrentIndex)]
     #[storage_mapper("safe_price_current_index")]
     fn safe_price_current_index(&self) -> SingleValueMapper<usize>;
+
+    #[view(getSafePriceRoundSaveInterval)]
+    #[storage_mapper("safe_price_round_save_interval")]
+    fn safe_price_round_save_interval(&self) -> SingleValueMapper<u64>;
 }
