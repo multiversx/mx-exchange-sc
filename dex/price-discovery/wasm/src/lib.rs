@@ -26,7 +26,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         issueRedeemToken => issue_redeem_token
         setTransferRole => set_transfer_role
         userDeposit => user_deposit
-        userWithdraw => user_withdraw
+        userWithdraw => user_withdraw_endpoint
         isUserWhitelisted => is_user_whitelisted
         getUserDepositLimit => get_user_deposit_limit
         ownerDeposit => owner_deposit

@@ -53,16 +53,10 @@ pub trait AdminActionsModule:
             whitelist_mapper.require_whitelisted(&user_id);
             whitelist_mapper.remove(&user_id);
 
-            let user_deposit = self.total_user_deposit(user_id).take();
+            let user_deposit = self.total_user_deposit(user_id).get();
             self.user_deposit_limit(user_id).clear();
+            self.user_withdraw(&user, user_id, &user_deposit);
 
-            if user_deposit == 0 {
-                continue;
-            }
-
-            let accepted_token_id = self.accepted_token_id().get();
-            self.send()
-                .direct(&user, &accepted_token_id, 0, &user_deposit);
             redeem_token_supply -= user_deposit;
         }
 

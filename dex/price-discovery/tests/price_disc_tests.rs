@@ -362,6 +362,9 @@ fn refund_user_test() {
     setup
         .call_user_deposit(&setup.first_user_address.clone(), 1_000)
         .assert_ok();
+    setup
+        .call_user_deposit(&setup.second_user_address.clone(), 9_000)
+        .assert_ok();
 
     setup
         .call_refund_user(&setup.first_user_address.clone())
@@ -370,7 +373,7 @@ fn refund_user_test() {
     setup.b_mock.check_esdt_balance(
         setup.pd_wrapper.address_ref(),
         ACCEPTED_TOKEN_ID,
-        &rust_biguint!(0),
+        &rust_biguint!(9_000),
     );
     setup.b_mock.check_esdt_balance(
         &setup.first_user_address,
@@ -397,4 +400,53 @@ fn refund_user_test() {
     setup
         .call_user_redeem(&setup.first_user_address.clone(), 1_000)
         .assert_user_error("User not whitelisted");
+
+    setup
+        .call_user_redeem(&setup.second_user_address.clone(), 9_000)
+        .assert_ok();
+    setup.call_owner_redeem().assert_ok();
+
+    // check accepted token balance
+    setup.b_mock.check_esdt_balance(
+        &setup.first_user_address,
+        ACCEPTED_TOKEN_ID,
+        &rust_biguint!(USER_BALANCE),
+    );
+    setup.b_mock.check_esdt_balance(
+        &setup.second_user_address,
+        ACCEPTED_TOKEN_ID,
+        &rust_biguint!(USER_BALANCE - 9_000),
+    );
+    setup.b_mock.check_esdt_balance(
+        &setup.owner_address,
+        ACCEPTED_TOKEN_ID,
+        &rust_biguint!(9_000),
+    );
+    setup.b_mock.check_esdt_balance(
+        setup.pd_wrapper.address_ref(),
+        ACCEPTED_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+
+    // check launched token balance
+    setup.b_mock.check_esdt_balance(
+        &setup.first_user_address,
+        LAUNCHED_TOKEN_ID,
+        &rust_biguint!(0),
+    );
+    setup.b_mock.check_esdt_balance(
+        &setup.second_user_address,
+        LAUNCHED_TOKEN_ID,
+        &rust_biguint!(2_000),
+    );
+    setup.b_mock.check_esdt_balance(
+        &setup.owner_address,
+        LAUNCHED_TOKEN_ID,
+        &rust_biguint!(USER_BALANCE - 2_000),
+    );
+    setup.b_mock.check_esdt_balance(
+        setup.pd_wrapper.address_ref(),
+        LAUNCHED_TOKEN_ID,
+        &rust_biguint!(0),
+    );
 }

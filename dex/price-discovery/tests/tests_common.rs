@@ -146,7 +146,7 @@ where
             0,
             &rust_biguint!(amount),
             |sc| {
-                sc.user_withdraw();
+                sc.user_withdraw_endpoint();
             },
         )
     }
