@@ -1,3 +1,5 @@
+use crate::phase::Phase;
+
 multiversx_sc::imports!();
 
 #[multiversx_sc::module]
@@ -14,6 +16,12 @@ pub trait AdminActionsModule:
         self.require_caller_admin();
         require!(min_launched_tokens > 0, "Invalid min launched tokens");
 
+        let phase = self.get_current_phase();
+        require!(
+            !matches!(phase, Phase::Redeem),
+            "May not set min launched tokens during redeem phase"
+        );
+
         self.min_launched_tokens().set(min_launched_tokens);
     }
 
@@ -24,6 +32,12 @@ pub trait AdminActionsModule:
         whitelist: MultiValueEncoded<MultiValue2<ManagedAddress, BigUint>>,
     ) {
         self.require_caller_admin();
+
+        let phase = self.get_current_phase();
+        require!(
+            !matches!(phase, Phase::Redeem),
+            "May not add new users during redeem phase"
+        );
 
         let id_mapper = self.id_mapper();
         let whitelist_mapper = self.user_whitelist();
@@ -41,6 +55,12 @@ pub trait AdminActionsModule:
     #[endpoint(refundUsers)]
     fn refund_users(&self, users: MultiValueEncoded<ManagedAddress>) {
         self.require_caller_admin();
+
+        let phase = self.get_current_phase();
+        require!(
+            !matches!(phase, Phase::Redeem),
+            "May not refund user during redeem phase"
+        );
 
         let id_mapper = self.id_mapper();
         let whitelist_mapper = self.user_whitelist();
