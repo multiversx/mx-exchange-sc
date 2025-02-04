@@ -45,6 +45,7 @@ pub trait AdminActionsModule:
         let id_mapper = self.id_mapper();
         let whitelist_mapper = self.user_whitelist();
         let owner_address = self.blockchain().get_owner_address();
+        let mut redeem_token_supply = self.redeem_token_total_circulating_supply().get();
         for user in users {
             require!(user != owner_address, "May not refund owner");
 
@@ -62,7 +63,11 @@ pub trait AdminActionsModule:
             let accepted_token_id = self.accepted_token_id().get();
             self.send()
                 .direct(&user, &accepted_token_id, 0, &user_deposit);
+            redeem_token_supply -= user_deposit;
         }
+
+        self.redeem_token_total_circulating_supply()
+            .set(redeem_token_supply);
     }
 
     fn require_caller_admin(&self) {
