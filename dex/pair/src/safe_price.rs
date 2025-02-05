@@ -8,7 +8,7 @@ use crate::{amm, config, errors::ERROR_SAFE_PRICE_CURRENT_INDEX};
 pub type Round = u64;
 pub type Timestamp = u64;
 
-pub const DEFAULT_ROUND_SAVE_INTERVAL: u64 = 1;
+pub const DEFAULT_ROUND_SAVE_INTERVAL: Round = 1;
 pub const MAX_OBSERVATIONS: usize = 65_536; // 2^{16} records, to optimise binary search
 
 #[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, TypeAbi, Debug)]
@@ -106,11 +106,7 @@ pub trait SafePriceModule:
         }
 
         let rounds_since_last_observation = current_round - last_price_observation.recording_round;
-        let safe_price_round_save_interval_mapper = self.safe_price_round_save_interval();
-        let round_save_interval = match safe_price_round_save_interval_mapper.get() {
-            0 => DEFAULT_ROUND_SAVE_INTERVAL,
-            value => value,
-        };
+        let round_save_interval = self.safe_price_round_save_interval().get();
 
         if rounds_since_last_observation < round_save_interval {
             return;
@@ -162,7 +158,7 @@ pub trait SafePriceModule:
 
     #[only_owner]
     #[endpoint(setSafePriceRoundSaveInterval)]
-    fn set_safe_price_round_save_interval(&self, new_interval: u64) {
+    fn set_safe_price_round_save_interval(&self, new_interval: Round) {
         require!(
             new_interval > 0,
             "Round save interval must be greater than 0"
@@ -179,5 +175,5 @@ pub trait SafePriceModule:
 
     #[view(getSafePriceRoundSaveInterval)]
     #[storage_mapper("safe_price_round_save_interval")]
-    fn safe_price_round_save_interval(&self) -> SingleValueMapper<u64>;
+    fn safe_price_round_save_interval(&self) -> SingleValueMapper<Round>;
 }

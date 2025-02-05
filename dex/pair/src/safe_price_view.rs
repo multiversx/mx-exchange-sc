@@ -7,7 +7,7 @@ use crate::{
     amm, config,
     errors::{ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST, ERROR_SAFE_PRICE_SAME_ROUNDS},
     read_pair_storage,
-    safe_price::{self, PriceObservation, Round, MAX_OBSERVATIONS},
+    safe_price::{self, PriceObservation, Round, Timestamp, MAX_OBSERVATIONS},
 };
 
 pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
@@ -66,28 +66,11 @@ pub trait SafePriceViewModule:
     fn get_lp_tokens_safe_price_by_timestamp_offset(
         &self,
         pair_address: ManagedAddress,
-        timestamp_offset: u64,
+        timestamp_offset: Timestamp,
         liquidity: BigUint,
     ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
-        let current_timestamp = self.blockchain().get_block_timestamp();
-
-        require!(
-            timestamp_offset > 0 && timestamp_offset < current_timestamp,
-            ERROR_PARAMETERS
-        );
-
-        let target_timestamp = current_timestamp - timestamp_offset;
-
-        let safe_price_current_index = self
-            .get_safe_price_current_index_mapper(pair_address.clone())
-            .get();
-        let price_observations = self.get_price_observation_mapper(pair_address.clone());
-
-        let target_observation = self.find_observation_by_timestamp(
-            target_timestamp,
-            safe_price_current_index,
-            &price_observations,
-        );
+        let target_observation =
+            self.get_observation_by_timestamp_offset(timestamp_offset, pair_address.clone());
 
         let current_round = self.blockchain().get_block_round();
         self.get_lp_tokens_safe_price(
@@ -187,7 +170,7 @@ pub trait SafePriceViewModule:
     fn get_safe_price_by_round_offset(
         &self,
         pair_address: ManagedAddress,
-        round_offset: u64,
+        round_offset: Round,
         input_payment: EsdtTokenPayment,
     ) -> EsdtTokenPayment {
         let current_round = self.blockchain().get_block_round();
@@ -204,9 +187,26 @@ pub trait SafePriceViewModule:
     fn get_safe_price_by_timestamp_offset(
         &self,
         pair_address: ManagedAddress,
-        timestamp_offset: u64,
+        timestamp_offset: Timestamp,
         input_payment: EsdtTokenPayment,
     ) -> EsdtTokenPayment {
+        let target_observation =
+            self.get_observation_by_timestamp_offset(timestamp_offset, pair_address.clone());
+
+        let current_round = self.blockchain().get_block_round();
+        self.get_safe_price(
+            pair_address,
+            target_observation.recording_round,
+            current_round,
+            input_payment,
+        )
+    }
+
+    fn get_observation_by_timestamp_offset(
+        &self,
+        timestamp_offset: Timestamp,
+        pair_address: ManagedAddress,
+    ) -> PriceObservation<Self::Api> {
         let current_timestamp = self.blockchain().get_block_timestamp();
         require!(
             timestamp_offset > 0 && timestamp_offset < current_timestamp,
@@ -218,20 +218,12 @@ pub trait SafePriceViewModule:
         let safe_price_current_index = self
             .get_safe_price_current_index_mapper(pair_address.clone())
             .get();
-        let price_observations = self.get_price_observation_mapper(pair_address.clone());
+        let price_observations = self.get_price_observation_mapper(pair_address);
 
-        let target_observation = self.find_observation_by_timestamp(
+        self.find_observation_by_timestamp(
             target_timestamp,
             safe_price_current_index,
             &price_observations,
-        );
-
-        let current_round = self.blockchain().get_block_round();
-        self.get_safe_price(
-            pair_address,
-            target_observation.recording_round,
-            current_round,
-            input_payment,
         )
     }
 
@@ -350,7 +342,7 @@ pub trait SafePriceViewModule:
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
         current_index: usize,
-        price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>, ManagedAddress>,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
         search_round: Round,
     ) -> PriceObservation<Self::Api> {
         require!(
@@ -412,7 +404,7 @@ pub trait SafePriceViewModule:
     fn get_oldest_price_observation(
         &self,
         current_index: usize,
-        price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>, ManagedAddress>,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
     ) -> PriceObservation<Self::Api> {
         require!(
             !price_observations.is_empty(),
@@ -430,7 +422,7 @@ pub trait SafePriceViewModule:
     fn price_observation_by_binary_search(
         &self,
         current_index: usize,
-        price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>, ManagedAddress>,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
         search_round: Round,
     ) -> (PriceObservation<Self::Api>, usize) {
         let mut search_index = 1;
@@ -460,7 +452,7 @@ pub trait SafePriceViewModule:
 
     fn price_observation_by_linear_interpolation(
         &self,
-        price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>, ManagedAddress>,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
         search_round: Round,
         search_index: usize,
     ) -> PriceObservation<Self::Api> {
@@ -520,9 +512,9 @@ pub trait SafePriceViewModule:
 
     fn find_observation_by_timestamp(
         &self,
-        target_timestamp: u64,
+        target_timestamp: Timestamp,
         current_index: usize,
-        price_observations: &VecMapper<Self::Api, PriceObservation<Self::Api>, ManagedAddress>,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
     ) -> PriceObservation<Self::Api> {
         require!(
             !price_observations.is_empty(),
@@ -624,7 +616,7 @@ pub trait SafePriceViewModule:
         }
     }
 
-    fn get_default_offset_rounds(&self, pair_address: &ManagedAddress, end_round: Round) -> u64 {
+    fn get_default_offset_rounds(&self, pair_address: &ManagedAddress, end_round: Round) -> Round {
         let safe_price_current_index = self
             .get_safe_price_current_index_mapper(pair_address.clone())
             .get();
