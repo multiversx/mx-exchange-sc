@@ -73,7 +73,7 @@ pub trait RedeemModule:
         payment_token: &TokenIdentifier,
         payment_amount: &BigUint,
     ) -> EgldOrEsdtTokenPayment {
-        require!(self.is_user_whitelisted(user), "User not whitelisted");
+        let _ = self.require_user_whitelisted(user);
 
         let redeem_token_id = self.redeem_token().get_token_id();
         require!(payment_token == &redeem_token_id, INVALID_PAYMENT_ERR_MSG);
