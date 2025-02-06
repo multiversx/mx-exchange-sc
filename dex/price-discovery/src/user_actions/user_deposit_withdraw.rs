@@ -64,7 +64,7 @@ pub trait UserDepositWithdrawModule:
 
     #[view(isUserWhitelisted)]
     fn is_user_whitelisted(&self, user: &ManagedAddress) -> bool {
-        let user_id = self.id_mapper().get_id(user);
+        let user_id = self.user_id_mapper().get_id(user);
         if user_id != NULL_ID {
             self.user_whitelist().contains(&user_id)
         } else {
@@ -74,7 +74,7 @@ pub trait UserDepositWithdrawModule:
 
     #[view(getUserDepositLimit)]
     fn get_user_deposit_limit(&self, user: ManagedAddress) -> OptionalValue<BigUint> {
-        let user_id = self.id_mapper().get_id(&user);
+        let user_id = self.user_id_mapper().get_id(&user);
         if user_id == NULL_ID {
             return OptionalValue::None;
         }
@@ -89,7 +89,7 @@ pub trait UserDepositWithdrawModule:
 
     /// Returns the user ID
     fn require_user_whitelisted(&self, user: &ManagedAddress) -> AddressId {
-        let user_id = self.id_mapper().get_id(user);
+        let user_id = self.user_id_mapper().get_id(user);
         require!(
             user_id != NULL_ID && self.user_whitelist().contains(&user_id),
             "User not whitelisted"
@@ -147,8 +147,8 @@ pub trait UserDepositWithdrawModule:
         });
     }
 
-    #[storage_mapper("idMapper")]
-    fn id_mapper(&self) -> AddressToIdMapper;
+    #[storage_mapper("userIdMapper")]
+    fn user_id_mapper(&self) -> AddressToIdMapper;
 
     #[storage_mapper("userWhitelist")]
     fn user_whitelist(&self) -> WhitelistMapper<AddressId>;

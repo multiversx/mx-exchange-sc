@@ -39,7 +39,7 @@ pub trait AdminActionsModule:
             "May not add new users during redeem phase"
         );
 
-        let id_mapper = self.id_mapper();
+        let id_mapper = self.user_id_mapper();
         let whitelist_mapper = self.user_whitelist();
         for pair in whitelist {
             let (user, limit) = pair.into_tuple();
@@ -62,7 +62,7 @@ pub trait AdminActionsModule:
             "May not refund user during redeem phase"
         );
 
-        let id_mapper = self.id_mapper();
+        let id_mapper = self.user_id_mapper();
         let whitelist_mapper = self.user_whitelist();
         let owner_address = self.blockchain().get_owner_address();
         let mut redeem_token_supply = self.redeem_token_total_circulating_supply().get();
