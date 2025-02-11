@@ -115,6 +115,8 @@ pub trait UserDepositWithdrawModule:
 
     fn user_withdraw(&self, caller: &ManagedAddress, user_id: AddressId, payment_amount: &BigUint) {
         self.total_user_deposit(user_id).update(|total_deposit| {
+            require!(&*total_deposit >= payment_amount, "Error withdrawing");
+
             *total_deposit -= payment_amount;
 
             if *total_deposit == 0 {
