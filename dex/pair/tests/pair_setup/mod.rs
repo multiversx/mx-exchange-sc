@@ -482,7 +482,7 @@ where
             &self.pair_wrapper,
             &rust_biguint!(0u64),
             |sc| {
-                let _ = sc.set_safe_price_round_save_interval(save_interval);
+                sc.set_safe_price_round_save_interval(save_interval);
             },
         );
     }
