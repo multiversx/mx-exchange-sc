@@ -102,7 +102,7 @@ pub trait Pair<ContractReader>:
         };
 
         self.safe_price_round_save_interval()
-            .set_if_empty(DEFAULT_ROUND_SAVE_INTERVAL);
+            .set(DEFAULT_ROUND_SAVE_INTERVAL);
     }
 
     #[upgrade]

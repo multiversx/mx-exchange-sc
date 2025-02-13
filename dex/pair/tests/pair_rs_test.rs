@@ -993,6 +993,229 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
     );
 }
 
+#[test]
+fn test_safe_price_round_interval() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let pair_address = pair_setup.pair_wrapper.address_ref().clone();
+
+    // 10 Round save interval
+    pair_setup.set_safe_price_save_interval(10u64);
+
+    let payment_amount = 1000u64;
+    let starting_round = 1000u64;
+    let mut expected_amount = 996;
+    let starting_weight = 1;
+    let weight = 5;
+    let mut block_round = starting_round;
+    pair_setup.b_mock.set_block_round(block_round);
+
+    pair_setup.add_liquidity(
+        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+    );
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    pair_setup.check_price_observation(
+        &pair_address,
+        block_round,
+        starting_weight, // The accumulated weight should be 1, as it is the first element from the list
+        1_001_000,
+        1_001_000,
+    );
+
+    block_round += weight;
+    expected_amount -= 2; // slippage
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    // Still only one element in the list, as the round interval has not passed
+    // The queried price observation is still simulated towards the current block round
+    pair_setup.check_price_observation(
+        &pair_address,
+        block_round,
+        starting_weight + weight,
+        6016000,
+        5996050,
+    );
+
+    block_round += weight;
+    expected_amount -= 2;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    // The round interval has passed, so the new price observation is saved
+    pair_setup.check_price_observation(
+        &pair_address,
+        block_round,
+        starting_weight + 2 * weight,
+        11031000,
+        10991100,
+    );
+
+    // Check safe price
+    expected_amount = 996;
+    pair_setup.check_safe_price(
+        &pair_address,
+        1005,
+        1010,
+        WEGLD_TOKEN_ID,
+        1_000,
+        MEX_TOKEN_ID,
+        expected_amount,
+    );
+}
+
+#[test]
+fn test_safe_price_new_timestamp_logic() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let pair_address = pair_setup.pair_wrapper.address_ref().clone();
+
+    // 10 Round save interval
+    pair_setup.set_safe_price_save_interval(10u64);
+
+    let payment_amount = 1000u64;
+    let starting_round = 1000u64;
+    let mut expected_amount = 996;
+    let starting_weight = 1;
+    let weight = 10;
+    let mut block_round = starting_round;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.b_mock.set_block_timestamp(block_round);
+
+    pair_setup.add_liquidity(
+        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+    );
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    pair_setup.check_price_observation(
+        &pair_address,
+        block_round,
+        starting_weight, // The accumulated weight should be 1, as it is the first element from the list
+        1_001_000,
+        1_001_000,
+    );
+
+    block_round += weight;
+    expected_amount -= 2; // slippage
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.b_mock.set_block_timestamp(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    pair_setup.check_price_observation(
+        &pair_address,
+        block_round,
+        starting_weight + weight,
+        11021000,
+        11001040,
+    );
+
+    block_round += weight;
+    expected_amount -= 2;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.b_mock.set_block_timestamp(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    pair_setup.check_price_observation(
+        &pair_address,
+        block_round,
+        starting_weight + 2 * weight,
+        21051000,
+        20991140,
+    );
+
+    block_round += weight;
+    expected_amount -= 2;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.b_mock.set_block_timestamp(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    pair_setup.check_price_observation(
+        &pair_address,
+        block_round,
+        starting_weight + 3 * weight,
+        31091000,
+        30971320,
+    );
+
+    // Check timestamp query
+    pair_setup.b_mock.set_block_timestamp(1031);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 31, 1000);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 30, 1000);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 29, 1000);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 28, 1000);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 27, 1000);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 26, 1000);
+
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 25, 1010);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 24, 1010);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 23, 1010);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 22, 1010);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 21, 1010);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 20, 1010);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 19, 1010);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 18, 1010);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 17, 1010);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 16, 1010);
+
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 15, 1020);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 14, 1020);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 13, 1020);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 12, 1020);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 11, 1020);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 10, 1020);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 9, 1020);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 8, 1020);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 7, 1020);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 6, 1020);
+
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 5, 1030);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 4, 1030);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 3, 1030);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 2, 1030);
+    pair_setup.check_price_observation_by_timestamp(&pair_address, 1, 1030);
+}
+
 // Test is commented as it needs a variable change in order to run succesfully
 // In order to run the test with the current setup, MAX_OBSERVATIONS const must be set to 100
 // This is necessary as using the MAINNET variable requires too many operations for a unit test

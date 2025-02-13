@@ -1392,6 +1392,7 @@ dependencies = [
  "common_structs",
  "fees-collector",
  "itertools 0.10.5",
+ "math",
  "multiversx-sc",
  "multiversx-sc-scenario",
  "num-bigint",

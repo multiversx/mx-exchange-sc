@@ -2,6 +2,7 @@ multiversx_sc::imports!();
 
 use common_errors::{ERROR_BAD_INPUT_TOKEN, ERROR_PARAMETERS};
 use core::cmp::Ordering;
+use math::weighted_average;
 
 use crate::{
     amm, config,
@@ -479,24 +480,30 @@ pub trait SafePriceViewModule:
         let left_weight = right_observation.recording_round - search_round;
         let right_weight = search_round - left_observation.recording_round;
 
-        let weight_sum = left_weight + right_weight;
-        let first_token_reserve_sum = BigUint::from(left_weight)
-            * left_observation.first_token_reserve_accumulated
-            + BigUint::from(right_weight) * right_observation.first_token_reserve_accumulated;
-        let second_token_reserve_sum = BigUint::from(left_weight)
-            * left_observation.second_token_reserve_accumulated
-            + BigUint::from(right_weight) * right_observation.second_token_reserve_accumulated;
-        let lp_supply_sum = BigUint::from(left_weight) * left_observation.lp_supply_accumulated
-            + BigUint::from(right_weight) * right_observation.lp_supply_accumulated;
-
-        let timestamp_sum = BigUint::from(left_weight) * left_observation.recording_timestamp
-            + BigUint::from(right_weight) * right_observation.recording_timestamp;
-        let interpolated_timestamp = (timestamp_sum / weight_sum).to_u64().unwrap_or_default();
-
-        let first_token_reserve_accumulated = first_token_reserve_sum / weight_sum;
-        let second_token_reserve_accumulated = second_token_reserve_sum / weight_sum;
-        let lp_supply_accumulated = lp_supply_sum / weight_sum;
-
+        let first_token_reserve_accumulated = weighted_average(
+            left_observation.first_token_reserve_accumulated,
+            BigUint::from(left_weight),
+            right_observation.first_token_reserve_accumulated,
+            BigUint::from(right_weight),
+        );
+        let second_token_reserve_accumulated = weighted_average(
+            left_observation.second_token_reserve_accumulated,
+            BigUint::from(left_weight),
+            right_observation.second_token_reserve_accumulated,
+            BigUint::from(right_weight),
+        );
+        let lp_supply_accumulated = weighted_average(
+            left_observation.lp_supply_accumulated,
+            BigUint::from(left_weight),
+            right_observation.lp_supply_accumulated,
+            BigUint::from(right_weight),
+        );
+        let recording_timestamp = weighted_average(
+            left_observation.recording_timestamp,
+            left_weight,
+            right_observation.recording_timestamp,
+            right_weight,
+        );
         let weight_accumulated =
             left_observation.weight_accumulated + search_round - left_observation.recording_round;
 
@@ -505,7 +512,7 @@ pub trait SafePriceViewModule:
             second_token_reserve_accumulated,
             weight_accumulated,
             recording_round: search_round,
-            recording_timestamp: interpolated_timestamp,
+            recording_timestamp,
             lp_supply_accumulated,
         }
     }
@@ -533,9 +540,9 @@ pub trait SafePriceViewModule:
 
         if observation_at_index_1.recording_timestamp <= target_timestamp {
             left_index = search_index;
-            right_index = current_index - 1;
+            right_index = current_index;
         } else {
-            left_index = current_index + 1;
+            left_index = current_index;
             right_index = price_observations.len();
         }
 

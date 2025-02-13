@@ -32,6 +32,9 @@ path = "../../energy-integration/fees-collector"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.math]
+path = "../../common/modules/math"
+
 [dependencies.itertools]
 version = "0.10.1"
 default-features = false
