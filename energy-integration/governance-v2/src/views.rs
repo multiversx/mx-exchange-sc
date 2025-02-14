@@ -18,20 +18,20 @@ pub trait ViewsModule:
             return GovernanceProposalStatus::None;
         }
 
-        let current_block = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         let proposal = self.proposals().get(proposal_id);
-        let proposal_block = proposal.proposal_start_block;
+        let proposal_timestamp = proposal.proposal_start_timestamp;
 
-        let voting_delay = proposal.voting_delay_in_blocks;
-        let voting_period = proposal.voting_period_in_blocks;
+        let voting_delay = proposal.voting_delay_in_seconds;
+        let voting_period = proposal.voting_period_in_seconds;
 
-        let voting_start = proposal_block + voting_delay;
+        let voting_start = proposal_timestamp + voting_delay;
         let voting_end = voting_start + voting_period;
 
-        if current_block < voting_start {
+        if current_timestamp < voting_start {
             return GovernanceProposalStatus::Pending;
         }
-        if current_block >= voting_start && current_block < voting_end {
+        if current_timestamp >= voting_start && current_timestamp < voting_end {
             return GovernanceProposalStatus::Active;
         }
 
