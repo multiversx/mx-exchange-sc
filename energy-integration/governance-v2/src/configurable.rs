@@ -2,8 +2,6 @@ multiversx_sc::imports!();
 
 use crate::errors::ERROR_NOT_AN_ESDT;
 
-pub type Timestamp = u64;
-
 /// # MultiversX smart contract module - Governance
 ///
 /// This is a standard smart contract module, that when added to a smart contract offers governance features:
@@ -30,7 +28,6 @@ pub type Timestamp = u64;
 ///
 /// Please note that although the main contract can modify the module's storage directly, it is not recommended to do so,
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
-
 const MIN_VOTING_DELAY: Timestamp = 1;
 const MAX_VOTING_DELAY: Timestamp = 604_800; // 1 Week
 const MIN_VOTING_PERIOD: Timestamp = 86_400; // 24 Hours
@@ -42,6 +39,8 @@ const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
 const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
 pub const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
 pub const FULL_PERCENTAGE: u64 = 10_000;
+
+pub type Timestamp = u64;
 
 #[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule:
