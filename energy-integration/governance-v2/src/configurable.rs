@@ -30,7 +30,6 @@ pub type Timestamp = u64;
 ///
 /// Please note that although the main contract can modify the module's storage directly, it is not recommended to do so,
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
-///
 
 const MIN_VOTING_DELAY: Timestamp = 1;
 const MAX_VOTING_DELAY: Timestamp = 604_800; // 1 Week
