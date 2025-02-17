@@ -20,7 +20,7 @@ permissions:
 jobs:
   contracts:
     name: Contracts
-    uses: multiversx/mx-sc-actions/.github/workflows/contracts.yml@v4.2.1
+    uses: multiversx/mx-sc-actions/.github/workflows/contracts.yml@v4.2.2
     with:
       rust-toolchain: stable
       coverage-args: --ignore-filename-regex='/.cargo/git' --output ./coverage.md
