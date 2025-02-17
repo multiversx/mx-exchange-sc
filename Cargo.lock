@@ -1185,6 +1185,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "mex-governance"
+version = "0.0.0"
+dependencies = [
+ "energy-query",
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "week-timekeeping",
+]
+
+[[package]]
+name = "mex-governance-meta"
+version = "0.0.0"
+dependencies = [
+ "mex-governance",
+ "multiversx-sc-meta-lib",
+]
+
+[[package]]
 name = "multiversx-chain-scenario-format"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
