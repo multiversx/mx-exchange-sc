@@ -61,17 +61,12 @@ pub trait ExternalInteractionsModule:
         let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(user.clone());
         self.send_payment_non_zero(&caller, &new_farm_token);
 
-        let locked_rewards_payment = if boosted_rewards == 0 {
-            let locked_token_id = self.get_locked_token_id();
-            EsdtTokenPayment::new(locked_token_id, 0, boosted_rewards)
-        } else {
-            self.lock_virtual(
-                self.reward_token_id().get(),
-                boosted_rewards,
-                user.clone(),
-                user.clone(),
-            )
-        };
+        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
+            self.reward_token_id().get(),
+            boosted_rewards,
+            user.clone(),
+            user.clone(),
+        );
 
         self.update_energy_and_progress(&user);
 
