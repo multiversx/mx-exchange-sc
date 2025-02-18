@@ -80,11 +80,7 @@ pub trait UserDepositWithdrawModule:
         }
 
         let user_deposit_limit = self.user_deposit_limit(user_id).get();
-        if user_deposit_limit == 0 {
-            OptionalValue::Some(BigUint::zero())
-        } else {
-            OptionalValue::Some(user_deposit_limit)
-        }
+        OptionalValue::Some(user_deposit_limit)
     }
 
     /// Returns the user ID

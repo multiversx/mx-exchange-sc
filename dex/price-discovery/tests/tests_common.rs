@@ -212,4 +212,15 @@ where
             },
         )
     }
+
+    pub fn call_set_user_limit(&mut self, user: &Address, limit: u64) -> TxResult {
+        self.b_mock.execute_tx(
+            &self.owner_address,
+            &self.pd_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_user_limit(managed_address!(user), managed_biguint!(limit));
+            },
+        )
+    }
 }

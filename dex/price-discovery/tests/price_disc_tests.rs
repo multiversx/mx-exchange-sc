@@ -1,7 +1,8 @@
 #![allow(deprecated)]
 
 mod tests_common;
-use multiversx_sc_scenario::rust_biguint;
+use multiversx_sc_scenario::{managed_biguint, rust_biguint};
+use price_discovery::user_actions::user_deposit_withdraw::UserDepositWithdrawModule;
 use tests_common::*;
 
 #[test]
@@ -449,4 +450,38 @@ fn refund_user_test() {
         LAUNCHED_TOKEN_ID,
         &rust_biguint!(0),
     );
+}
+
+#[test]
+fn set_user_limit_test() {
+    let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
+
+    setup.b_mock.set_block_timestamp(START_TIME + 1);
+
+    setup
+        .call_user_deposit(&setup.first_user_address.clone(), 1_000)
+        .assert_ok();
+
+    // set limit ok
+    setup
+        .call_set_user_limit(&setup.first_user_address.clone(), 1_500)
+        .assert_ok();
+
+    // set limit ok
+    setup
+        .call_set_user_limit(&setup.first_user_address.clone(), 1_000)
+        .assert_ok();
+
+    // set limit value too low
+    setup
+        .call_set_user_limit(&setup.first_user_address.clone(), 500)
+        .assert_user_error("May not set user limit below current deposit value");
+
+    // check limit has the correct value
+    setup
+        .b_mock
+        .execute_query(&setup.pd_wrapper, |sc| {
+            assert_eq!(sc.user_deposit_limit(1).get(), managed_biguint!(1_000));
+        })
+        .assert_ok();
 }

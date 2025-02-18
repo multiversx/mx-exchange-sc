@@ -25,6 +25,27 @@ pub trait AdminActionsModule:
         self.min_launched_tokens().set(min_launched_tokens);
     }
 
+    /// Pass `0` for `limit` if there is no limit
+    #[endpoint(setUserLimit)]
+    fn set_user_limit(&self, user: ManagedAddress, limit: BigUint) {
+        self.require_caller_admin();
+
+        let user_id = self.user_id_mapper().get_id_non_zero(&user);
+        let user_current_deposit = self.total_user_deposit(user_id).get();
+        if user_current_deposit == 0 || limit == 0 {
+            self.user_deposit_limit(user_id).set(limit);
+
+            return;
+        }
+
+        require!(
+            user_current_deposit <= limit,
+            "May not set user limit below current deposit value"
+        );
+
+        self.user_deposit_limit(user_id).set(limit);
+    }
+
     /// `whitelist` arguments are pairs of (address, max_total_deposit). Pass `0` for `max_total_deposit` if there is no limit
     #[endpoint(addUsersToWhitelist)]
     fn add_users_to_whitelist(
