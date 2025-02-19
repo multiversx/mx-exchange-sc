@@ -22,14 +22,14 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         vote => vote
         initializeFirstWeek => initialize_first_week
+        whitelistFarms => whitelist_farms
         blacklistFarm => blacklist_farm
-        whitelistFarm => whitelist_farm
         setReferenceEmissionRate => set_reference_emission_rate
+        setIncentiveToken => set_incentive_token
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
         getCurrentWeek => get_current_week
         getFirstWeekStartEpoch => first_week_start_epoch
-        getFarmCurrentWeekEmission => get_farm_current_week_emission
         getAllWeekEmissions => get_all_week_emissions
     )
 }

@@ -46,6 +46,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "config"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "multiversx-sc",
+ "pausable",
+ "permissions_module",
+ "token_send",
+]
+
+[[package]]
+name = "contexts"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "farm_token",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "pausable",
+ "permissions_module",
+ "rewards",
+ "token_merge_helper",
+ "token_send",
+]
+
+[[package]]
+name = "either"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
+
+[[package]]
 name = "endian-type"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -76,6 +111,114 @@ dependencies = [
 ]
 
 [[package]]
+name = "events"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "contexts",
+ "multiversx-sc",
+]
+
+[[package]]
+name = "farm"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "energy-query",
+ "events",
+ "farm-boosted-yields",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "original_owner_helper",
+ "pair",
+ "pausable",
+ "permissions-hub",
+ "permissions_hub_module",
+ "permissions_module",
+ "rewards",
+ "sc_whitelist_module",
+ "token_send",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
+name = "farm-boosted-yields"
+version = "0.0.0"
+dependencies = [
+ "common-types",
+ "config",
+ "energy-query",
+ "multiversx-sc",
+ "pausable",
+ "permissions_module",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
+name = "farm_base_impl"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "events",
+ "farm_token",
+ "fixed-supply-token",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "pausable",
+ "permissions_module",
+ "rewards",
+ "token_merge_helper",
+ "token_send",
+ "utils",
+]
+
+[[package]]
+name = "farm_token"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "pausable",
+ "permissions_module",
+ "token_send",
+]
+
+[[package]]
+name = "fees-collector"
+version = "0.0.0"
+dependencies = [
+ "common-types",
+ "common_errors",
+ "energy-factory",
+ "energy-query",
+ "locking_module",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "sc_whitelist_module",
+ "simple-lock",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
 name = "fixed-supply-token"
 version = "0.0.0"
 dependencies = [
@@ -95,12 +238,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
 
 [[package]]
+name = "itertools"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "legacy_token_decode_module"
 version = "0.0.0"
 dependencies = [
  "common_structs",
  "multiversx-sc",
  "utils",
+]
+
+[[package]]
+name = "locking_module"
+version = "0.0.0"
+dependencies = [
+ "energy-factory",
+ "multiversx-sc",
+ "simple-lock",
 ]
 
 [[package]]
@@ -122,6 +283,7 @@ name = "mex-governance"
 version = "0.0.0"
 dependencies = [
  "energy-query",
+ "farm",
  "multiversx-sc",
  "week-timekeeping",
 ]
@@ -221,6 +383,62 @@ dependencies = [
 ]
 
 [[package]]
+name = "original_owner_helper"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "multiversx-sc",
+]
+
+[[package]]
+name = "pair"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "fees-collector",
+ "itertools",
+ "multiversx-sc",
+ "pausable",
+ "permissions_module",
+ "simple-lock",
+ "token_send",
+ "utils",
+]
+
+[[package]]
+name = "pausable"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "permissions_module",
+]
+
+[[package]]
+name = "permissions-hub"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+]
+
+[[package]]
+name = "permissions_hub_module"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "permissions-hub",
+]
+
+[[package]]
+name = "permissions_module"
+version = "0.0.0"
+dependencies = [
+ "bitflags",
+ "common_errors",
+ "multiversx-sc",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -246,6 +464,21 @@ checksum = "c069c179fcdc6a2fe24d8d18305cf085fdbd4f922c041943e203685d6a1c58fd"
 dependencies = [
  "endian-type",
  "nibble_vec",
+]
+
+[[package]]
+name = "rewards"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "farm_token",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "pausable",
+ "permissions_module",
+ "token_send",
 ]
 
 [[package]]
@@ -283,6 +516,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "token_merge_helper"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "multiversx-sc",
+]
+
+[[package]]
+name = "token_send"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "multiversx-sc",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -317,4 +567,16 @@ version = "0.0.0"
 dependencies = [
  "common-types",
  "multiversx-sc",
+]
+
+[[package]]
+name = "weekly-rewards-splitting"
+version = "0.0.0"
+dependencies = [
+ "common-types",
+ "energy-query",
+ "math",
+ "multiversx-sc",
+ "unwrappable",
+ "week-timekeeping",
 ]

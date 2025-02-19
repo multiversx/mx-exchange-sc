@@ -4,8 +4,8 @@ multiversx_sc::derive_imports!();
 use week_timekeeping::Week;
 
 use crate::{
-    events, EMISSION_RATE_ZERO, FARM_NOT_WHITELISTED, INVALID_FARM_ADDRESS,
-    WEEK_ALREADY_INITIALIZED,
+    events, EMISSION_RATE_ZERO, FARM_NOT_WHITELISTED, INVALID_ESDT_IDENTIFIER,
+    INVALID_FARM_ADDRESS, WEEK_ALREADY_INITIALIZED,
 };
 
 #[derive(
@@ -21,7 +21,7 @@ use crate::{
 )]
 
 pub struct FarmEmission<M: ManagedTypeApi> {
-    pub farm_address: ManagedAddress<M>,
+    pub farm_id: AddressId,
     pub farm_emission: BigUint<M>,
 }
 
@@ -33,7 +33,7 @@ pub trait ConfigModule:
     #[endpoint(initializeFirstWeek)]
     fn initialize_first_week(
         &self,
-        farm_allocations: MultiValueEncoded<MultiValue2<ManagedAddress, BigUint>>,
+        farm_allocations: MultiValueEncoded<MultiValue2<AddressId, BigUint>>,
     ) {
         let current_week = self.get_current_week();
         let emission_rate_for_week_mapper = self.emission_rate_for_week(current_week);
@@ -48,13 +48,12 @@ pub trait ConfigModule:
 
         let mut total_amount = BigUint::zero();
         for allocation in farm_allocations {
-            let (farm_address, amount) = allocation.into_tuple();
+            let (farm_id, amount) = allocation.into_tuple();
 
-            self.farm_votes_for_week(&farm_address, current_week)
-                .set(&amount);
+            self.farm_votes_for_week(farm_id, current_week).set(&amount);
 
-            self.whitelisted_farms().insert(farm_address.clone());
-            self.voted_farms_for_week(current_week).insert(farm_address);
+            self.whitelisted_farms().insert(farm_id);
+            self.voted_farms_for_week(current_week).insert(farm_id);
 
             total_amount += amount;
         }
@@ -63,47 +62,36 @@ pub trait ConfigModule:
     }
 
     #[only_owner]
-    #[endpoint(addFarms)]
-    fn add_farms(&self, farms: MultiValueEncoded<ManagedAddress>) -> MultiValueEncoded<u64> {
+    #[endpoint(whitelistFarms)]
+    fn whitelist_farms(&self, farms: MultiValueEncoded<ManagedAddress>) -> MultiValueEncoded<u64> {
         let farms_mapper = self.farm_ids();
 
         let mut farm_ids = MultiValueEncoded::new();
-        for farm_addr in farms {
-            self.require_sc_address(&farm_addr);
+        for farm_address in farms {
+            require!(
+                self.blockchain().is_smart_contract(&farm_address),
+                INVALID_FARM_ADDRESS
+            );
 
-            let new_id = farms_mapper.insert_new(&farm_addr);
-
+            let new_id = farms_mapper.insert_new(&farm_address);
             farm_ids.push(new_id);
+
+            self.whitelisted_farms().insert(new_id);
         }
 
         farm_ids
     }
 
-    // TODO
-    // Better define the blacklist behavior
     #[only_owner]
     #[endpoint(blacklistFarm)]
-    fn blacklist_farm(&self, farm_address: ManagedAddress) {
+    fn blacklist_farm(&self, farm_id: AddressId) {
         require!(
-            self.whitelisted_farms().contains(&farm_address),
+            self.whitelisted_farms().contains(&farm_id),
             FARM_NOT_WHITELISTED
         );
 
-        self.whitelisted_farms().swap_remove(&farm_address);
-        self.blacklisted_farms().insert(farm_address.clone());
-        // self.farm_blacklisted_event(&farm_address);
-    }
-
-    #[only_owner]
-    #[endpoint(whitelistFarm)]
-    fn whitelist_farm(&self, farm_addresses: MultiValueEncoded<ManagedAddress>) {
-        for farm_address in farm_addresses {
-            require!(
-                self.blockchain().is_smart_contract(&farm_address),
-                INVALID_FARM_ADDRESS
-            );
-            self.whitelisted_farms().insert(farm_address.clone());
-        }
+        self.whitelisted_farms().swap_remove(&farm_id);
+        self.blacklisted_farms().insert(farm_id);
     }
 
     #[only_owner]
@@ -116,30 +104,36 @@ pub trait ConfigModule:
         self.emit_reference_emission_rate_event(old_rate, new_rate);
     }
 
+    #[only_owner]
+    #[endpoint(setIncentiveToken)]
+    fn set_incentive_token(&self, token_id: TokenIdentifier) {
+        require!(token_id.is_valid_esdt_identifier(), INVALID_ESDT_IDENTIFIER);
+        self.incentive_token().set(&token_id);
+    }
+
     // Weekly storages
     #[storage_mapper("emissionRateForWeek")]
     fn emission_rate_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("votedFarmsForWeek")]
-    fn voted_farms_for_week(&self, week: Week) -> UnorderedSetMapper<ManagedAddress>;
+    fn voted_farms_for_week(&self, week: Week) -> UnorderedSetMapper<AddressId>;
 
     #[storage_mapper("farmVotesForPeriod")]
-    fn farm_votes_for_week(
-        &self,
-        farm_address: &ManagedAddress,
-        week: Week,
-    ) -> SingleValueMapper<BigUint>;
+    fn farm_votes_for_week(&self, farm_id: AddressId, week: Week) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("totalEnergyVoted")]
     fn total_energy_voted(&self, week: Week) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("usersVotedInWeek")]
-    fn users_voted_in_week(&self, week: Week) -> WhitelistMapper<ManagedAddress>;
+    fn users_voted_in_week(&self, week: Week) -> WhitelistMapper<AddressId>;
 
     // General storages
 
     #[storage_mapper("farmIds")]
     fn farm_ids(&self) -> AddressToIdMapper<Self::Api>;
+
+    #[storage_mapper("userIds")]
+    fn user_ids(&self) -> AddressToIdMapper<Self::Api>;
 
     #[storage_mapper("votingWeek")]
     fn voting_week(&self) -> SingleValueMapper<Week>;
@@ -148,8 +142,11 @@ pub trait ConfigModule:
     fn reference_emission_rate(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("whitelistedFarms")]
-    fn whitelisted_farms(&self) -> UnorderedSetMapper<ManagedAddress>;
+    fn whitelisted_farms(&self) -> UnorderedSetMapper<AddressId>;
 
     #[storage_mapper("blacklistedFarms")]
-    fn blacklisted_farms(&self) -> UnorderedSetMapper<ManagedAddress>;
+    fn blacklisted_farms(&self) -> UnorderedSetMapper<AddressId>;
+
+    #[storage_mapper("incentiveToken")]
+    fn incentive_token(&self) -> SingleValueMapper<TokenIdentifier>;
 }
