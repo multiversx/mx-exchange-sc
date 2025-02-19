@@ -23,6 +23,11 @@ pub trait OriginalOwnerHelperModule {
             let attributes: T = farm_token_mapper.get_token_attributes(payment.token_nonce);
             let payment_original_owner = attributes.get_original_owner();
 
+            require!(
+                !payment_original_owner.is_zero(),
+                "Cannot claim rewards with legacy positions"
+            );
+
             match opt_original_owner {
                 Some(ref original_owner) => {
                     require!(
