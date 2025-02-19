@@ -151,6 +151,7 @@ pub mod fuzz_data_tests {
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         pub rng: StdRng,
+        #[allow(dead_code)]
         pub owner_address: Address,
         pub fuzz_args: FuzzDexExecutorInitArgs,
         pub statistics: EventsStatistics,
@@ -590,6 +591,7 @@ pub mod fuzz_data_tests {
     {
         pub pd_wrapper:
             ContractObjWrapper<price_discovery::ContractObj<DebugApi>, PriceDiscObjBuilder>,
+        #[allow(dead_code)]
         pub locking_sc_address: Address,
     }
 

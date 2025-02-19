@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
-#![feature(exact_size_is_empty)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -81,7 +80,7 @@ pub trait Farm:
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);

@@ -1,3 +1,3 @@
 fn main() {
-    multiversx_sc_meta::cli_main::<pause_all::AbiProvider>();
+    multiversx_sc_meta_lib::cli_main::<pause_all::AbiProvider>();
 }

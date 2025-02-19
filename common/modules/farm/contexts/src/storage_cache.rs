@@ -3,8 +3,15 @@ multiversx_sc::derive_imports!();
 
 use pausable::State;
 
-pub trait FarmContracTraitBounds =
-    config::ConfigModule + rewards::RewardsModule + farm_token::FarmTokenModule;
+pub trait FarmContracTraitBounds:
+    config::ConfigModule + rewards::RewardsModule + farm_token::FarmTokenModule
+{
+}
+
+impl<T> FarmContracTraitBounds for T where
+    T: config::ConfigModule + rewards::RewardsModule + farm_token::FarmTokenModule
+{
+}
 
 pub struct StorageCache<'a, C: FarmContracTraitBounds> {
     sc_ref: &'a C,
@@ -34,6 +41,7 @@ impl<'a, C: FarmContracTraitBounds> StorageCache<'a, C> {
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'a, C: FarmContracTraitBounds> Drop for StorageCache<'a, C> {
     fn drop(&mut self) {
         // commit changes to storage for the mutable fields

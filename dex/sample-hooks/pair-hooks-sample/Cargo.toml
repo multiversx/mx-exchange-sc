@@ -9,7 +9,7 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.46.1"
+version = "=0.53.2"
 
 [dependencies.pair]
 path = "../../pair"
@@ -18,4 +18,4 @@ path = "../../pair"
 num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.46.1"
+version = "=0.53.2"

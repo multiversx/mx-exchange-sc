@@ -57,6 +57,8 @@ pub trait WrappedTokenModule:
     #[endpoint(unsetTransferRoleWrappedToken)]
     fn unset_transfer_role(&self, address: ManagedAddress) {
         let wrapped_token_id = self.wrapped_token().get_token_id();
+
+        #[allow(deprecated)]
         let system_sc_proxy = ESDTSystemSmartContractProxy::new_proxy_obj();
         system_sc_proxy
             .unset_special_roles(

@@ -97,6 +97,7 @@ where
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'a, C> Drop for StorageCache<'a, C>
 where
     C: crate::config::ConfigModule,

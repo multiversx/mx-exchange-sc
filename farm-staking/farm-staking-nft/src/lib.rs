@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(clippy::from_over_into)]
-#![feature(trait_alias)]
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -101,7 +100,7 @@ pub trait FarmStaking:
         self.banned_addresses().add(&sc_address);
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     #[payable("*")]
