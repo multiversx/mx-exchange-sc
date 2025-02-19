@@ -212,4 +212,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         #[indexed] timestamp: Timestamp,
         redeem_event: RedeemEvent<Self::Api>,
     );
+
+    #[event("setUserLimitEvent")]
+    fn set_user_limit_event(&self, #[indexed] user: &ManagedAddress, limit: &BigUint);
 }

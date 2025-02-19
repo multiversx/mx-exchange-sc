@@ -33,7 +33,7 @@ pub trait AdminActionsModule:
         let user_id = self.user_id_mapper().get_id_non_zero(&user);
         let user_current_deposit = self.total_user_deposit(user_id).get();
         if user_current_deposit == 0 || limit == 0 {
-            self.user_deposit_limit(user_id).set(limit);
+            self.set_user_deposit_limit(&user, user_id, &limit);
 
             return;
         }
@@ -43,7 +43,7 @@ pub trait AdminActionsModule:
             "May not set user limit below current deposit value"
         );
 
-        self.user_deposit_limit(user_id).set(limit);
+        self.set_user_deposit_limit(&user, user_id, &limit);
     }
 
     /// `whitelist` arguments are pairs of (address, max_total_deposit). Pass `0` for `max_total_deposit` if there is no limit
@@ -109,6 +109,16 @@ pub trait AdminActionsModule:
         let caller = self.blockchain().get_caller();
         let admin = self.admin().get();
         require!(caller == admin, "Only admin may call this function");
+    }
+
+    fn set_user_deposit_limit(
+        &self,
+        user_addr: &ManagedAddress,
+        user_id: AddressId,
+        limit: &BigUint,
+    ) {
+        self.user_deposit_limit(user_id).set(limit);
+        self.set_user_limit_event(user_addr, limit);
     }
 
     #[storage_mapper("admin")]
