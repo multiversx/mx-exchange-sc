@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use week_timekeeping::Week;
+
 use crate::{
     events, EMISSION_RATE_ZERO, FARM_NOT_WHITELISTED, INVALID_FARM_ADDRESS,
     WEEK_ALREADY_INITIALIZED,
@@ -60,6 +62,23 @@ pub trait ConfigModule:
         self.total_energy_voted(current_week).set(&total_amount);
     }
 
+    #[only_owner]
+    #[endpoint(addFarms)]
+    fn add_farms(&self, farms: MultiValueEncoded<ManagedAddress>) -> MultiValueEncoded<u64> {
+        let farms_mapper = self.farm_ids();
+
+        let mut farm_ids = MultiValueEncoded::new();
+        for farm_addr in farms {
+            self.require_sc_address(&farm_addr);
+
+            let new_id = farms_mapper.insert_new(&farm_addr);
+
+            farm_ids.push(new_id);
+        }
+
+        farm_ids
+    }
+
     // TODO
     // Better define the blacklist behavior
     #[only_owner]
@@ -99,27 +118,31 @@ pub trait ConfigModule:
 
     // Weekly storages
     #[storage_mapper("emissionRateForWeek")]
-    fn emission_rate_for_week(&self, week: usize) -> SingleValueMapper<BigUint>;
+    fn emission_rate_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("votedFarmsForWeek")]
-    fn voted_farms_for_week(&self, week: usize) -> UnorderedSetMapper<ManagedAddress>;
+    fn voted_farms_for_week(&self, week: Week) -> UnorderedSetMapper<ManagedAddress>;
 
     #[storage_mapper("farmVotesForPeriod")]
     fn farm_votes_for_week(
         &self,
         farm_address: &ManagedAddress,
-        week: usize,
+        week: Week,
     ) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("totalEnergyVoted")]
-    fn total_energy_voted(&self, week: usize) -> SingleValueMapper<BigUint>;
+    fn total_energy_voted(&self, week: Week) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("usersVotedInWeek")]
-    fn users_voted_in_week(&self, week: usize) -> WhitelistMapper<ManagedAddress>;
+    fn users_voted_in_week(&self, week: Week) -> WhitelistMapper<ManagedAddress>;
 
     // General storages
+
+    #[storage_mapper("farmIds")]
+    fn farm_ids(&self) -> AddressToIdMapper<Self::Api>;
+
     #[storage_mapper("votingWeek")]
-    fn voting_week(&self) -> SingleValueMapper<usize>;
+    fn voting_week(&self) -> SingleValueMapper<Week>;
 
     #[storage_mapper("referenceEmissionRate")]
     fn reference_emission_rate(&self) -> SingleValueMapper<BigUint>;

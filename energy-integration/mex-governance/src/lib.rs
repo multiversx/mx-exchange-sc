@@ -86,4 +86,17 @@ pub trait MEXGovernance:
             self.emission_rate_for_week(voting_week).set(emission_rate);
         }
     }
+
+    // TODO - to implement
+    // fn set_farm_emissions(&self) {
+    //     let current_week = self.get_current_week();
+    //     for farm in self.voted_farms_for_week(current_week).iter() {
+    //         self.farm_proxy(farm)
+    //             .set_per_block_rewards_endpoint(BigUint::zero())
+    //             .execute_on_dest_context();
+    //     }
+    // }
+
+    #[proxy]
+    fn farm_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
 }

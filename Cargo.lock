@@ -1189,6 +1189,7 @@ name = "mex-governance"
 version = "0.0.0"
 dependencies = [
  "energy-query",
+ "farm",
  "multiversx-sc",
  "multiversx-sc-scenario",
  "num-bigint",
