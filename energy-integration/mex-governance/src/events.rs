@@ -1,7 +1,7 @@
-use crate::config::FarmEmission;
-
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
+
+use crate::config::FarmVoteView;
 
 #[derive(TypeAbi, TopEncode)]
 pub struct ReferenceEmissionRateEvent<M: ManagedTypeApi> {
@@ -13,12 +13,12 @@ pub struct ReferenceEmissionRateEvent<M: ManagedTypeApi> {
 pub struct VoteEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     voting_week: usize,
-    farm_votes: ManagedVec<M, FarmEmission<M>>,
+    farm_votes: ManagedVec<M, FarmVoteView<M>>,
 }
 
 #[multiversx_sc::module]
 pub trait EventsModule {
-    fn emit_vote_event(&self, voting_week: usize, votes: ManagedVec<FarmEmission<Self::Api>>) {
+    fn emit_vote_event(&self, voting_week: usize, votes: ManagedVec<FarmVoteView<Self::Api>>) {
         let caller = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
         let epoch = self.blockchain().get_block_epoch();

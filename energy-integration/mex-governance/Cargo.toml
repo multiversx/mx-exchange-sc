@@ -17,11 +17,17 @@ num-bigint = "0.4"
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.53.2"
 
-[dependencies.farm]
-path = "../../dex/farm"
-
 [dependencies.week-timekeeping]
 path = "../../energy-integration/common-modules/week-timekeeping"
 
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.farm-with-locked-rewards]
+path = "../../dex/farm-with-locked-rewards"
+
+[dev-dependencies.pair]
+path = "../../dex/pair"
+
+[dev-dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"

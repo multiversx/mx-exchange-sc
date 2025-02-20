@@ -1188,11 +1188,13 @@ dependencies = [
 name = "mex-governance"
 version = "0.0.0"
 dependencies = [
+ "energy-factory",
  "energy-query",
- "farm",
+ "farm-with-locked-rewards",
  "multiversx-sc",
  "multiversx-sc-scenario",
  "num-bigint",
+ "pair",
  "week-timekeeping",
 ]
 
