@@ -25,7 +25,7 @@ pub trait OriginalOwnerHelperModule {
 
             require!(
                 !payment_original_owner.is_zero(),
-                "Cannot claim rewards with legacy positions"
+                "Cannot claim rewards on behalf of legacy positions"
             );
 
             match opt_original_owner {
