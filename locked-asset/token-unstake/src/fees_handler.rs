@@ -72,7 +72,7 @@ pub trait FeesHandlerModule:
     fn set_fees_burn_percentage(&self, fees_burn_percentage: u64) {
         require!(
             fees_burn_percentage <= MAX_PENALTY_PERCENTAGE,
-            "Invalid percentage"
+            "Fees burn percentage exceeds the maximum allowed percentage"
         );
         self.fees_burn_percentage().set(fees_burn_percentage);
     }
