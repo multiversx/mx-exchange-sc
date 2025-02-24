@@ -88,32 +88,16 @@ pub trait FactoryModule: config::ConfigModule {
         new_address
     }
 
-    fn upgrade_pair(
-        &self,
-        pair_address: ManagedAddress,
-        first_token_id: &TokenIdentifier,
-        second_token_id: &TokenIdentifier,
-        owner: &ManagedAddress,
-        _initial_liquidity_adder: &ManagedAddress,
-        total_fee_percent: u64,
-        special_fee_percent: u64,
-    ) {
-        self.pair_contract_deploy_proxy()
-            .contract(pair_address)
-            .init(
-                first_token_id,
-                second_token_id,
-                self.blockchain().get_sc_address(),
-                owner,
-                total_fee_percent,
-                special_fee_percent,
-                ManagedAddress::zero(),
-                MultiValueEncoded::new(),
-            )
-            .upgrade_from_source(
-                &self.pair_template_address().get(),
-                CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC,
-            );
+    fn upgrade_pair(&self, pair_address: ManagedAddress) {
+        let pair_template_address = self.pair_template_address().get();
+        let code_metadata =
+            CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC;
+        self.tx()
+            .to(pair_address)
+            .raw_upgrade()
+            .from_source(pair_template_address)
+            .code_metadata(code_metadata)
+            .upgrade_async_call_and_exit();
     }
 
     #[view(getAllPairsManagedAddresses)]

@@ -64,11 +64,14 @@ where
     SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
+    #[allow(dead_code)]
     pub owner: Address,
     pub first_user: Address,
+    #[allow(dead_code)]
     pub second_user: Address,
     pub proxy_wrapper: ContractObjWrapper<proxy_dex::ContractObj<DebugApi>, ProxyObjBuilder>,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    #[allow(dead_code)]
     pub farm_locked_wrapper:
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmLockedObjBuilder>,
     pub simple_lock_wrapper:

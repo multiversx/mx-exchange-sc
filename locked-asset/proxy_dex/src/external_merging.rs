@@ -38,6 +38,7 @@ fn merge_common<M: CallTypeApi>(
     endpoint_name: &[u8],
     tokens: PaymentsVec<M>,
 ) -> EsdtTokenPayment<M> {
+    #[allow(deprecated)]
     let mut contract_call = ContractCallWithMultiEsdt::<M, EsdtTokenPayment<M>>::new(
         sc_address,
         ManagedBuffer::new_from_bytes(endpoint_name),

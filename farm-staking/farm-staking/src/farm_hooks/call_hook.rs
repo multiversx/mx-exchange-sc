@@ -28,6 +28,7 @@ pub trait CallHookModule {
 
         let mut output_payments = input_payments;
         for hook in &hooks {
+            #[allow(deprecated)]
             let (_, back_transfers) =
                 ContractCallNoPayment::<_, MultiValueEncoded<ManagedBuffer>>::new(
                     hook.dest_address,

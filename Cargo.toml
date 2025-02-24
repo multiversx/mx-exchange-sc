@@ -2,7 +2,6 @@
 resolver = "2"
 
 members = [
-  "dex",
   "dex/farm",
   "dex/farm/meta",
   "dex/farm-with-locked-rewards",

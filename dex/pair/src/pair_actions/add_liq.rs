@@ -90,6 +90,7 @@ pub trait AddLiquidityModule:
         self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
+            &storage_cache.lp_token_supply,
         );
 
         let initial_k = self.calculate_k_constant(

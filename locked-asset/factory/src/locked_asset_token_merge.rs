@@ -27,7 +27,7 @@ pub trait LockedAssetTokenMergeModule:
         let payments_iter = payments_vec.iter();
 
         let (amount, attrs) =
-            self.get_merged_locked_asset_token_amount_and_attributes(payments_iter.clone());
+            self.get_merged_locked_asset_token_amount_and_attributes(&payments_vec);
 
         self.burn_tokens_from_payments(payments_iter);
 
@@ -47,7 +47,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
+        payments: &ManagedVec<EsdtTokenPayment>,
     ) -> (BigUint, LockedAssetTokenAttributesEx<Self::Api>) {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 

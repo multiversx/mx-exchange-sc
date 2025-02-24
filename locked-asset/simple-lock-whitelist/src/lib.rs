@@ -28,7 +28,7 @@ pub trait SimpleLockWhitelist:
         }
     }
 
-    #[endpoint]
+    #[upgrade]
     fn upgrade(&self) {}
 
     /// Sets the transfer role for the given address. Defaults to own address.
