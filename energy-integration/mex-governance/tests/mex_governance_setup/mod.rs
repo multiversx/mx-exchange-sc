@@ -467,4 +467,13 @@ where
             )
             .assert_ok();
     }
+
+    pub fn blacklist_farm(&mut self, farm_address: Address) -> TxResult {
+        self.b_mock
+            .execute_tx(&self.owner, &self.gov_wrapper, &rust_biguint!(0), |sc| {
+                let mut farms = MultiValueEncoded::new();
+                farms.push(managed_address!(&farm_address));
+                sc.blacklist_farm(farms);
+            })
+    }
 }

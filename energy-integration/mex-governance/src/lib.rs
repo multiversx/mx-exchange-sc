@@ -60,12 +60,12 @@ pub trait MEXGovernance:
             let farm_id = self.farm_ids().get_id_non_zero(&farm_address);
 
             require!(
-                self.whitelisted_farms().contains(&farm_id),
-                FARM_NOT_WHITELISTED
-            );
-            require!(
                 !self.blacklisted_farms().contains(&farm_id),
                 FARM_BLACKLISTED
+            );
+            require!(
+                self.whitelisted_farms().contains(&farm_id),
+                FARM_NOT_WHITELISTED
             );
 
             self.farm_votes_for_week(farm_id, voting_week)
