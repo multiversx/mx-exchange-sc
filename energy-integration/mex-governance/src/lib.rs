@@ -196,5 +196,5 @@ pub trait MEXGovernance:
     }
 
     #[proxy]
-    fn farm_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
+    fn farm_proxy(&self, to: ManagedAddress) -> farm_with_locked_rewards::Proxy<Self::Api>;
 }
