@@ -2,7 +2,8 @@
 
 mod mex_governance_setup;
 
-use mex_governance::config::ConfigModule;
+use config::ConfigModule;
+use mex_governance::{config::ConfigModule as _, MEXGovernance};
 use mex_governance_setup::*;
 use multiversx_sc::imports::MultiValue2;
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};
@@ -446,4 +447,178 @@ fn test_blacklist_farm_with_active_votes() {
     gov_setup
         .vote(third_user.clone(), third_user_votes)
         .assert_user_error("Farm is blacklisted");
+}
+
+#[test]
+fn test_set_farm_emissions() {
+    // Setup
+    let mut gov_setup = GovSetup::new(
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        mex_governance::contract_obj,
+    );
+
+    let first_user = gov_setup.first_user.clone();
+    let second_user = gov_setup.second_user.clone();
+    let farm_wm = gov_setup.farm_wm_wrapper.address_ref().clone();
+    let farm_wu = gov_setup.farm_wu_wrapper.address_ref().clone();
+    let farm_wh = gov_setup.farm_wh_wrapper.address_ref().clone();
+
+    // Set up energy for users
+    gov_setup.set_user_energy(first_user.clone(), 6_000, 1, 6_000);
+    gov_setup.set_user_energy(second_user.clone(), 4_000, 1, 4_000);
+
+    // Users vote with different distributions to test proportional allocation
+    // First user: 6000 total energy - 3000 to WM, 2000 to WU, 1000 to WH
+    let first_user_votes = vec![
+        MultiValue2::from((farm_wm.clone(), 3_000u64)),
+        MultiValue2::from((farm_wu.clone(), 2_000u64)),
+        MultiValue2::from((farm_wh.clone(), 1_000u64)),
+    ];
+
+    // Second user: 4000 total energy - 1000 to WM, 1000 to WU, 2000 to WH
+    let second_user_votes = vec![
+        MultiValue2::from((farm_wm.clone(), 1_000u64)),
+        MultiValue2::from((farm_wu.clone(), 1_000u64)),
+        MultiValue2::from((farm_wh.clone(), 2_000u64)),
+    ];
+
+    // Submit votes
+    gov_setup
+        .vote(first_user.clone(), first_user_votes.clone())
+        .assert_ok();
+    gov_setup
+        .vote(second_user.clone(), second_user_votes.clone())
+        .assert_ok();
+
+    // Advance to next week (votes were for week 2)
+    gov_setup.b_mock.set_block_epoch(10);
+    gov_setup.b_mock.set_block_nonce(100);
+
+    // Now we need to call set_farm_emissions - we'll add this method to our setup
+    gov_setup
+        .b_mock
+        .execute_tx(
+            &gov_setup.owner,
+            &gov_setup.gov_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_farm_emissions();
+            },
+        )
+        .assert_ok();
+
+    // Verify each farm has correct per_block_rewards set
+    // Total energy voted: 10,000
+    // Farm WM: 4,000 votes (40% of total)
+    // Farm WU: 3,000 votes (30% of total)
+    // Farm WH: 3,000 votes (30% of total)
+
+    // With DEFAULT_EMISSION_RATE = 10,000
+    // Expected rewards:
+    // Farm WM: 10,000 * 0.4 = 4,000
+    // Farm WU: 10,000 * 0.3 = 3,000
+    // Farm WH: 10,000 * 0.3 = 3,000
+
+    // Check farm WM rewards
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.farm_wm_wrapper, |sc| {
+            let per_block_rewards = sc.per_block_reward_amount().get();
+            assert_eq!(per_block_rewards, managed_biguint!(4_000));
+        })
+        .assert_ok();
+
+    // Check farm WU rewards
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.farm_wu_wrapper, |sc| {
+            let per_block_rewards = sc.per_block_reward_amount().get();
+            assert_eq!(per_block_rewards, managed_biguint!(3_000));
+        })
+        .assert_ok();
+
+    // Check farm WH rewards
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.farm_wh_wrapper, |sc| {
+            let per_block_rewards = sc.per_block_reward_amount().get();
+            assert_eq!(per_block_rewards, managed_biguint!(3_000));
+        })
+        .assert_ok();
+
+    // Now let's test with a changed emission rate
+    // Update emission rate for next week
+    gov_setup
+        .b_mock
+        .execute_tx(
+            &gov_setup.owner,
+            &gov_setup.gov_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_reference_emission_rate(managed_biguint!(20_000));
+            },
+        )
+        .assert_ok();
+
+    // Users vote again with the same distribution
+    gov_setup.set_user_energy(first_user.clone(), 6_000, 11, 6_000);
+    gov_setup.set_user_energy(second_user.clone(), 4_000, 11, 4_000);
+
+    gov_setup
+        .vote(first_user.clone(), first_user_votes)
+        .assert_ok();
+    gov_setup
+        .vote(second_user.clone(), second_user_votes)
+        .assert_ok();
+
+    // Advance to yet another week
+    gov_setup.b_mock.set_block_epoch(20);
+    gov_setup.b_mock.set_block_nonce(200);
+
+    // Call set_farm_emissions again
+    gov_setup
+        .b_mock
+        .execute_tx(
+            &gov_setup.owner,
+            &gov_setup.gov_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_farm_emissions();
+            },
+        )
+        .assert_ok();
+
+    // With new emission rate of 20,000, expect doubled rewards
+    // Farm WM: 20,000 * 0.4 = 8,000
+    // Farm WU: 20,000 * 0.3 = 6,000
+    // Farm WH: 20,000 * 0.3 = 6,000
+
+    // Check farm WM rewards with new rate
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.farm_wm_wrapper, |sc| {
+            let per_block_rewards = sc.per_block_reward_amount().get();
+            assert_eq!(per_block_rewards, managed_biguint!(8_000));
+        })
+        .assert_ok();
+
+    // Check farm WU rewards with new rate
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.farm_wu_wrapper, |sc| {
+            let per_block_rewards = sc.per_block_reward_amount().get();
+            assert_eq!(per_block_rewards, managed_biguint!(6_000));
+        })
+        .assert_ok();
+
+    // Check farm WH rewards with new rate
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.farm_wh_wrapper, |sc| {
+            let per_block_rewards = sc.per_block_reward_amount().get();
+            assert_eq!(per_block_rewards, managed_biguint!(6_000));
+        })
+        .assert_ok();
 }

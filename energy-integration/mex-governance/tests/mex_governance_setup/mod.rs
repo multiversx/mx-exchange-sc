@@ -22,6 +22,7 @@ use multiversx_sc_scenario::{
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use pair::{config::ConfigModule as _, Pair};
 use pausable::{PausableModule, State};
+use permissions_module::PermissionsModule as _;
 use simple_lock::locked_token::LockedTokenModule;
 
 pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
@@ -221,6 +222,11 @@ where
             .assert_ok();
 
         // Init farm with locked rewards
+
+        // Declare the governance SC
+        let gov_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner), gov_builder, "gov path");
+
         // WEGLD-MEX farm
         let farm_wm_wrapper = b_mock.create_sc_account(
             &rust_zero,
@@ -265,6 +271,8 @@ where
                 sc.set_lock_epochs(EPOCHS_IN_YEAR);
                 sc.energy_factory_address()
                     .set(managed_address!(energy_factory_wrapper.address_ref()));
+
+                sc.add_admin_endpoint(managed_address!(gov_wrapper.address_ref()));
             })
             .assert_ok();
 
@@ -312,6 +320,8 @@ where
                 sc.set_lock_epochs(EPOCHS_IN_YEAR);
                 sc.energy_factory_address()
                     .set(managed_address!(energy_factory_wrapper.address_ref()));
+
+                sc.add_admin_endpoint(managed_address!(gov_wrapper.address_ref()));
             })
             .assert_ok();
 
@@ -359,13 +369,12 @@ where
                 sc.set_lock_epochs(EPOCHS_IN_YEAR);
                 sc.energy_factory_address()
                     .set(managed_address!(energy_factory_wrapper.address_ref()));
+
+                sc.add_admin_endpoint(managed_address!(gov_wrapper.address_ref()));
             })
             .assert_ok();
 
         // init governance sc
-        let gov_wrapper =
-            b_mock.create_sc_account(&rust_zero, Some(&owner), gov_builder, "gov path");
-
         b_mock
             .execute_tx(&owner, &gov_wrapper, &rust_zero, |sc| {
                 sc.init(

@@ -44,6 +44,9 @@ path = "../../common/modules/locking_module"
 [dev-dependencies.pausable]
 path = "../../common/modules/pausable"
 
+[dev-dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
+
 [dev-dependencies.config]
 path = "../../common/modules/farm/config"
 

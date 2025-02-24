@@ -133,6 +133,7 @@ pub trait MEXGovernance:
         }
     }
 
+    #[endpoint(claimIncentive)]
     fn claim_incentive(&self, week: Week) {
         let current_week = self.get_current_week();
         require!(week <= current_week, INVALID_INCENTIVE_WEEK);
@@ -175,6 +176,7 @@ pub trait MEXGovernance:
         }
     }
 
+    #[endpoint(setFarmEmissions)]
     fn set_farm_emissions(&self) {
         let current_week = self.get_current_week();
         let emission_rate = self.emission_rate_for_week(current_week).get();
