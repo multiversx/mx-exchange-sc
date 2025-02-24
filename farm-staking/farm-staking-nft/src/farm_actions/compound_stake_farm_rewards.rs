@@ -7,7 +7,7 @@ use contexts::{
 
 use crate::{
     common::result_types::CompoundRewardsResultType,
-    common::token_attributes::StakingFarmNftTokenAttributes, farm_hooks::hook_type::FarmHookType,
+    common::token_attributes::StakingFarmNftTokenAttributes,
 };
 
 multiversx_sc::imports!();
@@ -46,9 +46,6 @@ pub trait CompoundStakeFarmRewardsModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
-    + banned_addresses::BannedAddressModule
-    + crate::farm_hooks::change_hooks::ChangeHooksModule
-    + crate::farm_hooks::call_hook::CallHookModule
     + crate::common::token_info::TokenInfoModule
     + crate::common::custom_events::CustomEventsModule
 {
@@ -57,14 +54,8 @@ pub trait CompoundStakeFarmRewardsModule:
     fn compound_rewards(&self) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payments = self.get_non_empty_payments();
-        let payments_after_hook = self.call_hook(
-            FarmHookType::BeforeCompoundRewards,
-            caller.clone(),
-            payments,
-            ManagedVec::new(),
-        );
 
-        let mut compound_result = self.compound_rewards_base(caller.clone(), payments_after_hook);
+        let mut compound_result = self.compound_rewards_base(caller.clone(), payments);
 
         let new_farm_token = compound_result.new_farm_token.payment.clone();
         self.total_supply(new_farm_token.token_nonce)
@@ -78,16 +69,6 @@ pub trait CompoundStakeFarmRewardsModule:
                 .farming_token_parts,
         );
 
-        let mut args = ManagedVec::new();
-        self.encode_arg_to_vec(&compound_result.compounded_rewards, &mut args);
-
-        let output_payments = self.call_hook(
-            FarmHookType::AfterCompoundRewards,
-            caller.clone(),
-            ManagedVec::from_single_item(new_farm_token),
-            args,
-        );
-        let new_farm_token = output_payments.get(0);
         self.send_payment_non_zero(&caller, &new_farm_token);
 
         compound_result.new_farm_token.payment = new_farm_token.clone();

@@ -16,7 +16,6 @@ use crate::custom_rewards::MAX_MIN_UNBOND_EPOCHS;
 pub mod base_impl_wrapper;
 pub mod custom_rewards;
 pub mod farm_actions;
-pub mod farm_hooks;
 pub mod farm_token_roles;
 pub mod token_attributes;
 
@@ -55,9 +54,6 @@ pub trait FarmStaking:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
-    + banned_addresses::BannedAddressModule
-    + farm_hooks::change_hooks::ChangeHooksModule
-    + farm_hooks::call_hook::CallHookModule
 {
     #[init]
     fn init(

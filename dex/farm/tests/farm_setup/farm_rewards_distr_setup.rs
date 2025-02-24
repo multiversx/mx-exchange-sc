@@ -98,7 +98,7 @@ where
                 sc.farm_token().set_token_id(farm_token_id);
 
                 sc.per_block_reward_amount()
-                    .set(&to_managed_biguint(per_block_reward_amount));
+                    .set(to_managed_biguint(per_block_reward_amount));
                 sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
                 sc.penalty_percent().set(PENALTY_PERCENT);
 

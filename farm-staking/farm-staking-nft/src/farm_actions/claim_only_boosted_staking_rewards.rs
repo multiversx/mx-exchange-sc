@@ -1,3 +1,5 @@
+use contexts::storage_cache::StorageCache;
+
 multiversx_sc::imports!();
 
 #[multiversx_sc::module]
@@ -14,6 +16,7 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+    + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + energy_query::EnergyQueryModule
     + token_send::TokenSendModule
     + utils::UtilsModule
@@ -28,13 +31,21 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
             OptionalValue::Some(user) => user,
             OptionalValue::None => &caller,
         };
-        let user_total_farm_position = self.get_user_total_farm_position(user);
         if user != &caller {
             require!(
-                user_total_farm_position.allow_external_claim_boosted_rewards,
+                self.allow_external_claim(user).get(),
                 "Cannot claim rewards for this address"
             );
         }
+
+        require!(
+            !self.user_total_farm_position(user).is_empty(),
+            "User total farm position is empty!"
+        );
+
+        let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+        self.generate_aggregated_rewards(&mut storage_cache);
 
         let boosted_rewards = self.claim_only_boosted_payment(user);
         let reward_nonce = self.reward_nonce().get();

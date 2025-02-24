@@ -1,8 +1,7 @@
 use crate::{
-    contexts::remove_liquidity::RemoveLiquidityContext, pair_hooks::hook_type::PairHookType,
-    StorageCache, SwapTokensOrder, ERROR_BAD_PAYMENT_TOKENS, ERROR_INVALID_ARGS,
-    ERROR_K_INVARIANT_FAILED, ERROR_LP_TOKEN_NOT_ISSUED, ERROR_NOT_ACTIVE, ERROR_NOT_WHITELISTED,
-    ERROR_SLIPPAGE_ON_REMOVE,
+    contexts::remove_liquidity::RemoveLiquidityContext, StorageCache, SwapTokensOrder,
+    ERROR_BAD_PAYMENT_TOKENS, ERROR_INVALID_ARGS, ERROR_K_INVARIANT_FAILED,
+    ERROR_LP_TOKEN_NOT_ISSUED, ERROR_NOT_ACTIVE, ERROR_NOT_WHITELISTED, ERROR_SLIPPAGE_ON_REMOVE,
 };
 
 use super::common_result_types::RemoveLiquidityResultType;
@@ -23,9 +22,6 @@ pub trait RemoveLiquidityModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
     + super::common_methods::CommonMethodsModule
-    + crate::pair_hooks::change_hooks::ChangeHooksModule
-    + crate::pair_hooks::call_hook::CallHookModule
-    + banned_addresses::BannedAddressModule
     + utils::UtilsModule
 {
     #[payable("*")]
@@ -68,18 +64,6 @@ pub trait RemoveLiquidityModule:
             &storage_cache.second_token_reserve,
         );
 
-        let mut args = ManagedVec::new();
-        self.encode_arg_to_vec(&first_token_amount_min, &mut args);
-        self.encode_arg_to_vec(&second_token_amount_min, &mut args);
-
-        let payments_after_hook = self.call_hook(
-            PairHookType::BeforeRemoveLiq,
-            caller.clone(),
-            ManagedVec::from_single_item(payment),
-            ManagedVec::new(),
-        );
-        let payment = payments_after_hook.get(0);
-
         let mut remove_liq_context = RemoveLiquidityContext::new(
             payment.amount,
             first_token_amount_min,
@@ -100,15 +84,8 @@ pub trait RemoveLiquidityModule:
 
         let output_payments =
             self.build_remove_liq_output_payments(&storage_cache, &remove_liq_context);
-        let output_payments_after_hook = self.call_hook(
-            PairHookType::AfterRemoveLiq,
-            caller.clone(),
-            output_payments,
-            args,
-        );
-
-        let first_payment_after = output_payments_after_hook.get(0);
-        let second_payment_after = output_payments_after_hook.get(1);
+        let first_payment_after = output_payments.get(0);
+        let second_payment_after = output_payments.get(1);
         require!(
             first_payment_after.amount >= remove_liq_context.first_token_amount_min,
             ERROR_SLIPPAGE_ON_REMOVE
@@ -118,11 +95,11 @@ pub trait RemoveLiquidityModule:
             ERROR_SLIPPAGE_ON_REMOVE
         );
 
-        self.send_multiple_tokens_if_not_zero(&caller, &output_payments_after_hook);
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
         self.emit_remove_liquidity_event(&storage_cache, remove_liq_context);
 
-        self.build_remove_liq_results(output_payments_after_hook)
+        self.build_remove_liq_results(output_payments)
     }
 
     #[payable("*")]

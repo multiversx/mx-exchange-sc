@@ -50,9 +50,6 @@ path = "../../common/modules/pausable"
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
 
-[dependencies.banned_addresses]
-path = "../../common/modules/banned_addresses"
-
 [dependencies.math]
 path = "../../common/modules/math"
 

@@ -7,7 +7,6 @@ use farm_base_impl::enter_farm::InternalEnterFarmResult;
 use crate::{
     common::result_types::EnterFarmResultType,
     common::token_attributes::PartialStakingFarmNftTokenAttributes,
-    farm_hooks::hook_type::FarmHookType,
 };
 
 #[multiversx_sc::module]
@@ -33,9 +32,6 @@ pub trait StakeFarmModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
-    + banned_addresses::BannedAddressModule
-    + crate::farm_hooks::change_hooks::ChangeHooksModule
-    + crate::farm_hooks::call_hook::CallHookModule
     + crate::common::token_info::TokenInfoModule
     + crate::common::custom_events::CustomEventsModule
 {
@@ -44,12 +40,6 @@ pub trait StakeFarmModule:
     fn stake_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payments = self.get_non_empty_payments();
-        let payments_after_hook = self.call_hook(
-            FarmHookType::BeforeStake,
-            caller.clone(),
-            payments,
-            ManagedVec::new(),
-        );
 
         let boosted_rewards = self.claim_only_boosted_payment(&caller);
         let reward_nonce = self.reward_nonce().get();
@@ -62,7 +52,7 @@ pub trait StakeFarmModule:
         let mut total_farming_token = BigUint::zero();
         let mut all_farming_tokens = PaymentsVec::new();
         let mut other_farm_tokens = PaymentsVec::new();
-        for payment in &payments_after_hook {
+        for payment in &payments {
             if payment.token_identifier == farm_token_id {
                 other_farm_tokens.push(payment);
             } else if payment.token_identifier == farming_token_id {
@@ -96,20 +86,6 @@ pub trait StakeFarmModule:
             .set(&new_farm_token.amount);
         self.remaining_parts(new_farm_token.token_nonce)
             .set(&attr_full.farming_token_parts);
-
-        let mut output_payments = ManagedVec::new();
-        output_payments.push(new_farm_token);
-        self.push_if_non_zero_payment(&mut output_payments, boosted_rewards_payment.clone());
-
-        let mut output_payments_after_hook = self.call_hook(
-            FarmHookType::AfterStake,
-            caller.clone(),
-            output_payments,
-            ManagedVec::new(),
-        );
-        let new_farm_token = self.pop_first_payment(&mut output_payments_after_hook);
-        let boosted_rewards_payment =
-            self.pop_or_return_payment(&mut output_payments_after_hook, boosted_rewards_payment);
 
         self.send_payment_non_zero(&caller, &new_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards_payment);

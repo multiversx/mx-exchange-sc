@@ -180,7 +180,7 @@ fn test_propose_bad_token() {
                 });
             },
         )
-        .assert_user_error(&String::from_utf8(UNREGISTERED_TOKEN_ID.to_vec()).unwrap());
+        .assert_user_error(core::str::from_utf8(UNREGISTERED_TOKEN_ID).unwrap());
 }
 
 #[test]
@@ -202,7 +202,7 @@ fn test_propose_bad_amount() {
                 });
             },
         )
-        .assert_user_error(&String::from_utf8(NOT_ENOUGH_FUNDS_TO_PROPOSE.to_vec()).unwrap());
+        .assert_user_error(core::str::from_utf8(NOT_ENOUGH_FUNDS_TO_PROPOSE).unwrap());
 }
 
 #[test]
@@ -420,7 +420,7 @@ fn test_basic_reclaim() {
                 sc.redeem();
             },
         )
-        .assert_user_error(&String::from_utf8(VOTING_PERIOD_NOT_ENDED.to_vec()).unwrap());
+        .assert_user_error(core::str::from_utf8(VOTING_PERIOD_NOT_ENDED).unwrap());
 
     gov_setup
         .blockchain_wrapper
@@ -497,7 +497,7 @@ fn test_vote() {
                 sc.upvote(0);
             },
         )
-        .assert_user_error(&String::from_utf8(PROPOSAL_NOT_ACTIVE.to_vec()).unwrap());
+        .assert_user_error(core::str::from_utf8(PROPOSAL_NOT_ACTIVE).unwrap());
 
     gov_setup
         .blockchain_wrapper
@@ -567,7 +567,7 @@ fn test_vote() {
                 sc.redeem();
             },
         )
-        .assert_user_error(&String::from_utf8(VOTING_PERIOD_NOT_ENDED.to_vec()).unwrap());
+        .assert_user_error(core::str::from_utf8(VOTING_PERIOD_NOT_ENDED).unwrap());
 
     gov_setup
         .blockchain_wrapper

@@ -236,7 +236,7 @@ fn farm_staking_claim_boosted_rewards_for_user_test() {
         rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_boosted_reward_token_out);
 
     // Random_user claim boosted rewards for user
-    fs_setup.allow_external_claim_rewards(&fs_setup.user_address.clone());
+    fs_setup.allow_external_claim_rewards(&fs_setup.user_address.clone(), true);
     fs_setup.claim_boosted_rewards_for_user(
         &fs_setup.user_address.clone(),
         &rand_user,

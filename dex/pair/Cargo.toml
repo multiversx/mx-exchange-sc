@@ -32,9 +32,6 @@ path = "../../energy-integration/fees-collector"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
-[dependencies.banned_addresses]
-path = "../../common/modules/banned_addresses"
-
 [dependencies.itertools]
 version = "0.10.1"
 default-features = false

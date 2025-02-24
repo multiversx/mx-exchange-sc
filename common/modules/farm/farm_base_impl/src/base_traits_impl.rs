@@ -224,15 +224,14 @@ pub trait FarmContract {
         }
     }
 
+    #[inline]
     fn increase_user_farm_position(
         sc: &Self::FarmSc,
         user: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         increase_farm_position_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) {
-        let mut user_total_farm_position = sc.get_user_total_farm_position(user);
-        user_total_farm_position.total_farm_position += increase_farm_position_amount;
         sc.user_total_farm_position(user)
-            .set(user_total_farm_position);
+            .update(|total_farm_position| *total_farm_position += increase_farm_position_amount);
     }
 
     fn decrease_user_farm_position(
@@ -247,14 +246,16 @@ pub trait FarmContract {
         let token_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             farm_token_mapper.get_token_attributes(farm_position.token_nonce);
 
-        sc.user_total_farm_position(&token_attributes.original_owner)
-            .update(|user_total_farm_position| {
-                if user_total_farm_position.total_farm_position > farm_position.amount {
-                    user_total_farm_position.total_farm_position -= &farm_position.amount;
-                } else {
-                    user_total_farm_position.total_farm_position = BigUint::zero();
-                }
-            });
+        let user_total_farm_position_mapper =
+            sc.user_total_farm_position(&token_attributes.original_owner);
+        let mut user_total_farm_position = user_total_farm_position_mapper.get();
+
+        if user_total_farm_position > farm_position.amount {
+            user_total_farm_position -= &farm_position.amount;
+            user_total_farm_position_mapper.set(user_total_farm_position);
+        } else {
+            user_total_farm_position_mapper.clear();
+        }
     }
 }
 

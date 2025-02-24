@@ -77,9 +77,6 @@ path = "../../common/common_structs"
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
-[dependencies.banned_addresses]
-path = "../../common/modules/banned_addresses"
-
 [dependencies.multiversx-sc]
 version = "=0.53.2"
 features = ["esdt-token-payment-legacy-decode"]

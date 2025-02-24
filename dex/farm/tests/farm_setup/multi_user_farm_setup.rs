@@ -2,7 +2,7 @@
 #![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
-use config::{ConfigModule, UserTotalFarmPosition};
+use config::ConfigModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
@@ -199,7 +199,7 @@ where
                 &self.energy_factory_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                    sc.user_energy(&managed_address!(user)).set(Energy::new(
                         BigInt::from(managed_biguint!(energy)),
                         last_update_epoch,
                         managed_biguint!(locked_tokens),
@@ -566,12 +566,8 @@ where
     pub fn allow_external_claim_rewards(&mut self, user: &Address, allow_external_claim: bool) {
         self.b_mock
             .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.user_total_farm_position(&managed_address!(user)).update(
-                    |user_total_farm_position| {
-                        user_total_farm_position.allow_external_claim_boosted_rewards =
-                            allow_external_claim;
-                    },
-                );
+                sc.allow_external_claim(&managed_address!(user))
+                    .set(allow_external_claim);
             })
             .assert_ok();
     }
@@ -667,12 +663,8 @@ where
     pub fn set_user_total_farm_position(&mut self, user_addr: &Address, new_farm_position: u64) {
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                let user_farm_position = UserTotalFarmPosition {
-                    total_farm_position: managed_biguint!(new_farm_position),
-                    ..Default::default()
-                };
                 sc.user_total_farm_position(&managed_address!(user_addr))
-                    .set(user_farm_position);
+                    .set(managed_biguint!(new_farm_position));
             })
             .assert_ok();
     }
@@ -685,7 +677,7 @@ where
                 if expected_amount > 0 && !user_total_farm_position_mapper.is_empty() {
                     assert_eq!(
                         managed_biguint!(expected_amount),
-                        user_total_farm_position_mapper.get().total_farm_position
+                        user_total_farm_position_mapper.get()
                     );
                 }
             })
