@@ -252,7 +252,7 @@ where
                 &self.energy_factory_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                    sc.user_energy(&managed_address!(user)).set(Energy::new(
                         BigInt::from(managed_biguint!(energy_amount)),
                         current_epoch,
                         managed_biguint!(total_locked_tokens),
