@@ -9,7 +9,6 @@ use contexts::{
 use crate::{
     common::result_types::UnstakeRewardsResultType,
     common::token_attributes::{StakingFarmNftTokenAttributes, UnbondSftAttributes},
-    farm_hooks::hook_type::FarmHookType,
 };
 
 const NFT_AMOUNT: u32 = 1;
@@ -47,9 +46,6 @@ pub trait UnstakeFarmModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
-    + banned_addresses::BannedAddressModule
-    + crate::farm_hooks::change_hooks::ChangeHooksModule
-    + crate::farm_hooks::call_hook::CallHookModule
     + crate::common::token_info::TokenInfoModule
     + crate::common::unbond_token::UnbondTokenModule
     + crate::common::custom_events::CustomEventsModule
@@ -60,33 +56,11 @@ pub trait UnstakeFarmModule:
         let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
 
-        let payments_after_hook = self.call_hook(
-            FarmHookType::BeforeUnstake,
-            caller.clone(),
-            ManagedVec::from_single_item(payment),
-            ManagedVec::new(),
-        );
-        let payment = payments_after_hook.get(0);
-
         let mut exit_result = self.exit_farm_base(caller.clone(), payment);
         let reward_nonce = self.reward_nonce().get();
         exit_result.reward_payment.token_nonce = reward_nonce;
 
         let unbond_farm_token = self.create_unbond_tokens(exit_result.token_parts);
-
-        let mut output_payments = ManagedVec::new();
-        output_payments.push(unbond_farm_token);
-        self.push_if_non_zero_payment(&mut output_payments, exit_result.reward_payment.clone());
-
-        let mut output_payments_after_hook = self.call_hook(
-            FarmHookType::AfterUnstake,
-            caller.clone(),
-            output_payments,
-            ManagedVec::new(),
-        );
-        let unbond_farm_token = self.pop_first_payment(&mut output_payments_after_hook);
-        exit_result.reward_payment =
-            self.pop_or_return_payment(&mut output_payments_after_hook, exit_result.reward_payment);
 
         let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &unbond_farm_token);

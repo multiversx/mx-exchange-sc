@@ -14,7 +14,6 @@ use crate::rewards_setters::MAX_MIN_UNBOND_EPOCHS;
 pub mod common;
 pub mod custom_rewards;
 pub mod farm_actions;
-pub mod farm_hooks;
 pub mod rewards_setters;
 
 #[multiversx_sc::contract]
@@ -50,9 +49,6 @@ pub trait FarmStaking:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
-    + banned_addresses::BannedAddressModule
-    + farm_hooks::change_hooks::ChangeHooksModule
-    + farm_hooks::call_hook::CallHookModule
     + common::token_info::TokenInfoModule
     + common::unbond_token::UnbondTokenModule
     + rewards_setters::RewardsSettersModule
@@ -95,9 +91,6 @@ pub trait FarmStaking:
         );
         self.min_unbond_epochs().set(min_unbond_epochs);
         self.reward_nonce().set(reward_nonce);
-
-        let sc_address = self.blockchain().get_sc_address();
-        self.banned_addresses().add(&sc_address);
     }
 
     #[upgrade]

@@ -64,8 +64,7 @@ pub trait CustomRewardsModule:
             return BigUint::zero();
         }
 
-        let user_total_farm_position = self.get_user_total_farm_position(caller);
-        let user_farm_position = user_total_farm_position.total_farm_position;
+        let user_farm_position = self.user_total_farm_position(caller).get();
         if user_farm_position == 0 {
             return BigUint::zero();
         }
@@ -220,10 +219,8 @@ pub trait CustomRewardsModule:
         user: &ManagedAddress,
         increase_farm_position_amount: &BigUint,
     ) {
-        let mut user_total_farm_position = self.get_user_total_farm_position(user);
-        user_total_farm_position.total_farm_position += increase_farm_position_amount;
         self.user_total_farm_position(user)
-            .set(user_total_farm_position);
+            .update(|total_farm_position| *total_farm_position += increase_farm_position_amount);
     }
 
     fn decrease_user_farm_position(&self, farm_position: &EsdtTokenPayment) {
@@ -233,10 +230,10 @@ pub trait CustomRewardsModule:
 
         self.user_total_farm_position(&token_attributes.original_owner)
             .update(|user_total_farm_position| {
-                if user_total_farm_position.total_farm_position > farm_position.amount {
-                    user_total_farm_position.total_farm_position -= &farm_position.amount;
+                if *user_total_farm_position > farm_position.amount {
+                    *user_total_farm_position -= &farm_position.amount;
                 } else {
-                    user_total_farm_position.total_farm_position = BigUint::zero();
+                    *user_total_farm_position = BigUint::zero();
                 }
             });
     }

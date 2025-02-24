@@ -2,10 +2,7 @@ multiversx_sc::imports!();
 
 use contexts::storage_cache::StorageCache;
 
-use crate::{
-    common::{result_types::UnbondResultType, token_attributes::UnbondSftAttributes},
-    farm_hooks::hook_type::FarmHookType,
-};
+use crate::common::{result_types::UnbondResultType, token_attributes::UnbondSftAttributes};
 
 #[multiversx_sc::module]
 pub trait UnbondFarmModule:
@@ -28,9 +25,6 @@ pub trait UnbondFarmModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
-    + banned_addresses::BannedAddressModule
-    + crate::farm_hooks::change_hooks::ChangeHooksModule
-    + crate::farm_hooks::call_hook::CallHookModule
     + crate::common::unbond_token::UnbondTokenModule
 {
     #[payable("*")]
@@ -44,14 +38,6 @@ pub trait UnbondFarmModule:
         unbond_token_mapper.require_same_token(&payment.token_identifier);
 
         let caller = self.blockchain().get_caller();
-        let payments_after_hook = self.call_hook(
-            FarmHookType::BeforeUnbond,
-            caller.clone(),
-            ManagedVec::from_single_item(payment),
-            ManagedVec::new(),
-        );
-        let payment = payments_after_hook.get(0);
-
         let attributes: UnbondSftAttributes<Self::Api> =
             unbond_token_mapper.get_token_attributes(payment.token_nonce);
 
@@ -64,17 +50,8 @@ pub trait UnbondFarmModule:
         unbond_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         let farming_tokens = attributes.farming_token_parts;
-        let output_payments_after_hook = self.call_hook(
-            FarmHookType::AfterUnbond,
-            caller.clone(),
-            farming_tokens,
-            ManagedVec::new(),
-        );
+        self.send_multiple_tokens_if_not_zero(&caller, &farming_tokens);
 
-        self.send_multiple_tokens_if_not_zero(&caller, &output_payments_after_hook);
-
-        UnbondResultType {
-            farming_tokens: output_payments_after_hook,
-        }
+        UnbondResultType { farming_tokens }
     }
 }

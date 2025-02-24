@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           72
+// Endpoints:                           67
 // Async Callback:                       1
-// Total number of exported functions:  75
+// Total number of exported functions:  70
 
 #![no_std]
 
@@ -30,14 +30,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         getRewardNonce => reward_nonce
         getRewardPerShare => reward_per_share
         getRewardReserve => reward_reserve
-        allowExternalClaimBoostedRewards => allow_external_claim_boosted_rewards
-        getAllowExternalClaimRewards => get_allow_external_claim_rewards
         getFarmingTokenId => farming_token_id
         getRewardTokenId => reward_token_id
         getPerBlockRewardAmount => per_block_reward_amount
         getLastRewardBlockNonce => last_reward_block_nonce
         getDivisionSafetyConstant => division_safety_constant
         getUserTotalFarmPosition => user_total_farm_position
+        getAllowExternalClaim => allow_external_claim
         getFarmPositionMigrationNonce => farm_position_migration_nonce
         registerFarmToken => register_farm_token
         getFarmTokenId => farm_token
@@ -79,10 +78,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getCurrentClaimProgress => current_claim_progress
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
-        addBannedAddress => add_banned_address
-        removeBannedAddress => remove_banned_address
-        addHook => add_hook
-        removeHook => remove_hook
         registerUnbondToken => register_unbond_token
         getUnbondTokenId => unbond_token
         topUpRewards => top_up_rewards

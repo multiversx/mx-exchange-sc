@@ -446,14 +446,11 @@ where
             .assert_ok();
     }
 
-    pub fn allow_external_claim_rewards(&mut self, user: &Address) {
+    pub fn allow_external_claim_rewards(&mut self, user: &Address, allow_claim: bool) {
         self.b_mock
             .execute_tx(user, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.user_total_farm_position(&managed_address!(user)).update(
-                    |user_total_farm_position| {
-                        user_total_farm_position.allow_external_claim_boosted_rewards = true;
-                    },
-                );
+                sc.allow_external_claim(&managed_address!(user))
+                    .set(allow_claim);
             })
             .assert_ok();
     }

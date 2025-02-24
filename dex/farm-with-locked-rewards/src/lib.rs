@@ -220,13 +220,21 @@ pub trait Farm:
             OptionalValue::Some(user) => user,
             OptionalValue::None => &caller,
         };
-        let user_total_farm_position = self.get_user_total_farm_position(user);
         if user != &caller {
             require!(
-                user_total_farm_position.allow_external_claim_boosted_rewards,
+                self.allow_external_claim(user).get(),
                 "Cannot claim rewards for this address"
             );
         }
+
+        require!(
+            !self.user_total_farm_position(user).is_empty(),
+            "User total farm position is empty!"
+        );
+
+        let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
         let boosted_rewards = self.claim_only_boosted_payment(user);
         self.send_to_lock_contract_non_zero(
