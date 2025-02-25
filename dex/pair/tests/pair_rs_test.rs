@@ -1600,6 +1600,7 @@ fn fees_collector_pair_test() {
                 sc.init(
                     managed_token_id!(LOCKED_TOKEN_ID),
                     managed_address!(&energy_factory_mock_addr),
+                    managed_address!(&energy_factory_mock_addr), // unused
                     MultiValueEncoded::new(),
                 );
                 let _ = sc.known_contracts().insert(managed_address!(&pair_addr));
