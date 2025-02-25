@@ -7,7 +7,9 @@ use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm;
 
-use mex_governance::{config::ConfigModule as _, MEXGovernance};
+use mex_governance::{
+    config::ConfigModule as _, incentive::IncentiveModule, vote::VoteModule, MEXGovernance,
+};
 use multiversx_sc::{
     imports::{MultiValue2, MultiValue3, StorageTokenWrapper},
     types::{Address, BigInt, ManagedAddress, MultiValueEncoded},

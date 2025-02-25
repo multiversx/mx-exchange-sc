@@ -3,7 +3,9 @@
 mod mex_governance_setup;
 
 use config::ConfigModule;
-use mex_governance::{config::ConfigModule as _, MEXGovernance};
+use mex_governance::{
+    config::ConfigModule as _, external_interactions::ExternalInteractionsModule,
+};
 use mex_governance_setup::*;
 use multiversx_sc::imports::MultiValue2;
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};

@@ -3,8 +3,8 @@ multiversx_sc::derive_imports!();
 
 use week_timekeeping::Week;
 
-use crate::{
-    events, EMISSION_RATE_ZERO, FARM_NOT_WHITELISTED, INVALID_ESDT_IDENTIFIER, INVALID_FARM_ADDRESS,
+use crate::errors::{
+    EMISSION_RATE_ZERO, FARM_NOT_WHITELISTED, INVALID_ESDT_IDENTIFIER, INVALID_FARM_ADDRESS,
 };
 
 #[derive(
@@ -43,7 +43,9 @@ pub struct FarmVote<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait ConfigModule:
-    events::EventsModule + energy_query::EnergyQueryModule + week_timekeeping::WeekTimekeepingModule
+    crate::events::EventsModule
+    + energy_query::EnergyQueryModule
+    + week_timekeeping::WeekTimekeepingModule
 {
     #[only_owner]
     #[endpoint(whitelistFarms)]
