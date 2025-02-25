@@ -7,9 +7,13 @@ pub mod staking_farm_with_lp_staking_contract_setup;
 
 multiversx_sc::imports!();
 
+use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use constants::*;
-use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
+use farm_staking_proxy::{
+    dual_yield_token::DualYieldTokenAttributes,
+    proxy_actions::external_interaction::ProxyExternalInteractionsModule,
+};
 
 use farm_staking_proxy::proxy_actions::unstake::ProxyUnstakeModule;
 
@@ -1398,4 +1402,124 @@ fn test_multiple_positions_on_behalf() {
         &rust_biguint!(farm_amount * 2u64),
         Some(&dual_yield_token_attributes),
     );
+}
+
+#[test]
+fn test_on_behalf_original_owner_validation() {
+    DebugApi::dummy();
+
+    let mut setup = FarmStakingSetup::new(
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+        farm_staking::contract_obj,
+        farm_staking_proxy::contract_obj,
+    );
+
+    // Boosted rewards setup
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_addr,
+            &setup.staking_farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+            },
+        )
+        .assert_ok();
+
+    setup.set_lp_farm_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    let farm_amount = 100_000_000u64;
+    let user_address = setup.user_addr.clone();
+    let authorized_address = setup.b_mock.create_user_account(&rust_biguint!(0));
+
+    setup.exit_lp_farm(&user_address, 1, USER_TOTAL_LP_TOKENS);
+    setup
+        .b_mock
+        .set_esdt_balance(&setup.user_addr, LP_TOKEN_ID, &rust_biguint!(farm_amount));
+
+    let block_nonce = 2u64;
+    setup.b_mock.set_block_epoch(2u64);
+
+    setup.set_user_energy(&user_address, 1_000, 2, 1);
+    setup
+        .b_mock
+        .set_esdt_balance(&user_address, LP_TOKEN_ID, &rust_biguint!(farm_amount * 2));
+    setup
+        .b_mock
+        .set_esdt_balance(&user_address, STAKING_REWARD_TOKEN_ID, &rust_biguint!(0));
+    let farm_token_nonce = setup.enter_lp_farm(&user_address, farm_amount * 2);
+
+    setup.check_user_total_staking_farm_position(&user_address, 0);
+
+    // authorize address
+    setup.whitelist_address_on_behalf(&user_address, &authorized_address);
+
+    setup.send_farm_position(
+        &user_address,
+        &authorized_address,
+        farm_token_nonce,
+        farm_amount * 2,
+        0,
+        block_nonce,
+    );
+
+    setup.b_mock.check_esdt_balance(
+        &authorized_address,
+        STAKING_REWARD_TOKEN_ID,
+        &rust_biguint!(0), // should always be 0
+    );
+
+    setup.stake_farm_on_behalf(
+        &authorized_address,
+        &user_address,
+        farm_token_nonce,
+        farm_amount,
+        0,
+        0,
+        1,
+        farm_amount,
+    );
+
+    // Update farm original owner to test validation
+    // How we get to this point is out of scope for this unit test
+    let temp_user = setup.b_mock.create_user_account(&rust_biguint!(0));
+
+    let dual_yield_token_attributes: DualYieldTokenAttributes<DebugApi> = setup
+        .b_mock
+        .get_nft_attributes(setup.proxy_wrapper.address_ref(), DUAL_YIELD_TOKEN_ID, 1)
+        .unwrap();
+    let mut lp_farm_token_attributes: FarmTokenAttributes<DebugApi> = setup
+        .b_mock
+        .get_nft_attributes(
+            setup.proxy_wrapper.address_ref(),
+            LP_FARM_TOKEN_ID,
+            dual_yield_token_attributes.lp_farm_token_nonce,
+        )
+        .unwrap();
+    lp_farm_token_attributes.original_owner = managed_address!(&temp_user);
+
+    setup.b_mock.set_nft_balance(
+        setup.proxy_wrapper.address_ref(),
+        LP_FARM_TOKEN_ID,
+        dual_yield_token_attributes.lp_farm_token_nonce,
+        &rust_biguint!(farm_amount),
+        &lp_farm_token_attributes,
+    );
+
+    setup
+        .b_mock
+        .execute_esdt_transfer(
+            &authorized_address,
+            &setup.proxy_wrapper,
+            DUAL_YIELD_TOKEN_ID,
+            1,
+            &rust_biguint!(1),
+            |sc| {
+                sc.claim_dual_yield_on_behalf();
+            },
+        )
+        .assert_error(4, "Underlying positions original owners do not match");
 }
