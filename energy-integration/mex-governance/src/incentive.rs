@@ -1,6 +1,9 @@
 multiversx_sc::imports!();
 
-use crate::errors::{INVALID_INCENTIVE_PAYMENT, INVALID_INCENTIVE_WEEK};
+use crate::{
+    errors::{INVALID_INCENTIVE_PAYMENT, INVALID_INCENTIVE_WEEK},
+    events::{ClaimedIncentiveView, FarmIncentiveView},
+};
 use week_timekeeping::Week;
 
 #[multiversx_sc::module]
@@ -24,6 +27,8 @@ pub trait IncentiveModule:
             INVALID_INCENTIVE_PAYMENT
         );
 
+        let mut farm_incentives = ManagedVec::new();
+
         for farm_incentive in farms_incentives {
             let (farm_address, farm_incentive, week) = farm_incentive.into_tuple();
             require!(week > current_week, INVALID_INCENTIVE_WEEK);
@@ -36,7 +41,13 @@ pub trait IncentiveModule:
             let farm_id = self.farm_ids().get_id_non_zero(&farm_address);
 
             self.farm_incentive_for_week(farm_id, week)
-                .update(|sum| *sum += farm_incentive);
+                .update(|sum| *sum += &farm_incentive);
+
+            farm_incentives.push(FarmIncentiveView {
+                farm_address,
+                amount: farm_incentive,
+                week,
+            });
         }
 
         if remaining_payment.amount > 0 {
@@ -48,6 +59,8 @@ pub trait IncentiveModule:
                 &remaining_payment.amount,
             );
         }
+
+        self.emit_incentivize_farm_event(incentive_payment_token, farm_incentives);
     }
 
     #[endpoint(claimIncentive)]
@@ -61,6 +74,8 @@ pub trait IncentiveModule:
 
         let user_votes = self.user_votes_in_week(user_id, week).get();
         let mut user_payments = ManagedVec::new();
+        let mut claimed_incentives = ManagedVec::new();
+
         for user_vote in user_votes.iter() {
             let farm_id = user_vote.farm_id;
 
@@ -74,12 +89,23 @@ pub trait IncentiveModule:
             user_payments.push(EsdtTokenPayment::new(
                 incentive_token.clone(),
                 0,
-                user_incentive,
+                user_incentive.clone(),
             ));
+
+            let farm_address_opt = self.farm_ids().get_address(farm_id);
+            if farm_address_opt.is_some() {
+                let farm_address = unsafe { farm_address_opt.unwrap_unchecked() };
+                claimed_incentives.push(ClaimedIncentiveView {
+                    farm_address,
+                    amount: user_incentive,
+                });
+            }
         }
 
         if user_payments.len() > 0 {
             self.send().direct_multi(&caller, &user_payments);
+
+            self.emit_claim_incentive_event(week, claimed_incentives);
         }
     }
 }

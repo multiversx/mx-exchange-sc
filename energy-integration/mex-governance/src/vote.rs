@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
 use crate::{
-    config::{FarmVote, FarmVoteView},
+    config::{FarmEmission, FarmVote},
     errors::{
         ALREADY_VOTED_THIS_WEEK, FARM_BLACKLISTED, FARM_NOT_WHITELISTED, INVALID_VOTE_AMOUNT,
     },
@@ -58,7 +58,7 @@ pub trait VoteModule:
                 farm_id,
                 vote_amount: amount.clone(),
             });
-            farm_votes_event.push(FarmVoteView {
+            farm_votes_event.push(FarmEmission {
                 farm_address,
                 farm_emission: amount,
             });

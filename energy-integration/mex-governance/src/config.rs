@@ -19,7 +19,7 @@ use crate::errors::{
     Debug,
 )]
 
-pub struct FarmVoteView<M: ManagedTypeApi> {
+pub struct FarmEmission<M: ManagedTypeApi> {
     pub farm_address: ManagedAddress<M>,
     pub farm_emission: BigUint<M>,
 }
@@ -84,6 +84,8 @@ pub trait ConfigModule:
     #[only_owner]
     #[endpoint(blacklistFarm)]
     fn blacklist_farm(&self, farms: MultiValueEncoded<ManagedAddress>) {
+        let mut blacklisted_farms = ManagedVec::new();
+
         for farm_address in farms {
             let farm_id = self.farm_ids().get_id_non_zero(&farm_address);
             require!(
@@ -92,7 +94,10 @@ pub trait ConfigModule:
             );
 
             self.blacklisted_farms().insert(farm_id);
+            blacklisted_farms.push(farm_address);
         }
+
+        self.emit_blacklist_farm_event(blacklisted_farms);
     }
 
     #[only_owner]
@@ -109,7 +114,11 @@ pub trait ConfigModule:
     #[endpoint(setIncentiveToken)]
     fn set_incentive_token(&self, token_id: TokenIdentifier) {
         require!(token_id.is_valid_esdt_identifier(), INVALID_ESDT_IDENTIFIER);
+        let old_token = self.incentive_token().get();
         self.incentive_token().set(&token_id);
+
+        // Add event emission
+        self.emit_set_incentive_token_event(old_token, token_id);
     }
 
     // Weekly storages
