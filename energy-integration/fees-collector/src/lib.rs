@@ -2,14 +2,12 @@
 
 multiversx_sc::imports!();
 
-use common_types::{PaymentsVec, Week};
-use core::marker::PhantomData;
-use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
-
 pub mod additional_locked_tokens;
+pub mod claim;
 pub mod config;
 pub mod events;
 pub mod fees_accumulation;
+pub mod redistribute_rewards;
 
 #[multiversx_sc::contract]
 pub trait FeesCollector:
@@ -28,145 +26,35 @@ pub trait FeesCollector:
     + multiversx_sc_modules::pause::PauseModule
     + utils::UtilsModule
     + sc_whitelist_module::SCWhitelistModule
+    + multiversx_sc_modules::only_admin::OnlyAdminModule
+    + claim::ClaimModule
+    + redistribute_rewards::RedistributeRewardsModule
 {
     #[init]
-    fn init(&self, locked_token_id: TokenIdentifier, energy_factory_address: ManagedAddress) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
+    fn init(
+        &self,
+        locked_token_id: TokenIdentifier,
+        energy_factory_address: ManagedAddress,
+        admins: MultiValueEncoded<ManagedAddress>,
+    ) {
         self.require_valid_token_id(&locked_token_id);
         self.require_sc_address(&energy_factory_address);
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set(current_epoch);
 
         let mut tokens = MultiValueEncoded::new();
         tokens.push(locked_token_id.clone());
         self.add_known_tokens(tokens);
 
-        self.locked_token_id().set_if_empty(locked_token_id);
-        self.energy_factory_address().set(&energy_factory_address);
+        self.locked_token_id().set(locked_token_id);
+        self.energy_factory_address().set(energy_factory_address);
+
+        for admin in admins {
+            self.add_admin(admin);
+        }
     }
 
     #[upgrade]
     fn upgrade(&self) {}
-
-    #[endpoint(claimRewards)]
-    fn claim_rewards_endpoint(
-        &self,
-        opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> PaymentsVec<Self::Api> {
-        require!(self.not_paused(), "Cannot claim while paused");
-
-        let caller = self.blockchain().get_caller();
-        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
-
-        self.claim_rewards(caller, original_caller)
-    }
-
-    #[endpoint(claimBoostedRewards)]
-    fn claim_boosted_rewards(
-        &self,
-        opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> PaymentsVec<Self::Api> {
-        require!(self.not_paused(), "Cannot claim while paused");
-
-        let original_caller = match opt_original_caller {
-            OptionalValue::Some(user) => {
-                require!(
-                    self.allow_external_claim_rewards(&user).get(),
-                    "Cannot claim rewards for this address"
-                );
-                user
-            }
-            OptionalValue::None => self.blockchain().get_caller(),
-        };
-
-        self.claim_rewards(original_caller.clone(), original_caller)
-    }
-
-    fn claim_rewards(
-        &self,
-        caller: ManagedAddress,
-        original_caller: ManagedAddress,
-    ) -> PaymentsVec<Self::Api> {
-        self.accumulate_additional_locked_tokens();
-
-        let wrapper = FeesCollectorWrapper::new();
-        let mut rewards = self.claim_multi(&wrapper, &original_caller);
-        if rewards.is_empty() {
-            return rewards;
-        }
-
-        let locked_token_id = self.get_locked_token_id();
-        let mut i = 0;
-        let mut len = rewards.len();
-        let mut total_locked_token_rewards_amount = BigUint::zero();
-        while i < len {
-            let rew = rewards.get(i);
-            if rew.token_identifier != locked_token_id {
-                i += 1;
-                continue;
-            }
-
-            total_locked_token_rewards_amount += rew.amount;
-            len -= 1;
-            rewards.remove(i);
-        }
-
-        if !rewards.is_empty() {
-            self.send().direct_multi(&caller, &rewards);
-        }
-
-        if total_locked_token_rewards_amount > 0 {
-            let locked_rewards = self.lock_virtual(
-                self.get_base_token_id(),
-                total_locked_token_rewards_amount,
-                caller,
-                original_caller,
-            );
-
-            rewards.push(locked_rewards);
-        }
-
-        rewards
-    }
-}
-
-pub struct FeesCollectorWrapper<T: FeesCollector> {
-    phantom: PhantomData<T>,
-}
-
-impl<T: FeesCollector> Default for FeesCollectorWrapper<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T: FeesCollector> FeesCollectorWrapper<T> {
-    pub fn new() -> FeesCollectorWrapper<T> {
-        FeesCollectorWrapper {
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<T> WeeklyRewardsSplittingTraitsModule for FeesCollectorWrapper<T>
-where
-    T: FeesCollector,
-{
-    type WeeklyRewardsSplittingMod = T;
-
-    fn collect_rewards_for_week(
-        &self,
-        sc: &Self::WeeklyRewardsSplittingMod,
-        week: Week,
-    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
-        let mut results = ManagedVec::new();
-        let all_tokens = sc.all_tokens().get();
-        for token in &all_tokens {
-            let opt_accumulated_fees = sc.get_and_clear_accumulated_fees(week, &token);
-            if let Some(accumulated_fees) = opt_accumulated_fees {
-                results.push(EsdtTokenPayment::new(token, 0, accumulated_fees));
-            }
-        }
-
-        results
-    }
 }

@@ -11,6 +11,7 @@ pub trait ConfigModule {
                 self.blockchain().is_smart_contract(&sc),
                 "Invalid SC address"
             );
+
             let _ = mapper.insert(sc);
         }
     }
@@ -32,10 +33,12 @@ pub trait ConfigModule {
         for token in tokens {
             require!(token.is_valid_esdt_identifier(), "Invalid token ID");
 
-            if !known_tokens_mapper.contains(&token) {
-                known_tokens_mapper.add(&token);
-                all_tokens_vec.push(token);
+            if known_tokens_mapper.contains(&token) {
+                continue;
             }
+
+            known_tokens_mapper.add(&token);
+            all_tokens_vec.push(token);
         }
 
         self.all_tokens().set(&all_tokens_vec);
@@ -47,27 +50,28 @@ pub trait ConfigModule {
         let mut all_tokens_vec = self.all_tokens().get();
         let known_tokens_mapper = self.known_tokens();
         for token in tokens {
-            if known_tokens_mapper.contains(&token) {
-                known_tokens_mapper.remove(&token);
+            if !known_tokens_mapper.contains(&token) {
+                continue;
+            }
 
-                unsafe {
-                    let index = all_tokens_vec.find(&token).unwrap_unchecked();
-                    all_tokens_vec.remove(index);
-                }
+            known_tokens_mapper.remove(&token);
+            unsafe {
+                let index = all_tokens_vec.find(&token).unwrap_unchecked();
+                all_tokens_vec.remove(index);
             }
         }
 
         self.all_tokens().set(&all_tokens_vec);
     }
 
-    #[view(getLockedTokenId)]
-    #[storage_mapper("lockedTokenId")]
-    fn locked_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
     #[view(getAllTokens)]
     fn get_all_tokens(&self) -> MultiValueEncoded<TokenIdentifier> {
         self.all_tokens().get().into()
     }
+
+    #[view(getLockedTokenId)]
+    #[storage_mapper("lockedTokenId")]
+    fn locked_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getAllKnownContracts)]
     #[storage_mapper("knownContracts")]
