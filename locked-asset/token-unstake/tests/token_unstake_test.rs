@@ -124,8 +124,7 @@ fn unstake_multiple_position_test() {
     setup.b_mock.set_block_epoch(10 + UNBOND_EPOCHS);
     // unbond ok
     setup.unbond(&first_user).assert_ok();
-    let mut balance_after_half_unlocks = rust_biguint!(USER_BALANCE as u128 / 2 * 2000 / 10000); // 80% fee on half balance
-    balance_after_half_unlocks += &rust_biguint!(20u64); // rounding difference
+    let balance_after_half_unlocks = rust_biguint!(USER_BALANCE as u128 / 2 * 2000 / 10000); // 80% fee on half balance
     setup.b_mock.check_esdt_balance(
         &first_user,
         BASE_ASSET_TOKEN_ID,
