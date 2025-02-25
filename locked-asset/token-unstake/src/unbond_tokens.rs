@@ -2,7 +2,7 @@ use crate::events;
 
 multiversx_sc::imports!();
 
-pub const MAX_CLAIM_UNLOCKED_TOKENS: u64 = 30;
+pub const MAX_CLAIM_UNLOCKED_TOKENS: u64 = 20;
 
 #[multiversx_sc::module]
 pub trait UnbondTokensModule:
