@@ -4,8 +4,8 @@ mod fees_collector_test_setup;
 
 use energy_query::Energy;
 use fees_collector::additional_locked_tokens::{AdditionalLockedTokensModule, BLOCKS_IN_WEEK};
+use fees_collector::claim_undist_rewards::ClaimUndistRewardsModule;
 use fees_collector::fees_accumulation::FeesAccumulationModule;
-use fees_collector::redistribute_rewards::RedistributeRewardsModule;
 use fees_collector_test_setup::*;
 use multiversx_sc::types::{BigInt, EsdtTokenPayment, ManagedVec};
 use multiversx_sc_scenario::{
@@ -1427,6 +1427,18 @@ fn redistribute_rewards_test() {
     let mut fc_setup =
         FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
+    fc_setup
+        .b_mock
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.set_locked_tokens_per_block(managed_biguint!(100));
+            },
+        )
+        .assert_ok();
+
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let third_user = fc_setup.b_mock.create_user_account(&rust_zero);
@@ -1463,6 +1475,11 @@ fn redistribute_rewards_test() {
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let mut expected_total_rewards = ManagedVec::new();
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                0,
+                managed_biguint!(10_080_000),
+            ));
             expected_total_rewards.push(EsdtTokenPayment::new(
                 managed_token_id!(FIRST_TOKEN_ID),
                 0,
@@ -1581,7 +1598,7 @@ fn redistribute_rewards_test() {
     fc_setup.set_energy(&third_user, 1, 1);
     fc_setup.claim(&third_user).assert_ok();
 
-    // redist rewards
+    // claim undist rewards
     fc_setup
         .b_mock
         .execute_tx(
@@ -1589,27 +1606,15 @@ fn redistribute_rewards_test() {
             &fc_setup.fc_wrapper,
             &rust_zero,
             |sc| {
-                sc.redistribute_rewards(1, 5);
-
-                // Rewards were put in current_week storage (i.e. 10)
-
-                let first_token_balance = sc
-                    .accumulated_fees(10, &managed_token_id!(FIRST_TOKEN_ID))
-                    .get();
-                let second_token_balance = sc
-                    .accumulated_fees(10, &managed_token_id!(SECOND_TOKEN_ID))
-                    .get();
-
-                // i.e. 6 weeks worth of rewards minus what the third user claimed
-                assert_eq!(
-                    first_token_balance,
-                    managed_biguint!(599_952_417_140_485_515u64)
-                );
-                assert_eq!(
-                    second_token_balance,
-                    managed_biguint!(299_976_208_570_242_758)
-                );
+                sc.claim_undistributed_rewards(1, 5);
             },
         )
         .assert_ok();
+
+    // 100 per week * 5 weeks * 100_800 blocks in week = 50_400_000, minus the small amount user 3 claimed
+    fc_setup.b_mock.check_esdt_balance(
+        fc_setup.energy_factory_wrapper.address_ref(),
+        BASE_ASSET_TOKEN_ID,
+        &rust_biguint!(50_395_207),
+    );
 }

@@ -4,10 +4,10 @@ multiversx_sc::imports!();
 
 pub mod additional_locked_tokens;
 pub mod claim;
+pub mod claim_undist_rewards;
 pub mod config;
 pub mod events;
 pub mod fees_accumulation;
-pub mod redistribute_rewards;
 
 #[multiversx_sc::contract]
 pub trait FeesCollector:
@@ -28,13 +28,14 @@ pub trait FeesCollector:
     + sc_whitelist_module::SCWhitelistModule
     + multiversx_sc_modules::only_admin::OnlyAdminModule
     + claim::ClaimModule
-    + redistribute_rewards::RedistributeRewardsModule
+    + claim_undist_rewards::ClaimUndistRewardsModule
 {
     #[init]
     fn init(
         &self,
         locked_token_id: TokenIdentifier,
         energy_factory_address: ManagedAddress,
+        multisig_address: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         self.require_valid_token_id(&locked_token_id);
@@ -49,6 +50,7 @@ pub trait FeesCollector:
 
         self.locked_token_id().set(locked_token_id);
         self.energy_factory_address().set(energy_factory_address);
+        self.set_multisig_address(multisig_address);
 
         for admin in admins {
             self.add_admin(admin);

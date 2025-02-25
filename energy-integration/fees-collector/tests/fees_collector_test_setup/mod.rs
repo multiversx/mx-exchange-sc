@@ -13,7 +13,10 @@ use multiversx_sc_scenario::{
 
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
-use fees_collector::{config::ConfigModule, fees_accumulation::FeesAccumulationModule, *};
+use fees_collector::{
+    additional_locked_tokens::BLOCKS_IN_WEEK, config::ConfigModule,
+    fees_accumulation::FeesAccumulationModule, *,
+};
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc_modules::pause::PauseModule;
 use sc_whitelist_module::SCWhitelistModule;
@@ -45,6 +48,7 @@ where
     pub energy_factory_wrapper:
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryObjBuilder>,
     pub current_epoch: u64,
+    pub current_block: u64,
 }
 
 impl<FeesCollectorObjBuilder, EnergyFactoryObjBuilder>
@@ -96,6 +100,11 @@ where
             fc_wrapper.address_ref(),
             LOCKED_TOKEN_ID,
             &[EsdtLocalRole::NftBurn],
+        );
+        b_mock.set_esdt_local_roles(
+            fc_wrapper.address_ref(),
+            BASE_ASSET_TOKEN_ID,
+            &[EsdtLocalRole::Mint],
         );
 
         b_mock.set_esdt_balance(
@@ -155,6 +164,7 @@ where
                 sc.init(
                     managed_token_id!(LOCKED_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
+                    managed_address!(energy_factory_wrapper.address_ref()), // didn't feel like creating another SC, used the same one
                     admins,
                 );
 
@@ -184,12 +194,16 @@ where
             fc_wrapper,
             energy_factory_wrapper,
             current_epoch: INIT_EPOCH,
+            current_block: 0,
         }
     }
 
     pub fn advance_week(&mut self) {
         self.current_epoch += EPOCHS_IN_WEEK;
         self.b_mock.set_block_epoch(self.current_epoch);
+
+        self.current_block += BLOCKS_IN_WEEK;
+        self.b_mock.set_block_nonce(self.current_block);
     }
 
     pub fn get_current_week(&mut self) -> Week {
