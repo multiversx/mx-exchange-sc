@@ -1,6 +1,7 @@
 multiversx_sc::imports!();
 
 use common_structs::FarmTokenAttributes;
+use farm_staking::token_attributes::StakingFarmTokenAttributes;
 
 use crate::{
     dual_yield_token::DualYieldTokenAttributes,
@@ -15,6 +16,7 @@ pub trait ProxyExternalInteractionsModule:
     + crate::proxy_actions::stake::ProxyStakeModule
     + crate::proxy_actions::claim::ProxyClaimModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + permissions_hub_module::PermissionsHubModule
     + utils::UtilsModule
     + token_send::TokenSendModule
     + energy_query::EnergyQueryModule
@@ -44,7 +46,7 @@ pub trait ProxyExternalInteractionsModule:
         let payment = self.call_value().single_esdt();
 
         let caller = self.blockchain().get_caller();
-        let original_owner = self.get_underlying_farm_position_original_owner(&payment);
+        let original_owner = self.get_underlying_positions_original_owner(&payment);
         self.require_user_whitelisted(&original_owner, &caller);
 
         let claim_result = self.claim_dual_yield_common(original_owner.clone(), payment);
@@ -84,60 +86,50 @@ pub trait ProxyExternalInteractionsModule:
 
         for payment in additional_payments.into_iter() {
             require!(
-                &self.get_underlying_farm_position_original_owner(&payment) == original_owner,
+                &self.get_underlying_positions_original_owner(&payment) == original_owner,
                 "Provided address is not the same as the original owner"
             );
         }
     }
 
-    fn get_underlying_farm_position_original_owner(
+    fn get_underlying_positions_original_owner(
         &self,
         payment: &EsdtTokenPayment,
     ) -> ManagedAddress {
         let dual_yield_token_mapper = self.dual_yield_token();
         dual_yield_token_mapper.require_same_token(&payment.token_identifier);
 
-        let attributes: DualYieldTokenAttributes<Self::Api> =
+        let dual_yield_attributes: DualYieldTokenAttributes<Self::Api> =
             self.get_attributes_as_part_of_fixed_supply(payment, &dual_yield_token_mapper);
 
         let lp_farm_token_id = self.lp_farm_token_id().get();
-        let attributes = self
+        let lp_attributes = self
             .blockchain()
             .get_token_attributes::<FarmTokenAttributes<Self::Api>>(
                 &lp_farm_token_id,
-                attributes.lp_farm_token_nonce,
+                dual_yield_attributes.lp_farm_token_nonce,
             );
 
+        let lp_original_owner = lp_attributes.original_owner;
         require!(
-            attributes.original_owner != ManagedAddress::zero(),
-            "Invalid original owner"
+            !lp_original_owner.is_zero(),
+            "LP Token original owner incorrect"
         );
 
-        attributes.original_owner
+        let staking_farm_token_id = self.staking_farm_token_id().get();
+        let staking_attributes = self
+            .blockchain()
+            .get_token_attributes::<StakingFarmTokenAttributes<Self::Api>>(
+                &staking_farm_token_id,
+                dual_yield_attributes.staking_farm_token_nonce,
+            );
+
+        let staking_original_owner = staking_attributes.original_owner;
+        require!(
+            lp_original_owner == staking_original_owner,
+            "Underlying positions original owners do not match"
+        );
+
+        lp_original_owner
     }
-
-    fn require_user_whitelisted(&self, user: &ManagedAddress, authorized_address: &ManagedAddress) {
-        let permissions_hub_address = self.permissions_hub_address().get();
-        let is_whitelisted: bool = self
-            .permissions_hub_proxy(permissions_hub_address)
-            .is_whitelisted(user, authorized_address)
-            .execute_on_dest_context();
-
-        require!(is_whitelisted, "Caller is not whitelisted by the user");
-    }
-
-    #[only_owner]
-    #[endpoint(setPermissionsHubAddress)]
-    fn set_permissions_hub_address(&self, address: ManagedAddress) {
-        self.permissions_hub_address().set(&address);
-    }
-
-    #[proxy]
-    fn permissions_hub_proxy(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> permissions_hub::Proxy<Self::Api>;
-
-    #[storage_mapper("permissionsHubAddress")]
-    fn permissions_hub_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

@@ -98,3 +98,84 @@ One thing to note here is that between claiming rewards in the farming contract 
 
 To unstake his current position, a user must send the desired amount of dual yield tokens to the proxy contract. At this moment, the proxy contract knows, based on the sent dual yield token, both the farm token position and staking token position. The first step is for the proxy contract to withdraw the LP tokens from the farms and the liquidity from the pair contract. After that all the harvested rewards, the resulting eGLD from removing the LP token and the unstake position of the staking token are all sent to the user. The unstaking process is ended with the burning of the dual yield tokens.
 It is important to note that because of the user’s unstaked position, an unbonding period is not needed.
+
+# Farm Staking Proxy OnBehalf Operations
+
+## Abstract
+
+The Farm Staking Proxy contract enables complex yield strategies by managing dual yield positions. The OnBehalf operations allow whitelisted contracts to manage these positions for users, combining LP farming and staking rewards while maintaining proper ownership and security through the Permissions Hub.
+
+## Introduction
+
+This feature extends the dual yield functionality with delegated operations, allowing third-party contracts to manage composite farming positions. It maintains the security of underlying positions, proper reward distribution, and ownership tracking while enabling more complex DeFi integrations through the Permissions Hub.
+
+## Endpoints
+
+### stakeFarmOnBehalf
+
+```rust
+#[payable("*")]
+#[endpoint(stakeFarmOnBehalf)]
+fn stake_farm_on_behalf(&self, original_owner: ManagedAddress) -> StakeProxyResult<Self::Api>
+```
+
+The stakeFarmOnBehalf function enables whitelisted contracts to create dual yield positions. It receives:
+
+- __original_owner__ - The address of the user for whom the position is being created
+- __payments__ - Multiple token payments required for the dual yield position:
+  - First payment must be an LP farm token
+  - Additional payments must belong to the same original owner
+
+The function performs these operations:
+1. Validates caller's whitelist status through Permissions Hub
+2. Verifies ownership of all provided tokens
+3. Creates the dual yield position
+4. Distributes the results:
+   - LP farm boosted rewards to original owner
+   - Staking boosted rewards to original owner
+   - Dual yield tokens to caller
+
+### claimDualYieldOnBehalf
+
+```rust
+#[payable("*")]
+#[endpoint(claimDualYieldOnBehalf)]
+fn claim_dual_yield_on_behalf(&self) -> ClaimDualYieldResult<Self::Api>
+```
+
+The claimDualYieldOnBehalf function allows whitelisted contracts to claim rewards from dual yield positions. It requires:
+
+- __payment__ - A dual yield token payment
+
+The function performs these steps:
+1. Extracts original owner from underlying farm position
+2. Validates caller's whitelist status for the token owner
+3. Claims both LP farming and staking rewards
+4. Distributes rewards:
+   - LP farm rewards to original owner
+   - Staking farm rewards to original owner
+   - New dual yield tokens to caller
+
+## exitOnBehalf
+The exit operation remains under the direct control of the position owner to ensure maximum security. When third-party contracts interact with farming or staking positions through onBehalf operations, they receive and hold the position tokens. These tokens maintain the original owner information in their attributes, protecting the user's ownership rights. To exit their position, users must first reclaim their position tokens from the third-party contract through that protocol's specific mechanisms. Once users have regained control of their position tokens, they can perform the standard exit operation directly through the specific xExchange contract. 
+This design ensures users maintain ultimate control over their funds while allowing protocols to build complex DeFi interactions.
+
+## Storage
+
+The contract maintains its standard dual yield token storage and relies on underlying contracts and the Permissions Hub for any additional data.
+
+## Deployment
+
+The onBehalf features require:
+
+1. Proper configuration of:
+   - Permissions Hub address
+   - LP Farm contract address
+   - Staking Farm contract address
+   - Token IDs and roles
+
+2. Required external contracts:
+   - Active Permissions Hub
+   - Active LP Farm contract
+   - Active Staking Farm contract
+

@@ -7,7 +7,7 @@ use energy_query::Energy;
 use farm_with_locked_rewards::Farm;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
-    types::{Address, BigInt},
+    types::{Address, BigInt, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -32,6 +32,7 @@ use farm_staking_proxy::proxy_actions::stake::ProxyStakeModule;
 use farm_staking_proxy::proxy_actions::unstake::ProxyUnstakeModule;
 
 use permissions_hub::PermissionsHub;
+use permissions_hub_module::PermissionsHubModule;
 use sc_whitelist_module::SCWhitelistModule;
 
 use crate::{
@@ -708,7 +709,9 @@ where
                 &self.permissions_hub_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.whitelist(managed_address!(address_to_whitelist));
+                    let mut addresses = MultiValueEncoded::new();
+                    addresses.push(managed_address!(address_to_whitelist));
+                    sc.whitelist(addresses);
                 },
             )
             .assert_ok();
