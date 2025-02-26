@@ -43,7 +43,7 @@ fn gov_propose_test() {
         .up_vote(&second_user_addr, proposal_id)
         .assert_user_error("Proposal is not active");
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
     gov_setup
@@ -55,7 +55,7 @@ fn gov_propose_test() {
         .up_vote(&second_user_addr, proposal_id)
         .assert_user_error("Already voted for this proposal");
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .b_mock
@@ -150,7 +150,7 @@ fn gov_no_veto_vote_test() {
         })
         .assert_ok();
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
     gov_setup
@@ -162,7 +162,7 @@ fn gov_no_veto_vote_test() {
         .down_veto_vote(&third_user_addr, proposal_id)
         .assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .b_mock
@@ -198,14 +198,14 @@ fn gov_abstain_vote_test() {
     result.assert_ok();
     assert_eq!(proposal_id, 1);
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
     gov_setup
         .abstain_vote(&third_user_addr, proposal_id)
         .assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .b_mock
@@ -240,11 +240,11 @@ fn gov_no_quorum_test() {
     result.assert_ok();
     assert_eq!(proposal_id, 1);
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .b_mock
@@ -279,11 +279,11 @@ fn gov_modify_quorum_after_end_vote_test() {
     result.assert_ok();
     assert_eq!(proposal_id, 1);
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .b_mock
@@ -330,14 +330,14 @@ fn gov_withdraw_defeated_proposal_test() {
         .b_mock
         .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
     gov_setup
         .down_vote(&third_user_addr, proposal_id)
         .assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .b_mock
@@ -392,14 +392,14 @@ fn gov_modify_withdraw_defeated_proposal_test() {
         .b_mock
         .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
     gov_setup
         .down_vote(&third_user_addr, proposal_id)
         .assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .change_withdraw_percentage(FULL_PERCENTAGE + 1u64)
@@ -463,14 +463,14 @@ fn gov_withdraw_no_with_veto_defeated_proposal_test() {
         .b_mock
         .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
     gov_setup
         .down_veto_vote(&third_user_addr, proposal_id)
         .assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .b_mock
@@ -527,14 +527,14 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
         .b_mock
         .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
     gov_setup
         .down_veto_vote(&third_user_addr, proposal_id)
         .assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .b_mock
@@ -577,14 +577,14 @@ fn gov_withdraw_no_with_veto_penalty_limits_test() {
         .b_mock
         .check_esdt_balance(&first_user_addr, MEX_TOKEN_ID, &rust_biguint!(0));
 
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
     gov_setup
         .down_veto_vote(&third_user_addr, proposal_id)
         .assert_ok();
 
-    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.increment_timestamp(VOTING_PERIOD_SECONDS);
 
     gov_setup
         .b_mock

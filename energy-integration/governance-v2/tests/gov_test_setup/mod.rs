@@ -23,9 +23,8 @@ use num_bigint::BigUint;
 pub const MIN_ENERGY_FOR_PROPOSE: u64 = 0;
 pub const MIN_FEE_FOR_PROPOSE: u64 = 1_000_000_000; // 1B MEX
 pub const QUORUM_PERCENTAGE: u64 = 4_000; // 40%
-pub const VOTING_DELAY_BLOCKS: u64 = 1;
-pub const VOTING_PERIOD_BLOCKS: u64 = 144_000; // 10 days
-pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
+pub const VOTING_DELAY_SECONDS: u64 = 1;
+pub const VOTING_PERIOD_SECONDS: u64 = 864_000; // 10 days
 pub const WITHDRAW_PERCENTAGE: u64 = 5_000; // 50%
 pub const MEX_TOKEN_ID: &[u8] = b"MEX-123456";
 pub const XMEX_TOKEN_ID: &[u8] = b"XMEX-123456";
@@ -45,7 +44,7 @@ where
     pub third_user: Address,
     pub no_energy_user: Address,
     pub gov_wrapper: ContractObjWrapper<governance_v2::ContractObj<DebugApi>, GovBuilder>,
-    pub current_block: u64,
+    pub current_timestamp: u64,
 }
 
 impl<GovBuilder> GovSetup<GovBuilder>
@@ -159,8 +158,8 @@ where
                     managed_biguint!(MIN_ENERGY_FOR_PROPOSE),
                     managed_biguint!(MIN_FEE_FOR_PROPOSE) * DECIMALS_CONST,
                     QUORUM_PERCENTAGE,
-                    VOTING_DELAY_BLOCKS,
-                    VOTING_PERIOD_BLOCKS,
+                    VOTING_DELAY_SECONDS,
+                    VOTING_PERIOD_SECONDS,
                     WITHDRAW_PERCENTAGE,
                     managed_address!(energy_factory_wrapper.address_ref()),
                     managed_address!(fees_collector_wrapper.address_ref()),
@@ -186,7 +185,7 @@ where
             third_user,
             no_energy_user,
             gov_wrapper,
-            current_block: 0,
+            current_timestamp: 0,
         }
     }
 
@@ -300,8 +299,8 @@ where
                 )
             })
     }
-    pub fn increment_block_nonce(&mut self, inc_amount: u64) {
-        self.current_block += inc_amount;
-        self.b_mock.set_block_nonce(self.current_block);
+    pub fn increment_timestamp(&mut self, inc_amount: u64) {
+        self.current_timestamp += inc_amount;
+        self.b_mock.set_block_timestamp(self.current_timestamp);
     }
 }
