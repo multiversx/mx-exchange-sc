@@ -11,14 +11,21 @@ use farm_staking_setup::*;
 
 #[test]
 fn test_farm_setup() {
-    let _ = FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+    let _ = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
 }
 
 #[test]
 fn test_enter_farm() {
     DebugApi::dummy();
-    let mut farm_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+    let mut farm_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
 
     let user_address = farm_setup.user_address.clone();
 
@@ -38,8 +45,11 @@ fn test_enter_farm() {
 #[test]
 fn test_unstake_farm() {
     DebugApi::dummy();
-    let mut farm_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+    let mut farm_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
 
     let user_address = farm_setup.user_address.clone();
 
@@ -90,8 +100,11 @@ fn test_unstake_farm() {
 #[test]
 fn test_claim_rewards() {
     DebugApi::dummy();
-    let mut farm_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+    let mut farm_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
 
     let user_address = farm_setup.user_address.clone();
 
@@ -128,15 +141,21 @@ fn test_claim_rewards() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 }
 
-fn steps_enter_farm_twice<FarmObjBuilder, EnergyFactoryBuilder>(
+fn steps_enter_farm_twice<FarmObjBuilder, EnergyFactoryBuilder, PermissionsHubObjBuilder>(
     farm_builder: FarmObjBuilder,
     energy_factory_builder: EnergyFactoryBuilder,
-) -> FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder>
+    permissions_hub_builder: PermissionsHubObjBuilder,
+) -> FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder, PermissionsHubObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
-    let mut farm_setup = FarmStakingSetup::new(farm_builder, energy_factory_builder);
+    let mut farm_setup = FarmStakingSetup::new(
+        farm_builder,
+        energy_factory_builder,
+        permissions_hub_builder,
+    );
 
     let user_address = farm_setup.user_address.clone();
 
@@ -187,14 +206,21 @@ where
 #[test]
 fn test_enter_farm_twice() {
     DebugApi::dummy();
-    let _ = steps_enter_farm_twice(farm_staking::contract_obj, energy_factory::contract_obj);
+    let _ = steps_enter_farm_twice(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
 }
 
 #[test]
 fn test_exit_farm_after_enter_twice() {
     DebugApi::dummy();
-    let mut farm_setup =
-        steps_enter_farm_twice(farm_staking::contract_obj, energy_factory::contract_obj);
+    let mut farm_setup = steps_enter_farm_twice(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
 
     let user_address = farm_setup.user_address.clone();
 
@@ -227,8 +253,11 @@ fn test_exit_farm_after_enter_twice() {
 #[test]
 fn test_unbond() {
     DebugApi::dummy();
-    let mut farm_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+    let mut farm_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
 
     let user_address = farm_setup.user_address.clone();
 
@@ -288,8 +317,11 @@ fn test_unbond() {
 #[test]
 fn test_withdraw_rewards() {
     DebugApi::dummy();
-    let mut farm_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+    let mut farm_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
 
     let initial_rewards_capacity = 1_000_000_000_000u64;
     farm_setup.check_rewards_capacity(initial_rewards_capacity);
@@ -304,8 +336,11 @@ fn test_withdraw_rewards() {
 #[test]
 fn test_withdraw_after_produced_rewards() {
     DebugApi::dummy();
-    let mut farm_setup =
-        FarmStakingSetup::new(farm_staking::contract_obj, energy_factory::contract_obj);
+    let mut farm_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
 
     let user_address = farm_setup.user_address.clone();
 

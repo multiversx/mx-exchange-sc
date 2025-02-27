@@ -4,6 +4,8 @@ use crate::{events, tokens_per_user::UnstakePair};
 
 multiversx_sc::imports!();
 
+pub const MAX_CLAIM_UNLOCKED_TOKENS: u64 = 20;
+
 #[multiversx_sc::module]
 pub trait UnbondTokensModule:
     crate::tokens_per_user::TokensPerUserModule
@@ -18,10 +20,12 @@ pub trait UnbondTokensModule:
         let current_epoch = self.blockchain().get_block_epoch();
         let mut output_payments = ManagedVec::new();
         let mut penalty_tokens = ManagedVec::<Self::Api, _>::new();
+        let mut processed_count = 0;
+
         let new_unlocked_tokens = self
             .unlocked_tokens_for_user(&caller)
             .update(|user_entries| {
-                while !user_entries.is_empty() {
+                while !user_entries.is_empty() && processed_count < MAX_CLAIM_UNLOCKED_TOKENS {
                     let entry = user_entries.get(0);
                     if current_epoch < entry.unlock_epoch {
                         break;
@@ -31,6 +35,8 @@ pub trait UnbondTokensModule:
 
                     output_payments.push(entry.unlocked_tokens);
                     user_entries.remove(0);
+
+                    processed_count += 1;
                 }
 
                 (*user_entries).clone()
