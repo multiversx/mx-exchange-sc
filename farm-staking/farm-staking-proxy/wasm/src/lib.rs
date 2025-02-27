@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           17
+// Endpoints:                           20
 // Async Callback:                       1
-// Total number of exported functions:  20
+// Total number of exported functions:  23
 
 #![no_std]
 
@@ -29,6 +29,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getFarmTokenId => staking_farm_token_id
         getLpTokenId => lp_token_id
         getLpFarmTokenId => lp_farm_token_id
+        setPermissionsHubAddress => set_permissions_hub_address
         setEnergyFactoryAddress => set_energy_factory_address
         getEnergyFactoryAddress => energy_factory_address
         addSCAddressToWhitelist => add_sc_address_to_whitelist
@@ -37,6 +38,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         stakeFarmTokens => stake_farm_tokens
         claimDualYield => claim_dual_yield_endpoint
         unstakeFarmTokens => unstake_farm_tokens
+        stakeFarmOnBehalf => stake_farm_on_behalf
+        claimDualYieldOnBehalf => claim_dual_yield_on_behalf
     )
 }
 

@@ -143,8 +143,11 @@ dependencies = [
  "mergeable",
  "multiversx-sc",
  "multiversx-sc-modules",
+ "original_owner_helper",
  "pair",
  "pausable",
+ "permissions-hub",
+ "permissions_hub_module",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -188,8 +191,11 @@ dependencies = [
  "mergeable",
  "multiversx-sc",
  "multiversx-sc-modules",
+ "original_owner_helper",
  "pair",
  "pausable",
+ "permissions-hub",
+ "permissions_hub_module",
  "permissions_module",
  "rewards",
  "sc_whitelist_module",
@@ -428,6 +434,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "original_owner_helper"
+version = "0.0.0"
+dependencies = [
+ "common_structs",
+ "multiversx-sc",
+]
+
+[[package]]
 name = "pair"
 version = "0.0.0"
 dependencies = [
@@ -449,6 +463,21 @@ version = "0.0.0"
 dependencies = [
  "multiversx-sc",
  "permissions_module",
+]
+
+[[package]]
+name = "permissions-hub"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+]
+
+[[package]]
+name = "permissions_hub_module"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "permissions-hub",
 ]
 
 [[package]]
