@@ -42,7 +42,6 @@ pub trait FarmBoostedYieldsModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
-    + utils::UtilsModule
     + undistributed_rewards::UndistributedRewardsModule
 {
     fn take_reward_slice(&self, full_reward: BigUint) -> SplitReward<Self::Api> {

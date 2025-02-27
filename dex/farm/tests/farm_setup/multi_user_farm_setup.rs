@@ -835,7 +835,7 @@ where
     pub fn check_error_collect_undistributed_boosted_rewards(&mut self, expected_message: &str) {
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.collect_undistributed_boosted_rewards(OptionalValue::None);
+                sc.collect_undistributed_boosted_rewards();
             })
             .assert_error(4, expected_message)
     }
@@ -843,7 +843,7 @@ where
     pub fn collect_undistributed_boosted_rewards(&mut self) {
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.collect_undistributed_boosted_rewards(OptionalValue::None);
+                sc.collect_undistributed_boosted_rewards();
             })
             .assert_ok();
     }

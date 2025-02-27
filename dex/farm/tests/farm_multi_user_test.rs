@@ -717,6 +717,11 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(3, 0);
 
+    // collecting multiple times has no effect
+    farm_setup.collect_undistributed_boosted_rewards();
+    farm_setup.collect_undistributed_boosted_rewards();
+    farm_setup.collect_undistributed_boosted_rewards();
+
     // check entries are not empty
     farm_setup
         .b_mock

@@ -568,11 +568,8 @@ dependencies = [
  "config",
  "energy-query",
  "multiversx-sc",
- "pair",
  "pausable",
  "permissions_module",
- "router",
- "utils",
  "week-timekeeping",
  "weekly-rewards-splitting",
 ]

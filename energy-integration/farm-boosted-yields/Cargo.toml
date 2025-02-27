@@ -29,14 +29,5 @@ path = "../common-modules/weekly-rewards-splitting"
 [dependencies.energy-query]
 path = "../common-modules/energy-query"
 
-[dependencies.utils]
-path = "../../common/modules/utils"
-
 [dependencies.common-types]
 path = "../common-types"
-
-[dependencies.router]
-path = "../../dex/router"
-
-[dependencies.pair]
-path = "../../dex/pair"

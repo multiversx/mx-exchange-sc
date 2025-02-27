@@ -165,11 +165,8 @@ dependencies = [
  "config",
  "energy-query",
  "multiversx-sc",
- "pair",
  "pausable",
  "permissions_module",
- "router",
- "utils",
  "week-timekeeping",
  "weekly-rewards-splitting",
 ]
@@ -478,18 +475,6 @@ dependencies = [
  "multiversx-sc-modules",
  "pausable",
  "permissions_module",
- "token_send",
-]
-
-[[package]]
-name = "router"
-version = "0.0.0"
-dependencies = [
- "locking_module",
- "multiversx-sc",
- "pair",
- "pausable",
- "simple-lock",
  "token_send",
 ]
 
