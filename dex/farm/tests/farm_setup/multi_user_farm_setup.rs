@@ -4,6 +4,7 @@
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use farm::external_interaction::ExternalInteractionsModule;
+use farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
@@ -21,18 +22,17 @@ use energy_query::{Energy, EnergyQueryModule};
 use energy_update::EnergyUpdate;
 use farm::Farm;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
-use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use permissions_hub::PermissionsHub;
 use permissions_hub_module::PermissionsHubModule;
 use sc_whitelist_module::SCWhitelistModule;
-use week_timekeeping::{Epoch, Week};
+use week_timekeeping::Epoch;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 
 use super::single_user_farm_setup::MEX_TOKEN_ID;
 
-pub static REWARD_TOKEN_ID: &[u8] = b"REW-123456";
+pub static REWARD_TOKEN_ID: &[u8] = MEX_TOKEN_ID;
 pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 pub const DIV_SAFETY: u64 = 1_000_000_000_000;
@@ -187,6 +187,9 @@ where
                 sc.set_permissions_hub_address(managed_address!(
                     permissions_hub_wrapper.address_ref()
                 ));
+
+                sc.multisig_address()
+                    .set(managed_address!(&undistributed_rew_dest));
             })
             .assert_ok();
 
@@ -829,33 +832,18 @@ where
             .assert_ok();
     }
 
-    pub fn check_error_collect_undistributed_boosted_rewards(
-        &mut self,
-        expected_message: &str,
-        start_week: Week,
-        end_week: Week,
-    ) {
-        let dest_address = self.undistributed_rew_dest.clone();
+    pub fn check_error_collect_undistributed_boosted_rewards(&mut self, expected_message: &str) {
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.collect_undistributed_boosted_rewards(
-                    start_week,
-                    end_week,
-                    managed_address!(&dest_address),
-                );
+                sc.collect_undistributed_boosted_rewards(OptionalValue::None);
             })
             .assert_error(4, expected_message)
     }
 
-    pub fn collect_undistributed_boosted_rewards(&mut self, start_week: Week, end_week: Week) {
-        let dest_address = self.undistributed_rew_dest.clone();
+    pub fn collect_undistributed_boosted_rewards(&mut self) {
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.collect_undistributed_boosted_rewards(
-                    start_week,
-                    end_week,
-                    managed_address!(&dest_address),
-                );
+                sc.collect_undistributed_boosted_rewards(OptionalValue::None);
             })
             .assert_ok();
     }
