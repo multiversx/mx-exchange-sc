@@ -67,6 +67,10 @@ pub trait FeesAccumulationModule:
         }
 
         let burn_amount = &payment.amount * burn_percent / MAX_PENALTY_PERCENTAGE;
+        if burn_amount == 0 {
+            return;
+        }
+
         self.send()
             .esdt_local_burn(&payment.token_identifier, 0, &burn_amount);
 
