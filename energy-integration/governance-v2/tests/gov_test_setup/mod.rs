@@ -2,7 +2,7 @@
 
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
-use fees_collector::FeesCollector;
+use fees_collector::{claim::ClaimModule, FeesCollector};
 use governance_v2::{
     configurable::ConfigurablePropertiesModule,
     proposal_storage::{ProposalStorageModule, VoteType},
@@ -112,6 +112,7 @@ where
                 sc.init(
                     managed_token_id!(XMEX_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
+                    MultiValueEncoded::new(),
                 );
             })
             .assert_ok();
