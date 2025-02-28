@@ -11,7 +11,7 @@ pub trait RedistributeRewardsModule:
     + week_timekeeping::WeekTimekeepingModule
     + multiversx_sc_modules::only_admin::OnlyAdminModule
     + crate::external_sc_interactions::router::RouterInteractionsModule
-    + crate::external_sc_interactions::pair::PairInteractionsModule
+    + energy_query::EnergyQueryModule
     + utils::UtilsModule
 {
     #[only_admin]

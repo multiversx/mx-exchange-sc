@@ -11,8 +11,9 @@ pub trait AdditionalLockedTokensModule:
     + crate::events::FeesCollectorEventsModule
     + week_timekeeping::WeekTimekeepingModule
     + crate::external_sc_interactions::router::RouterInteractionsModule
-    + crate::external_sc_interactions::pair::PairInteractionsModule
+    + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + multiversx_sc_modules::only_admin::OnlyAdminModule
 {
     #[only_owner]
     #[endpoint(setLockedTokensPerBlock)]
@@ -33,7 +34,7 @@ pub trait AdditionalLockedTokensModule:
         let amount_per_block = self.locked_tokens_per_block().get();
         let new_tokens_amount = amount_per_block * blocks_in_week;
 
-        let locked_token_id = self.locked_token_id().get();
+        let locked_token_id = self.get_locked_token_id();
         self.accumulated_fees(current_week - 1, &locked_token_id)
             .update(|fees| *fees += new_tokens_amount);
 
