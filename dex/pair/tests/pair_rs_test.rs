@@ -1655,7 +1655,7 @@ fn fees_collector_pair_test() {
         .assert_ok();
 }
 
-[test]
+#[test]
 fn try_add_liq_disabled_test() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
 
