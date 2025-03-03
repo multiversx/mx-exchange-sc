@@ -1,6 +1,8 @@
 #![allow(deprecated)]
 
 mod pair_setup;
+
+use disable_add_liq::{DisableAddLiqModule, ADD_LIQ_ENABLED};
 use fees_collector::{
     config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
 };
@@ -1292,6 +1294,8 @@ fn add_liquidity_through_simple_lock_proxy() {
         .b_mock
         .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
             sc.init();
+            sc.add_liq_enabled().set(ADD_LIQ_ENABLED);
+
             sc.locked_token()
                 .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
             sc.add_lp_to_whitelist(
@@ -1649,4 +1653,169 @@ fn fees_collector_pair_test() {
             );
         })
         .assert_ok();
+}
+
+[test]
+fn try_add_liq_disabled_test() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj);
+
+    pair_setup.add_liquidity(
+        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+    );
+
+    // init locking SC
+    let lp_address = pair_setup.pair_wrapper.address_ref().clone();
+    let rust_zero = rust_biguint!(0);
+    let locking_owner = pair_setup.b_mock.create_user_account(&rust_zero);
+    let locking_sc_wrapper = pair_setup.b_mock.create_sc_account(
+        &rust_zero,
+        Some(&locking_owner),
+        simple_lock::contract_obj,
+        "Some path",
+    );
+
+    // setup locked token
+    pair_setup
+        .b_mock
+        .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.locked_token()
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
+            sc.add_lp_to_whitelist(
+                managed_address!(&lp_address),
+                managed_token_id!(WEGLD_TOKEN_ID),
+                managed_token_id!(MEX_TOKEN_ID),
+            );
+        })
+        .assert_ok();
+
+    pair_setup.b_mock.set_esdt_local_roles(
+        locking_sc_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+
+    // setup lp proxy token
+    pair_setup
+        .b_mock
+        .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.lp_proxy_token()
+                .set_token_id(managed_token_id!(LP_PROXY_TOKEN_ID));
+        })
+        .assert_ok();
+
+    pair_setup.b_mock.set_esdt_local_roles(
+        locking_sc_wrapper.address_ref(),
+        LP_PROXY_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+
+    pair_setup.b_mock.set_block_epoch(5);
+
+    DebugApi::dummy();
+
+    // lock some tokens first
+    pair_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            WEGLD_TOKEN_ID,
+            0,
+            &rust_biguint!(1_000_000),
+            |sc| {
+                sc.lock_tokens_endpoint(10, OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    pair_setup.b_mock.check_nft_balance(
+        &pair_setup.user_address,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000_000),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(WEGLD_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 10,
+        }),
+    );
+
+    pair_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &rust_biguint!(2_000_000),
+            |sc| {
+                sc.lock_tokens_endpoint(15, OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    pair_setup.b_mock.check_nft_balance(
+        &pair_setup.user_address,
+        LOCKED_TOKEN_ID,
+        2,
+        &rust_biguint!(2_000_000),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 15,
+        }),
+    );
+
+    pair_setup.b_mock.set_block_epoch(5);
+
+    // disable add liquidity
+    pair_setup
+        .b_mock
+        .execute_tx(
+            &pair_setup.owner_address,
+            &locking_sc_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.disable_add_liq();
+            },
+        )
+        .assert_ok();
+
+    // try add liquidity through simple-lock SC - one locked (WEGLD) token, one unlocked (MEX)
+    let transfers = [
+        TxTokenTransfer {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(500_000),
+        },
+        TxTokenTransfer {
+            token_identifier: MEX_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: rust_biguint!(500_000),
+        },
+    ];
+
+    pair_setup
+        .b_mock
+        .execute_esdt_multi_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            &transfers[..],
+            |sc| {
+                let _ = sc
+                    .add_liquidity_locked_token(managed_biguint!(1), managed_biguint!(1))
+                    .into_tuple();
+            },
+        )
+        .assert_user_error("Add Liquidity is disabled");
 }

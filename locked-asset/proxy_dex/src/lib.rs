@@ -1,5 +1,7 @@
 #![no_std]
 
+use disable_add_liq::AddLiqStatus;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -36,6 +38,7 @@ pub trait ProxyDexImpl:
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
     + sc_whitelist_module::SCWhitelistModule
+    + disable_add_liq::DisableAddLiqModule
 {
     #[init]
     fn init(
@@ -46,18 +49,20 @@ pub trait ProxyDexImpl:
     ) {
         self.require_valid_token_id(&old_locked_token_id);
         self.require_sc_address(&old_factory_address);
-        self.require_sc_address(&energy_factory_address);
 
-        self.old_locked_token_id()
-            .set_if_empty(&old_locked_token_id);
-        self.old_factory_address()
-            .set_if_empty(&old_factory_address);
-        self.energy_factory_address()
-            .set_if_empty(&energy_factory_address);
+        self.set_energy_factory_address(energy_factory_address);
+
+        self.old_locked_token_id().set(&old_locked_token_id);
+        self.old_factory_address().set(&old_factory_address);
     }
 
     #[upgrade]
-    fn upgrade(&self, old_locked_token_id: TokenIdentifier, old_factory_address: ManagedAddress) {
+    fn upgrade(
+        &self,
+        old_locked_token_id: TokenIdentifier,
+        old_factory_address: ManagedAddress,
+        enable_add_liq: AddLiqStatus,
+    ) {
         require!(
             old_locked_token_id.is_valid_esdt_identifier(),
             "Invalid token id"
@@ -68,6 +73,8 @@ pub trait ProxyDexImpl:
             .set_if_empty(&old_locked_token_id);
         self.old_factory_address()
             .set_if_empty(&old_factory_address);
+
+        self.add_liq_enabled().set(enable_add_liq);
     }
 
     #[only_owner]

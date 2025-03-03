@@ -39,6 +39,7 @@ pub trait ProxyFarmModule:
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
     + sc_whitelist_module::SCWhitelistModule
+    + disable_add_liq::DisableAddLiqModule
 {
     #[payable("*")]
     #[endpoint(enterFarmProxy)]

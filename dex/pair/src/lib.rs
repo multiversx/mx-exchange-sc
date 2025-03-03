@@ -124,4 +124,3 @@ pub trait Pair<ContractReader>:
         self.lp_token_identifier().set(&token_identifier);
     }
 }
-
