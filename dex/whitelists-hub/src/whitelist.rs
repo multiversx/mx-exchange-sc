@@ -87,7 +87,7 @@ pub trait WhitelistModule:
                 let new_prefix = new_name.copy_slice(0, existing_name_len);
                 if let Some(prefix) = new_prefix {
                     require!(
-                        &prefix != &existing_name,
+                        prefix != existing_name,
                         "An existing whitelist name is a prefix of the new whitelist name"
                     );
                 }
