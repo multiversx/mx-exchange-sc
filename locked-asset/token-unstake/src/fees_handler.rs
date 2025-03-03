@@ -1,6 +1,8 @@
 multiversx_sc::imports!();
 
-pub const MAX_PENALTY_PERCENTAGE: u64 = 10_000;
+pub const MAX_PENALTY_PERCENTAGE: Percent = 10_000;
+
+use common_structs::Percent;
 
 use crate::{events, tokens_per_user::UnstakePair};
 
@@ -22,6 +24,14 @@ pub trait FeesHandlerModule:
     + utils::UtilsModule
     + events::EventsModule
 {
+    #[only_owner]
+    #[endpoint(setFeesBurnPercent)]
+    fn set_fees_burn_percent(&self, percent: Percent) {
+        require!(percent <= MAX_PENALTY_PERCENTAGE, "Invalid percent");
+
+        self.fees_burn_percentage().set(percent);
+    }
+
     #[payable("*")]
     #[endpoint(depositUserTokens)]
     fn deposit_user_tokens(&self, user: ManagedAddress) {
@@ -116,7 +126,7 @@ pub trait FeesHandlerModule:
 
     #[view(getFeesBurnPercentage)]
     #[storage_mapper("feesBurnPercentage")]
-    fn fees_burn_percentage(&self) -> SingleValueMapper<u64>;
+    fn fees_burn_percentage(&self) -> SingleValueMapper<Percent>;
 
     #[view(getFeesCollectorAddress)]
     #[storage_mapper("feesCollectorAddress")]
