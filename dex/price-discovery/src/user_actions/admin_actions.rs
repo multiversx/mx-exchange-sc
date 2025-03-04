@@ -1,6 +1,8 @@
-use crate::phase::Phase;
+use crate::{phase::Phase, Timestamp};
 
 multiversx_sc::imports!();
+
+pub static INVALID_CURRENT_PHASE_ERR_MSG: &[u8] = b"Invalid current phase";
 
 #[multiversx_sc::module]
 pub trait AdminActionsModule:
@@ -11,6 +13,34 @@ pub trait AdminActionsModule:
     + crate::redeem_token::RedeemTokenModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
+    #[endpoint(setUserDepositWithdrawTime)]
+    fn set_user_deposit_withdraw_time(&self, user_deposit_withdraw_time: Timestamp) {
+        self.require_caller_admin();
+
+        let phase = self.get_current_phase();
+        require!(
+            phase <= Phase::UserDepositWithdraw,
+            INVALID_CURRENT_PHASE_ERR_MSG
+        );
+
+        self.user_deposit_withdraw_time()
+            .set(user_deposit_withdraw_time);
+    }
+
+    #[endpoint(setOwnerDepositWithdrawTime)]
+    fn set_owner_deposit_withdraw_time(&self, owner_deposit_withdraw_time: Timestamp) {
+        self.require_caller_admin();
+
+        let phase = self.get_current_phase();
+        require!(
+            phase <= Phase::OwnerDepositWithdraw,
+            INVALID_CURRENT_PHASE_ERR_MSG
+        );
+
+        self.owner_deposit_withdraw_time()
+            .set(owner_deposit_withdraw_time);
+    }
+
     #[endpoint(setMinLaunchedTokens)]
     fn set_min_launched_tokens(&self, min_launched_tokens: BigUint) {
         self.require_caller_admin();
@@ -18,7 +48,7 @@ pub trait AdminActionsModule:
 
         let phase = self.get_current_phase();
         require!(
-            !matches!(phase, Phase::Redeem),
+            phase != Phase::Redeem,
             "May not set min launched tokens during redeem phase"
         );
 
@@ -56,7 +86,7 @@ pub trait AdminActionsModule:
 
         let phase = self.get_current_phase();
         require!(
-            !matches!(phase, Phase::Redeem),
+            phase != Phase::Redeem,
             "May not add new users during redeem phase"
         );
 
@@ -79,7 +109,7 @@ pub trait AdminActionsModule:
 
         let phase = self.get_current_phase();
         require!(
-            !matches!(phase, Phase::Redeem),
+            phase != Phase::Redeem,
             "May not refund user during redeem phase"
         );
 

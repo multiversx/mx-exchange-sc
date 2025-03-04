@@ -3,7 +3,7 @@ use crate::Timestamp;
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, PartialEq, PartialOrd)]
 pub enum Phase {
     Idle,
     UserDepositWithdraw,
@@ -40,23 +40,20 @@ pub trait PhaseModule:
 
     fn require_user_deposit_withdraw_allowed(&self, phase: &Phase) {
         require!(
-            matches!(phase, Phase::UserDepositWithdraw),
+            phase == &Phase::UserDepositWithdraw,
             "User deposit/withdraw not allowed in this phase"
         );
     }
 
     fn require_owner_deposit_withdraw_allowed(&self, phase: &Phase) {
         require!(
-            matches!(phase, Phase::OwnerDepositWithdraw),
+            phase == &Phase::OwnerDepositWithdraw,
             "Owner deposit/withdraw not allowed in this phase"
         );
     }
 
     fn require_redeem_allowed(&self, phase: &Phase) {
-        require!(
-            matches!(phase, Phase::Redeem),
-            "Redeem not allowed in this phase"
-        );
+        require!(phase == &Phase::Redeem, "Redeem not allowed in this phase");
     }
 
     #[view(getUserDepositWithdrawTime)]
