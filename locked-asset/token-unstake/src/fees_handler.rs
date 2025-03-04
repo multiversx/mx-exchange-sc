@@ -67,13 +67,26 @@ pub trait FeesHandlerModule:
         self.burn_penalty(payment);
     }
 
+    #[only_owner]
+    #[endpoint(setFeesBurnPercentage)]
+    fn set_fees_burn_percentage(&self, fees_burn_percentage: u64) {
+        require!(
+            fees_burn_percentage <= MAX_PENALTY_PERCENTAGE,
+            "Fees burn percentage exceeds the maximum allowed percentage"
+        );
+        self.fees_burn_percentage().set(fees_burn_percentage);
+    }
+
     fn burn_penalty(&self, payment: EsdtTokenPayment) {
         let fees_burn_percentage = self.fees_burn_percentage().get();
         let burn_amount = &payment.amount * fees_burn_percentage / MAX_PENALTY_PERCENTAGE;
         let remaining_amount = &payment.amount - &burn_amount;
 
-        self.send()
-            .esdt_local_burn(&payment.token_identifier, payment.token_nonce, &burn_amount);
+        self.send().esdt_non_zero_local_burn(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &burn_amount,
+        );
 
         self.send_fees_to_collector(EsdtTokenPayment::new(
             payment.token_identifier,
