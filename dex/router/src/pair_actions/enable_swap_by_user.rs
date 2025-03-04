@@ -1,11 +1,12 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use common_structs::Epoch;
 use pair::{config::ProxyTrait as _, pair_actions::views::ProxyTrait as _, read_pair_storage};
 use pausable::{ProxyTrait as _, State};
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::{config, DEFAULT_SPECIAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT};
+use super::create::{DEFAULT_SPECIAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT};
 
 static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
@@ -15,7 +16,7 @@ static PAIR_STATE_STORAGE_KEY: &[u8] = b"state";
 pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
     pub locked_token_id: TokenIdentifier<M>,
     pub min_locked_token_value: BigUint<M>,
-    pub min_lock_period_epochs: u64,
+    pub min_lock_period_epochs: Epoch,
 }
 
 pub struct SafePriceResult<M: ManagedTypeApi> {
@@ -27,10 +28,12 @@ pub struct SafePriceResult<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait EnableSwapByUserModule:
-    config::ConfigModule
+    crate::config::ConfigModule
     + read_pair_storage::ReadPairStorageModule
-    + crate::factory::FactoryModule
     + crate::events::EventsModule
+    + crate::state::StateModule
+    + super::enable_buyback_and_burn::EnableBuybackAndBurnModule
+    + crate::views::ViewsModule
 {
     #[only_owner]
     #[endpoint(configEnableByUserParameters)]
@@ -39,11 +42,11 @@ pub trait EnableSwapByUserModule:
         common_token_id: TokenIdentifier,
         locked_token_id: TokenIdentifier,
         min_locked_token_value: BigUint,
-        min_lock_period_epochs: u64,
+        min_lock_period_epochs: Epoch,
     ) {
         require!(
             common_token_id.is_valid_esdt_identifier(),
-            "Invalid locked token ID"
+            "Invalid common token ID"
         );
         require!(
             locked_token_id.is_valid_esdt_identifier(),
@@ -70,6 +73,7 @@ pub trait EnableSwapByUserModule:
         let mut whitelist = self.common_tokens_for_user_pairs();
         for token in tokens {
             require!(token.is_valid_esdt_identifier(), "Invalid token ID");
+
             let _ = whitelist.insert(token);
         }
     }
@@ -79,14 +83,15 @@ pub trait EnableSwapByUserModule:
     fn remove_common_tokens_for_user_pairs(&self, tokens: MultiValueEncoded<TokenIdentifier>) {
         let mut whitelist = self.common_tokens_for_user_pairs();
         for token in tokens {
-            let _ = whitelist.swap_remove(&token);
+            let removed = whitelist.swap_remove(&token);
+            require!(removed, "Token not present in whitelist");
         }
     }
 
     #[payable("*")]
     #[endpoint(setSwapEnabledByUser)]
     fn set_swap_enabled_by_user(&self, pair_address: ManagedAddress) {
-        require!(self.is_active(), "Not active");
+        self.require_active();
         self.check_is_pair_sc(&pair_address);
         self.require_state_active_no_swaps(&pair_address);
 
@@ -136,6 +141,7 @@ pub trait EnableSwapByUserModule:
 
         self.set_fee_percents(pair_address.clone());
         self.pair_resume(pair_address.clone());
+        self.enable_buyback_and_burn(pair_address.clone());
 
         self.send().direct_esdt(
             &caller,
@@ -145,10 +151,10 @@ pub trait EnableSwapByUserModule:
         );
 
         self.emit_user_swaps_enabled_event(
-            caller,
-            lp_token_safe_price_result.first_token_id,
-            lp_token_safe_price_result.second_token_id,
-            pair_address,
+            &caller,
+            &lp_token_safe_price_result.first_token_id,
+            &lp_token_safe_price_result.second_token_id,
+            &pair_address,
         );
     }
 
@@ -188,6 +194,7 @@ pub trait EnableSwapByUserModule:
             common_token_id: first_result.token_identifier,
             safe_price_in_common_token: BigUint::zero(),
         };
+
         let whitelist = self.common_tokens_for_user_pairs();
         if whitelist.contains(&safe_price_result.first_token_id) {
             safe_price_result.safe_price_in_common_token = first_result.amount;
@@ -254,4 +261,10 @@ pub trait EnableSwapByUserModule:
 
     #[proxy]
     fn user_pair_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
+
+    #[storage_mapper("enableSwapByUserConfig")]
+    fn enable_swap_by_user_config(
+        &self,
+        token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<EnableSwapByUserConfig<Self::Api>>;
 }

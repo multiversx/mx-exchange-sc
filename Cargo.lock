@@ -1744,6 +1744,7 @@ dependencies = [
 name = "router"
 version = "0.0.0"
 dependencies = [
+ "common_structs",
  "locking_module",
  "multiversx-sc",
  "multiversx-sc-scenario",
