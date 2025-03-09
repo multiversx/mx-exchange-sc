@@ -16,7 +16,7 @@ use multiversx_sc_scenario::{
 fn test_enter_and_claim_farm_on_behalf() {
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -64,7 +64,7 @@ fn test_multiple_positions_on_behalf() {
 
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -169,7 +169,7 @@ fn test_multiple_positions_on_behalf() {
 fn test_enter_and_claim_farm_on_behalf_not_whitelisted_error() {
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -221,7 +221,7 @@ fn test_enter_and_claim_farm_on_behalf_not_whitelisted_error() {
 fn test_wrong_original_owner_on_behalf_validation() {
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -339,7 +339,7 @@ fn test_multiple_position_claim_on_behalf_average_rps_computation() {
 
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
