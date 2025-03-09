@@ -1,18 +1,11 @@
+multiversx_sc::imports!();
+
 use common_types::Week;
+use energy_factory::unlocked_token_transfer::ProxyTrait as _;
 use week_timekeeping::FIRST_WEEK;
 use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
 
-multiversx_sc::imports!();
-
-mod energy_factory_proxy_send_rew {
-    multiversx_sc::imports!();
-
-    #[multiversx_sc::proxy]
-    pub trait EnergyFactorySendRewProxy {
-        #[endpoint(transferUnlockedToken)]
-        fn transfer_unlocked_token(&self, dest: ManagedAddress, amount: BigUint);
-    }
-}
+pub const MIN_GAS_FOR_PROCESS: u64 = 5_000_000;
 
 #[multiversx_sc::module]
 pub trait UndistributedRewardsModule:
@@ -23,19 +16,8 @@ pub trait UndistributedRewardsModule:
     + energy_query::EnergyQueryModule
 {
     #[only_owner]
-    #[endpoint(setMultisigAddress)]
-    fn set_multisig_address(&self, multisig_address: ManagedAddress) {
-        self.multisig_address().set(multisig_address);
-    }
-
-    #[only_owner]
     #[endpoint(collectUndistributedBoostedRewards)]
     fn collect_undistributed_boosted_rewards(&self) -> BigUint {
-        require!(
-            !self.multisig_address().is_empty(),
-            "No multisig address set"
-        );
-
         let collect_rewards_offset = USER_MAX_CLAIM_WEEKS + 1;
         let current_week = self.get_current_week();
         require!(
@@ -49,12 +31,19 @@ pub trait UndistributedRewardsModule:
         } else {
             FIRST_WEEK
         };
-        let end_week = current_week - collect_rewards_offset;
+        let mut end_week = current_week - collect_rewards_offset;
 
         let mut total_rewards = BigUint::zero();
+        let min_gas_for_process = self.min_gas_for_process().get();
         for week in start_week..=end_week {
             let rewards_to_distribute = self.remaining_boosted_rewards_to_distribute(week).take();
             total_rewards += rewards_to_distribute;
+
+            let remaining_gas = self.blockchain().get_gas_left();
+            if remaining_gas <= min_gas_for_process {
+                end_week = week;
+                break;
+            }
         }
 
         self.last_collect_undist_week().set(end_week + 1);
@@ -69,19 +58,25 @@ pub trait UndistributedRewardsModule:
     }
 
     fn distribute_leftover_rewards(&self, total_rewards: &BigUint) {
-        let multisig_address = self.multisig_address().get();
         let base_token_id = self.get_base_token_id();
         let reward_token_id = self.reward_token_id().get();
         if base_token_id == reward_token_id {
             let energy_factory = self.energy_factory_address().get();
             let _: () = self
-                .energy_factory_send_rew_proxy_obj(energy_factory)
-                .transfer_unlocked_token(multisig_address, total_rewards.clone())
+                .energy_factory_proxy(energy_factory)
+                .transfer_unlocked_token(total_rewards.clone())
                 .execute_on_dest_context();
         } else {
+            let owner = self.blockchain().get_caller();
             self.send()
-                .direct_esdt(&multisig_address, &reward_token_id, 0, total_rewards);
+                .direct_esdt(&owner, &reward_token_id, 0, total_rewards);
         }
+    }
+
+    #[only_owner]
+    #[endpoint(setMinGasForProcess)]
+    fn set_min_gas_for_process(&self, min_gas_for_process: u64) {
+        self.min_gas_for_process().set(min_gas_for_process);
     }
 
     #[view(getRemainingBoostedRewardsToDistribute)]
@@ -91,12 +86,9 @@ pub trait UndistributedRewardsModule:
     #[storage_mapper("multisigAddress")]
     fn multisig_address(&self) -> SingleValueMapper<ManagedAddress>;
 
+    #[storage_mapper("minGasForProcess")]
+    fn min_gas_for_process(&self) -> SingleValueMapper<u64>;
+
     #[storage_mapper("lastCollectUndistWeek")]
     fn last_collect_undist_week(&self) -> SingleValueMapper<Week>;
-
-    #[proxy]
-    fn energy_factory_send_rew_proxy_obj(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> energy_factory_proxy_send_rew::Proxy<Self::Api>;
 }

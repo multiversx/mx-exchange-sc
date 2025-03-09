@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           72
+// Endpoints:                           71
 // Async Callback:                       1
-// Total number of exported functions:  75
+// Total number of exported functions:  74
 
 #![no_std]
 
@@ -77,7 +77,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getFarmSupplyForWeek => farm_supply_for_week
         setBoostedYieldsFactors => set_boosted_yields_factors
         getBoostedYieldsFactors => get_boosted_yields_factors
-        setMultisigAddress => set_multisig_address
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getRemainingBoostedRewardsToDistribute => remaining_boosted_rewards_to_distribute
         getCurrentWeek => get_current_week

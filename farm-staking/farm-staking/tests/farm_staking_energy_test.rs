@@ -2082,8 +2082,6 @@ fn owner_claim_undist_rewards_test() {
             &fs_setup.farm_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.set_multisig_address(managed_address!(&owner));
-
                 let undist_rewards = sc.collect_undistributed_boosted_rewards();
                 assert_eq!(undist_rewards, 22);
             },

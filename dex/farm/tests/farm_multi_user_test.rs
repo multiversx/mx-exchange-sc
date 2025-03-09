@@ -16,7 +16,7 @@ fn farm_with_no_boost_test() {
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -115,7 +115,7 @@ fn farm_with_boosted_yields_test() {
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -228,7 +228,7 @@ fn farm_change_boosted_yields_factors_test() {
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -292,7 +292,7 @@ fn farm_boosted_yields_claim_with_different_user_pos_test() {
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -399,7 +399,7 @@ fn farm_known_proxy_test() {
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -499,10 +499,13 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
+
+    let farm_address = farm_setup.farm_wrapper.address_ref().clone();
+    farm_setup.whitelist_token_transfer_address(&farm_address);
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
@@ -755,7 +758,7 @@ fn farm_enter_with_multiple_farm_token() {
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -871,10 +874,13 @@ fn farm_claim_with_minimum_tokens() {
     DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
+
+    let farm_address = farm_setup.farm_wrapper.address_ref().clone();
+    farm_setup.whitelist_token_transfer_address(&farm_address);
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();

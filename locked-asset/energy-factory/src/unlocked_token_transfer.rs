@@ -32,8 +32,14 @@ pub trait UnlockedTokenTransferModule:
         }
     }
 
+    #[only_owner]
+    #[endpoint(setMultisigAddress)]
+    fn set_multisig_address(&self, multisig_address: ManagedAddress) {
+        self.multisig_address().set(multisig_address);
+    }
+
     #[endpoint(transferUnlockedToken)]
-    fn transfer_unlocked_token(&self, dest: ManagedAddress, amount: BigUint) {
+    fn transfer_unlocked_token(&self, amount: BigUint) {
         self.require_not_paused();
         require!(amount != 0, "Invalid amount");
 
@@ -42,13 +48,21 @@ pub trait UnlockedTokenTransferModule:
             self.unlocked_token_transfer_whitelist().contains(&caller),
             "May not call this endpoint"
         );
+        require!(
+            !self.multisig_address().is_empty(),
+            "No multisig address set"
+        );
 
+        let multisig_address = self.multisig_address().get();
         let base_asset_token_id = self.base_asset_token_id().get();
         self.send()
             .esdt_local_mint(&base_asset_token_id, 0, &amount);
         self.send()
-            .direct_esdt(&dest, &base_asset_token_id, 0, &amount);
+            .direct_esdt(&multisig_address, &base_asset_token_id, 0, &amount);
     }
+
+    #[storage_mapper("multisigAddress")]
+    fn multisig_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[storage_mapper("ulkTokenTransfWhitelist")]
     fn unlocked_token_transfer_whitelist(&self) -> WhitelistMapper<ManagedAddress>;
