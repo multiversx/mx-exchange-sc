@@ -16,6 +16,12 @@ pub trait UndistributedRewardsModule:
     + energy_query::EnergyQueryModule
 {
     #[only_owner]
+    #[endpoint(setMinGasForProcess)]
+    fn set_min_gas_for_process(&self, min_gas_for_process: u64) {
+        self.min_gas_for_process().set(min_gas_for_process);
+    }
+
+    #[only_owner]
     #[endpoint(collectUndistributedBoostedRewards)]
     fn collect_undistributed_boosted_rewards(&self) -> BigUint {
         let collect_rewards_offset = USER_MAX_CLAIM_WEEKS + 1;
@@ -71,12 +77,6 @@ pub trait UndistributedRewardsModule:
             self.send()
                 .direct_esdt(&owner, &reward_token_id, 0, total_rewards);
         }
-    }
-
-    #[only_owner]
-    #[endpoint(setMinGasForProcess)]
-    fn set_min_gas_for_process(&self, min_gas_for_process: u64) {
-        self.min_gas_for_process().set(min_gas_for_process);
     }
 
     #[view(getRemainingBoostedRewardsToDistribute)]
