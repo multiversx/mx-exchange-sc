@@ -212,9 +212,6 @@ where
                 sc.set_permissions_hub_address(managed_address!(
                     permissions_hub_wrapper.address_ref()
                 ));
-
-                sc.multisig_address()
-                    .set(managed_address!(&undistributed_rew_dest));
             })
             .assert_ok();
 

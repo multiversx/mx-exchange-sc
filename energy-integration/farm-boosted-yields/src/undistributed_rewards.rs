@@ -5,8 +5,6 @@ use energy_factory::unlocked_token_transfer::ProxyTrait as _;
 use week_timekeeping::FIRST_WEEK;
 use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
 
-pub const MIN_GAS_FOR_PROCESS: u64 = 5_000_000;
-
 #[multiversx_sc::module]
 pub trait UndistributedRewardsModule:
     config::ConfigModule
@@ -15,12 +13,6 @@ pub trait UndistributedRewardsModule:
     + permissions_module::PermissionsModule
     + energy_query::EnergyQueryModule
 {
-    #[only_owner]
-    #[endpoint(setMinGasForProcess)]
-    fn set_min_gas_for_process(&self, min_gas_for_process: u64) {
-        self.min_gas_for_process().set(min_gas_for_process);
-    }
-
     #[only_owner]
     #[endpoint(collectUndistributedBoostedRewards)]
     fn collect_undistributed_boosted_rewards(&self) -> BigUint {
@@ -37,19 +29,12 @@ pub trait UndistributedRewardsModule:
         } else {
             FIRST_WEEK
         };
-        let mut end_week = current_week - collect_rewards_offset;
+        let end_week = current_week - collect_rewards_offset;
 
         let mut total_rewards = BigUint::zero();
-        let min_gas_for_process = self.min_gas_for_process().get();
         for week in start_week..=end_week {
             let rewards_to_distribute = self.remaining_boosted_rewards_to_distribute(week).take();
             total_rewards += rewards_to_distribute;
-
-            let remaining_gas = self.blockchain().get_gas_left();
-            if remaining_gas <= min_gas_for_process {
-                end_week = week;
-                break;
-            }
         }
 
         self.last_collect_undist_week().set(end_week + 1);
@@ -82,12 +67,6 @@ pub trait UndistributedRewardsModule:
     #[view(getRemainingBoostedRewardsToDistribute)]
     #[storage_mapper("remainingBoostedRewardsToDistribute")]
     fn remaining_boosted_rewards_to_distribute(&self, week: Week) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("multisigAddress")]
-    fn multisig_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[storage_mapper("minGasForProcess")]
-    fn min_gas_for_process(&self) -> SingleValueMapper<u64>;
 
     #[storage_mapper("lastCollectUndistWeek")]
     fn last_collect_undist_week(&self) -> SingleValueMapper<Week>;

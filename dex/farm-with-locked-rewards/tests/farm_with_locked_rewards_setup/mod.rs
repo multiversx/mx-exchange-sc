@@ -39,7 +39,7 @@ pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 const DIV_SAFETY: u64 = 1_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
-const FARMING_TOKEN_BALANCE: u64 = 100_000_000;
+pub const FARMING_TOKEN_BALANCE: u64 = 100_000_000;
 pub const MAX_PERCENTAGE: u64 = 10_000; // 100%
 pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
 pub const USER_REWARDS_BASE_CONST: u64 = 10;
@@ -210,6 +210,13 @@ where
             farm_wrapper.address_ref(),
             FARMING_TOKEN_ID,
             &farming_token_roles[..],
+        );
+
+        let reward_token_roles = [EsdtLocalRole::Mint];
+        b_mock.set_esdt_local_roles(
+            energy_factory_wrapper.address_ref(),
+            REWARD_TOKEN_ID,
+            &reward_token_roles[..],
         );
 
         let locked_reward_token_roles = [

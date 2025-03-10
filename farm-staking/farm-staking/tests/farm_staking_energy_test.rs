@@ -2017,6 +2017,19 @@ fn owner_claim_undist_rewards_test() {
         )
         .assert_ok();
 
+    // try to collect rewards too early - should fail
+    fs_setup
+        .b_mock
+        .execute_tx(
+            &fs_setup.owner_address,
+            &fs_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.collect_undistributed_boosted_rewards();
+            },
+        )
+        .assert_error(4, "Current week must be higher than the week offset");
+
     // first user claim - week 5
     fs_setup.set_block_epoch(34);
     fs_setup.set_block_nonce(50);
@@ -2073,6 +2086,27 @@ fn owner_claim_undist_rewards_test() {
 
     fs_setup.set_block_epoch(49);
 
+    // Verify remaining rewards state
+    fs_setup
+        .b_mock
+        .execute_query(&fs_setup.farm_wrapper, |sc| {
+            // Check remaining rewards for weeks 1-3
+            let remaining1 = sc.remaining_boosted_rewards_to_distribute(1).get();
+            let remaining2 = sc.remaining_boosted_rewards_to_distribute(2).get();
+            let remaining3 = sc.remaining_boosted_rewards_to_distribute(3).get();
+
+            // We should have some undistributed rewards
+            assert!(
+                remaining1 > 0 || remaining2 > 0 || remaining3 > 0,
+                "Should have remaining rewards to distribute"
+            );
+
+            // Check last_collect_undist_week is not set yet
+            let last_collect = sc.last_collect_undist_week().get();
+            assert_eq!(last_collect, 0, "Last collect week should be 0 initially");
+        })
+        .assert_ok();
+
     // owner collect undist rewards
     let owner = fs_setup.owner_address.clone();
     fs_setup
@@ -2084,6 +2118,14 @@ fn owner_claim_undist_rewards_test() {
             |sc| {
                 let undist_rewards = sc.collect_undistributed_boosted_rewards();
                 assert_eq!(undist_rewards, 22);
+
+                // Verify last_collect_undist_week was updated
+                let last_collect = sc.last_collect_undist_week().get();
+                assert!(last_collect > 0, "Last collect week should be updated");
+
+                // Verify remaining rewards for week 1 are now zero
+                let remaining1 = sc.remaining_boosted_rewards_to_distribute(1).get();
+                assert_eq!(remaining1, 0u64, "Week 1 rewards should now be zero");
             },
         )
         .assert_ok();
