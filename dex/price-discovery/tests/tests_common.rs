@@ -1,17 +1,15 @@
 #![allow(deprecated)]
 
-use multiversx_sc::types::{Address, EsdtLocalRole, MultiValueEncoded};
+use multiversx_sc::types::{Address, MultiValueEncoded};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id_wrapped, whitebox_legacy::*,
 };
 use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 
 use price_discovery::common_storage::CommonStorageModule;
-use price_discovery::redeem_token::*;
 use price_discovery::user_actions::admin_actions::AdminActionsModule;
 use price_discovery::*;
 
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use user_actions::owner_deposit_withdraw::OwnerDepositWithdrawModule;
 use user_actions::redeem::RedeemModule;
 use user_actions::user_deposit_withdraw::UserDepositWithdrawModule;
@@ -20,7 +18,6 @@ static PD_WASM_PATH: &str = "../output/price-discovery.wasm";
 
 pub static LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
 pub static ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
-pub static REDEEM_TOKEN_ID: &[u8] = b"GIBREWARDS-123456";
 pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
 pub const USER_BALANCE: u64 = 1_000_000_000;
 
@@ -73,13 +70,6 @@ where
             &rust_biguint!(USER_BALANCE),
         );
 
-        // set sc roles and initial minted SFTs (only needed for the purpose of SFT add quantity)
-        b_mock.set_esdt_local_roles(
-            pd_wrapper.address_ref(),
-            REDEEM_TOKEN_ID,
-            &[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
-        );
-
         b_mock.set_block_timestamp(START_TIME - 1);
 
         // init Price Discovery SC
@@ -98,10 +88,6 @@ where
 
                 sc.min_launched_tokens()
                     .set(managed_biguint!(MIN_LAUNCHED_TOKENS));
-
-                sc.redeem_token()
-                    .set_token_id(managed_token_id!(REDEEM_TOKEN_ID));
-                sc.transfer_role_set().set(true);
 
                 let mut pairs = MultiValueEncoded::new();
                 pairs.push((managed_address!(&first_user_address), managed_biguint!(0)).into());
@@ -139,16 +125,10 @@ where
     }
 
     pub fn call_user_withdraw(&mut self, user: &Address, amount: u64) -> TxResult {
-        self.b_mock.execute_esdt_transfer(
-            user,
-            &self.pd_wrapper,
-            REDEEM_TOKEN_ID,
-            0,
-            &rust_biguint!(amount),
-            |sc| {
-                sc.user_withdraw_endpoint();
-            },
-        )
+        self.b_mock
+            .execute_tx(user, &self.pd_wrapper, &rust_biguint!(0), |sc| {
+                sc.user_withdraw_endpoint(managed_biguint!(amount));
+            })
     }
 
     pub fn call_owner_deposit(&mut self, amount: u64) -> TxResult {
@@ -175,17 +155,11 @@ where
         )
     }
 
-    pub fn call_user_redeem(&mut self, user: &Address, amount: u64) -> TxResult {
-        self.b_mock.execute_esdt_transfer(
-            user,
-            &self.pd_wrapper,
-            REDEEM_TOKEN_ID,
-            0,
-            &rust_biguint!(amount),
-            |sc| {
+    pub fn call_user_redeem(&mut self, user: &Address) -> TxResult {
+        self.b_mock
+            .execute_tx(user, &self.pd_wrapper, &rust_biguint!(0), |sc| {
                 sc.redeem();
-            },
-        )
+            })
     }
 
     pub fn call_owner_redeem(&mut self) -> TxResult {

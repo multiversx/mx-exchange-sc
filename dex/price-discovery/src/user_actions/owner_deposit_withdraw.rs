@@ -9,15 +9,12 @@ pub trait OwnerDepositWithdrawModule:
     crate::common_storage::CommonStorageModule
     + crate::events::EventsModule
     + crate::phase::PhaseModule
-    + crate::redeem_token::RedeemTokenModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
     #[payable("*")]
     #[endpoint(ownerDeposit)]
     fn owner_deposit(&self) {
-        self.require_redeem_token_setup_complete();
-
         let min_launched_tokens = self.min_launched_tokens().get();
         require!(min_launched_tokens > 0, "Min launched tokens not set yet");
 
@@ -40,8 +37,6 @@ pub trait OwnerDepositWithdrawModule:
     #[only_owner]
     #[endpoint(ownerWithdraw)]
     fn owner_withdraw(&self, withdraw_amount: BigUint) -> EsdtTokenPayment {
-        self.require_redeem_token_setup_complete();
-
         let phase = self.get_current_phase();
         self.require_owner_deposit_withdraw_allowed(&phase);
 

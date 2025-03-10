@@ -5,7 +5,6 @@ multiversx_sc::imports!();
 pub mod common_storage;
 pub mod events;
 pub mod phase;
-pub mod redeem_token;
 pub mod user_actions;
 pub mod views;
 
@@ -21,7 +20,6 @@ pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + events::EventsModule
     + phase::PhaseModule
-    + redeem_token::RedeemTokenModule
     + user_actions::user_deposit_withdraw::UserDepositWithdrawModule
     + user_actions::owner_deposit_withdraw::OwnerDepositWithdrawModule
     + user_actions::redeem::RedeemModule
