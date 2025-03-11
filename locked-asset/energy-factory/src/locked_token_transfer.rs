@@ -15,6 +15,7 @@ pub trait LockedTokenTransferModule:
         let mapper = self.token_transfer_whitelist();
         for sc_addr in sc_addresses {
             self.require_sc_address(&sc_addr);
+
             mapper.add(&sc_addr);
         }
     }
@@ -38,6 +39,7 @@ pub trait LockedTokenTransferModule:
         energy: Energy<Self::Api>,
     ) {
         self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         self.token_transfer_whitelist().require_whitelisted(&caller);
 
