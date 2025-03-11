@@ -8,7 +8,7 @@ use farm_with_locked_rewards_setup::{
     FARMING_TOKEN_BALANCE, FARMING_TOKEN_ID, MAX_PERCENTAGE, PER_BLOCK_REWARD_AMOUNT,
     REWARD_TOKEN_ID,
 };
-use multiversx_sc::{codec::Empty, imports::OptionalValue};
+use multiversx_sc::{codec::Empty, imports::OptionalValue, types::MultiValueEncoded};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -747,9 +747,11 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
             &farm_setup.energy_factory_wrapper,
             &rust_biguint!(0),
             |sc| {
+                let mut addresses = MultiValueEncoded::new();
+                addresses.push(managed_address!(farm_setup.farm_wrapper.address_ref()));
+                sc.add_to_unlocked_token_mint_whitelist(addresses);
+
                 sc.set_multisig_address(managed_address!(&multisig_address));
-                sc.unlocked_token_transfer_whitelist()
-                    .add(&managed_address!(farm_setup.farm_wrapper.address_ref()));
             },
         )
         .assert_ok();
@@ -1085,8 +1087,9 @@ fn collect_undistributed_rewards_conditions_checks_test() {
             &farm_setup.energy_factory_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.unlocked_token_transfer_whitelist()
-                    .add(&managed_address!(farm_setup.farm_wrapper.address_ref()));
+                let mut addresses = MultiValueEncoded::new();
+                addresses.push(managed_address!(farm_setup.farm_wrapper.address_ref()));
+                sc.add_to_unlocked_token_mint_whitelist(addresses);
             },
         )
         .assert_ok();

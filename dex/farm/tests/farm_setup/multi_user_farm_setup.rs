@@ -704,7 +704,7 @@ where
                 |sc| {
                     let mut addresses = MultiValueEncoded::new();
                     addresses.push(managed_address!(address_to_whitelist));
-                    sc.add_to_unlocked_token_transfer_whitelist(addresses);
+                    sc.add_to_unlocked_token_mint_whitelist(addresses);
                 },
             )
             .assert_ok();

@@ -7,28 +7,28 @@ pub trait UnlockedTokenTransferModule:
     + crate::token_whitelist::TokenWhitelistModule
 {
     #[only_owner]
-    #[endpoint(addToUnlockedTokenTransferWhitelist)]
-    fn add_to_unlocked_token_transfer_whitelist(
+    #[endpoint(addToUnlockedTokenMintWhitelist)]
+    fn add_to_unlocked_token_mint_whitelist(
         &self,
         sc_addresses: MultiValueEncoded<ManagedAddress>,
     ) {
-        let mapper = self.unlocked_token_transfer_whitelist();
+        let mut mapper = self.unlocked_token_mint_whitelist();
         for sc_addr in sc_addresses {
             self.require_sc_address(&sc_addr);
 
-            mapper.add(&sc_addr);
+            mapper.insert(sc_addr);
         }
     }
 
     #[only_owner]
-    #[endpoint(removeFromUnlockedTokenTransferWhitelist)]
-    fn remove_from_unlocked_token_transfer_whitelist(
+    #[endpoint(removeFromUnlockedTokenMintWhitelist)]
+    fn remove_from_unlocked_token_mint_whitelist(
         &self,
         sc_addresses: MultiValueEncoded<ManagedAddress>,
     ) {
-        let mapper = self.unlocked_token_transfer_whitelist();
+        let mut mapper = self.unlocked_token_mint_whitelist();
         for sc_addr in sc_addresses {
-            mapper.remove(&sc_addr);
+            mapper.swap_remove(&sc_addr);
         }
     }
 
@@ -45,7 +45,7 @@ pub trait UnlockedTokenTransferModule:
 
         let caller = self.blockchain().get_caller();
         require!(
-            self.unlocked_token_transfer_whitelist().contains(&caller),
+            self.unlocked_token_mint_whitelist().contains(&caller),
             "Address is not whitelisted for token transfer"
         );
         require!(
@@ -64,6 +64,6 @@ pub trait UnlockedTokenTransferModule:
     #[storage_mapper("multisigAddress")]
     fn multisig_address(&self) -> SingleValueMapper<ManagedAddress>;
 
-    #[storage_mapper("ulkTokenTransfWhitelist")]
-    fn unlocked_token_transfer_whitelist(&self) -> WhitelistMapper<ManagedAddress>;
+    #[storage_mapper("unlockedTokenMintWhitelist")]
+    fn unlocked_token_mint_whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
 }
