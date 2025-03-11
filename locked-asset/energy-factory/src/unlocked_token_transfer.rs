@@ -46,7 +46,7 @@ pub trait UnlockedTokenTransferModule:
         let caller = self.blockchain().get_caller();
         require!(
             self.unlocked_token_transfer_whitelist().contains(&caller),
-            "May not call this endpoint"
+            "Address is not whitelisted for token transfer"
         );
         require!(
             !self.multisig_address().is_empty(),

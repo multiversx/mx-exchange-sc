@@ -723,23 +723,23 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
         permissions_hub::contract_obj,
     );
 
-    // 1. Set up boosted yields configuration
+    // Set up boosted yields configuration
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
     farm_setup.b_mock.set_block_epoch(2);
 
-    // 2. Setup necessary addresses
+    // Setup necessary addresses
     let first_user = farm_setup.first_user.clone();
     let second_user = farm_setup.second_user.clone();
     let third_user = farm_setup.third_user.clone();
     let multisig_address = farm_setup.b_mock.create_user_account(&rust_biguint!(0));
 
-    // 3. Set up users with energy
+    // Set up users with energy
     farm_setup.set_user_energy(&first_user, 10_000, 2, 10);
     farm_setup.set_user_energy(&second_user, 5_000, 2, 10);
     farm_setup.set_user_energy(&third_user, 2_500, 2, 10);
 
-    // 4. Configure farm to use energy factory
+    // Configure farm to use energy factory
     farm_setup
         .b_mock
         .execute_tx(
@@ -754,17 +754,17 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
         )
         .assert_ok();
 
-    // 5. Enter farm with multiple users
+    // Enter farm with multiple users
     let farm_in_amount = 100_000_000;
     farm_setup.enter_farm(&first_user, farm_in_amount);
     farm_setup.enter_farm(&second_user, farm_in_amount);
     farm_setup.enter_farm(&third_user, farm_in_amount);
 
-    // 6. Users claim rewards to get energy registered
+    // Users claim rewards to get energy registered
     let _ = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
     let _ = farm_setup.claim_rewards(&second_user, 2, farm_in_amount);
 
-    // 7. Week 1: Generate rewards by advancing blocks
+    // Week 1: Generate rewards by advancing blocks
     farm_setup.b_mock.set_block_nonce(10);
     farm_setup.b_mock.set_block_epoch(6);
     farm_setup.set_user_energy(&first_user, 10_000, 6, 10);
@@ -794,7 +794,7 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
     farm_setup.enter_farm(&rand_user, 1);
     farm_setup.exit_farm(&rand_user, 6, 1);
 
-    // 8. Week 2: More activity
+    // Week 2: More activity
     farm_setup.b_mock.set_block_nonce(20);
     farm_setup.b_mock.set_block_epoch(13);
     farm_setup.set_user_energy(&first_user, 10_000, 13, 10);
@@ -804,7 +804,7 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
     farm_setup.enter_farm(&rand_user, 1);
     farm_setup.exit_farm(&rand_user, 7, 1);
 
-    // 9. Week 3: More activity
+    // Week 3: More activity
     farm_setup.b_mock.set_block_nonce(30);
     farm_setup.b_mock.set_block_epoch(20);
     farm_setup.set_user_energy(&first_user, 10_000, 20, 10);
@@ -818,23 +818,10 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
     let _ = farm_setup.claim_rewards(&first_user, 4, farm_in_amount);
     let _ = farm_setup.claim_rewards(&second_user, 5, farm_in_amount);
 
-    // 10. Try to collect too early (should fail)
-    farm_setup
-        .b_mock
-        .execute_tx(
-            &farm_setup.owner,
-            &farm_setup.farm_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                sc.collect_undistributed_boosted_rewards();
-            },
-        )
-        .assert_error(4, "Current week must be higher than the week offset");
-
-    // 11. Advance to a valid collection period
+    // Advance to a valid collection period
     farm_setup.b_mock.set_block_epoch(40);
 
-    // 12. Check state before collection
+    // Check state before collection
     farm_setup
         .b_mock
         .execute_query(&farm_setup.farm_wrapper, |sc| {
@@ -855,7 +842,7 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
         .b_mock
         .check_esdt_balance(&multisig_address, REWARD_TOKEN_ID, &rust_biguint!(0));
 
-    // 13. Collect undistributed rewards
+    // Collect undistributed rewards
     let mut collected_amount = 0u64;
     farm_setup
         .b_mock
@@ -881,14 +868,14 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
         )
         .assert_ok();
 
-    // 14. Verify rewards were transferred to multisig
+    // Verify rewards were transferred to multisig
     farm_setup.b_mock.check_esdt_balance(
         &multisig_address,
         REWARD_TOKEN_ID,
         &rust_biguint!(collected_amount),
     );
 
-    // 15. Verify storage was properly updated
+    // Verify storage was properly updated
     farm_setup
         .b_mock
         .execute_query(&farm_setup.farm_wrapper, |sc| {
@@ -908,7 +895,7 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
         })
         .assert_ok();
 
-    // 16. Advanced collection - process remaining weeks
+    // Process remaining weeks
     farm_setup.b_mock.set_block_epoch(45); // Advance further in time
 
     let mut second_collection_amount = 0u64;
@@ -932,7 +919,7 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
         )
         .assert_ok();
 
-    // 17. Verify storage was properly updated
+    // Verify storage was properly updated
     farm_setup
         .b_mock
         .execute_query(&farm_setup.farm_wrapper, |sc| {
@@ -946,14 +933,14 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
         })
         .assert_ok();
 
-    // 18. Verify total rewards transferred matches collected amounts
+    // Verify total rewards transferred matches collected amounts
     farm_setup.b_mock.check_esdt_balance(
         &multisig_address,
         REWARD_TOKEN_ID,
         &rust_biguint!(collected_amount + second_collection_amount),
     );
 
-    // 19. Verify empty collection
+    // Verify empty storage
     farm_setup.b_mock.set_block_epoch(50); // Advance even further
 
     farm_setup
@@ -968,6 +955,178 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
 
                 // There should be no more rewards to collect
                 assert_eq!(third_collection, 0, "No more rewards should be available");
+            },
+        )
+        .assert_ok();
+}
+
+#[test]
+fn collect_undistributed_rewards_conditions_checks_test() {
+    DebugApi::dummy();
+    let mut farm_setup = FarmSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
+
+    // Set up boosted yields configuration
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    // Setup necessary addresses
+    let first_user = farm_setup.first_user.clone();
+    let second_user = farm_setup.second_user.clone();
+    let third_user = farm_setup.third_user.clone();
+
+    // Set up users with energy
+    farm_setup.set_user_energy(&first_user, 10_000, 2, 10);
+    farm_setup.set_user_energy(&second_user, 5_000, 2, 10);
+    farm_setup.set_user_energy(&third_user, 2_500, 2, 10);
+
+    // Enter farm with multiple users
+    let farm_in_amount = 100_000_000;
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+    farm_setup.enter_farm(&second_user, farm_in_amount);
+    farm_setup.enter_farm(&third_user, farm_in_amount);
+
+    // Users claim rewards to get energy registered
+    let _ = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
+    let _ = farm_setup.claim_rewards(&second_user, 2, farm_in_amount);
+
+    // Week 1: Generate rewards by advancing blocks
+    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_epoch(6);
+    farm_setup.set_user_energy(&first_user, 10_000, 6, 10);
+    farm_setup.set_user_energy(&second_user, 5_000, 6, 10);
+    farm_setup.set_user_energy(&third_user, 2_500, 6, 10);
+
+    // Create a transaction to force reward accumulation
+    let rand_user = farm_setup.b_mock.create_user_account(&rust_biguint!(0));
+    farm_setup.b_mock.set_esdt_balance(
+        &rand_user,
+        FARMING_TOKEN_ID,
+        &rust_biguint!(FARMING_TOKEN_BALANCE),
+    );
+
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &farm_setup.owner,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.add_sc_address_to_whitelist(managed_address!(&rand_user));
+            },
+        )
+        .assert_ok();
+
+    farm_setup.enter_farm(&rand_user, 1);
+    farm_setup.exit_farm(&rand_user, 6, 1);
+
+    // Week 2: More activity
+    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_epoch(13);
+    farm_setup.set_user_energy(&first_user, 10_000, 13, 10);
+    farm_setup.set_user_energy(&second_user, 5_000, 13, 10);
+    farm_setup.set_user_energy(&third_user, 2_500, 13, 10);
+
+    farm_setup.enter_farm(&rand_user, 1);
+    farm_setup.exit_farm(&rand_user, 7, 1);
+
+    // 8. Week 3: More activity
+    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_epoch(20);
+    farm_setup.set_user_energy(&first_user, 10_000, 20, 10);
+    farm_setup.set_user_energy(&second_user, 5_000, 20, 10);
+    farm_setup.set_user_energy(&third_user, 2_500, 20, 10);
+
+    farm_setup.enter_farm(&rand_user, 1);
+    farm_setup.exit_farm(&rand_user, 8, 1);
+
+    // Have first and second user claim their rewards, third user doesn't claim
+    let _ = farm_setup.claim_rewards(&first_user, 4, farm_in_amount);
+    let _ = farm_setup.claim_rewards(&second_user, 5, farm_in_amount);
+
+    // Check error: Try to collect too early (should fail)
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &farm_setup.owner,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.collect_undistributed_boosted_rewards();
+            },
+        )
+        .assert_error(4, "Current week must be higher than the week offset");
+
+    // Advance to a valid collection period
+    farm_setup.b_mock.set_block_epoch(40);
+
+    // Check error: Claim from unauthorized address
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &farm_setup.owner,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.collect_undistributed_boosted_rewards();
+            },
+        )
+        .assert_error(4, "Address is not whitelisted for token transfer");
+
+    // Add farm to the whitelist
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &farm_setup.owner,
+            &farm_setup.energy_factory_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.unlocked_token_transfer_whitelist()
+                    .add(&managed_address!(farm_setup.farm_wrapper.address_ref()));
+            },
+        )
+        .assert_ok();
+
+    // Check error: Try claim without multisig address being set
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &farm_setup.owner,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.collect_undistributed_boosted_rewards();
+            },
+        )
+        .assert_error(4, "No multisig address set");
+
+    // Set the multisig address
+    let multisig_address = farm_setup.b_mock.create_user_account(&rust_biguint!(0));
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &farm_setup.owner,
+            &farm_setup.energy_factory_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_multisig_address(managed_address!(&multisig_address));
+            },
+        )
+        .assert_ok();
+
+    // Check claim works properly after all setup is done
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &farm_setup.owner,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.collect_undistributed_boosted_rewards();
             },
         )
         .assert_ok();
