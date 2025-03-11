@@ -696,14 +696,12 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
 
     farm_setup.check_error_collect_undistributed_boosted_rewards(
         "Current week must be higher than the week offset",
-        1,
-        4,
     );
 
     // advance to week 6
     farm_setup.b_mock.set_block_epoch(36);
 
-    farm_setup.collect_undistributed_boosted_rewards(1, 1);
+    farm_setup.collect_undistributed_boosted_rewards();
     farm_setup.check_undistributed_boosted_rewards(1);
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 1);
@@ -712,12 +710,17 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     // advance to week 8
     farm_setup.b_mock.set_block_epoch(50);
 
-    farm_setup.collect_undistributed_boosted_rewards(1, 3);
+    farm_setup.collect_undistributed_boosted_rewards();
     farm_setup.check_undistributed_boosted_rewards(3);
 
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(3, 0);
+
+    // collecting multiple times has no effect
+    farm_setup.collect_undistributed_boosted_rewards();
+    farm_setup.collect_undistributed_boosted_rewards();
+    farm_setup.collect_undistributed_boosted_rewards();
 
     // check entries are not empty
     farm_setup
@@ -976,7 +979,7 @@ fn farm_claim_with_minimum_tokens() {
     let remaining_boosted_yields_rewards =
         total_boosted_yields_rewards - first_boosted_amt - second_boosted_amt;
     farm_setup.check_undistributed_boosted_rewards(0);
-    farm_setup.collect_undistributed_boosted_rewards(1, 1);
+    farm_setup.collect_undistributed_boosted_rewards();
     farm_setup.check_undistributed_boosted_rewards(remaining_boosted_yields_rewards);
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 0);
