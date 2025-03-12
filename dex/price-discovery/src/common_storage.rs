@@ -21,6 +21,7 @@ pub trait CommonStorageModule {
     #[storage_mapper("acceptedTokenBalance")]
     fn accepted_token_balance(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getStartTime)]
     #[storage_mapper("startTime")]
     fn start_time(&self) -> SingleValueMapper<Timestamp>;
 

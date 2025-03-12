@@ -138,6 +138,7 @@ pub trait UserDepositWithdrawModule:
     #[storage_mapper("userWhitelist")]
     fn user_whitelist(&self) -> WhitelistMapper<AddressId>;
 
+    #[view(getUserMinDeposit)]
     #[storage_mapper("userMinDeposit")]
     fn user_min_deposit(&self) -> SingleValueMapper<BigUint>;
 
