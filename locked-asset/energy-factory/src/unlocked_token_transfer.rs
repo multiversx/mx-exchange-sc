@@ -61,6 +61,16 @@ pub trait UnlockedTokenTransferModule:
             .direct_esdt(&multisig_address, &base_asset_token_id, 0, &amount);
     }
 
+    #[view(getUnlockedTokenMintAddressess)]
+    fn get_unlocked_token_mint_addresses(&self) -> MultiValueEncoded<ManagedAddress> {
+        let mut all_addresses = MultiValueEncoded::new();
+        for address in self.unlocked_token_mint_whitelist().iter() {
+            all_addresses.push(address);
+        }
+
+        all_addresses
+    }
+
     #[storage_mapper("multisigAddress")]
     fn multisig_address(&self) -> SingleValueMapper<ManagedAddress>;
 
