@@ -482,3 +482,20 @@ fn set_user_limit_test() {
         })
         .assert_ok();
 }
+
+#[test]
+fn set_timestamp_invalid_values_test() {
+    let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
+
+    setup.b_mock.set_block_timestamp(START_TIME + 50);
+
+    // set timestamp ok
+    setup
+        .call_set_user_deposit_withdraw_timestamp(START_TIME + 90)
+        .assert_ok();
+
+    // set timestamp too low
+    setup
+        .call_set_user_deposit_withdraw_timestamp(START_TIME + 20)
+        .assert_user_error("Invalid timestamp change");
+}

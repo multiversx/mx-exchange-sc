@@ -22,9 +22,8 @@ pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
 pub const USER_BALANCE: u64 = 1_000_000_000;
 
 pub const START_TIME: Timestamp = 10;
-pub const USER_DEPOSIT_TIME: Timestamp = 5;
-pub const OWNER_DEPOSIT_TIME: Timestamp = 5;
-// pub const END_TIME: u64 = START_TIME + USER_DEPOSIT_TIME + OWNER_DEPOSIT_TIME;
+pub const USER_DEPOSIT_TIME: Timestamp = 100;
+pub const OWNER_DEPOSIT_TIME: Timestamp = 100;
 pub const MIN_LAUNCHED_TOKENS: u64 = 1_000;
 
 pub struct PriceDiscSetup<PriceDiscObjBuilder>
@@ -194,6 +193,17 @@ where
             &rust_biguint!(0),
             |sc| {
                 sc.set_user_limit(managed_address!(user), managed_biguint!(limit));
+            },
+        )
+    }
+
+    pub fn call_set_user_deposit_withdraw_timestamp(&mut self, timestamp: Timestamp) -> TxResult {
+        self.b_mock.execute_tx(
+            &self.owner_address,
+            &self.pd_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_user_deposit_withdraw_time(timestamp);
             },
         )
     }

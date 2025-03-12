@@ -3,6 +3,7 @@ use crate::{phase::Phase, Timestamp};
 multiversx_sc::imports!();
 
 pub static INVALID_CURRENT_PHASE_ERR_MSG: &[u8] = b"Invalid current phase";
+pub static INVALID_TIMESTAMP_CHANGE_ERR_MSG: &[u8] = b"Invalid timestamp change";
 
 #[multiversx_sc::module]
 pub trait AdminActionsModule:
@@ -16,28 +17,40 @@ pub trait AdminActionsModule:
     fn set_user_deposit_withdraw_time(&self, user_deposit_withdraw_time: Timestamp) {
         self.require_caller_admin();
 
-        let phase = self.get_current_phase();
+        let phase_before = self.get_current_phase();
         require!(
-            phase <= Phase::UserDepositWithdraw,
+            phase_before <= Phase::UserDepositWithdraw,
             INVALID_CURRENT_PHASE_ERR_MSG
         );
 
         self.user_deposit_withdraw_time()
             .set(user_deposit_withdraw_time);
+
+        let phase_after = self.get_current_phase();
+        require!(
+            phase_before == phase_after,
+            INVALID_TIMESTAMP_CHANGE_ERR_MSG
+        );
     }
 
     #[endpoint(setOwnerDepositWithdrawTime)]
     fn set_owner_deposit_withdraw_time(&self, owner_deposit_withdraw_time: Timestamp) {
         self.require_caller_admin();
 
-        let phase = self.get_current_phase();
+        let phase_before = self.get_current_phase();
         require!(
-            phase <= Phase::OwnerDepositWithdraw,
+            phase_before <= Phase::OwnerDepositWithdraw,
             INVALID_CURRENT_PHASE_ERR_MSG
         );
 
         self.owner_deposit_withdraw_time()
             .set(owner_deposit_withdraw_time);
+
+        let phase_after = self.get_current_phase();
+        require!(
+            phase_before == phase_after,
+            INVALID_TIMESTAMP_CHANGE_ERR_MSG
+        );
     }
 
     #[endpoint(setMinLaunchedTokens)]
@@ -129,13 +142,13 @@ pub trait AdminActionsModule:
     ) {
         require!(user_addr != owner_address, "May not refund owner");
 
-        let user_id = id_mapper.get_id_non_zero(&user_addr);
+        let user_id = id_mapper.get_id_non_zero(user_addr);
         whitelist_mapper.require_whitelisted(&user_id);
         whitelist_mapper.remove(&user_id);
 
         let user_deposit = self.total_deposit_by_user(user_id).get();
         self.user_deposit_limit(user_id).clear();
-        self.user_withdraw(&user_addr, user_id, &user_deposit);
+        self.user_withdraw(user_addr, user_id, &user_deposit);
     }
 
     fn require_caller_admin(&self) {

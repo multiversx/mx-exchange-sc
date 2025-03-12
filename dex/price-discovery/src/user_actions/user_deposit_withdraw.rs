@@ -62,6 +62,13 @@ pub trait UserDepositWithdrawModule:
         OptionalValue::Some(user_deposit_limit)
     }
 
+    #[view(getTotalDepositByUser)]
+    fn get_total_deposit_by_user(&self, user: ManagedAddress) -> BigUint {
+        let user_id = self.user_id_mapper().get_id(&user);
+
+        self.total_deposit_by_user(user_id).get()
+    }
+
     /// Returns the user ID
     fn require_user_whitelisted(&self, user: &ManagedAddress) -> AddressId {
         let user_id = self.user_id_mapper().get_id(user);
