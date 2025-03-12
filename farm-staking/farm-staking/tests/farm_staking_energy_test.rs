@@ -2097,8 +2097,8 @@ fn owner_claim_undist_rewards_test() {
 
             // We should have some undistributed rewards
             assert!(
-                remaining1 > 0 || remaining2 > 0 || remaining3 > 0,
-                "Should have remaining rewards to distribute"
+                remaining1 > 0 && remaining2 > 0 && remaining3 > 0,
+                "Should have remaining rewards to distribute in weeks 1 to 3"
             );
 
             // Check last_collect_undist_week is not set yet
@@ -2121,11 +2121,19 @@ fn owner_claim_undist_rewards_test() {
 
                 // Verify last_collect_undist_week was updated
                 let last_collect = sc.last_collect_undist_week().get();
-                assert!(last_collect > 0, "Last collect week should be updated");
+                assert!(last_collect == 4, "Last collect week should be updated");
 
                 // Verify remaining rewards for week 1 are now zero
                 let remaining1 = sc.remaining_boosted_rewards_to_distribute(1).get();
                 assert_eq!(remaining1, 0u64, "Week 1 rewards should now be zero");
+
+                // Verify remaining rewards for week 2 are now zero
+                let remaining2 = sc.remaining_boosted_rewards_to_distribute(2).get();
+                assert_eq!(remaining2, 0u64, "Week 2 rewards should now be zero");
+
+                // Verify remaining rewards for week 3 are now zero
+                let remaining3 = sc.remaining_boosted_rewards_to_distribute(3).get();
+                assert_eq!(remaining3, 0u64, "Week 3 rewards should now be zero");
             },
         )
         .assert_ok();

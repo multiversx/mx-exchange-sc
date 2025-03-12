@@ -16,7 +16,7 @@ pub trait UnlockedTokenTransferModule:
         for sc_addr in sc_addresses {
             self.require_sc_address(&sc_addr);
 
-            mapper.insert(sc_addr);
+            let _ = mapper.insert(sc_addr);
         }
     }
 
@@ -28,7 +28,7 @@ pub trait UnlockedTokenTransferModule:
     ) {
         let mut mapper = self.unlocked_token_mint_whitelist();
         for sc_addr in sc_addresses {
-            mapper.swap_remove(&sc_addr);
+            let _ = mapper.swap_remove(&sc_addr);
         }
     }
 

@@ -8,7 +8,11 @@ use farm_with_locked_rewards_setup::{
     FARMING_TOKEN_BALANCE, FARMING_TOKEN_ID, MAX_PERCENTAGE, PER_BLOCK_REWARD_AMOUNT,
     REWARD_TOKEN_ID,
 };
-use multiversx_sc::{codec::Empty, imports::OptionalValue, types::MultiValueEncoded};
+use multiversx_sc::{
+    codec::Empty,
+    imports::OptionalValue,
+    types::{EsdtLocalRole, MultiValueEncoded},
+};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -723,6 +727,14 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
         permissions_hub::contract_obj,
     );
 
+    // Add base reward token mint rights
+    let reward_token_roles = [EsdtLocalRole::Mint];
+    farm_setup.b_mock.set_esdt_local_roles(
+        farm_setup.energy_factory_wrapper.address_ref(),
+        REWARD_TOKEN_ID,
+        &reward_token_roles[..],
+    );
+
     // Set up boosted yields configuration
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
@@ -833,7 +845,7 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
 
             // Confirm we have some unclaimed rewards
             assert!(
-                remaining1 > 0 || remaining2 > 0,
+                remaining1 > 0 && remaining2 > 0,
                 "Should have some unclaimed rewards"
             );
         })
@@ -969,6 +981,14 @@ fn collect_undistributed_rewards_conditions_checks_test() {
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
+    );
+
+    // Add base reward token mint rights
+    let reward_token_roles = [EsdtLocalRole::Mint];
+    farm_setup.b_mock.set_esdt_local_roles(
+        farm_setup.energy_factory_wrapper.address_ref(),
+        REWARD_TOKEN_ID,
+        &reward_token_roles[..],
     );
 
     // Set up boosted yields configuration

@@ -212,13 +212,6 @@ where
             &farming_token_roles[..],
         );
 
-        let reward_token_roles = [EsdtLocalRole::Mint];
-        b_mock.set_esdt_local_roles(
-            energy_factory_wrapper.address_ref(),
-            REWARD_TOKEN_ID,
-            &reward_token_roles[..],
-        );
-
         let locked_reward_token_roles = [
             EsdtLocalRole::NftCreate,
             EsdtLocalRole::NftAddQuantity,
