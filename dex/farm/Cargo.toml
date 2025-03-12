@@ -93,8 +93,8 @@ path = "../../energy-integration/energy-update"
 [dev-dependencies.multiversx-sc-scenario]
 version = "=0.53.2"
 
-[dev-dependencies.energy-factory-mock]
-path = "../../energy-integration/energy-factory-mock"
+[dev-dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"
 
 [dev-dependencies.simple-lock]
 path = "../../locked-asset/simple-lock"

@@ -3,6 +3,8 @@
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
+use energy_factory::energy::EnergyModule;
+use energy_factory::unlocked_token_transfer::UnlockedTokenTransferModule;
 use farm::external_interaction::ExternalInteractionsModule;
 use farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
@@ -10,6 +12,7 @@ use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
+use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -17,7 +20,7 @@ use multiversx_sc_scenario::{
     DebugApi,
 };
 
-use energy_factory_mock::EnergyFactoryMock;
+use energy_factory::SimpleLockEnergy;
 use energy_query::{Energy, EnergyQueryModule};
 use energy_update::EnergyUpdate;
 use farm::Farm;
@@ -27,12 +30,15 @@ use pausable::{PausableModule, State};
 use permissions_hub::PermissionsHub;
 use permissions_hub_module::PermissionsHubModule;
 use sc_whitelist_module::SCWhitelistModule;
+use simple_lock::locked_token::LockedTokenModule;
 use week_timekeeping::Epoch;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 
 use super::single_user_farm_setup::MEX_TOKEN_ID;
 
 pub static REWARD_TOKEN_ID: &[u8] = MEX_TOKEN_ID;
+pub static LOCKED_REWARD_TOKEN_ID: &[u8] = b"LOCKED-123456";
+pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 pub const DIV_SAFETY: u64 = 1_000_000_000_000;
@@ -45,6 +51,10 @@ pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+
+pub const EPOCHS_IN_YEAR: u64 = 360;
+pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
+pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
 pub struct RawFarmTokenAttributes {
     pub reward_per_share_bytes: Vec<u8>,
@@ -66,7 +76,7 @@ pub struct MultiUserFarmSetup<
     PermissionsHubObjBuilder,
 > where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
     EnergyUpdateObjBuilder: 'static + Copy + Fn() -> energy_update::ContractObj<DebugApi>,
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
@@ -79,7 +89,7 @@ pub struct MultiUserFarmSetup<
     pub last_farm_token_nonce: u64,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     pub energy_factory_wrapper:
-        ContractObjWrapper<energy_factory_mock::ContractObj<DebugApi>, EnergyFactoryBuilder>,
+        ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
     pub eu_wrapper:
         ContractObjWrapper<energy_update::ContractObj<DebugApi>, EnergyUpdateObjBuilder>,
     pub permissions_hub_wrapper:
@@ -95,7 +105,7 @@ impl<FarmObjBuilder, EnergyFactoryBuilder, EnergyUpdateObjBuilder, PermissionsHu
     >
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
     EnergyUpdateObjBuilder: 'static + Copy + Fn() -> energy_update::ContractObj<DebugApi>,
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
 {
@@ -125,9 +135,24 @@ where
 
         b_mock
             .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
-                sc.init();
-                sc.base_asset_token_id()
-                    .set(managed_token_id!(MEX_TOKEN_ID));
+                let mut lock_options = MultiValueEncoded::new();
+                for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
+                    lock_options.push((*option, *penalty).into());
+                }
+
+                sc.init(
+                    managed_token_id!(MEX_TOKEN_ID),
+                    managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
+                    managed_address!(energy_factory_wrapper.address_ref()),
+                    0,
+                    lock_options,
+                );
+
+                sc.set_multisig_address(managed_address!(&undistributed_rew_dest));
+
+                sc.locked_token()
+                    .set_token_id(managed_token_id!(LOCKED_REWARD_TOKEN_ID));
+                sc.set_paused(false);
             })
             .assert_ok();
 
@@ -187,9 +212,6 @@ where
                 sc.set_permissions_hub_address(managed_address!(
                     permissions_hub_wrapper.address_ref()
                 ));
-
-                sc.multisig_address()
-                    .set(managed_address!(&undistributed_rew_dest));
             })
             .assert_ok();
 
@@ -673,6 +695,21 @@ where
             .assert_ok();
     }
 
+    pub fn whitelist_token_transfer_address(&mut self, address_to_whitelist: &Address) {
+        self.b_mock
+            .execute_tx(
+                &self.owner,
+                &self.energy_factory_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    let mut addresses = MultiValueEncoded::new();
+                    addresses.push(managed_address!(address_to_whitelist));
+                    sc.add_to_unlocked_token_mint_whitelist(addresses);
+                },
+            )
+            .assert_ok();
+    }
+
     pub fn whitelist_address_on_behalf(&mut self, user: &Address, address_to_whitelist: &Address) {
         self.b_mock
             .execute_tx(
@@ -833,7 +870,6 @@ where
     }
 
     pub fn check_error_collect_undistributed_boosted_rewards(&mut self, expected_message: &str) {
-        let dest_address = self.undistributed_rew_dest.clone();
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.collect_undistributed_boosted_rewards();
@@ -842,7 +878,6 @@ where
     }
 
     pub fn collect_undistributed_boosted_rewards(&mut self) {
-        let dest_address = self.undistributed_rew_dest.clone();
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.collect_undistributed_boosted_rewards();

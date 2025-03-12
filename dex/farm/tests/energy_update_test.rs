@@ -8,7 +8,7 @@ use farm_setup::multi_user_farm_setup::*;
 fn test_farm_setup() {
     let _ = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -18,7 +18,7 @@ fn test_farm_setup() {
 fn test_energy_update() {
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
@@ -39,7 +39,7 @@ fn test_energy_update() {
 fn test_energy_update_no_claim_current_week() {
     let mut farm_setup = MultiUserFarmSetup::new(
         farm::contract_obj,
-        energy_factory_mock::contract_obj,
+        energy_factory::contract_obj,
         energy_update::contract_obj,
         permissions_hub::contract_obj,
     );
