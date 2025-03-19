@@ -1186,6 +1186,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "mex-governance"
+version = "0.0.0"
+dependencies = [
+ "config",
+ "energy-factory",
+ "energy-query",
+ "farm-boosted-yields",
+ "farm-with-locked-rewards",
+ "farm_token",
+ "locking_module",
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "pair",
+ "pausable",
+ "permissions_module",
+ "simple-lock",
+ "week-timekeeping",
+]
+
+[[package]]
+name = "mex-governance-meta"
+version = "0.0.0"
+dependencies = [
+ "mex-governance",
+ "multiversx-sc-meta-lib",
+]
+
+[[package]]
 name = "multiversx-chain-scenario-format"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

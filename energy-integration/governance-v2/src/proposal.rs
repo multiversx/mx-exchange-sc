@@ -62,11 +62,11 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub description: ManagedBuffer<M>,
     pub fee_payment: EsdtTokenPayment<M>,
     pub minimum_quorum: u64,
-    pub voting_delay_in_blocks: u64,
-    pub voting_period_in_blocks: u64,
+    pub voting_delay_in_seconds: u64,
+    pub voting_period_in_seconds: u64,
     pub withdraw_percentage_defeated: u64,
     pub total_quorum: BigUint<M>,
-    pub proposal_start_block: u64,
+    pub proposal_start_timestamp: u64,
     pub fee_withdrawn: bool,
 }
 
@@ -101,11 +101,11 @@ impl<M: ManagedTypeApi> GovernanceProposal<M> {
                 amount: BigUint::zero(),
             },
             minimum_quorum: 0,
-            voting_delay_in_blocks: 0,
-            voting_period_in_blocks: 0,
+            voting_delay_in_seconds: 0,
+            voting_period_in_seconds: 0,
             withdraw_percentage_defeated: 0,
             total_quorum: BigUint::default(),
-            proposal_start_block: 0,
+            proposal_start_timestamp: 0,
             fee_withdrawn: false,
         }
     }

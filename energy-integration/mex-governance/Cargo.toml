@@ -1,0 +1,54 @@
+[package]
+name = "mex-governance"
+version = "0.0.0"
+publish = false
+edition = "2021"
+authors = ["you"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "=0.53.2"
+
+[dev-dependencies]
+num-bigint = "0.4"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.53.2"
+
+[dependencies.week-timekeeping]
+path = "../../energy-integration/common-modules/week-timekeeping"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"
+
+[dependencies.farm-with-locked-rewards]
+path = "../../dex/farm-with-locked-rewards"
+
+[dev-dependencies.pair]
+path = "../../dex/pair"
+
+[dev-dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"
+
+[dev-dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
+
+[dev-dependencies.locking_module]
+path = "../../common/modules/locking_module"
+
+[dev-dependencies.pausable]
+path = "../../common/modules/pausable"
+
+[dev-dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
+
+[dev-dependencies.config]
+path = "../../common/modules/farm/config"
+
+[dev-dependencies.farm_token]
+path = "../../common/modules/farm/farm_token"
