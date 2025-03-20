@@ -90,11 +90,13 @@ pub trait FeesCollector:
                 continue;
             }
 
-            let acc_fees_current_week = self.accumulated_fees(current_week, &token_id).take();
+            let acc_fees_mapper = self.accumulated_fees(current_week, &token_id);
+            let acc_fees_current_week = acc_fees_mapper.get();
             if acc_fees_current_week == 0 {
                 continue;
             }
 
+            acc_fees_mapper.clear();
             self.all_accumulated_tokens(&token_id)
                 .set(acc_fees_current_week);
         }
