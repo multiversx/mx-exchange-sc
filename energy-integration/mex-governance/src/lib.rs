@@ -14,7 +14,8 @@ pub mod vote;
 pub trait MEXGovernance:
     config::ConfigModule
     + events::EventsModule
-    + external_interactions::ExternalInteractionsModule
+    + external_interactions::farm_interactions::FarmInteractionsModule
+    + external_interactions::energy_factory_interactions::EnergyFactoryInteractionsModule
     + incentive::IncentiveModule
     + vote::VoteModule
     + energy_query::EnergyQueryModule

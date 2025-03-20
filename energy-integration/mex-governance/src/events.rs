@@ -65,6 +65,11 @@ pub struct BlacklistFarmEvent<M: ManagedTypeApi> {
 }
 
 #[derive(TypeAbi, TopEncode)]
+pub struct RemoveBlacklistFarmEvent<M: ManagedTypeApi> {
+    pub farms: ManagedVec<M, ManagedAddress<M>>,
+}
+
+#[derive(TypeAbi, TopEncode)]
 pub struct SetIncentiveTokenEvent<M: ManagedTypeApi> {
     pub old_token: TokenIdentifier<M>,
     pub new_token: TokenIdentifier<M>,
@@ -179,34 +184,6 @@ pub trait EventsModule {
         );
     }
 
-    fn emit_whitelist_farms_event(&self, farms: ManagedVec<ManagedAddress<Self::Api>>) {
-        let caller = self.blockchain().get_caller();
-        let block = self.blockchain().get_block_nonce();
-        let epoch = self.blockchain().get_block_epoch();
-        let timestamp = self.blockchain().get_block_timestamp();
-        self.whitelist_farms_event(
-            caller,
-            block,
-            epoch,
-            timestamp,
-            WhitelistFarmsEvent { farms },
-        );
-    }
-
-    fn emit_remove_whitelist_farm_event(&self, farms: ManagedVec<ManagedAddress<Self::Api>>) {
-        let caller = self.blockchain().get_caller();
-        let block = self.blockchain().get_block_nonce();
-        let epoch = self.blockchain().get_block_epoch();
-        let timestamp = self.blockchain().get_block_timestamp();
-        self.remove_whitelist_farm_event(
-            caller,
-            block,
-            epoch,
-            timestamp,
-            RemoveWhitelistFarmEvent { farms },
-        );
-    }
-
     fn emit_blacklist_farm_event(&self, farms: ManagedVec<ManagedAddress<Self::Api>>) {
         let caller = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
@@ -218,6 +195,20 @@ pub trait EventsModule {
             epoch,
             timestamp,
             BlacklistFarmEvent { farms },
+        );
+    }
+
+    fn emit_remove_blacklist_farm_event(&self, farms: ManagedVec<ManagedAddress<Self::Api>>) {
+        let caller = self.blockchain().get_caller();
+        let block = self.blockchain().get_block_nonce();
+        let epoch = self.blockchain().get_block_epoch();
+        let timestamp = self.blockchain().get_block_timestamp();
+        self.remove_blacklist_farm_event(
+            caller,
+            block,
+            epoch,
+            timestamp,
+            RemoveBlacklistFarmEvent { farms },
         );
     }
 
@@ -295,26 +286,6 @@ pub trait EventsModule {
         event: ClaimIncentiveEvent<Self::Api>,
     );
 
-    #[event("whitelistFarmsEvent")]
-    fn whitelist_farms_event(
-        &self,
-        #[indexed] caller: ManagedAddress,
-        #[indexed] block: u64,
-        #[indexed] epoch: u64,
-        #[indexed] timestamp: u64,
-        event: WhitelistFarmsEvent<Self::Api>,
-    );
-
-    #[event("removeWhitelistFarmEvent")]
-    fn remove_whitelist_farm_event(
-        &self,
-        #[indexed] caller: ManagedAddress,
-        #[indexed] block: u64,
-        #[indexed] epoch: u64,
-        #[indexed] timestamp: u64,
-        event: RemoveWhitelistFarmEvent<Self::Api>,
-    );
-
     #[event("blacklistFarmEvent")]
     fn blacklist_farm_event(
         &self,
@@ -323,6 +294,16 @@ pub trait EventsModule {
         #[indexed] epoch: u64,
         #[indexed] timestamp: u64,
         event: BlacklistFarmEvent<Self::Api>,
+    );
+
+    #[event("removeBlacklistFarmEvent")]
+    fn remove_blacklist_farm_event(
+        &self,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] block: u64,
+        #[indexed] epoch: u64,
+        #[indexed] timestamp: u64,
+        event: RemoveBlacklistFarmEvent<Self::Api>,
     );
 
     #[event("setIncentiveTokenEvent")]

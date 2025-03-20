@@ -3,7 +3,7 @@
 
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
 use config::ConfigModule;
-use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
+use energy_factory::{unlocked_token_transfer::UnlockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;

@@ -8,7 +8,7 @@ use multiversx_sc_scenario::{managed_token_id, rust_biguint};
 
 use energy_factory::energy::EnergyModule;
 use energy_factory::lock_options::LockOptionsModule;
-use energy_factory::locked_token_transfer::LockedTokenTransferModule;
+use energy_factory::unlocked_token_transfer::UnlockedTokenTransferModule;
 use energy_factory::SimpleLockEnergy;
 use energy_query::Energy;
 use lkmex_transfer::LkmexTransfer;

@@ -3,7 +3,7 @@ multiversx_sc::imports!();
 use crate::{config::FarmEmission, errors::FARM_NOT_FOUND};
 
 #[multiversx_sc::module]
-pub trait ExternalInteractionsModule:
+pub trait FarmInteractionsModule:
     crate::config::ConfigModule
     + crate::events::EventsModule
     + week_timekeeping::WeekTimekeepingModule

@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use common_structs::LockedAssetTokenAttributesEx;
-use energy_factory::{energy::Energy, locked_token_transfer::ProxyTrait as _};
+use energy_factory::{energy::Energy, unlocked_token_transfer::ProxyTrait as _};
 use factory_legacy::attr_ex_helper;
 
 use crate::proxy_common;

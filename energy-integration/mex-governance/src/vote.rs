@@ -2,15 +2,14 @@ multiversx_sc::imports!();
 
 use crate::{
     config::{FarmEmission, FarmVote},
-    errors::{
-        ALREADY_VOTED_THIS_WEEK, FARM_BLACKLISTED, FARM_NOT_WHITELISTED, INVALID_VOTE_AMOUNT,
-    },
+    errors::{ALREADY_VOTED_THIS_WEEK, FARM_BLACKLISTED, INVALID_VOTE_AMOUNT},
 };
 
 #[multiversx_sc::module]
 pub trait VoteModule:
     crate::config::ConfigModule
     + crate::events::EventsModule
+    + crate::external_interactions::energy_factory_interactions::EnergyFactoryInteractionsModule
     + week_timekeeping::WeekTimekeepingModule
     + energy_query::EnergyQueryModule
 {
@@ -37,15 +36,12 @@ pub trait VoteModule:
         let mut farm_votes_event = ManagedVec::new();
         for vote in votes {
             let (farm_address, amount) = vote.into_tuple();
-            let farm_id = self.farm_ids().get_id_non_zero(&farm_address);
 
+            self.check_farm_is_whitelisted(&farm_address);
+            let farm_id = self.farm_ids().get_id_or_insert(&farm_address);
             require!(
                 !self.blacklisted_farms().contains(&farm_id),
                 FARM_BLACKLISTED
-            );
-            require!(
-                self.whitelisted_farms().contains(&farm_id),
-                FARM_NOT_WHITELISTED
             );
 
             self.farm_votes_for_week(farm_id, voting_week)

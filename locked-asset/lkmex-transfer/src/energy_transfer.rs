@@ -1,7 +1,7 @@
 multiversx_sc::imports!();
 
 use common_structs::PaymentsVec;
-use energy_factory::locked_token_transfer::ProxyTrait as _;
+use energy_factory::unlocked_token_transfer::ProxyTrait as _;
 use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenAttributes;
 

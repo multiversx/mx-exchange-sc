@@ -3,7 +3,7 @@
 mod energy_factory_setup;
 
 use energy_factory::{
-    energy::EnergyModule, locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy,
+    energy::EnergyModule, unlocked_token_transfer::UnlockedTokenTransferModule, SimpleLockEnergy,
 };
 use energy_factory_setup::*;
 use multiversx_sc::types::BigUint;

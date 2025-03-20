@@ -3,9 +3,7 @@ multiversx_sc::derive_imports!();
 
 use week_timekeeping::Week;
 
-use crate::errors::{
-    EMISSION_RATE_ZERO, FARM_NOT_WHITELISTED, INVALID_ESDT_IDENTIFIER, INVALID_FARM_ADDRESS,
-};
+use crate::errors::{EMISSION_RATE_ZERO, INVALID_ESDT_IDENTIFIER};
 
 #[derive(
     ManagedVecItem,
@@ -48,56 +46,30 @@ pub trait ConfigModule:
     + week_timekeeping::WeekTimekeepingModule
 {
     #[only_owner]
-    #[endpoint(whitelistFarms)]
-    fn whitelist_farms(&self, farms: MultiValueEncoded<ManagedAddress>) {
-        let farms_mapper = self.farm_ids();
-
-        for farm_address in farms {
-            require!(
-                self.blockchain().is_smart_contract(&farm_address),
-                INVALID_FARM_ADDRESS
-            );
-
-            let new_id = farms_mapper.get_id_or_insert(&farm_address);
-
-            require!(
-                !self.blacklisted_farms().contains(&new_id),
-                FARM_NOT_WHITELISTED
-            );
-
-            self.whitelisted_farms().insert(new_id);
-        }
-    }
-
-    #[only_owner]
-    #[endpoint(removeWhitelistFarm)]
-    fn remove_whitelist_farm(&self, farms: MultiValueEncoded<ManagedAddress>) {
-        for farm_address in farms {
-            let farm_id = self.farm_ids().get_id_non_zero(&farm_address);
-            require!(
-                self.whitelisted_farms().swap_remove(&farm_id),
-                FARM_NOT_WHITELISTED
-            );
-        }
-    }
-
-    #[only_owner]
     #[endpoint(blacklistFarm)]
     fn blacklist_farm(&self, farms: MultiValueEncoded<ManagedAddress>) {
         let mut blacklisted_farms = ManagedVec::new();
 
         for farm_address in farms {
             let farm_id = self.farm_ids().get_id_non_zero(&farm_address);
-            require!(
-                self.whitelisted_farms().swap_remove(&farm_id),
-                FARM_NOT_WHITELISTED
-            );
-
             self.blacklisted_farms().insert(farm_id);
             blacklisted_farms.push(farm_address);
         }
 
         self.emit_blacklist_farm_event(blacklisted_farms);
+    }
+
+    #[only_owner]
+    #[endpoint(removeBlacklistFarm)]
+    fn remove_blacklist_farm(&self, farms: MultiValueEncoded<ManagedAddress>) {
+        let mut remove_from_blacklist_farms = ManagedVec::new();
+        for farm_address in farms {
+            let farm_id = self.farm_ids().get_id_non_zero(&farm_address);
+            self.blacklisted_farms().swap_remove(&farm_id);
+            remove_from_blacklist_farms.push(farm_address);
+        }
+
+        self.emit_remove_blacklist_farm_event(remove_from_blacklist_farms);
     }
 
     #[only_owner]
@@ -117,7 +89,6 @@ pub trait ConfigModule:
         let old_token = self.incentive_token().get();
         self.incentive_token().set(&token_id);
 
-        // Add event emission
         self.emit_set_incentive_token_event(old_token, token_id);
     }
 
@@ -158,9 +129,6 @@ pub trait ConfigModule:
 
     #[storage_mapper("referenceEmissionRate")]
     fn reference_emission_rate(&self) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("whitelistedFarms")]
-    fn whitelisted_farms(&self) -> UnorderedSetMapper<AddressId>;
 
     #[storage_mapper("blacklistedFarms")]
     fn blacklisted_farms(&self) -> UnorderedSetMapper<AddressId>;
