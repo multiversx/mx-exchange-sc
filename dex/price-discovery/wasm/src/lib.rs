@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           19
+// Endpoints:                           20
 // Async Callback:                       1
-// Total number of exported functions:  22
+// Total number of exported functions:  23
 
 #![no_std]
 
@@ -20,15 +20,16 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
+        getStartTime => start_time
         getCurrentPhase => get_current_phase
         getUserDepositWithdrawTime => user_deposit_withdraw_time
         getOwnerDepositWithdrawTime => owner_deposit_withdraw_time
-        issueRedeemToken => issue_redeem_token
-        setTransferRole => set_transfer_role
         userDeposit => user_deposit
         userWithdraw => user_withdraw_endpoint
         isUserWhitelisted => is_user_whitelisted
         getUserDepositLimit => get_user_deposit_limit
+        getTotalDepositByUser => get_total_deposit_by_user
+        getUserMinDeposit => user_min_deposit
         ownerDeposit => owner_deposit
         ownerWithdraw => owner_withdraw
         redeem => redeem

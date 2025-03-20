@@ -3,6 +3,7 @@ use crate::{phase::Phase, Timestamp};
 multiversx_sc::imports!();
 
 pub static INVALID_CURRENT_PHASE_ERR_MSG: &[u8] = b"Invalid current phase";
+pub static INVALID_TIMESTAMP_CHANGE_ERR_MSG: &[u8] = b"Invalid timestamp change";
 
 #[multiversx_sc::module]
 pub trait AdminActionsModule:
@@ -10,35 +11,46 @@ pub trait AdminActionsModule:
     + crate::common_storage::CommonStorageModule
     + crate::events::EventsModule
     + crate::phase::PhaseModule
-    + crate::redeem_token::RedeemTokenModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[endpoint(setUserDepositWithdrawTime)]
     fn set_user_deposit_withdraw_time(&self, user_deposit_withdraw_time: Timestamp) {
         self.require_caller_admin();
 
-        let phase = self.get_current_phase();
+        let phase_before = self.get_current_phase();
         require!(
-            phase <= Phase::UserDepositWithdraw,
+            phase_before <= Phase::UserDepositWithdraw,
             INVALID_CURRENT_PHASE_ERR_MSG
         );
 
         self.user_deposit_withdraw_time()
             .set(user_deposit_withdraw_time);
+
+        let phase_after = self.get_current_phase();
+        require!(
+            phase_before == phase_after,
+            INVALID_TIMESTAMP_CHANGE_ERR_MSG
+        );
     }
 
     #[endpoint(setOwnerDepositWithdrawTime)]
     fn set_owner_deposit_withdraw_time(&self, owner_deposit_withdraw_time: Timestamp) {
         self.require_caller_admin();
 
-        let phase = self.get_current_phase();
+        let phase_before = self.get_current_phase();
         require!(
-            phase <= Phase::OwnerDepositWithdraw,
+            phase_before <= Phase::OwnerDepositWithdraw,
             INVALID_CURRENT_PHASE_ERR_MSG
         );
 
         self.owner_deposit_withdraw_time()
             .set(owner_deposit_withdraw_time);
+
+        let phase_after = self.get_current_phase();
+        require!(
+            phase_before == phase_after,
+            INVALID_TIMESTAMP_CHANGE_ERR_MSG
+        );
     }
 
     #[endpoint(setMinLaunchedTokens)]
@@ -61,7 +73,7 @@ pub trait AdminActionsModule:
         self.require_caller_admin();
 
         let user_id = self.user_id_mapper().get_id_non_zero(&user);
-        let user_current_deposit = self.total_user_deposit(user_id).get();
+        let user_current_deposit = self.total_deposit_by_user(user_id).get();
         if user_current_deposit == 0 || limit == 0 {
             self.set_user_deposit_limit(&user, user_id, &limit);
 
@@ -116,23 +128,27 @@ pub trait AdminActionsModule:
         let id_mapper = self.user_id_mapper();
         let whitelist_mapper = self.user_whitelist();
         let owner_address = self.blockchain().get_owner_address();
-        let mut redeem_token_supply = self.redeem_token_total_circulating_supply().get();
         for user in users {
-            require!(user != owner_address, "May not refund owner");
-
-            let user_id = id_mapper.get_id_non_zero(&user);
-            whitelist_mapper.require_whitelisted(&user_id);
-            whitelist_mapper.remove(&user_id);
-
-            let user_deposit = self.total_user_deposit(user_id).get();
-            self.user_deposit_limit(user_id).clear();
-            self.user_withdraw(&user, user_id, &user_deposit);
-
-            redeem_token_supply -= user_deposit;
+            self.refund_single_user(&owner_address, &user, &id_mapper, &whitelist_mapper);
         }
+    }
 
-        self.redeem_token_total_circulating_supply()
-            .set(redeem_token_supply);
+    fn refund_single_user(
+        &self,
+        owner_address: &ManagedAddress,
+        user_addr: &ManagedAddress,
+        id_mapper: &AddressToIdMapper,
+        whitelist_mapper: &WhitelistMapper<AddressId>,
+    ) {
+        require!(user_addr != owner_address, "May not refund owner");
+
+        let user_id = id_mapper.get_id_non_zero(user_addr);
+        whitelist_mapper.require_whitelisted(&user_id);
+        whitelist_mapper.remove(&user_id);
+
+        let user_deposit = self.total_deposit_by_user(user_id).get();
+        self.user_deposit_limit(user_id).clear();
+        self.user_withdraw(user_addr, user_id, &user_deposit);
     }
 
     fn require_caller_admin(&self) {

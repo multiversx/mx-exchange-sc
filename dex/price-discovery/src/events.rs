@@ -6,16 +6,12 @@ multiversx_sc::derive_imports!();
 #[derive(TypeAbi, TopEncode)]
 pub struct UserDepositEvent<'a, M: ManagedTypeApi> {
     token_amount_in: &'a BigUint<M>,
-    redeem_token_id: &'a TokenIdentifier<M>,
-    redeem_token_amount: &'a BigUint<M>,
     accepted_token_amount: &'a BigUint<M>,
 }
 
 #[derive(TypeAbi, TopEncode)]
 pub struct UserWithdrawEvent<'a, M: ManagedTypeApi> {
     token_amount_out: &'a BigUint<M>,
-    redeem_token_id: &'a TokenIdentifier<M>,
-    redeem_token_amount: &'a BigUint<M>,
     accepted_token_amount: &'a BigUint<M>,
 }
 
@@ -33,8 +29,6 @@ pub struct OwnerWithdrawEvent<'a, M: ManagedTypeApi> {
 
 #[derive(TypeAbi, TopEncode)]
 pub struct RedeemEvent<'a, M: ManagedTypeApi> {
-    opt_redeem_token_id: Option<&'a TokenIdentifier<M>>,
-    redeem_token_amount: &'a BigUint<M>,
     bought_token_id: &'a EgldOrEsdtTokenIdentifier<M>,
     bought_token_amount: &'a BigUint<M>,
 }
@@ -48,12 +42,7 @@ pub struct GenericEventData<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait EventsModule: crate::common_storage::CommonStorageModule {
-    fn emit_user_deposit_event(
-        &self,
-        token_amount_in: &BigUint,
-        redeem_token_id: &TokenIdentifier,
-        redeem_token_amount: &BigUint,
-    ) {
+    fn emit_user_deposit_event(&self, token_amount_in: &BigUint) {
         let generic_event_data = self.get_generic_event_data();
         let accepted_token_amount = self.accepted_token_balance().get();
 
@@ -64,19 +53,12 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
             generic_event_data.timestamp,
             UserDepositEvent {
                 token_amount_in,
-                redeem_token_id,
-                redeem_token_amount,
                 accepted_token_amount: &accepted_token_amount,
             },
         );
     }
 
-    fn emit_user_withdraw_event(
-        &self,
-        token_amount_out: &BigUint,
-        redeem_token_id: &TokenIdentifier,
-        redeem_token_amount: &BigUint,
-    ) {
+    fn emit_user_withdraw_event(&self, token_amount_out: &BigUint) {
         let generic_event_data = self.get_generic_event_data();
         let accepted_token_amount = self.accepted_token_balance().get();
 
@@ -87,8 +69,6 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
             generic_event_data.timestamp,
             UserWithdrawEvent {
                 token_amount_out,
-                redeem_token_id,
-                redeem_token_amount,
                 accepted_token_amount: &accepted_token_amount,
             },
         );
@@ -128,8 +108,6 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
 
     fn emit_redeem_event(
         &self,
-        opt_redeem_token_id: Option<&TokenIdentifier>,
-        redeem_token_amount: &BigUint,
         bought_token_id: &EgldOrEsdtTokenIdentifier,
         bought_token_amount: &BigUint,
     ) {
@@ -141,8 +119,6 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
             generic_event_data.epoch,
             generic_event_data.timestamp,
             RedeemEvent {
-                opt_redeem_token_id,
-                redeem_token_amount,
                 bought_token_id,
                 bought_token_amount,
             },

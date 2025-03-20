@@ -7,16 +7,13 @@ pub trait UserDepositWithdrawModule:
     crate::common_storage::CommonStorageModule
     + crate::events::EventsModule
     + crate::phase::PhaseModule
-    + crate::redeem_token::RedeemTokenModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     /// Users can deposit accepted_tokens.
-    /// They will receive an ESDT that can be used to withdraw launched tokens
+    /// Later, they can withdraw launched tokens
     #[payable("*")]
     #[endpoint(userDeposit)]
-    fn user_deposit(&self) -> EsdtTokenPayment {
-        self.require_redeem_token_setup_complete();
-
+    fn user_deposit(&self) {
         let phase = self.get_current_phase();
         self.require_user_deposit_withdraw_allowed(&phase);
 
@@ -25,41 +22,23 @@ pub trait UserDepositWithdrawModule:
         let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
         self.add_user_deposit(user_id, &payment_token, &payment_amount);
 
-        let payment_result = self.mint_and_send_redeem_token(&caller, payment_amount.clone());
-
-        self.emit_user_deposit_event(
-            &payment_amount,
-            &payment_result.token_identifier,
-            &payment_amount,
-        );
-
-        payment_result
+        self.emit_user_deposit_event(&payment_amount);
     }
 
-    /// Deposit ESDT received after deposit to withdraw the initially deposited tokens.
-    #[payable("*")]
+    /// Withdraw the initially deposited tokens.
     #[endpoint(userWithdraw)]
-    fn user_withdraw_endpoint(&self) -> EgldOrEsdtTokenPayment {
-        self.require_redeem_token_setup_complete();
-
+    fn user_withdraw_endpoint(&self, withdraw_amount: BigUint) -> EgldOrEsdtTokenPayment {
         let phase = self.get_current_phase();
         self.require_user_deposit_withdraw_allowed(&phase);
 
         let caller = self.blockchain().get_caller();
         let user_id = self.require_user_whitelisted(&caller);
-        let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
 
-        let redeem_token_id = self.redeem_token().get_token_id();
-        require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
-
-        self.user_withdraw(&caller, user_id, &payment_amount);
-
-        self.burn_redeem_token(&payment_amount);
-
-        self.emit_user_withdraw_event(&payment_amount, &payment_token, &payment_amount);
+        self.user_withdraw(&caller, user_id, &withdraw_amount);
+        self.emit_user_withdraw_event(&withdraw_amount);
 
         let refund_token_id = self.accepted_token_id().get();
-        EgldOrEsdtTokenPayment::new(refund_token_id, 0, payment_amount)
+        EgldOrEsdtTokenPayment::new(refund_token_id, 0, withdraw_amount)
     }
 
     #[view(isUserWhitelisted)]
@@ -81,6 +60,13 @@ pub trait UserDepositWithdrawModule:
 
         let user_deposit_limit = self.user_deposit_limit(user_id).get();
         OptionalValue::Some(user_deposit_limit)
+    }
+
+    #[view(getTotalDepositByUser)]
+    fn get_total_deposit_by_user(&self, user: ManagedAddress) -> BigUint {
+        let user_id = self.user_id_mapper().get_id(&user);
+
+        self.total_deposit_by_user(user_id).get()
     }
 
     /// Returns the user ID
@@ -109,11 +95,13 @@ pub trait UserDepositWithdrawModule:
             .update(|balance| *balance += payment_amount);
     }
 
-    fn user_withdraw(&self, caller: &ManagedAddress, user_id: AddressId, payment_amount: &BigUint) {
-        self.total_user_deposit(user_id).update(|total_deposit| {
-            require!(&*total_deposit >= payment_amount, "Error withdrawing");
+    fn user_withdraw(&self, caller: &ManagedAddress, user_id: AddressId, amount: &BigUint) {
+        require!(amount > &0, "Invalid withdraw amount");
 
-            *total_deposit -= payment_amount;
+        self.total_deposit_by_user(user_id).update(|total_deposit| {
+            require!(&*total_deposit >= amount, "Error withdrawing");
+
+            *total_deposit -= amount;
 
             if *total_deposit == 0 {
                 return;
@@ -124,15 +112,14 @@ pub trait UserDepositWithdrawModule:
         });
 
         self.accepted_token_balance()
-            .update(|balance| *balance -= payment_amount);
+            .update(|balance| *balance -= amount);
 
         let refund_token_id = self.accepted_token_id().get();
-        self.send()
-            .direct(caller, &refund_token_id, 0, payment_amount);
+        self.send().direct(caller, &refund_token_id, 0, amount);
     }
 
     fn add_and_require_valid_deposit_amount(&self, user_id: AddressId, user_deposit: &BigUint) {
-        self.total_user_deposit(user_id).update(|total_deposit| {
+        self.total_deposit_by_user(user_id).update(|total_deposit| {
             *total_deposit += user_deposit;
 
             let min_deposit = self.user_min_deposit().get();
@@ -151,12 +138,13 @@ pub trait UserDepositWithdrawModule:
     #[storage_mapper("userWhitelist")]
     fn user_whitelist(&self) -> WhitelistMapper<AddressId>;
 
+    #[view(getUserMinDeposit)]
     #[storage_mapper("userMinDeposit")]
     fn user_min_deposit(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("userDepositLimit")]
     fn user_deposit_limit(&self, user_id: AddressId) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("totalUserDeposit")]
-    fn total_user_deposit(&self, user_id: AddressId) -> SingleValueMapper<BigUint>;
+    #[storage_mapper("totalDepositByUser")]
+    fn total_deposit_by_user(&self, user_id: AddressId) -> SingleValueMapper<BigUint>;
 }

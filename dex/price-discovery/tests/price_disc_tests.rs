@@ -73,11 +73,12 @@ fn user_deposit_ok_test() {
         ACCEPTED_TOKEN_ID,
         &rust_biguint!(USER_BALANCE - 1_000),
     );
-    setup.b_mock.check_esdt_balance(
-        &setup.first_user_address,
-        REDEEM_TOKEN_ID,
-        &rust_biguint!(1_000),
-    );
+    setup
+        .b_mock
+        .execute_query(&setup.pd_wrapper, |sc| {
+            assert_eq!(sc.total_deposit_by_user(1).get(), 1_000);
+        })
+        .assert_ok();
 }
 
 #[test]
@@ -118,11 +119,12 @@ fn user_deposit_withdraw_ok_test() {
         ACCEPTED_TOKEN_ID,
         &rust_biguint!(USER_BALANCE - 600),
     );
-    setup.b_mock.check_esdt_balance(
-        &setup.first_user_address,
-        REDEEM_TOKEN_ID,
-        &rust_biguint!(600),
-    );
+    setup
+        .b_mock
+        .execute_query(&setup.pd_wrapper, |sc| {
+            assert_eq!(sc.total_deposit_by_user(1).get(), 600);
+        })
+        .assert_ok();
 }
 
 #[test]
@@ -233,7 +235,7 @@ fn user_redeem_too_early_test() {
     setup.call_owner_deposit(2_000).assert_ok();
 
     setup
-        .call_user_redeem(&setup.first_user_address.clone(), 1_000)
+        .call_user_redeem(&setup.first_user_address.clone())
         .assert_user_error("Redeem not allowed in this phase");
 }
 
@@ -255,10 +257,10 @@ fn user_redeem_no_owner_deposit() {
         .set_block_timestamp(START_TIME + USER_DEPOSIT_TIME + OWNER_DEPOSIT_TIME + 1);
 
     setup
-        .call_user_redeem(&setup.first_user_address.clone(), 1_000)
+        .call_user_redeem(&setup.first_user_address.clone())
         .assert_ok();
     setup
-        .call_user_redeem(&setup.second_user_address.clone(), 9_000)
+        .call_user_redeem(&setup.second_user_address.clone())
         .assert_ok();
 
     setup.b_mock.check_esdt_balance(
@@ -297,10 +299,10 @@ fn user_redeem_ok_test() {
         .set_block_timestamp(START_TIME + USER_DEPOSIT_TIME + OWNER_DEPOSIT_TIME + 1);
 
     setup
-        .call_user_redeem(&setup.first_user_address.clone(), 1_000)
+        .call_user_redeem(&setup.first_user_address.clone())
         .assert_ok();
     setup
-        .call_user_redeem(&setup.second_user_address.clone(), 9_000)
+        .call_user_redeem(&setup.second_user_address.clone())
         .assert_ok();
     setup.call_owner_redeem().assert_ok();
 
@@ -381,11 +383,6 @@ fn refund_user_test() {
         ACCEPTED_TOKEN_ID,
         &rust_biguint!(USER_BALANCE),
     );
-    setup.b_mock.check_esdt_balance(
-        &setup.first_user_address,
-        REDEEM_TOKEN_ID,
-        &rust_biguint!(1_000),
-    );
 
     setup
         .b_mock
@@ -399,11 +396,11 @@ fn refund_user_test() {
 
     // user try redeem after refunded
     setup
-        .call_user_redeem(&setup.first_user_address.clone(), 1_000)
+        .call_user_redeem(&setup.first_user_address.clone())
         .assert_user_error("User not whitelisted");
 
     setup
-        .call_user_redeem(&setup.second_user_address.clone(), 9_000)
+        .call_user_redeem(&setup.second_user_address.clone())
         .assert_ok();
     setup.call_owner_redeem().assert_ok();
 
@@ -484,4 +481,21 @@ fn set_user_limit_test() {
             assert_eq!(sc.user_deposit_limit(1).get(), managed_biguint!(1_000));
         })
         .assert_ok();
+}
+
+#[test]
+fn set_timestamp_invalid_values_test() {
+    let mut setup = PriceDiscSetup::new(price_discovery::contract_obj);
+
+    setup.b_mock.set_block_timestamp(START_TIME + 50);
+
+    // set timestamp ok
+    setup
+        .call_set_user_deposit_withdraw_timestamp(START_TIME + 90)
+        .assert_ok();
+
+    // set timestamp too low
+    setup
+        .call_set_user_deposit_withdraw_timestamp(START_TIME + 20)
+        .assert_user_error("Invalid timestamp change");
 }
