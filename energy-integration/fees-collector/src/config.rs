@@ -2,28 +2,17 @@ multiversx_sc::imports!();
 
 #[multiversx_sc::module]
 pub trait ConfigModule {
-    fn add_known_token(&self, token_id: &TokenIdentifier) {
-        let known_tokens_mapper = self.known_tokens();
-        if known_tokens_mapper.contains(&token_id) {
-            return;
-        }
-
-        known_tokens_mapper.add(&token_id);
-        self.all_tokens().update(|all_tokens| {
-            all_tokens.push(token_id.clone());
-        });
+    #[inline(always)]
+    fn add_known_token(&self, token_id: TokenIdentifier) {
+        let _ = self.all_known_tokens().insert(token_id);
     }
 
     #[view(getAllTokens)]
-    fn get_all_tokens(&self) -> MultiValueEncoded<TokenIdentifier> {
-        self.all_tokens().get().into()
-    }
+    #[storage_mapper("allKnownTokens")]
+    fn all_known_tokens(&self) -> UnorderedSetMapper<TokenIdentifier>;
 
-    #[storage_mapper("knownTokens")]
-    fn known_tokens(&self) -> WhitelistMapper<TokenIdentifier>;
-
-    #[storage_mapper("allTokens")]
-    fn all_tokens(&self) -> SingleValueMapper<ManagedVec<TokenIdentifier>>;
+    #[storage_mapper("allAccTokens")]
+    fn all_accumulated_tokens(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
 
     // Update for this storage disabled for this version of the exchange
     #[view(getAllowExternalClaimRewards)]

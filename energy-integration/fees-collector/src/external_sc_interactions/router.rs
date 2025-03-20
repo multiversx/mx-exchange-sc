@@ -1,4 +1,4 @@
-use common_types::{PaymentsVec, Week};
+use common_types::PaymentsVec;
 use router_proxy::FunctionName;
 
 multiversx_sc::imports!();
@@ -55,22 +55,17 @@ pub trait RouterInteractionsModule:
 
     /// Swaps tokens to the base token (i.e. MEX).
     ///
-    /// The first token must be a known token to the fees collector, and the very last token must be MEX.
+    /// The first token must be a known token to the fees collector, and the very last token received must be MEX.
     ///
     /// The fees collector uses the given pair paths through the router contract.
     #[only_admin]
     #[endpoint(swapTokenToBaseToken)]
     fn swap_token_to_base_token(&self, swap_operations: SwapOperationArgs<Self::Api>) {
-        let current_week = self.get_current_week();
         let router_address = self.router_address().get();
         let base_token_id = self.get_base_token_id();
         let mut total_base_tokens = BigUint::zero();
         for swap_op in swap_operations {
-            let payment = self.check_args_and_get_first_token_payment(
-                current_week,
-                &base_token_id,
-                swap_op.clone(),
-            );
+            let payment = self.check_args_and_get_first_token_payment(swap_op.clone());
             if payment.amount == 0 {
                 continue;
             }
@@ -82,19 +77,18 @@ pub trait RouterInteractionsModule:
                 "Invalid tokens received from router"
             );
 
-            self.burn_base_token(&mut received_tokens);
+            self.burn_part_of_base_token(&mut received_tokens);
 
             total_base_tokens += received_tokens.amount;
         }
 
+        let current_week = self.get_current_week();
         self.accumulated_fees(current_week, &base_token_id)
             .update(|acc_fees| *acc_fees += total_base_tokens);
     }
 
     fn check_args_and_get_first_token_payment(
         &self,
-        current_week: Week,
-        base_token_id: &TokenIdentifier,
         swap_operation: SingleSwapOperationArg<Self::Api>,
     ) -> EsdtTokenPayment {
         let mut iter = swap_operation.into_iter();
@@ -102,24 +96,22 @@ pub trait RouterInteractionsModule:
         require!(opt_first_item.is_some(), "No arguments provided");
 
         let first_item = unsafe { opt_first_item.unwrap_unchecked() };
-        let last_item = match iter.last() {
-            Some(item) => item,
-            None => first_item.clone(),
-        };
-
+        let base_token_id = self.get_base_token_id();
+        let locked_token_id = self.get_locked_token_id();
         require!(
-            self.known_tokens().contains(&first_item.input_token_id),
-            "Invalid first token"
+            first_item.input_token_id != base_token_id
+                && first_item.input_token_id != locked_token_id,
+            "May not swap base token or locked token"
         );
-
         require!(
-            &last_item.input_token_id == base_token_id,
-            "Invalid last token"
+            self.all_known_tokens().contains(&first_item.input_token_id),
+            "Unknown first token"
         );
 
         let token_amount = self
-            .accumulated_fees(current_week, &first_item.input_token_id)
+            .all_accumulated_tokens(&first_item.input_token_id)
             .take();
+        require!(token_amount > 0, "No tokens for given week");
 
         EsdtTokenPayment::new(first_item.input_token_id, 0, token_amount)
     }

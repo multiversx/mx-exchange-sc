@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 
 mod router_setup;
-use fees_collector::{fees_accumulation::FeesAccumulationModule, FeesCollector};
+
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -558,71 +558,4 @@ fn user_enable_pair_swaps_fail_test() {
             unlock_epoch: current_epoch + MIN_LOCKED_PERIOD_EPOCHS,
         }),
     );
-}
-
-#[test]
-fn fees_collector_base_token_feature_test() {
-    let mut setup = RouterSetup::new(router::contract_obj, pair::contract_obj);
-
-    setup.add_liquidity();
-
-    let fc_wrapper = setup.b_mock.create_sc_account(
-        &rust_biguint!(0),
-        Some(&setup.owner_address),
-        fees_collector::contract_obj,
-        "fees collector path",
-    );
-
-    let router_address = setup.router_wrapper.address_ref().clone();
-    setup
-        .b_mock
-        .execute_tx(&setup.owner_address, &fc_wrapper, &rust_biguint!(0), |sc| {
-            sc.init(
-                managed_token_id!(b"LOCKED-123456"), // unused
-                managed_address!(&router_address),   // unused
-                managed_address!(&router_address),
-                managed_token_id!(WEGLD_TOKEN_ID),
-                MultiValueEncoded::new(),
-            );
-
-            let mut tokens = MultiValueEncoded::new();
-            tokens.push(managed_token_id!(WEGLD_TOKEN_ID));
-            tokens.push(managed_token_id!(USDC_TOKEN_ID));
-            tokens.push(managed_token_id!(CUSTOM_TOKEN_ID));
-
-            // must use qualified syntax, otherwise, you get complaints of multiple "config" modules
-            fees_collector::config::ConfigModule::add_known_tokens(&sc, tokens);
-
-            let _ = fees_collector::config::ConfigModule::known_contracts(&sc)
-                .insert(managed_address!(&setup.owner_address));
-        })
-        .assert_ok();
-
-    // try deposit USDC
-    setup
-        .b_mock
-        .set_esdt_balance(&setup.owner_address, USDC_TOKEN_ID, &rust_biguint!(1_000));
-
-    setup
-        .b_mock
-        .execute_esdt_transfer(
-            &setup.owner_address,
-            &fc_wrapper,
-            USDC_TOKEN_ID,
-            0,
-            &rust_biguint!(1_000),
-            |sc| {
-                sc.deposit_swap_fees();
-
-                // check fees were accumulate for WEGLD instead of USDC
-                assert!(sc
-                    .accumulated_fees(1, &managed_token_id!(USDC_TOKEN_ID))
-                    .is_empty());
-
-                assert!(!sc
-                    .accumulated_fees(1, &managed_token_id!(WEGLD_TOKEN_ID))
-                    .is_empty());
-            },
-        )
-        .assert_ok();
 }

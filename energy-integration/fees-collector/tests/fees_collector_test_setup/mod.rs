@@ -1,5 +1,7 @@
 #![allow(deprecated)]
 
+use std::{cell::RefCell, rc::Rc};
+
 use claim::ClaimModule;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
@@ -23,6 +25,7 @@ use week_timekeeping::{Week, WeekTimekeepingModule, EPOCHS_IN_WEEK};
 pub const INIT_EPOCH: u64 = 5;
 pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
+pub const BASE_TOKEN_BURN_PERCENT: u64 = 0; // 0%
 
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static FIRST_TOKEN_ID: &[u8] = b"FIRST-123456";
@@ -37,7 +40,7 @@ where
     FeesCollectorObjBuilder: 'static + Copy + Fn() -> fees_collector::ContractObj<DebugApi>,
     EnergyFactoryObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
-    pub b_mock: BlockchainStateWrapper,
+    pub b_mock: Rc<RefCell<BlockchainStateWrapper>>,
     pub owner_address: Address,
     pub depositor_address: Address,
     pub fc_wrapper:
@@ -147,29 +150,18 @@ where
             })
             .assert_ok();
 
+        let energy_factory_address = energy_factory_wrapper.address_ref().clone();
         b_mock
             .execute_tx(&owner_address, &fc_wrapper, &rust_zero, |sc| {
                 let mut admins = MultiValueEncoded::new();
                 admins.push(managed_address!(&owner_address));
 
                 sc.init(
-                    managed_token_id!(LOCKED_TOKEN_ID),
-                    managed_address!(energy_factory_wrapper.address_ref()),
+                    managed_address!(&energy_factory_address),
                     managed_address!(energy_factory_wrapper.address_ref()), // unused
-                    managed_token_id!(b"RANDTOK-123456"),                   // unused
+                    BASE_TOKEN_BURN_PERCENT,
                     admins,
                 );
-
-                let _ = sc
-                    .known_contracts()
-                    .insert(managed_address!(&depositor_address));
-
-                let mut tokens = MultiValueEncoded::new();
-                tokens.push(managed_token_id!(FIRST_TOKEN_ID));
-                tokens.push(managed_token_id!(SECOND_TOKEN_ID));
-                tokens.push(managed_token_id!(LOCKED_TOKEN_ID));
-
-                sc.add_known_tokens(tokens);
 
                 sc.set_energy_factory_address(managed_address!(
                     energy_factory_wrapper.address_ref()
@@ -179,8 +171,11 @@ where
             })
             .assert_ok();
 
+        let b_mock_ref = RefCell::new(b_mock);
+        let b_mock_rc = Rc::new(b_mock_ref);
+
         FeesCollectorSetup {
-            b_mock,
+            b_mock: b_mock_rc,
             owner_address,
             depositor_address,
             fc_wrapper,
@@ -191,12 +186,13 @@ where
 
     pub fn advance_week(&mut self) {
         self.current_epoch += EPOCHS_IN_WEEK;
-        self.b_mock.set_block_epoch(self.current_epoch);
+        self.b_mock.borrow_mut().set_block_epoch(self.current_epoch);
     }
 
     pub fn get_current_week(&mut self) -> Week {
         let mut result = 0;
         self.b_mock
+            .borrow_mut()
             .execute_query(&self.fc_wrapper, |sc| result = sc.get_current_week())
             .assert_ok();
 
@@ -204,7 +200,7 @@ where
     }
 
     pub fn deposit(&mut self, token: &[u8], amount: u64) -> TxResult {
-        self.b_mock.execute_esdt_transfer(
+        self.b_mock.borrow_mut().execute_esdt_transfer(
             &self.depositor_address,
             &self.fc_wrapper,
             token,
@@ -217,7 +213,7 @@ where
     }
 
     pub fn deposit_locked_tokens(&mut self, token: &[u8], nonce: u64, amount: u64) -> TxResult {
-        self.b_mock.execute_esdt_transfer(
+        self.b_mock.borrow_mut().execute_esdt_transfer(
             &self.depositor_address,
             &self.fc_wrapper,
             token,
@@ -231,6 +227,7 @@ where
 
     pub fn claim(&mut self, user: &Address) -> TxResult {
         self.b_mock
+            .borrow_mut()
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
                 let _ = sc.claim_rewards_endpoint(OptionalValue::None);
             })
@@ -238,6 +235,7 @@ where
 
     pub fn claim_for_user(&mut self, owner: &Address, broker: &Address) -> TxResult {
         self.b_mock
+            .borrow_mut()
             .execute_tx(broker, &self.fc_wrapper, &rust_biguint!(0), |sc| {
                 let _ = sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(owner)));
             })
@@ -245,6 +243,7 @@ where
 
     pub fn allow_external_claim_rewards(&mut self, user: &Address) -> TxResult {
         self.b_mock
+            .borrow_mut()
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
                 sc.allow_external_claim_rewards(&managed_address!(user))
                     .set(true);
@@ -254,6 +253,7 @@ where
     pub fn set_energy(&mut self, user: &Address, total_locked_tokens: u64, energy_amount: u64) {
         let current_epoch = self.current_epoch;
         self.b_mock
+            .borrow_mut()
             .execute_tx(
                 user,
                 &self.energy_factory_wrapper,

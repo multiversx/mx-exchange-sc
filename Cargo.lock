@@ -832,6 +832,7 @@ version = "0.0.0"
 dependencies = [
  "common-types",
  "common_errors",
+ "common_structs",
  "energy-factory",
  "energy-query",
  "locking_module",
@@ -839,6 +840,9 @@ dependencies = [
  "multiversx-sc-modules",
  "multiversx-sc-scenario",
  "num-bigint",
+ "pair",
+ "pausable",
+ "router",
  "sc_whitelist_module",
  "simple-lock",
  "utils",
@@ -1721,7 +1725,6 @@ dependencies = [
 name = "router"
 version = "0.0.0"
 dependencies = [
- "fees-collector",
  "locking_module",
  "multiversx-sc",
  "multiversx-sc-scenario",

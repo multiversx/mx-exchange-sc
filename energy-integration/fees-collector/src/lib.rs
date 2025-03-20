@@ -1,5 +1,6 @@
 #![no_std]
 
+use common_structs::Percent;
 use multiversx_sc::storage::StorageKey;
 
 multiversx_sc::imports!();
@@ -40,7 +41,7 @@ pub trait FeesCollector:
         &self,
         energy_factory_address: ManagedAddress,
         router_address: ManagedAddress,
-        base_token_burn_percent: u64,
+        base_token_burn_percent: Percent,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         self.set_energy_factory_address(energy_factory_address);
@@ -51,18 +52,51 @@ pub trait FeesCollector:
         self.first_week_start_epoch().set(current_epoch);
 
         let locked_token_id = self.get_locked_token_id();
-        self.add_known_token(&locked_token_id);
+        self.add_known_token(locked_token_id);
 
         for admin in admins {
             self.add_admin(admin);
         }
     }
 
+    // Do not ever use these keys again!
+    //
+    // The whole upgrade logic can be removed after one release and upgrade on mainnet
     #[upgrade]
     fn upgrade(&self) {
-        let mut mapper = UnorderedSetMapper::<Self::Api, ManagedAddress>::new(StorageKey::new(
-            b"knownContracts",
-        ));
-        mapper.clear();
+        let all_tokens_mapper = SingleValueMapper::<Self::Api, ManagedVec<TokenIdentifier>>::new(
+            StorageKey::new(b"allTokens"),
+        );
+        let all_tokens = all_tokens_mapper.take();
+        if all_tokens.is_empty() {
+            return;
+        }
+
+        let mut known_contracts_mapper = UnorderedSetMapper::<Self::Api, ManagedAddress>::new(
+            StorageKey::new(b"knownContracts"),
+        );
+        known_contracts_mapper.clear();
+
+        let known_tokens_mapper =
+            WhitelistMapper::<Self::Api, TokenIdentifier>::new(StorageKey::new(b"knownTokens"));
+
+        let base_token_id = self.get_base_token_id();
+        let locked_token_id = self.get_locked_token_id();
+        let current_week = self.get_current_week();
+        for token_id in &all_tokens {
+            known_tokens_mapper.remove(&token_id);
+
+            if token_id == base_token_id || token_id == locked_token_id {
+                continue;
+            }
+
+            let acc_fees_current_week = self.accumulated_fees(current_week, &token_id).take();
+            if acc_fees_current_week == 0 {
+                continue;
+            }
+
+            self.all_accumulated_tokens(&token_id)
+                .set(acc_fees_current_week);
+        }
     }
 }
