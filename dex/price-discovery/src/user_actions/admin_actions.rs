@@ -149,6 +149,8 @@ pub trait AdminActionsModule:
         let user_deposit = self.total_deposit_by_user(user_id).get();
         self.user_deposit_limit(user_id).clear();
         self.user_withdraw(user_addr, user_id, &user_deposit);
+
+        self.emit_refund_user_event(user_addr, &user_deposit);
     }
 
     fn require_caller_admin(&self) {

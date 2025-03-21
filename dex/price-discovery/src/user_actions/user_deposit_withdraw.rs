@@ -89,7 +89,17 @@ pub trait UserDepositWithdrawModule:
         let accepted_token_id = self.accepted_token_id().get();
         require!(payment_token == &accepted_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        self.add_and_require_valid_deposit_amount(user_id, payment_amount);
+        self.total_deposit_by_user(user_id).update(|total_deposit| {
+            *total_deposit += payment_amount;
+
+            let min_deposit = self.user_min_deposit().get();
+            require!(*total_deposit >= min_deposit, "Not enough tokens deposited");
+
+            let limit = self.user_deposit_limit(user_id).get();
+            if limit > 0 {
+                require!(*total_deposit <= limit, "Exceeded deposit limit");
+            }
+        });
 
         self.accepted_token_balance()
             .update(|balance| *balance += payment_amount);
@@ -116,20 +126,6 @@ pub trait UserDepositWithdrawModule:
 
         let refund_token_id = self.accepted_token_id().get();
         self.send().direct(caller, &refund_token_id, 0, amount);
-    }
-
-    fn add_and_require_valid_deposit_amount(&self, user_id: AddressId, user_deposit: &BigUint) {
-        self.total_deposit_by_user(user_id).update(|total_deposit| {
-            *total_deposit += user_deposit;
-
-            let min_deposit = self.user_min_deposit().get();
-            require!(*total_deposit >= min_deposit, "Not enough tokens deposited");
-
-            let limit = self.user_deposit_limit(user_id).get();
-            if limit > 0 {
-                require!(*total_deposit <= limit, "Exceeded deposit limit");
-            }
-        });
     }
 
     #[storage_mapper("userIdMapper")]

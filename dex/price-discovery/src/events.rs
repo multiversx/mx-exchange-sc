@@ -33,6 +33,12 @@ pub struct RedeemEvent<'a, M: ManagedTypeApi> {
     bought_token_amount: &'a BigUint<M>,
 }
 
+#[derive(TypeAbi, TopEncode)]
+pub struct RefundUserEvent<'a, M: ManagedTypeApi> {
+    user: &'a ManagedAddress<M>,
+    refund_amount: &'a BigUint<M>,
+}
+
 pub struct GenericEventData<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     block: Block,
@@ -125,6 +131,21 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         )
     }
 
+    fn emit_refund_user_event(&self, user: &ManagedAddress, refund_amount: &BigUint) {
+        let generic_event_data = self.get_generic_event_data();
+
+        self.refund_user_event(
+            &generic_event_data.caller,
+            generic_event_data.block,
+            generic_event_data.epoch,
+            generic_event_data.timestamp,
+            RefundUserEvent {
+                user,
+                refund_amount,
+            },
+        );
+    }
+
     fn get_generic_event_data(&self) -> GenericEventData<Self::Api> {
         let caller = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
@@ -187,6 +208,16 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         #[indexed] epoch: Epoch,
         #[indexed] timestamp: Timestamp,
         redeem_event: RedeemEvent<Self::Api>,
+    );
+
+    #[event("refundUserEvent")]
+    fn refund_user_event(
+        &self,
+        #[indexed] caller: &ManagedAddress,
+        #[indexed] block: Block,
+        #[indexed] epoch: Epoch,
+        #[indexed] timestamp: Timestamp,
+        refund_event: RefundUserEvent<Self::Api>,
     );
 
     #[event("setUserLimitEvent")]
