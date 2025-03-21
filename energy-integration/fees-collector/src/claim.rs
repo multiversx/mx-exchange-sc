@@ -193,16 +193,16 @@ where
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut results = ManagedVec::new();
 
-        let base_token_id = sc.get_base_token_id();
-        let opt_acc_base_token = sc.get_and_clear_accumulated_fees(week, &base_token_id);
-        if let Some(accumulated_fees) = opt_acc_base_token {
-            results.push(EsdtTokenPayment::new(base_token_id, 0, accumulated_fees));
-        }
-
         let locked_token_id = sc.get_locked_token_id();
         let opt_acc_locked_token = sc.get_and_clear_accumulated_fees(week, &locked_token_id);
         if let Some(accumulated_fees) = opt_acc_locked_token {
             results.push(EsdtTokenPayment::new(locked_token_id, 0, accumulated_fees));
+        }
+
+        let base_token_id = sc.get_base_token_id();
+        let opt_acc_base_token = sc.get_and_clear_accumulated_fees(week, &base_token_id);
+        if let Some(accumulated_fees) = opt_acc_base_token {
+            results.push(EsdtTokenPayment::new(base_token_id, 0, accumulated_fees));
         }
 
         results

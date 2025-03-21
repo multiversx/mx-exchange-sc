@@ -40,8 +40,8 @@ where
     pub owner_address: Address,
     pub user_address: Address,
     pub router_wrapper: ContractObjWrapper<router::ContractObj<DebugApi>, RouterObjBuilder>,
-    pub mex_pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
-    pub usdc_pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    pub wegld_mex_pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    pub wegld_usdc_pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
 }
 
 impl<RouterObjBuilder, PairObjBuilder> RouterSetup<RouterObjBuilder, PairObjBuilder>
@@ -64,14 +64,14 @@ where
             ROUTER_WASM_PATH,
         );
 
-        let mex_pair_wrapper = b_mock.borrow_mut().create_sc_account(
+        let wegld_mex_pair_wrapper = b_mock.borrow_mut().create_sc_account(
             &rust_zero,
             Some(&owner_addr),
             pair_builder,
             PAIR_WASM_PATH,
         );
 
-        let usdc_pair_wrapper = b_mock.borrow_mut().create_sc_account(
+        let wegld_usdc_pair_wrapper = b_mock.borrow_mut().create_sc_account(
             &rust_zero,
             Some(&owner_addr),
             pair_builder,
@@ -80,7 +80,7 @@ where
 
         b_mock
             .borrow_mut()
-            .execute_tx(&owner_addr, &mex_pair_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner_addr, &wegld_mex_pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(MEX_TOKEN_ID);
                 let router_address = managed_address!(&owner_addr);
@@ -108,7 +108,7 @@ where
 
         b_mock
             .borrow_mut()
-            .execute_tx(&owner_addr, &usdc_pair_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner_addr, &wegld_usdc_pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(USDC_TOKEN_ID);
                 let router_address = managed_address!(&owner_addr);
@@ -144,28 +144,28 @@ where
                         first_token_id: managed_token_id!(WEGLD_TOKEN_ID),
                         second_token_id: managed_token_id!(MEX_TOKEN_ID),
                     },
-                    managed_address!(mex_pair_wrapper.address_ref()),
+                    managed_address!(wegld_mex_pair_wrapper.address_ref()),
                 );
                 sc.pair_map().insert(
                     PairTokens {
                         first_token_id: managed_token_id!(WEGLD_TOKEN_ID),
                         second_token_id: managed_token_id!(USDC_TOKEN_ID),
                     },
-                    managed_address!(usdc_pair_wrapper.address_ref()),
+                    managed_address!(wegld_usdc_pair_wrapper.address_ref()),
                 );
             })
             .assert_ok();
 
         let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
         b_mock.borrow_mut().set_esdt_local_roles(
-            mex_pair_wrapper.address_ref(),
+            wegld_mex_pair_wrapper.address_ref(),
             LPMEX_TOKEN_ID,
             &lp_token_roles[..],
         );
 
         let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
         b_mock.borrow_mut().set_esdt_local_roles(
-            usdc_pair_wrapper.address_ref(),
+            wegld_usdc_pair_wrapper.address_ref(),
             LPUSDC_TOKEN_ID,
             &lp_token_roles[..],
         );
@@ -194,11 +194,12 @@ where
             owner_address: owner_addr,
             user_address: user_addr,
             router_wrapper,
-            mex_pair_wrapper,
-            usdc_pair_wrapper,
+            wegld_mex_pair_wrapper,
+            wegld_usdc_pair_wrapper,
         }
     }
 
+    // TODO: Maybe change token amounts
     pub fn add_liquidity(&mut self) {
         let payments = vec![
             TxTokenTransfer {
@@ -217,7 +218,7 @@ where
             .borrow_mut()
             .execute_esdt_multi_transfer(
                 &self.user_address,
-                &self.mex_pair_wrapper,
+                &self.wegld_mex_pair_wrapper,
                 &payments,
                 |sc| {
                     sc.add_liquidity(
@@ -245,7 +246,7 @@ where
             .borrow_mut()
             .execute_esdt_multi_transfer(
                 &self.user_address,
-                &self.usdc_pair_wrapper,
+                &self.wegld_usdc_pair_wrapper,
                 &payments,
                 |sc| {
                     sc.add_liquidity(

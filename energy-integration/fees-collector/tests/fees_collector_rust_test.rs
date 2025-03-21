@@ -45,9 +45,8 @@ fn claim_first_week_test() {
     fc_setup.set_energy(&first_user, 500, 1_000);
     fc_setup.set_energy(&second_user, 500, 3_000);
 
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // user claim first week - users only get registered for week 2, without receiving rewards
@@ -57,11 +56,11 @@ fn claim_first_week_test() {
     fc_setup
         .b_mock
         .borrow_mut()
-        .check_esdt_balance(&first_user, FIRST_TOKEN_ID, &rust_zero);
+        .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &rust_zero);
     fc_setup
         .b_mock
         .borrow_mut()
-        .check_esdt_balance(&second_user, FIRST_TOKEN_ID, &rust_zero);
+        .check_esdt_balance(&second_user, BASE_ASSET_TOKEN_ID, &rust_zero);
 
     let current_epoch = fc_setup.current_epoch;
     fc_setup
@@ -69,14 +68,9 @@ fn claim_first_week_test() {
         .borrow_mut()
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(FIRST_TOKEN_ID))
+                sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                     .get(),
                 USER_BALANCE
-            );
-            assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(SECOND_TOKEN_ID))
-                    .get(),
-                USER_BALANCE / 2
             );
 
             let first_user_energy = Energy::new(
@@ -120,21 +114,16 @@ fn claim_first_week_test() {
     fc_setup
         .b_mock
         .borrow_mut()
-        .check_esdt_balance(&first_user, FIRST_TOKEN_ID, &rust_zero);
+        .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &rust_zero);
 
     fc_setup
         .b_mock
         .borrow_mut()
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(FIRST_TOKEN_ID))
+                sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                     .get(),
                 USER_BALANCE
-            );
-            assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(SECOND_TOKEN_ID))
-                    .get(),
-                USER_BALANCE / 2
             );
 
             let first_user_energy = Energy::new(
@@ -184,9 +173,8 @@ fn claim_after_dex_inactive_test() {
     fc_setup.set_energy(&first_user, 50, 3_000);
     fc_setup.set_energy(&second_user, 50, 9_000);
 
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // user claim first week
@@ -203,9 +191,8 @@ fn claim_after_dex_inactive_test() {
     fc_setup.advance_week();
 
     // deposit rewards week 4
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // decrease user energy
@@ -216,34 +203,20 @@ fn claim_after_dex_inactive_test() {
     fc_setup.claim(&second_user).assert_ok();
 
     let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 3_000u32 / 12_000u32;
-    let first_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 3_000u32 / 12_000u32;
 
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &first_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &first_user,
-        SECOND_TOKEN_ID,
-        &first_user_expected_second_token_amt,
     );
 
     // energy week 4 for second user will be 9_000 - 7 * 3 * 50 = 9_000 - 1_050 = 7_950
     let second_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 9_000u32 / 12_000u32;
-    let second_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 9_000u32 / 12_000u32;
 
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &second_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &second_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &second_user,
-        SECOND_TOKEN_ID,
-        &second_user_expected_second_token_amt,
     );
 
     let current_epoch = fc_setup.current_epoch;
@@ -293,9 +266,8 @@ fn claim_second_week_test() {
     fc_setup.set_energy(&first_user, 500, 1_000);
     fc_setup.set_energy(&second_user, 500, 9_000);
 
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // user claim first week - users only get registered for week 2, without receiving rewards
@@ -317,32 +289,20 @@ fn claim_second_week_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let mut expected_total_rewards = ManagedVec::new();
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(FIRST_TOKEN_ID),
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(SECOND_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 2),
             ));
             assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
         })
         .assert_ok();
 
     let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 1_000u32 / 10_000u32;
-    let first_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 1_000u32 / 10_000u32;
 
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &first_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &first_user,
-        SECOND_TOKEN_ID,
-        &first_user_expected_second_token_amt,
     );
 
     let current_epoch = fc_setup.current_epoch;
@@ -352,26 +312,16 @@ fn claim_second_week_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             // fees were cleared and accumulated in the total_rewards mapper
             assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(FIRST_TOKEN_ID))
-                    .get(),
-                managed_biguint!(0)
-            );
-            assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(SECOND_TOKEN_ID))
+                sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                     .get(),
                 managed_biguint!(0)
             );
 
             let mut expected_total_rewards = ManagedVec::new();
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(FIRST_TOKEN_ID),
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(SECOND_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 2),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
@@ -411,13 +361,8 @@ fn claim_second_week_test() {
     // no rewards were given, and state remains intact
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &first_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &first_user,
-        SECOND_TOKEN_ID,
-        &first_user_expected_second_token_amt,
     );
 
     fc_setup
@@ -426,14 +371,9 @@ fn claim_second_week_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let mut expected_total_rewards = ManagedVec::new();
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(FIRST_TOKEN_ID),
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(SECOND_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 2),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
@@ -463,18 +403,11 @@ fn claim_second_week_test() {
     fc_setup.claim(&second_user).assert_ok();
 
     let second_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 9_000u32 / 10_000u32;
-    let second_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 9_000u32 / 10_000u32;
 
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &second_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &second_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &second_user,
-        SECOND_TOKEN_ID,
-        &second_user_expected_second_token_amt,
     );
 }
 
@@ -490,9 +423,8 @@ fn claim_for_other_user_test() {
     fc_setup.set_energy(&first_user, 500, 1_000);
     fc_setup.set_energy(&second_user, 500, 9_000);
 
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // user claim first week - user only get registered for week 2, without receiving rewards
@@ -525,32 +457,20 @@ fn claim_for_other_user_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let mut expected_total_rewards = ManagedVec::new();
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(FIRST_TOKEN_ID),
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(SECOND_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 2),
             ));
             assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
         })
         .assert_ok();
 
     let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 1_000u32 / 10_000u32;
-    let first_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 1_000u32 / 10_000u32;
 
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &first_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &first_user,
-        SECOND_TOKEN_ID,
-        &first_user_expected_second_token_amt,
     );
 
     let current_epoch = fc_setup.current_epoch;
@@ -560,26 +480,16 @@ fn claim_for_other_user_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             // fees were cleared and accumulated in the total_rewards mapper
             assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(FIRST_TOKEN_ID))
-                    .get(),
-                managed_biguint!(0)
-            );
-            assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(SECOND_TOKEN_ID))
+                sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                     .get(),
                 managed_biguint!(0)
             );
 
             let mut expected_total_rewards = ManagedVec::new();
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(FIRST_TOKEN_ID),
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(SECOND_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 2),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
@@ -626,9 +536,8 @@ fn claim_inactive_week_test() {
     fc_setup.set_energy(&first_user, 50, 3_000);
     fc_setup.set_energy(&second_user, 50, 9_000);
 
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // user claim first week - users only get registered for week 2, without receiving rewards
@@ -639,9 +548,8 @@ fn claim_inactive_week_test() {
     fc_setup.advance_week();
 
     // deposit rewards week 2
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // decrease user energy
@@ -651,18 +559,11 @@ fn claim_inactive_week_test() {
     fc_setup.claim(&first_user).assert_ok();
 
     let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 3_000u32 / 12_000u32;
-    let first_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 3_000u32 / 12_000u32;
 
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &first_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &first_user,
-        SECOND_TOKEN_ID,
-        &first_user_expected_second_token_amt,
     );
 
     let current_epoch = fc_setup.current_epoch;
@@ -702,19 +603,11 @@ fn claim_inactive_week_test() {
     // energy week 2 for second user will be 9_000 - 7 * 50 = 9_000 - 350 = 8_650
     let second_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 9_000u32 / 12_000u32
         + rust_biguint!(USER_BALANCE) * 8_650u32 / 11_300u32;
-    let second_user_expected_second_token_amt = rust_biguint!(USER_BALANCE / 2) * 9_000u32
-        / 12_000u32
-        + rust_biguint!(USER_BALANCE / 2) * 8_650u32 / 11_300u32;
 
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &second_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &second_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &second_user,
-        SECOND_TOKEN_ID,
-        &second_user_expected_second_token_amt,
     );
 }
 
@@ -730,9 +623,8 @@ fn locked_token_buckets_shifting_test() {
     fc_setup.set_energy(&first_user, 50, 3_000);
     fc_setup.set_energy(&second_user, 50, 9_000);
 
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // user claim first week - users only get registered for week 2, without receiving rewards
@@ -784,9 +676,8 @@ fn locked_token_buckets_shifting_test() {
     fc_setup.advance_week();
 
     // deposit rewards week 2
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // advance 5 weeks
@@ -926,9 +817,8 @@ fn multi_bucket_shift_consistency_test() {
     fc_setup.set_energy(&first_user, 1_000, 7_000);
     fc_setup.set_energy(&second_user, 100, 2_100);
 
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
     // user claim first week - users only get registered for week 2, without receiving rewards
@@ -1113,12 +1003,11 @@ fn claim_locked_rewards_with_energy_update_test() {
     fc_setup.set_energy(&first_user, 500, 1_000);
     fc_setup.set_energy(&second_user, 500, 9_000);
 
-    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
     fc_setup
-        .deposit_locked_tokens(LOCKED_TOKEN_ID, 1, USER_BALANCE / 100)
+        .deposit_locked_tokens(1, USER_BALANCE / 100)
         .assert_ok();
 
     // user claim first week - users only get registered for week 2, without receiving rewards
@@ -1145,34 +1034,22 @@ fn claim_locked_rewards_with_energy_update_test() {
                 managed_biguint!(USER_BALANCE / 100),
             ));
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(FIRST_TOKEN_ID),
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(SECOND_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 2),
             ));
             assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
         })
         .assert_ok();
 
     let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 1_000u32 / 10_000u32;
-    let first_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 1_000u32 / 10_000u32;
     let first_user_expected_locked_token_amt =
         rust_biguint!(USER_BALANCE / 100) * 1_000u32 / 10_000u32;
 
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &first_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &first_user,
-        SECOND_TOKEN_ID,
-        &first_user_expected_second_token_amt,
     );
     fc_setup.b_mock.borrow_mut().check_nft_balance(
         &first_user,
@@ -1193,12 +1070,7 @@ fn claim_locked_rewards_with_energy_update_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             // fees were cleared and accumulated in the total_rewards mapper
             assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(FIRST_TOKEN_ID))
-                    .get(),
-                managed_biguint!(0)
-            );
-            assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(SECOND_TOKEN_ID))
+                sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                     .get(),
                 managed_biguint!(0)
             );
@@ -1215,14 +1087,9 @@ fn claim_locked_rewards_with_energy_update_test() {
                 managed_biguint!(USER_BALANCE / 100),
             ));
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(FIRST_TOKEN_ID),
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(SECOND_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 2),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
@@ -1262,13 +1129,8 @@ fn claim_locked_rewards_with_energy_update_test() {
     // no rewards were given, and state remains intact
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &first_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &first_user,
-        SECOND_TOKEN_ID,
-        &first_user_expected_second_token_amt,
     );
     fc_setup.b_mock.borrow_mut().check_nft_balance(
         &first_user,
@@ -1293,14 +1155,9 @@ fn claim_locked_rewards_with_energy_update_test() {
                 managed_biguint!(USER_BALANCE / 100),
             ));
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(FIRST_TOKEN_ID),
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(SECOND_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 2),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
@@ -1340,18 +1197,11 @@ fn claim_locked_rewards_with_energy_update_test() {
     fc_setup.claim(&second_user).assert_ok();
 
     let second_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 9_000u32 / 10_000u32;
-    let second_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 9_000u32 / 10_000u32;
 
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &second_user,
-        FIRST_TOKEN_ID,
+        BASE_ASSET_TOKEN_ID,
         &second_user_expected_first_token_amt,
-    );
-    fc_setup.b_mock.borrow_mut().check_esdt_balance(
-        &second_user,
-        SECOND_TOKEN_ID,
-        &second_user_expected_second_token_amt,
     );
 }
 
@@ -1466,10 +1316,7 @@ fn redistribute_rewards_test() {
     fc_setup.set_energy(&third_user, 1, 1);
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.claim(&first_user).assert_ok();
@@ -1480,10 +1327,7 @@ fn redistribute_rewards_test() {
     fc_setup.advance_week();
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.set_energy(&third_user, 1, 1);
@@ -1495,14 +1339,9 @@ fn redistribute_rewards_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let mut expected_total_rewards = ManagedVec::new();
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(FIRST_TOKEN_ID),
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE / 10),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(SECOND_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 20),
             ));
             assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
         })
@@ -1512,10 +1351,7 @@ fn redistribute_rewards_test() {
     fc_setup.advance_week();
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.set_energy(&third_user, 1, 1);
@@ -1525,10 +1361,7 @@ fn redistribute_rewards_test() {
     fc_setup.advance_week();
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.set_energy(&third_user, 1, 1);
@@ -1538,10 +1371,7 @@ fn redistribute_rewards_test() {
     fc_setup.advance_week();
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.set_energy(&third_user, 1, 1);
@@ -1551,10 +1381,7 @@ fn redistribute_rewards_test() {
     fc_setup.advance_week();
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.set_energy(&third_user, 1, 1);
@@ -1564,10 +1391,7 @@ fn redistribute_rewards_test() {
     fc_setup.advance_week();
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.set_energy(&third_user, 1, 1);
@@ -1577,10 +1401,7 @@ fn redistribute_rewards_test() {
     fc_setup.advance_week();
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.set_energy(&third_user, 1, 1);
@@ -1590,10 +1411,7 @@ fn redistribute_rewards_test() {
     fc_setup.advance_week();
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.set_energy(&third_user, 1, 1);
@@ -1603,10 +1421,7 @@ fn redistribute_rewards_test() {
     fc_setup.advance_week();
 
     fc_setup
-        .deposit(FIRST_TOKEN_ID, USER_BALANCE / 10)
-        .assert_ok();
-    fc_setup
-        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 20)
+        .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE / 10)
         .assert_ok();
 
     fc_setup.set_energy(&third_user, 1, 1);
@@ -1626,20 +1441,13 @@ fn redistribute_rewards_test() {
                 // Rewards were put in current_week storage (i.e. 10)
 
                 let first_token_balance = sc
-                    .accumulated_fees(10, &managed_token_id!(FIRST_TOKEN_ID))
-                    .get();
-                let second_token_balance = sc
-                    .accumulated_fees(10, &managed_token_id!(SECOND_TOKEN_ID))
+                    .accumulated_fees(10, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                     .get();
 
                 // i.e. 6 weeks worth of rewards minus what the third user claimed
                 assert_eq!(
                     first_token_balance,
                     managed_biguint!(599_952_417_140_485_515u64)
-                );
-                assert_eq!(
-                    second_token_balance,
-                    managed_biguint!(299_976_208_570_242_758)
                 );
             },
         )

@@ -33,15 +33,15 @@ pub trait RedistributeRewardsModule:
         let locked_token_id = self.get_locked_token_id();
 
         let mut all_rewards = ManagedVec::new();
-        all_rewards.push(TokenAmountPair::new(base_token_id.clone(), BigUint::zero()));
         all_rewards.push(TokenAmountPair::new(
             locked_token_id.clone(),
             BigUint::zero(),
         ));
+        all_rewards.push(TokenAmountPair::new(base_token_id.clone(), BigUint::zero()));
 
         let mut all_tokens = ManagedVec::new();
-        all_tokens.push(base_token_id);
         all_tokens.push(locked_token_id);
+        all_tokens.push(base_token_id);
 
         for week in start_week..=end_week {
             self.accumulate_remaining_rewards_single_week(&mut all_rewards, &all_tokens, week);

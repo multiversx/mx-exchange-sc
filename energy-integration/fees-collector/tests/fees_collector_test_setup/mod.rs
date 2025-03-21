@@ -111,6 +111,11 @@ where
             SECOND_TOKEN_ID,
             &rust_biguint!(USER_BALANCE * 2),
         );
+        b_mock.set_esdt_balance(
+            &depositor_address,
+            BASE_ASSET_TOKEN_ID,
+            &rust_biguint!(USER_BALANCE * 2),
+        );
 
         DebugApi::dummy();
 
@@ -212,11 +217,11 @@ where
         )
     }
 
-    pub fn deposit_locked_tokens(&mut self, token: &[u8], nonce: u64, amount: u64) -> TxResult {
+    pub fn deposit_locked_tokens(&mut self, nonce: u64, amount: u64) -> TxResult {
         self.b_mock.borrow_mut().execute_esdt_transfer(
             &self.depositor_address,
             &self.fc_wrapper,
-            token,
+            LOCKED_TOKEN_ID,
             nonce,
             &rust_biguint!(amount),
             |sc| {
