@@ -36,7 +36,7 @@ pub struct RedeemEvent<'a, M: ManagedTypeApi> {
 #[derive(TypeAbi, TopEncode)]
 pub struct RefundUserEvent<'a, M: ManagedTypeApi> {
     user: &'a ManagedAddress<M>,
-    refund_amount: &'a BigUint<M>,
+    accepted_token_amount: &'a BigUint<M>,
 }
 
 pub struct GenericEventData<M: ManagedTypeApi> {
@@ -131,8 +131,9 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         )
     }
 
-    fn emit_refund_user_event(&self, user: &ManagedAddress, refund_amount: &BigUint) {
+    fn emit_refund_user_event(&self, user: &ManagedAddress) {
         let generic_event_data = self.get_generic_event_data();
+        let accepted_token_amount = self.accepted_token_balance().get();
 
         self.refund_user_event(
             &generic_event_data.caller,
@@ -141,7 +142,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
             generic_event_data.timestamp,
             RefundUserEvent {
                 user,
-                refund_amount,
+                accepted_token_amount: &accepted_token_amount,
             },
         );
     }

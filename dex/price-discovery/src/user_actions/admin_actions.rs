@@ -150,7 +150,7 @@ pub trait AdminActionsModule:
         self.user_deposit_limit(user_id).clear();
         self.user_withdraw(user_addr, user_id, &user_deposit);
 
-        self.emit_refund_user_event(user_addr, &user_deposit);
+        self.emit_refund_user_event(user_addr);
     }
 
     fn require_caller_admin(&self) {
