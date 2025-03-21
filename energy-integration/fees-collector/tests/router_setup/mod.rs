@@ -10,7 +10,7 @@ use multiversx_sc_scenario::{
 
 pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
 pub const ROUTER_WASM_PATH: &str = "router/output/router.wasm";
-pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef";
+pub const MEX_TOKEN_ID: &[u8] = BASE_ASSET_TOKEN_ID;
 pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 pub const USDC_TOKEN_ID: &[u8] = b"USDC-abcdef";
 pub const LPMEX_TOKEN_ID: &[u8] = b"LPMEX-abcdef";
@@ -29,6 +29,8 @@ use pausable::{PausableModule, State};
 use router::config::ConfigModule;
 use router::factory::*;
 use router::*;
+
+use crate::fees_collector_test_setup::BASE_ASSET_TOKEN_ID;
 
 #[allow(dead_code)]
 pub struct RouterSetup<RouterObjBuilder, PairObjBuilder>
@@ -205,7 +207,7 @@ where
             TxTokenTransfer {
                 token_identifier: WEGLD_TOKEN_ID.to_vec(),
                 nonce: 0,
-                value: rust_biguint!(ADD_LIQUIDITY_TOKENS),
+                value: rust_biguint!(ADD_LIQUIDITY_TOKENS * 5),
             },
             TxTokenTransfer {
                 token_identifier: MEX_TOKEN_ID.to_vec(),
@@ -233,7 +235,7 @@ where
             TxTokenTransfer {
                 token_identifier: WEGLD_TOKEN_ID.to_vec(),
                 nonce: 0,
-                value: rust_biguint!(ADD_LIQUIDITY_TOKENS),
+                value: rust_biguint!(ADD_LIQUIDITY_TOKENS * 3),
             },
             TxTokenTransfer {
                 token_identifier: USDC_TOKEN_ID.to_vec(),

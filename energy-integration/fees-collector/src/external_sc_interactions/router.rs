@@ -1,5 +1,5 @@
 use common_types::PaymentsVec;
-use router_proxy::FunctionName;
+use router_proxy::SwapOperationType;
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -24,17 +24,6 @@ mod router_proxy {
     }
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone)]
-pub struct SwapOperation<M: ManagedTypeApi> {
-    pub pair_address: ManagedAddress<M>,
-    pub function_name: FunctionName<M>,
-    pub input_token_id: TokenIdentifier<M>,
-    pub min_amount_out: BigUint<M>,
-}
-
-pub type SwapOperationArgs<M> = MultiValueEncoded<M, ManagedVec<M, SwapOperation<M>>>;
-pub type SingleSwapOperationArg<M> = ManagedVec<M, SwapOperation<M>>;
-
 #[multiversx_sc::module]
 pub trait RouterInteractionsModule:
     crate::fees_accumulation::FeesAccumulationModule
@@ -55,89 +44,73 @@ pub trait RouterInteractionsModule:
 
     /// Swaps tokens to the base token (i.e. MEX).
     ///
-    /// The first token must be a known token to the fees collector, and the very last token received must be MEX.
+    /// `token_to_send` must be a known token to the fees collector, and the very last token received must be MEX.
     ///
     /// The fees collector uses the given pair paths through the router contract.
+    ///
+    /// `swap_operations` are pairs of (pair address, pair function name, token wanted, min amount out)
+    ///
+    /// "pair function name" can only be "swapTokensFixedInput" or "swapTokensFixedOutput"
+    ///
+    /// "min amount out" is a minimum of 1
     #[only_admin]
     #[endpoint(swapTokenToBaseToken)]
-    fn swap_token_to_base_token(&self, swap_operations: SwapOperationArgs<Self::Api>) {
+    fn swap_token_to_base_token(
+        &self,
+        token_to_send: TokenIdentifier,
+        swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
+    ) {
+        self.check_swap_through_router_args(&token_to_send, &swap_operations);
+
+        let token_amount = self.all_accumulated_tokens(&token_to_send).take();
+        require!(token_amount > 0, "No tokens");
+
         let router_address = self.router_address().get();
+        let swap_payment = EsdtTokenPayment::new(token_to_send, 0, token_amount);
+        let mut received_tokens =
+            self.call_swap_through_router(router_address.clone(), swap_payment, swap_operations);
+
         let base_token_id = self.get_base_token_id();
-        let mut total_base_tokens = BigUint::zero();
-        for swap_op in swap_operations {
-            let payment = self.check_args_and_get_first_token_payment(swap_op.clone());
-            if payment.amount == 0 {
-                continue;
-            }
+        require!(
+            received_tokens.token_identifier == base_token_id,
+            "Invalid tokens received from router"
+        );
 
-            let mut received_tokens =
-                self.call_swap_through_router(router_address.clone(), payment, swap_op);
-            require!(
-                received_tokens.token_identifier == base_token_id,
-                "Invalid tokens received from router"
-            );
-
-            self.burn_part_of_base_token(&mut received_tokens);
-
-            total_base_tokens += received_tokens.amount;
-        }
+        self.burn_part_of_base_token(&mut received_tokens);
 
         let current_week = self.get_current_week();
         self.accumulated_fees(current_week, &base_token_id)
-            .update(|acc_fees| *acc_fees += total_base_tokens);
+            .update(|acc_fees| *acc_fees += received_tokens.amount);
     }
 
-    fn check_args_and_get_first_token_payment(
+    fn check_swap_through_router_args(
         &self,
-        swap_operation: SingleSwapOperationArg<Self::Api>,
-    ) -> EsdtTokenPayment {
-        let mut iter = swap_operation.into_iter();
-        let opt_first_item = iter.next();
-        require!(opt_first_item.is_some(), "No arguments provided");
+        token_to_send: &TokenIdentifier,
+        swap_operation: &MultiValueEncoded<SwapOperationType<Self::Api>>,
+    ) {
+        require!(!swap_operation.is_empty(), "No arguments provided");
 
-        let first_item = unsafe { opt_first_item.unwrap_unchecked() };
         let base_token_id = self.get_base_token_id();
         let locked_token_id = self.get_locked_token_id();
         require!(
-            first_item.input_token_id != base_token_id
-                && first_item.input_token_id != locked_token_id,
+            token_to_send != &base_token_id && token_to_send != &locked_token_id,
             "May not swap base token or locked token"
         );
         require!(
-            self.all_known_tokens().contains(&first_item.input_token_id),
+            self.all_known_tokens().contains(&token_to_send),
             "Unknown first token"
         );
-
-        let token_amount = self
-            .all_accumulated_tokens(&first_item.input_token_id)
-            .take();
-        require!(token_amount > 0, "No tokens for given week");
-
-        EsdtTokenPayment::new(first_item.input_token_id, 0, token_amount)
     }
 
     fn call_swap_through_router(
         &self,
         router_address: ManagedAddress,
         payment: EsdtTokenPayment,
-        swap_operation: SingleSwapOperationArg<Self::Api>,
+        swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
     ) -> EsdtTokenPayment {
-        let mut args = MultiValueEncoded::new();
-        for swap_op in &swap_operation {
-            args.push(
-                (
-                    swap_op.pair_address,
-                    swap_op.function_name,
-                    swap_op.input_token_id,
-                    swap_op.min_amount_out,
-                )
-                    .into(),
-            )
-        }
-
         let output_payments: PaymentsVec<Self::Api> = self
             .router_proxy(router_address)
-            .multi_pair_swap(args)
+            .multi_pair_swap(swap_operations)
             .esdt(payment)
             .execute_on_dest_context();
         require!(

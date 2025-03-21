@@ -5,16 +5,17 @@ mod router_setup;
 
 use energy_query::Energy;
 use fees_collector::additional_locked_tokens::{AdditionalLockedTokensModule, BLOCKS_IN_WEEK};
+use fees_collector::config::ConfigModule;
 use fees_collector::external_sc_interactions::router::RouterInteractionsModule;
 use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector::redistribute_rewards::RedistributeRewardsModule;
 use fees_collector_test_setup::*;
-use multiversx_sc::types::{BigInt, EsdtTokenPayment, ManagedVec};
+use multiversx_sc::types::{BigInt, EsdtTokenPayment, ManagedVec, MultiValueEncoded};
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    DebugApi,
+    managed_address, managed_biguint, managed_buffer, managed_token_id, managed_token_id_wrapped,
+    rust_biguint, DebugApi,
 };
-use router_setup::{RouterSetup, USDC_TOKEN_ID};
+use router_setup::{RouterSetup, WEGLD_TOKEN_ID};
 use simple_lock::locked_token::LockedTokenAttributes;
 use weekly_rewards_splitting::locked_token_buckets::LockedTokensBucket;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
@@ -1455,7 +1456,7 @@ fn redistribute_rewards_test() {
 }
 
 #[test]
-fn fees_collector_base_token_feature_test() {
+fn fees_collector_single_swap_test() {
     let fc_setup =
         FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
     let mut router_setup = RouterSetup::new(
@@ -1480,33 +1481,69 @@ fn fees_collector_base_token_feature_test() {
         )
         .assert_ok();
 
-    // try deposit USDC
-    router_setup.b_mock.borrow_mut().set_esdt_balance(
-        &router_setup.owner_address,
-        USDC_TOKEN_ID,
+    // try deposit WEGLD
+    fc_setup.b_mock.borrow_mut().set_esdt_balance(
+        &fc_setup.owner_address,
+        WEGLD_TOKEN_ID,
         &rust_biguint!(1_000),
     );
 
-    router_setup
+    fc_setup
         .b_mock
         .borrow_mut()
         .execute_esdt_transfer(
             &fc_setup.owner_address,
             &fc_setup.fc_wrapper,
-            USDC_TOKEN_ID,
+            WEGLD_TOKEN_ID,
             0,
             &rust_biguint!(1_000),
             |sc| {
                 sc.deposit_swap_fees();
 
-                // check fees were accumulate for WEGLD instead of USDC
+                assert_eq!(
+                    sc.all_accumulated_tokens(&managed_token_id!(WEGLD_TOKEN_ID))
+                        .get(),
+                    1_000
+                );
                 assert!(sc
-                    .accumulated_fees(1, &managed_token_id!(USDC_TOKEN_ID))
-                    .is_empty());
-
-                assert!(!sc
                     .accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                     .is_empty());
+            },
+        )
+        .assert_ok();
+
+    // swap WEGLD to MEX
+    let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut swap_operations = MultiValueEncoded::new();
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_mex_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(BASE_ASSET_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+                sc.swap_token_to_base_token(managed_token_id!(WEGLD_TOKEN_ID), swap_operations);
+
+                assert!(sc
+                    .all_accumulated_tokens(&managed_token_id!(WEGLD_TOKEN_ID))
+                    .is_empty());
+
+                // About 1/5, which is the ratio of the pair
+                assert_eq!(
+                    sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                        .get(),
+                    199
+                );
             },
         )
         .assert_ok();
