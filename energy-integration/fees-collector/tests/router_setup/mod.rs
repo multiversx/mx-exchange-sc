@@ -8,13 +8,13 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
 
-pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
-pub const ROUTER_WASM_PATH: &str = "router/output/router.wasm";
-pub const MEX_TOKEN_ID: &[u8] = BASE_ASSET_TOKEN_ID;
-pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
-pub const USDC_TOKEN_ID: &[u8] = b"USDC-abcdef";
-pub const LPMEX_TOKEN_ID: &[u8] = b"LPMEX-abcdef";
-pub const LPUSDC_TOKEN_ID: &[u8] = b"LPUSDC-abcdef";
+pub static PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
+pub static ROUTER_WASM_PATH: &str = "router/output/router.wasm";
+pub static MEX_TOKEN_ID: &[u8] = BASE_ASSET_TOKEN_ID;
+pub static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
+pub static USDC_TOKEN_ID: &[u8] = b"USDC-abcdef";
+pub static LPMEX_TOKEN_ID: &[u8] = b"LPMEX-abcdef";
+pub static LPUSDC_TOKEN_ID: &[u8] = b"LPUSDC-abcdef";
 
 pub const USER_TOTAL_MEX_TOKENS: u64 = 5_001_001_000;
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_002_002_000;

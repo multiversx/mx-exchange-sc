@@ -15,7 +15,7 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, managed_token_id_wrapped,
     rust_biguint, DebugApi,
 };
-use router_setup::{RouterSetup, WEGLD_TOKEN_ID};
+use router_setup::{RouterSetup, USDC_TOKEN_ID, WEGLD_TOKEN_ID};
 use simple_lock::locked_token::LockedTokenAttributes;
 use weekly_rewards_splitting::locked_token_buckets::LockedTokensBucket;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
@@ -1543,6 +1543,111 @@ fn fees_collector_single_swap_test() {
                     sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                         .get(),
                     199
+                );
+            },
+        )
+        .assert_ok();
+}
+
+#[test]
+fn fees_collector_multiple_swap_test() {
+    let fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
+    let mut router_setup = RouterSetup::new(
+        fc_setup.b_mock.clone(),
+        router::contract_obj,
+        pair::contract_obj,
+    );
+
+    router_setup.add_liquidity();
+
+    let router_address = router_setup.router_wrapper.address_ref().clone();
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_router_address(managed_address!(&router_address));
+            },
+        )
+        .assert_ok();
+
+    // try deposit USDC
+    fc_setup.b_mock.borrow_mut().set_esdt_balance(
+        &fc_setup.owner_address,
+        USDC_TOKEN_ID,
+        &rust_biguint!(1_000),
+    );
+
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_esdt_transfer(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            USDC_TOKEN_ID,
+            0,
+            &rust_biguint!(1_000),
+            |sc| {
+                sc.deposit_swap_fees();
+
+                assert_eq!(
+                    sc.all_accumulated_tokens(&managed_token_id!(USDC_TOKEN_ID))
+                        .get(),
+                    1_000
+                );
+                assert!(sc
+                    .accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                    .is_empty());
+            },
+        )
+        .assert_ok();
+
+    // swap USDC to WEGLD to MEX
+    let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
+    let wegld_usdc_pair_addr = router_setup.wegld_usdc_pair_wrapper.address_ref().clone();
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut swap_operations = MultiValueEncoded::new();
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_usdc_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(WEGLD_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_mex_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(BASE_ASSET_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+                sc.swap_token_to_base_token(managed_token_id!(USDC_TOKEN_ID), swap_operations);
+
+                assert!(sc
+                    .all_accumulated_tokens(&managed_token_id!(USDC_TOKEN_ID))
+                    .is_empty());
+
+                // About 1/5, which is the ratio of the first pair, then multiplied by 3, which is the ratio of the second pair
+                // i.e. ~ 1000 / 5 * 3
+                assert_eq!(
+                    sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                        .get(),
+                    595
                 );
             },
         )
