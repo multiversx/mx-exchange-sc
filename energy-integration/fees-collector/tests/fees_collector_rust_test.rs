@@ -1450,6 +1450,38 @@ fn redistribute_rewards_test() {
                     first_token_balance,
                     managed_biguint!(599_952_417_140_485_515u64)
                 );
+
+                assert!(sc.remaining_rewards(1).is_empty());
+                assert!(sc.remaining_rewards(2).is_empty());
+                assert!(sc.remaining_rewards(3).is_empty());
+                assert!(sc.remaining_rewards(4).is_empty());
+                assert!(sc.remaining_rewards(5).is_empty());
+            },
+        )
+        .assert_ok();
+
+    // try redistribute rewards again - same balances in storage
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.redistribute_rewards(1, 5);
+
+                // Rewards were put in current_week storage (i.e. 10)
+
+                let first_token_balance = sc
+                    .accumulated_fees(10, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                    .get();
+
+                // i.e. 6 weeks worth of rewards minus what the third user claimed
+                assert_eq!(
+                    first_token_balance,
+                    managed_biguint!(599_952_417_140_485_515u64)
+                );
             },
         )
         .assert_ok();
@@ -1606,9 +1638,66 @@ fn fees_collector_multiple_swap_test() {
         )
         .assert_ok();
 
-    // swap USDC to WEGLD to MEX
+    // try swap unknown token
     let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
     let wegld_usdc_pair_addr = router_setup.wegld_usdc_pair_wrapper.address_ref().clone();
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut swap_operations = MultiValueEncoded::new();
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_usdc_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(WEGLD_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_mex_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(BASE_ASSET_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+                sc.swap_token_to_base_token(managed_token_id!("RAND-123456"), swap_operations);
+            },
+        )
+        .assert_user_error("Unknown first token");
+
+    // try swap last token not MEX
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut swap_operations = MultiValueEncoded::new();
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_usdc_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(WEGLD_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+                sc.swap_token_to_base_token(managed_token_id!(USDC_TOKEN_ID), swap_operations);
+            },
+        )
+        .assert_user_error("Invalid tokens received from router");
+
+    // swap USDC to WEGLD to MEX
     fc_setup
         .b_mock
         .borrow_mut()
