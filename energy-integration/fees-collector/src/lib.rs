@@ -169,18 +169,14 @@ pub trait FeesCollector:
         }
     }
 
+    #[inline]
     fn find_token_in_payments_vec(
         &self,
         token_id: &TokenIdentifier,
         vec: &PaymentsVec<Self::Api>,
     ) -> Option<EsdtTokenPayment> {
-        for payment in vec {
-            if token_id == &payment.token_identifier {
-                return Some(payment);
-            }
-        }
-
-        None
+        vec.into_iter()
+            .find(|payment| token_id == &payment.token_identifier)
     }
 
     // only needed for testing the upgrade functionality
