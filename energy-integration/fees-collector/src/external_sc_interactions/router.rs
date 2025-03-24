@@ -97,7 +97,7 @@ pub trait RouterInteractionsModule:
             "May not swap base token or locked token"
         );
         require!(
-            self.all_known_tokens().contains(&token_to_send),
+            self.all_known_tokens().contains(token_to_send),
             "Unknown first token"
         );
     }
