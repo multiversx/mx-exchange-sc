@@ -24,6 +24,5 @@ jobs:
     with:
       rust-toolchain: stable
       coverage-args: --ignore-filename-regex='/.cargo/git' --output ./coverage.md
-      enable-interactor-tests: true
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
