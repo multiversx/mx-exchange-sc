@@ -13,4 +13,3 @@ jobs:
     with:
       image_tag: v9.0.0
       attach_to_existing_release: true
-      
