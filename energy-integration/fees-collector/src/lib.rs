@@ -1,9 +1,12 @@
 #![no_std]
 
+use claim::FeesCollectorWrapper;
 use common_structs::Percent;
 use common_types::{PaymentsVec, Week};
 use multiversx_sc::storage::StorageKey;
-use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
+use weekly_rewards_splitting::{
+    base_impl::WeeklyRewardsSplittingTraitsModule, USER_MAX_CLAIM_WEEKS,
+};
 
 multiversx_sc::imports!();
 
@@ -82,7 +85,7 @@ pub trait FeesCollector:
         let base_token_id = self.get_base_token_id();
         let locked_token_id = self.get_locked_token_id();
         let current_week = self.get_current_week();
-        self.move_fees_current_week_after_upgrade(
+        self.clear_fees_current_week_after_upgrade(
             &base_token_id,
             &locked_token_id,
             &all_tokens,
@@ -96,32 +99,28 @@ pub trait FeesCollector:
         );
     }
 
-    fn move_fees_current_week_after_upgrade(
+    fn clear_fees_current_week_after_upgrade(
         &self,
         base_token_id: &TokenIdentifier,
         locked_token_id: &TokenIdentifier,
         all_tokens: &ManagedVec<TokenIdentifier>,
         current_week: Week,
     ) {
+        // In case the upgrade action is the very first action in the week
+        self.accumulate_additional_locked_tokens();
+
+        let wrapper = FeesCollectorWrapper::new();
+        let _ = wrapper.collect_and_get_rewards_for_week(self, current_week - 1);
+
         let known_tokens_mapper =
             WhitelistMapper::<Self::Api, TokenIdentifier>::new(StorageKey::new(b"knownTokens"));
 
         for token_id in all_tokens {
             known_tokens_mapper.remove(&token_id);
 
-            if &token_id == base_token_id || &token_id == locked_token_id {
-                continue;
+            if &token_id != base_token_id && &token_id != locked_token_id {
+                self.accumulated_fees(current_week, &token_id).clear();
             }
-
-            let acc_fees_mapper = self.accumulated_fees(current_week, &token_id);
-            let acc_fees_current_week = acc_fees_mapper.get();
-            if acc_fees_current_week == 0 {
-                continue;
-            }
-
-            acc_fees_mapper.clear();
-            self.all_accumulated_tokens(&token_id)
-                .set(acc_fees_current_week);
         }
     }
 
@@ -134,39 +133,58 @@ pub trait FeesCollector:
     ) {
         let sc_address = self.blockchain().get_sc_address();
         for token_id in all_tokens {
-            if &token_id == base_token_id && &token_id == locked_token_id {
+            if &token_id == base_token_id || &token_id == locked_token_id {
                 continue;
             }
 
             let balance = self
                 .blockchain()
                 .get_esdt_balance(&sc_address, &token_id, 0);
-            if balance == 0 {
-                continue;
+            if balance > 0 {
+                self.all_accumulated_tokens(&token_id).set(balance);
             }
-
-            self.all_accumulated_tokens(&token_id)
-                .update(|token_balance| *token_balance += balance);
         }
 
-        for week in (current_week - USER_MAX_CLAIM_WEEKS)..current_week {
-            let remaining_rewards_mapper = self.remaining_rewards(week);
-            let remaining_rewards = remaining_rewards_mapper.get();
-            let opt_remaining_rewards_base_token =
-                self.find_token_in_payments_vec(base_token_id, &remaining_rewards);
-            let opt_remaining_rewards_locked_token =
-                self.find_token_in_payments_vec(locked_token_id, &remaining_rewards);
+        let first_week = if current_week > USER_MAX_CLAIM_WEEKS {
+            current_week - USER_MAX_CLAIM_WEEKS
+        } else {
+            1
+        };
 
-            let mut new_remaining_rewards = PaymentsVec::new();
-            if let Some(remaining_rewards_base_token) = opt_remaining_rewards_base_token {
-                new_remaining_rewards.push(remaining_rewards_base_token);
-            }
-            if let Some(remaining_rewards_locked_token) = opt_remaining_rewards_locked_token {
-                new_remaining_rewards.push(remaining_rewards_locked_token);
-            }
-
-            remaining_rewards_mapper.set(new_remaining_rewards);
+        for week in first_week..current_week {
+            self.set_rewards_after_upgrade(
+                base_token_id,
+                locked_token_id,
+                &self.total_rewards_for_week(week),
+            );
+            self.set_rewards_after_upgrade(
+                base_token_id,
+                locked_token_id,
+                &self.remaining_rewards(week),
+            );
         }
+    }
+
+    fn set_rewards_after_upgrade(
+        &self,
+        base_token_id: &TokenIdentifier,
+        locked_token_id: &TokenIdentifier,
+        mapper: &SingleValueMapper<PaymentsVec<Self::Api>>,
+    ) {
+        let prev_rewards = mapper.get();
+        let opt_rewards_base_token = self.find_token_in_payments_vec(base_token_id, &prev_rewards);
+        let opt_rewards_locked_token =
+            self.find_token_in_payments_vec(locked_token_id, &prev_rewards);
+
+        let mut new_rewards = PaymentsVec::new();
+        if let Some(remaining_rewards_base_token) = opt_rewards_base_token {
+            new_rewards.push(remaining_rewards_base_token);
+        }
+        if let Some(remaining_rewards_locked_token) = opt_rewards_locked_token {
+            new_rewards.push(remaining_rewards_locked_token);
+        }
+
+        mapper.set(new_rewards);
     }
 
     #[inline]
