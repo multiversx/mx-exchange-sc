@@ -64,9 +64,9 @@ pub trait FeesCollector:
         }
     }
 
-    // Do not ever use these keys again!
+    // Do not use these storage keys until upgrade: "allTokens", "knownContracts" and "knownTokens"
     //
-    // The whole upgrade logic can be removed after one release and upgrade on mainnet
+    // The whole upgrade logic (and the relevant test) can be removed after one release and upgrade on mainnet
     #[upgrade]
     fn upgrade(&self) {
         let all_tokens_mapper = SingleValueMapper::<Self::Api, ManagedVec<TokenIdentifier>>::new(

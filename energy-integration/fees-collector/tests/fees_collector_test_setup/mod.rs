@@ -3,6 +3,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use claim::ClaimModule;
+use common_structs::Percent;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -101,6 +102,11 @@ where
             fc_wrapper.address_ref(),
             LOCKED_TOKEN_ID,
             &[EsdtLocalRole::NftBurn],
+        );
+        b_mock.set_esdt_local_roles(
+            fc_wrapper.address_ref(),
+            BASE_ASSET_TOKEN_ID,
+            &[EsdtLocalRole::Burn],
         );
 
         b_mock.set_esdt_balance(
@@ -271,6 +277,20 @@ where
                         current_epoch,
                         managed_biguint!(total_locked_tokens),
                     ));
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn set_burn_percent(&mut self, burn_percent: Percent) {
+        self.b_mock
+            .borrow_mut()
+            .execute_tx(
+                &self.owner_address,
+                &self.fc_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.set_base_token_burn_percent(burn_percent);
                 },
             )
             .assert_ok();

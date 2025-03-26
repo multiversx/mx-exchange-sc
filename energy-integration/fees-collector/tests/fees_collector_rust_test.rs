@@ -1744,6 +1744,98 @@ fn fees_collector_multiple_swap_test() {
         .assert_ok();
 }
 
+#[test]
+fn test_burn_percentage_base_token_logic() {
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
+    let mut router_setup = RouterSetup::new(
+        fc_setup.b_mock.clone(),
+        router::contract_obj,
+        pair::contract_obj,
+    );
+
+    router_setup.add_liquidity();
+
+    let router_address = router_setup.router_wrapper.address_ref().clone();
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_router_address(managed_address!(&router_address));
+            },
+        )
+        .assert_ok();
+
+    fc_setup.set_burn_percent(2_500); // 25%
+
+    // deposit WEGLD
+    fc_setup.b_mock.borrow_mut().set_esdt_balance(
+        &fc_setup.depositor_address,
+        WEGLD_TOKEN_ID,
+        &rust_biguint!(1_000),
+    );
+    fc_setup.deposit(WEGLD_TOKEN_ID, 1_000).assert_ok();
+
+    let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut swap_operations = MultiValueEncoded::new();
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_mex_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(BASE_ASSET_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+                sc.swap_token_to_base_token(managed_token_id!(WEGLD_TOKEN_ID), swap_operations);
+
+                assert!(sc
+                    .all_accumulated_tokens(&managed_token_id!(WEGLD_TOKEN_ID))
+                    .is_empty());
+
+                // About 1/5, which is the ratio of the pair
+                assert_eq!(
+                    sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                        .get(),
+                    199 - 199 / 4 // 25% get burned
+                );
+            },
+        )
+        .assert_ok();
+
+    // user deposit mex
+    fc_setup.b_mock.borrow_mut().set_esdt_balance(
+        &fc_setup.depositor_address,
+        BASE_ASSET_TOKEN_ID,
+        &rust_biguint!(1_000),
+    );
+    fc_setup.deposit(BASE_ASSET_TOKEN_ID, 1_000).assert_ok();
+
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            assert_eq!(
+                sc.accumulated_fees(1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                    .get(),
+                199 - 199 / 4 + 1_000 - 1_000 / 4 // previous balance + new one with 25% burned
+            );
+        })
+        .assert_ok();
+}
+
 // TODO: Remove after upgrade logic is removed
 #[test]
 fn test_upgrade_fees_collector() {
