@@ -177,11 +177,11 @@ pub trait FeesCollector:
             self.find_token_in_payments_vec(locked_token_id, &prev_rewards);
 
         let mut new_rewards = PaymentsVec::new();
-        if let Some(remaining_rewards_base_token) = opt_rewards_base_token {
-            new_rewards.push(remaining_rewards_base_token);
+        if let Some(rewards_base_token) = opt_rewards_base_token {
+            new_rewards.push(rewards_base_token);
         }
-        if let Some(remaining_rewards_locked_token) = opt_rewards_locked_token {
-            new_rewards.push(remaining_rewards_locked_token);
+        if let Some(rewards_locked_token) = opt_rewards_locked_token {
+            new_rewards.push(rewards_locked_token);
         }
 
         mapper.set(new_rewards);
