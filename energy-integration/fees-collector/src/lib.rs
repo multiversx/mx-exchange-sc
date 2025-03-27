@@ -4,6 +4,7 @@ use claim::FeesCollectorWrapper;
 use common_structs::Percent;
 use common_types::{PaymentsVec, Week};
 use multiversx_sc::storage::StorageKey;
+use week_timekeeping::FIRST_WEEK;
 use weekly_rewards_splitting::{
     base_impl::WeeklyRewardsSplittingTraitsModule, USER_MAX_CLAIM_WEEKS,
 };
@@ -97,6 +98,7 @@ pub trait FeesCollector:
             &all_tokens,
             current_week,
         );
+        self.clear_older_undist_rewards(current_week);
     }
 
     fn clear_fees_current_week_after_upgrade(
@@ -195,6 +197,19 @@ pub trait FeesCollector:
     ) -> Option<EsdtTokenPayment> {
         vec.into_iter()
             .find(|payment| token_id == &payment.token_identifier)
+    }
+
+    // This makes sure we don't accidentally redistribute rewards again
+    fn clear_older_undist_rewards(&self, current_week: Week) {
+        if current_week <= USER_MAX_CLAIM_WEEKS {
+            return;
+        }
+
+        let end_week = current_week - USER_MAX_CLAIM_WEEKS;
+        for week in FIRST_WEEK..end_week {
+            self.total_rewards_for_week(week).clear();
+            self.remaining_rewards(week).clear();
+        }
     }
 
     // only needed for testing the upgrade functionality
