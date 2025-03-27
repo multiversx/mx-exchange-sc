@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 mod router_setup;
+
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -131,17 +132,17 @@ fn test_multi_pair_swap() {
 
     router_setup.add_liquidity();
 
-    router_setup.blockchain_wrapper.check_esdt_balance(
+    router_setup.b_mock.check_esdt_balance(
         &router_setup.user_address,
         WEGLD_TOKEN_ID,
         &rust_biguint!(5_000_000_000),
     );
-    router_setup.blockchain_wrapper.check_esdt_balance(
+    router_setup.b_mock.check_esdt_balance(
         &router_setup.user_address,
         MEX_TOKEN_ID,
         &rust_biguint!(5_000_000_000),
     );
-    router_setup.blockchain_wrapper.check_esdt_balance(
+    router_setup.b_mock.check_esdt_balance(
         &router_setup.user_address,
         USDC_TOKEN_ID,
         &rust_biguint!(5_000_000_000),
@@ -164,17 +165,17 @@ fn test_multi_pair_swap() {
 
     router_setup.multi_pair_swap(MEX_TOKEN_ID, 100_000, &ops);
 
-    router_setup.blockchain_wrapper.check_esdt_balance(
+    router_setup.b_mock.check_esdt_balance(
         &router_setup.user_address,
         WEGLD_TOKEN_ID,
         &rust_biguint!(5_000_000_000), //unchanged
     );
-    router_setup.blockchain_wrapper.check_esdt_balance(
+    router_setup.b_mock.check_esdt_balance(
         &router_setup.user_address,
         MEX_TOKEN_ID,
         &rust_biguint!(4_999_900_000), //spent 100_000
     );
-    router_setup.blockchain_wrapper.check_esdt_balance(
+    router_setup.b_mock.check_esdt_balance(
         &router_setup.user_address,
         USDC_TOKEN_ID,
         &rust_biguint!(5_000_082_909), //gained 82_909

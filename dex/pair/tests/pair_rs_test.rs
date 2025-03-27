@@ -1,9 +1,8 @@
 #![allow(deprecated)]
 
 mod pair_setup;
-use fees_collector::{
-    config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
-};
+use energy_factory_mock::EnergyFactoryMock;
+use fees_collector::{config::ConfigModule, FeesCollector};
 use multiversx_sc::codec::{self, TopDecode};
 use multiversx_sc::{
     api::ManagedTypeApi,
@@ -1583,13 +1582,34 @@ fn fees_collector_pair_test() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
     let fees_collector_wrapper = pair_setup.b_mock.create_sc_account(
         &rust_biguint!(0),
-        None,
+        Some(&pair_setup.owner_address),
         fees_collector::contract_obj,
         "fees collector path",
     );
 
-    let pair_addr = pair_setup.pair_wrapper.address_ref().clone();
-    let energy_factory_mock_addr = pair_setup.pair_wrapper.address_ref().clone();
+    let energy_factory_mock_wrapper = pair_setup.b_mock.create_sc_account(
+        &rust_biguint!(0),
+        Some(&pair_setup.owner_address),
+        energy_factory_mock::contract_obj,
+        "energy factory mock",
+    );
+    pair_setup
+        .b_mock
+        .execute_tx(
+            &pair_setup.owner_address,
+            &energy_factory_mock_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.init();
+                sc.base_asset_token_id()
+                    .set(managed_token_id!(MEX_TOKEN_ID));
+                sc.locked_token()
+                    .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
+            },
+        )
+        .assert_ok();
+
+    let energy_factory_mock_addr = energy_factory_mock_wrapper.address_ref().clone();
     pair_setup
         .b_mock
         .execute_tx(
@@ -1598,17 +1618,11 @@ fn fees_collector_pair_test() {
             &rust_biguint!(0),
             |sc| {
                 sc.init(
-                    managed_token_id!(LOCKED_TOKEN_ID),
                     managed_address!(&energy_factory_mock_addr),
+                    managed_address!(&energy_factory_mock_addr), // unused
+                    0,
                     MultiValueEncoded::new(),
                 );
-                let _ = sc.known_contracts().insert(managed_address!(&pair_addr));
-
-                let mut tokens = MultiValueEncoded::new();
-                tokens.push(managed_token_id!(WEGLD_TOKEN_ID));
-                tokens.push(managed_token_id!(MEX_TOKEN_ID));
-
-                sc.add_known_tokens(tokens);
             },
         )
         .assert_ok();
@@ -1644,7 +1658,7 @@ fn fees_collector_pair_test() {
         .b_mock
         .execute_query(&fees_collector_wrapper, |sc| {
             assert_eq!(
-                sc.accumulated_fees(1, &managed_token_id!(WEGLD_TOKEN_ID))
+                sc.all_accumulated_tokens(&managed_token_id!(WEGLD_TOKEN_ID))
                     .get(),
                 managed_biguint!(25)
             );

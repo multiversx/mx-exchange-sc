@@ -10,6 +10,9 @@ pub trait RedistributeRewardsModule:
     + crate::events::FeesCollectorEventsModule
     + week_timekeeping::WeekTimekeepingModule
     + multiversx_sc_modules::only_admin::OnlyAdminModule
+    + crate::external_sc_interactions::router::RouterInteractionsModule
+    + energy_query::EnergyQueryModule
+    + utils::UtilsModule
 {
     #[only_admin]
     #[endpoint(redistributeRewards)]
@@ -26,11 +29,19 @@ pub trait RedistributeRewardsModule:
             "Invalid end week"
         );
 
-        let all_tokens = self.all_tokens().get();
+        let base_token_id = self.get_base_token_id();
+        let locked_token_id = self.get_locked_token_id();
+
         let mut all_rewards = ManagedVec::new();
-        for token_id in &all_tokens {
-            all_rewards.push(TokenAmountPair::new(token_id, BigUint::zero()));
-        }
+        all_rewards.push(TokenAmountPair::new(
+            locked_token_id.clone(),
+            BigUint::zero(),
+        ));
+        all_rewards.push(TokenAmountPair::new(base_token_id.clone(), BigUint::zero()));
+
+        let mut all_tokens = ManagedVec::new();
+        all_tokens.push(locked_token_id);
+        all_tokens.push(base_token_id);
 
         for week in start_week..=end_week {
             self.accumulate_remaining_rewards_single_week(&mut all_rewards, &all_tokens, week);
@@ -59,9 +70,7 @@ pub trait RedistributeRewardsModule:
             }
 
             let opt_index = all_tokens.find(&rem_rew_entry.token_identifier);
-            if opt_index.is_none() {
-                continue;
-            }
+            require!(opt_index.is_some(), "Invalid setup");
 
             let index = unsafe { opt_index.unwrap_unchecked() };
             let mut rew_entry = all_rewards.get_mut(index);

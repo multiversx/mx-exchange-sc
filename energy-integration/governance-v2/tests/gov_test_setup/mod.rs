@@ -10,6 +10,7 @@ use governance_v2::{
 };
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
+    imports::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, ManagedVec, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
@@ -72,7 +73,7 @@ where
         // init fees collector
         let fees_collector_wrapper = b_mock.create_sc_account(
             &rust_biguint!(0),
-            None,
+            Some(&owner),
             fees_collector::contract_obj,
             "fees collector path",
         );
@@ -104,14 +105,20 @@ where
                         0,
                         managed_biguint!(0),
                     ));
+
+                sc.base_asset_token_id()
+                    .set(managed_token_id!(MEX_TOKEN_ID));
+                sc.locked_token()
+                    .set_token_id(managed_token_id!(XMEX_TOKEN_ID));
             })
             .assert_ok();
 
         b_mock
             .execute_tx(&owner, &fees_collector_wrapper, &rust_biguint!(0), |sc| {
                 sc.init(
-                    managed_token_id!(XMEX_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
+                    managed_address!(energy_factory_wrapper.address_ref()), // unused
+                    0,
                     MultiValueEncoded::new(),
                 );
             })
