@@ -1,4 +1,4 @@
-# Maiar Exchange Smart Contracts
+# xExchange Smart Contracts
 
 This repository contains the principal Smart Contract components of Maiar Exchange.
 
