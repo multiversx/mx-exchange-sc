@@ -65,15 +65,18 @@ pub trait FeesCollector:
         }
     }
 
+    #[upgrade]
+    fn upgrade(&self) {}
+
     // Do not use these storage keys until upgrade: "allTokens", "knownContracts" and "knownTokens"
     //
     // The whole upgrade logic (and the relevant test) can be removed after one release and upgrade on mainnet
-    #[upgrade]
-    fn upgrade(&self) {
+    #[endpoint(migrateStorage)]
+    fn migrate_storage(&self) {
         let all_tokens_mapper = SingleValueMapper::<Self::Api, ManagedVec<TokenIdentifier>>::new(
             StorageKey::new(b"allTokens"),
         );
-        let all_tokens = all_tokens_mapper.take();
+        let all_tokens = all_tokens_mapper.get();
         if all_tokens.is_empty() {
             return;
         }
@@ -81,52 +84,34 @@ pub trait FeesCollector:
         let mut known_contracts_mapper = UnorderedSetMapper::<Self::Api, ManagedAddress>::new(
             StorageKey::new(b"knownContracts"),
         );
-        known_contracts_mapper.clear();
+        let known_tokens_mapper =
+            WhitelistMapper::<Self::Api, TokenIdentifier>::new(StorageKey::new(b"knownTokens"));
+
+        if !known_contracts_mapper.is_empty() {
+            known_contracts_mapper.clear();
+            for token_id in &all_tokens {
+                known_tokens_mapper.remove(&token_id);
+            }
+        }
 
         let base_token_id = self.get_base_token_id();
         let locked_token_id = self.get_locked_token_id();
         let current_week = self.get_current_week();
-        self.clear_fees_current_week_after_upgrade(
-            &base_token_id,
-            &locked_token_id,
-            &all_tokens,
-            current_week,
-        );
-        self.move_fees_previous_weeks_after_upgrade(
-            &base_token_id,
-            &locked_token_id,
-            &all_tokens,
-            current_week,
-        );
+
+        self.compute_data_before_migration(current_week);
+        self.migrate_fees(&base_token_id, &locked_token_id, &all_tokens, current_week);
         self.clear_older_undist_rewards(current_week);
     }
 
-    fn clear_fees_current_week_after_upgrade(
-        &self,
-        base_token_id: &TokenIdentifier,
-        locked_token_id: &TokenIdentifier,
-        all_tokens: &ManagedVec<TokenIdentifier>,
-        current_week: Week,
-    ) {
-        // In case the upgrade action is the very first action in the week
+    fn compute_data_before_migration(&self, current_week: Week) {
+        // In case this is the first action in the week
         self.accumulate_additional_locked_tokens();
 
         let wrapper = FeesCollectorWrapper::new();
         let _ = wrapper.collect_and_get_rewards_for_week(self, current_week - 1);
-
-        let known_tokens_mapper =
-            WhitelistMapper::<Self::Api, TokenIdentifier>::new(StorageKey::new(b"knownTokens"));
-
-        for token_id in all_tokens {
-            known_tokens_mapper.remove(&token_id);
-
-            if &token_id != base_token_id && &token_id != locked_token_id {
-                self.accumulated_fees(current_week, &token_id).clear();
-            }
-        }
     }
 
-    fn move_fees_previous_weeks_after_upgrade(
+    fn migrate_fees(
         &self,
         base_token_id: &TokenIdentifier,
         locked_token_id: &TokenIdentifier,
@@ -134,24 +119,31 @@ pub trait FeesCollector:
         current_week: Week,
     ) {
         let sc_address = self.blockchain().get_sc_address();
-        for token_id in all_tokens {
-            if &token_id == base_token_id || &token_id == locked_token_id {
-                continue;
-            }
-
-            let balance = self
-                .blockchain()
-                .get_esdt_balance(&sc_address, &token_id, 0);
-            if balance > 0 {
-                self.all_accumulated_tokens(&token_id).set(balance);
-            }
-        }
-
         let first_week = if current_week > USER_MAX_CLAIM_WEEKS {
             current_week - USER_MAX_CLAIM_WEEKS
         } else {
             1
         };
+
+        for token_id in all_tokens {
+            if &token_id == base_token_id || &token_id == locked_token_id {
+                continue;
+            }
+
+            let mut balance_to_ignore = BigUint::zero();
+            for week in first_week..current_week {
+                balance_to_ignore += self.accumulated_fees(week, &token_id).get();
+            }
+
+            let total_balance = self
+                .blockchain()
+                .get_esdt_balance(&sc_address, &token_id, 0);
+            if total_balance > balance_to_ignore {
+                self.all_accumulated_tokens(&token_id).update(|balance| {
+                    *balance += total_balance - balance_to_ignore;
+                });
+            }
+        }
 
         for week in first_week..current_week {
             self.set_rewards_after_upgrade(
