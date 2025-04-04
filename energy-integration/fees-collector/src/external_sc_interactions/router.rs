@@ -61,9 +61,10 @@ pub trait RouterInteractionsModule:
         swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
     ) {
         self.check_swap_through_router_args(&token_to_send, &swap_operations);
+        let current_week = self.get_current_week();
 
-        let token_amount = self.all_accumulated_tokens(&token_to_send).take();
-        require!(token_amount > 0, "No tokens");
+        let token_amount = self.get_token_available_amount(current_week, &token_to_send);
+        require!(token_amount > 0, "No tokens available for swap");
 
         let router_address = self.router_address().get();
         let swap_payment = EsdtTokenPayment::new(token_to_send, 0, token_amount);
@@ -78,7 +79,6 @@ pub trait RouterInteractionsModule:
 
         self.burn_part_of_base_token(&mut received_tokens);
 
-        let current_week = self.get_current_week();
         self.accumulated_fees(current_week, &base_token_id)
             .update(|acc_fees| *acc_fees += received_tokens.amount);
     }
@@ -95,10 +95,6 @@ pub trait RouterInteractionsModule:
         require!(
             token_to_send != &base_token_id && token_to_send != &locked_token_id,
             "May not swap base token or locked token"
-        );
-        require!(
-            self.all_known_tokens().contains(token_to_send),
-            "Unknown first token"
         );
     }
 

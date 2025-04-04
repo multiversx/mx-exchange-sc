@@ -133,76 +133,18 @@ where
 {
     type WeeklyRewardsSplittingMod = T;
 
-    fn get_user_rewards_for_week(
-        &self,
-        sc: &Self::WeeklyRewardsSplittingMod,
-        week: Week,
-        energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
-        total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
-    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
-        let mut user_rewards = ManagedVec::new();
-        if energy_amount == &0 || total_energy == &0 {
-            return user_rewards;
-        }
-
-        let total_rewards = self.collect_and_get_rewards_for_week(sc, week);
-        let remaining_rewards_mapper = sc.remaining_rewards(week);
-        let mut remaining_rewards = remaining_rewards_mapper.get();
-        for (i, weekly_reward) in total_rewards.iter().enumerate() {
-            let reward_amount = weekly_reward.amount * energy_amount / total_energy;
-            if reward_amount == 0 {
-                continue;
-            }
-
-            let mut rem_rew_entry = remaining_rewards.get_mut(i);
-            rem_rew_entry.amount -= &reward_amount;
-
-            user_rewards.push(EsdtTokenPayment::new(
-                weekly_reward.token_identifier,
-                0,
-                reward_amount,
-            ));
-        }
-
-        remaining_rewards_mapper.set(remaining_rewards);
-
-        user_rewards
-    }
-
-    fn collect_and_get_rewards_for_week(
-        &self,
-        sc: &Self::WeeklyRewardsSplittingMod,
-        week: Week,
-    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
-        let total_rewards_mapper = sc.total_rewards_for_week(week);
-        if total_rewards_mapper.is_empty() {
-            let total_rewards = self.collect_rewards_for_week(sc, week);
-            total_rewards_mapper.set(&total_rewards);
-            sc.remaining_rewards(week).set(&total_rewards);
-
-            total_rewards
-        } else {
-            total_rewards_mapper.get()
-        }
-    }
-
     fn collect_rewards_for_week(
         &self,
         sc: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut results = ManagedVec::new();
-
-        let locked_token_id = sc.get_locked_token_id();
-        let opt_acc_locked_token = sc.get_and_clear_accumulated_fees(week, &locked_token_id);
-        if let Some(accumulated_fees) = opt_acc_locked_token {
-            results.push(EsdtTokenPayment::new(locked_token_id, 0, accumulated_fees));
-        }
-
-        let base_token_id = sc.get_base_token_id();
-        let opt_acc_base_token = sc.get_and_clear_accumulated_fees(week, &base_token_id);
-        if let Some(accumulated_fees) = opt_acc_base_token {
-            results.push(EsdtTokenPayment::new(base_token_id, 0, accumulated_fees));
+        let reward_tokens = sc.reward_tokens();
+        for token in reward_tokens.iter() {
+            let opt_accumulated_fees = sc.get_and_clear_accumulated_fees(week, &token);
+            if let Some(accumulated_fees) = opt_accumulated_fees {
+                results.push(EsdtTokenPayment::new(token, 0, accumulated_fees));
+            }
         }
 
         results

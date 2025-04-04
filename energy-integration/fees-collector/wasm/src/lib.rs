@@ -20,8 +20,9 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
-        migrateStorage => migrate_storage
-        getAllTokens => all_known_tokens
+        addRewardTokens => add_reward_tokens
+        removeRewardTokens => remove_reward_tokens
+        getRewardTokens => reward_tokens
         getAllowExternalClaimRewards => allow_external_claim_rewards
         getLastActiveWeekForUser => get_last_active_week_for_user_view
         getUserEnergyForWeek => get_user_energy_for_week_view
@@ -58,7 +59,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         claimRewards => claim_rewards_endpoint
         claimBoostedRewards => claim_boosted_rewards
         redistributeRewards => redistribute_rewards
-        getRemainingRewards => remaining_rewards
         setRouterAddress => set_router_address
         swapTokenToBaseToken => swap_token_to_base_token
     )

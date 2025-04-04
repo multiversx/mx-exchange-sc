@@ -4,6 +4,7 @@ multiversx_sc::derive_imports!();
 use common_structs::Percent;
 use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
 use week_timekeeping::Week;
+use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
 
 #[multiversx_sc::module]
 pub trait FeesAccumulationModule:
@@ -25,11 +26,12 @@ pub trait FeesAccumulationModule:
     /// Anyone can deposit tokens through this endpoint
     ///
     /// Deposits for current week are accessible starting next week
+    ///
+    /// The contract accepts all payments but only the base and locked tokens are verified and allocated
     #[payable("*")]
     #[endpoint(depositSwapFees)]
     fn deposit_swap_fees(&self) {
         let mut payment = self.call_value().single_esdt();
-        self.add_known_token(payment.token_identifier.clone());
 
         let current_week = self.get_current_week();
         let base_token_id = self.get_base_token_id();
@@ -44,9 +46,6 @@ pub trait FeesAccumulationModule:
 
             self.accumulated_fees(current_week, &payment.token_identifier)
                 .update(|amt| *amt += &payment.amount);
-        } else {
-            self.all_accumulated_tokens(&payment.token_identifier)
-                .update(|acc_tokens| *acc_tokens += &payment.amount);
         }
 
         let caller = self.blockchain().get_caller();
@@ -95,6 +94,37 @@ pub trait FeesAccumulationModule:
         } else {
             None
         }
+    }
+
+    fn get_token_available_amount(
+        &self,
+        current_week: Week,
+        token_id: &TokenIdentifier,
+    ) -> BigUint {
+        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS;
+        if current_week < collect_rewards_offset {
+            return BigUint::zero();
+        }
+
+        let start_week = current_week - collect_rewards_offset;
+        let end_week = current_week;
+
+        let mut token_acc_amount = BigUint::zero();
+        for week in start_week..=end_week {
+            let week_amount = self.accumulated_fees(week, token_id).get();
+            token_acc_amount += week_amount;
+        }
+
+        let sc_address = self.blockchain().get_sc_address();
+        let token_total_balance = self
+            .blockchain()
+            .get_esdt_balance(&sc_address, &token_id, 0);
+
+        if token_total_balance <= token_acc_amount {
+            return BigUint::zero();
+        }
+
+        token_total_balance - token_acc_amount
     }
 
     #[view(getAccumulatedFees)]

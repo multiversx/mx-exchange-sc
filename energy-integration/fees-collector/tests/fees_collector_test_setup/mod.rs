@@ -295,4 +295,36 @@ where
             )
             .assert_ok();
     }
+
+    pub fn simulate_increase_accumulated_fees(
+        &mut self,
+        week: usize,
+        token_id: &[u8],
+        amount: u64,
+    ) {
+        self.b_mock
+            .borrow_mut()
+            .execute_tx(
+                &self.owner_address,
+                &self.fc_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.accumulated_fees(week, &managed_token_id!(token_id))
+                        .update(|total_amount| {
+                            *total_amount += managed_biguint!(amount);
+                        });
+                },
+            )
+            .assert_ok();
+
+        let fc_address = self.fc_wrapper.address_ref();
+        let mut balance = self
+            .b_mock
+            .borrow()
+            .get_esdt_balance(fc_address, token_id, 0);
+        balance += amount;
+        self.b_mock
+            .borrow_mut()
+            .set_esdt_balance(fc_address, token_id, &balance);
+    }
 }
