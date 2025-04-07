@@ -51,7 +51,7 @@ pub trait FeesCollector:
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set(current_epoch);
 
-        self.try_set_base_reward_tokens();
+        self.set_base_reward_tokens();
 
         for admin in admins {
             self.add_admin(admin);
@@ -79,8 +79,4 @@ pub trait FeesCollector:
             reward_tokens_mapper.insert(token_id);
         }
     }
-
-    // only needed for testing the upgrade functionality
-    #[storage_mapper("allTokens")]
-    fn all_tokens(&self) -> SingleValueMapper<ManagedVec<TokenIdentifier>>;
 }

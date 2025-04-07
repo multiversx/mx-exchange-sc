@@ -21,7 +21,7 @@ pub trait ConfigModule: energy_query::EnergyQueryModule {
         }
     }
 
-    fn try_set_base_reward_tokens(&self) {
+    fn set_base_reward_tokens(&self) {
         let locked_token_id = self.get_locked_token_id();
         let base_token_id = self.get_base_token_id();
 
