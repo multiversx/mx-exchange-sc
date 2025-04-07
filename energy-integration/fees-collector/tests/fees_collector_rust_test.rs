@@ -1612,6 +1612,7 @@ fn fees_collector_single_swap_test() {
 
 #[test]
 fn fees_collector_multiple_swap_test() {
+    let rust_zero = rust_biguint!(0);
     let mut fc_setup =
         FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
     let mut router_setup = RouterSetup::new(
@@ -1619,6 +1620,14 @@ fn fees_collector_multiple_swap_test() {
         router::contract_obj,
         pair::contract_obj,
     );
+
+    // Create users that will claim rewards
+    let first_user = fc_setup.b_mock.borrow_mut().create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.borrow_mut().create_user_account(&rust_zero);
+
+    // Set energy for users in week 1
+    fc_setup.set_energy(&first_user, 200, 3_000);
+    fc_setup.set_energy(&second_user, 600, 9_000);
 
     router_setup.add_liquidity();
 
@@ -1629,12 +1638,52 @@ fn fees_collector_multiple_swap_test() {
         .execute_tx(
             &fc_setup.owner_address,
             &fc_setup.fc_wrapper,
-            &rust_biguint!(0),
+            &rust_zero,
             |sc| {
                 sc.set_router_address(managed_address!(&router_address));
             },
         )
         .assert_ok();
+
+    // Register users for reward claiming in week 1
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // Advance to week 2
+    fc_setup.advance_week();
+
+    // Set energy and claim in week 2 to update energy
+    fc_setup.set_energy(&first_user, 200, 3_000);
+    fc_setup.set_energy(&second_user, 600, 9_000);
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // Advance to week 3
+    fc_setup.advance_week();
+
+    // Set energy and claim in week 3 to update energy
+    fc_setup.set_energy(&first_user, 200, 3_000);
+    fc_setup.set_energy(&second_user, 600, 9_000);
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // Advance to week 4
+    fc_setup.advance_week();
+
+    // Set energy and claim in week 4 to update energy
+    fc_setup.set_energy(&first_user, 200, 3_000);
+    fc_setup.set_energy(&second_user, 600, 9_000);
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // Advance to week 5
+    fc_setup.advance_week();
+
+    // Set energy and claim in week 5 to update energy
+    fc_setup.set_energy(&first_user, 200, 3_000);
+    fc_setup.set_energy(&second_user, 600, 9_000);
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
 
     // try deposit USDC
     fc_setup.b_mock.borrow_mut().set_esdt_balance(
@@ -1661,13 +1710,6 @@ fn fees_collector_multiple_swap_test() {
             },
         )
         .assert_ok();
-
-    // advance weeks to allow swaps
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-
     // try swap unknown token
     let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
     let wegld_usdc_pair_addr = router_setup.wegld_usdc_pair_wrapper.address_ref().clone();
@@ -1735,7 +1777,7 @@ fn fees_collector_multiple_swap_test() {
         .execute_tx(
             &fc_setup.owner_address,
             &fc_setup.fc_wrapper,
-            &rust_biguint!(0),
+            &rust_zero,
             |sc| {
                 let mut swap_operations = MultiValueEncoded::new();
                 swap_operations.push(
@@ -1768,6 +1810,30 @@ fn fees_collector_multiple_swap_test() {
             },
         )
         .assert_ok();
+
+    // Advance to week 6
+    fc_setup.advance_week();
+
+    // Now claim the swapped tokens
+    fc_setup.claim(&first_user).assert_ok();
+
+    // Check that first user received the correct amount (1/4 of 595)
+    let first_user_expected_amount = rust_biguint!(595) * 3_000u64 / 12_000u64;
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &first_user,
+        BASE_ASSET_TOKEN_ID,
+        &first_user_expected_amount,
+    );
+
+    fc_setup.claim(&second_user).assert_ok();
+
+    // Check that second user received the correct amount (3/4 of 595)
+    let second_user_expected_amount = rust_biguint!(595) * 9_000u64 / 12_000u64;
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &second_user,
+        BASE_ASSET_TOKEN_ID,
+        &second_user_expected_amount,
+    );
 }
 
 #[test]
