@@ -28,6 +28,8 @@ pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 pub const BASE_TOKEN_BURN_PERCENT: u64 = 0; // 0%
 
+use crate::router_setup::USDC_TOKEN_ID;
+
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static FIRST_TOKEN_ID: &[u8] = b"FIRST-123456";
 pub static SECOND_TOKEN_ID: &[u8] = b"SECOND-123456";
@@ -117,6 +119,11 @@ where
         b_mock.set_esdt_balance(
             &depositor_address,
             SECOND_TOKEN_ID,
+            &rust_biguint!(USER_BALANCE * 2),
+        );
+        b_mock.set_esdt_balance(
+            &depositor_address,
+            USDC_TOKEN_ID,
             &rust_biguint!(USER_BALANCE * 2),
         );
         b_mock.set_esdt_balance(

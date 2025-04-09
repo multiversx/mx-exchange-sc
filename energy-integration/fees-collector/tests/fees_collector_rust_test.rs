@@ -5,6 +5,7 @@ mod router_setup;
 
 use energy_query::Energy;
 use fees_collector::additional_locked_tokens::{AdditionalLockedTokensModule, BLOCKS_IN_WEEK};
+use fees_collector::config::ConfigModule;
 use fees_collector::external_sc_interactions::router::RouterInteractionsModule;
 use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector::redistribute_rewards::RedistributeRewardsModule;
@@ -1929,4 +1930,318 @@ fn test_burn_percentage_base_token_logic() {
             );
         })
         .assert_ok();
+}
+
+#[test]
+fn migration_with_token_swap_and_redistribute_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
+    let mut router_setup = RouterSetup::new(
+        fc_setup.b_mock.clone(),
+        router::contract_obj,
+        pair::contract_obj,
+    );
+
+    let base_token_weekly_amount = 1_000u64;
+    let usdc_token_weekly_amount = 500u64;
+
+    // Setup router pairs and liquidity
+    router_setup.add_liquidity();
+
+    // Create users that will claim rewards
+    let first_user = fc_setup.b_mock.borrow_mut().create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.borrow_mut().create_user_account(&rust_zero);
+
+    // Set energy for users
+    // Users have the same energy, from the same number of tokens
+    fc_setup.set_energy(&first_user, 10, 5_000);
+    fc_setup.set_energy(&second_user, 10, 5_000);
+
+    // Setup router and add all tokens to reward_tokens list
+    let router_address = router_setup.router_wrapper.address_ref().clone();
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.set_router_address(managed_address!(&router_address));
+
+                // Only add the extra tokens, as BASE_ASSET_TOKEN_ID was added at deployment
+                let mut tokens = MultiValueEncoded::new();
+                tokens.push(managed_token_id!(USDC_TOKEN_ID));
+                sc.add_reward_tokens(tokens);
+            },
+        )
+        .assert_ok();
+
+    // Register users for rewards in week 1
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // Week 2 - Deposit all token types
+    fc_setup.advance_week(); // current_week = 2
+    let mut current_week = fc_setup.get_current_week();
+    fc_setup.simulate_increase_accumulated_fees(
+        current_week,
+        BASE_ASSET_TOKEN_ID,
+        base_token_weekly_amount,
+    );
+    fc_setup.simulate_increase_accumulated_fees(
+        current_week,
+        USDC_TOKEN_ID,
+        usdc_token_weekly_amount,
+    );
+
+    // First user claims, second doesn't
+    fc_setup.claim(&first_user).assert_ok();
+
+    // Week 3 - Deposit all token types
+    fc_setup.advance_week(); // current_week = 3
+    current_week = fc_setup.get_current_week();
+    fc_setup.simulate_increase_accumulated_fees(
+        current_week,
+        BASE_ASSET_TOKEN_ID,
+        base_token_weekly_amount,
+    );
+    fc_setup.simulate_increase_accumulated_fees(
+        current_week,
+        USDC_TOKEN_ID,
+        usdc_token_weekly_amount,
+    );
+
+    // First user claims, second doesn't
+    fc_setup.claim(&first_user).assert_ok();
+
+    // Week 4
+    fc_setup.advance_week(); // current_week = 4
+    fc_setup.claim(&first_user).assert_ok();
+
+    // Week 5 - Migration occurs
+    fc_setup.advance_week(); // current_week = 5
+    current_week = fc_setup.get_current_week();
+    fc_setup.claim(&first_user).assert_ok();
+
+    // Remove FIRST_TOKEN_ID and SECOND_TOKEN_ID from reward_tokens list
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                let mut tokens = MultiValueEncoded::new();
+                tokens.push(managed_token_id!(USDC_TOKEN_ID));
+                sc.remove_reward_tokens(tokens);
+            },
+        )
+        .assert_ok();
+
+    // Deposit all token types, but only MEX should be accumulated
+    fc_setup
+        .deposit(BASE_ASSET_TOKEN_ID, base_token_weekly_amount)
+        .assert_ok();
+    fc_setup
+        .deposit(USDC_TOKEN_ID, usdc_token_weekly_amount)
+        .assert_ok();
+
+    // Verify only BASE_ASSET_TOKEN_ID is accumulated
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            assert_eq!(
+                sc.accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                    .get(),
+                managed_biguint!(base_token_weekly_amount)
+            );
+            assert_eq!(
+                sc.accumulated_fees(current_week, &managed_token_id!(USDC_TOKEN_ID))
+                    .get(),
+                managed_biguint!(0)
+            );
+        })
+        .assert_ok();
+
+    // Balance checks
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &first_user,
+        BASE_ASSET_TOKEN_ID,
+        &rust_biguint!(base_token_weekly_amount),
+    ); // half of the amount, twice
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &first_user,
+        USDC_TOKEN_ID,
+        &rust_biguint!(usdc_token_weekly_amount),
+    ); // half of the amount, twice
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .check_esdt_balance(&second_user, BASE_ASSET_TOKEN_ID, &rust_zero);
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .check_esdt_balance(&second_user, USDC_TOKEN_ID, &rust_zero);
+
+    // Week 6
+    fc_setup.advance_week(); // current_week = 6
+
+    // Week 7 - Users 1 and 2 claim, user 2 loses week 2 rewards
+    fc_setup.advance_week(); // current_week = 7
+
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // Balance checks
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &first_user,
+        BASE_ASSET_TOKEN_ID,
+        &rust_biguint!(base_token_weekly_amount / 2 * 3), // 3 weeks
+    );
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &first_user,
+        USDC_TOKEN_ID,
+        &rust_biguint!(usdc_token_weekly_amount), // fees were accumulated only for weeks 1-4
+    );
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &second_user,
+        BASE_ASSET_TOKEN_ID,
+        &rust_biguint!(base_token_weekly_amount), // 2 weeks
+    );
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &second_user,
+        USDC_TOKEN_ID,
+        &rust_biguint!(usdc_token_weekly_amount / 2), // user claimed only week 3
+    );
+
+    // Advance to week 8, to be able to swap half of the USDC_TOKEN_ID
+    fc_setup.advance_week(); // current_week = 8
+    current_week = fc_setup.get_current_week();
+
+    fc_setup.claim(&first_user).assert_ok();
+
+    // Swap USDC_TOKEN_ID to MEX through router
+    // We're using USDC_TOKEN_ID → WEGLD → MEX path
+    // Also redistribute all old rewards
+    let expected_base_token_swap_amount = 446;
+    let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
+    let wegld_usdc_pair_addr = router_setup.wegld_usdc_pair_wrapper.address_ref().clone();
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                let mut swap_operations = MultiValueEncoded::new();
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_usdc_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(WEGLD_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_mex_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(BASE_ASSET_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+
+                let accumulated_mex_before_swap = sc
+                    .accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                    .get();
+
+                assert_eq!(accumulated_mex_before_swap, 0);
+
+                sc.swap_token_to_base_token(managed_token_id!(USDC_TOKEN_ID), swap_operations);
+
+                let accumulated_mex_after_swap = sc
+                    .accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                    .get();
+
+                assert_eq!(accumulated_mex_after_swap, expected_base_token_swap_amount);
+
+                assert!(accumulated_mex_before_swap < accumulated_mex_after_swap);
+
+                sc.redistribute_rewards();
+
+                let accumulated_mex_after_redistribute = sc
+                    .accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                    .get();
+                assert_eq!(
+                    accumulated_mex_after_redistribute,
+                    expected_base_token_swap_amount + base_token_weekly_amount / 2
+                ); // half of the base tokens not claimed by user 2 in week 2
+            },
+        )
+        .assert_ok();
+
+    // Advance to week 9
+    fc_setup.advance_week(); // current_week = 9
+
+    // Both users claim
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // Balance checks
+    // USDC balances should be the same as before
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &first_user,
+        USDC_TOKEN_ID,
+        &rust_biguint!(usdc_token_weekly_amount), // fees were accumulated only for weeks 1-4
+    );
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &second_user,
+        USDC_TOKEN_ID,
+        &rust_biguint!(usdc_token_weekly_amount / 2), // user claimed only week 3
+    );
+
+    // MEX balances are the same as before
+    // plus half the swap amount
+    // plus half the base token amount of week 2, not claimed by user 2
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &first_user,
+        BASE_ASSET_TOKEN_ID,
+        &rust_biguint!(
+            (base_token_weekly_amount / 2 * 3)
+                + (expected_base_token_swap_amount / 2)
+                + (base_token_weekly_amount / 2 / 2)
+        ),
+    );
+    fc_setup.b_mock.borrow_mut().check_esdt_balance(
+        &second_user,
+        BASE_ASSET_TOKEN_ID,
+        &rust_biguint!(
+            base_token_weekly_amount
+                + (expected_base_token_swap_amount / 2)
+                + (base_token_weekly_amount / 2 / 2)
+        ),
+    );
+
+    // SC balance should be empty
+    let sc_address = fc_setup.fc_wrapper.address_ref().clone();
+    let sc_base_token_balance =
+        fc_setup
+            .b_mock
+            .borrow_mut()
+            .get_esdt_balance(&sc_address, BASE_ASSET_TOKEN_ID, 0);
+    assert_eq!(sc_base_token_balance, rust_biguint!(0));
+
+    let sc_usdc_token_balance =
+        fc_setup
+            .b_mock
+            .borrow_mut()
+            .get_esdt_balance(&sc_address, USDC_TOKEN_ID, 0);
+    assert_eq!(sc_usdc_token_balance, rust_biguint!(0));
 }
