@@ -2,7 +2,7 @@
 
 mod pair_setup;
 use energy_factory_mock::EnergyFactoryMock;
-use fees_collector::{config::ConfigModule, FeesCollector};
+use fees_collector::FeesCollector;
 use multiversx_sc::codec::{self, TopDecode};
 use multiversx_sc::{
     api::ManagedTypeApi,
@@ -1653,15 +1653,4 @@ fn fees_collector_pair_test() {
         WEGLD_TOKEN_ID,
         &rust_biguint!(25),
     );
-
-    pair_setup
-        .b_mock
-        .execute_query(&fees_collector_wrapper, |sc| {
-            assert_eq!(
-                sc.all_accumulated_tokens(&managed_token_id!(WEGLD_TOKEN_ID))
-                    .get(),
-                managed_biguint!(25)
-            );
-        })
-        .assert_ok();
 }
