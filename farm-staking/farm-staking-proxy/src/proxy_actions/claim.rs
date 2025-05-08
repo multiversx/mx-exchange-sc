@@ -83,14 +83,12 @@ pub trait ProxyClaimModule:
         let lp_farm_rewards = lp_farm_claim_rewards_result.lp_farm_rewards;
         let staking_farm_rewards = staking_farm_claim_rewards_result.staking_farm_rewards;
 
-        let claim_result = ClaimDualYieldResult {
+        dual_yield_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
+        ClaimDualYieldResult {
             lp_farm_rewards,
             staking_farm_rewards,
             new_dual_yield_tokens,
-        };
-
-        dual_yield_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
-
-        claim_result
+        }
     }
 }

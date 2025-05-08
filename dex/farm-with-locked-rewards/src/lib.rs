@@ -29,6 +29,8 @@ pub trait Farm:
     + utils::UtilsModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
+    + permissions_hub_module::PermissionsHubModule
+    + original_owner_helper::OriginalOwnerHelperModule
     + sc_whitelist_module::SCWhitelistModule
     + events::EventsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -298,21 +300,6 @@ pub trait Farm:
             &attributes,
             &storage_cache,
         )
-    }
-
-    fn send_to_lock_contract_non_zero(
-        &self,
-        token_id: TokenIdentifier,
-        amount: BigUint,
-        destination_address: ManagedAddress,
-        energy_address: ManagedAddress,
-    ) -> EsdtTokenPayment {
-        if amount == 0 {
-            let locked_token_id = self.get_locked_token_id();
-            return EsdtTokenPayment::new(locked_token_id, 0, amount);
-        }
-
-        self.lock_virtual(token_id, amount, destination_address, energy_address)
     }
 }
 

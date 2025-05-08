@@ -19,6 +19,8 @@ pub trait ExternalInteractionsModule:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
+    + permissions_hub_module::PermissionsHubModule
+    + original_owner_helper::OriginalOwnerHelperModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
@@ -51,7 +53,14 @@ pub trait ExternalInteractionsModule:
         self.require_user_whitelisted(&user, &caller);
 
         let payments = self.get_non_empty_payments();
-        self.check_additional_payments_original_owner(&user, &payments);
+        let farm_token_mapper = self.farm_token();
+        self.check_additional_payments_original_owner::<StakingFarmTokenAttributes<Self::Api>>(
+            &user,
+            &payments,
+            &farm_token_mapper,
+        );
+
+        self.migrate_old_farm_positions(&user);
 
         let boosted_rewards = self.claim_only_boosted_payment(&user);
         let boosted_rewards_payment =
@@ -68,7 +77,7 @@ pub trait ExternalInteractionsModule:
         self.update_energy_and_progress(&user);
 
         self.emit_enter_farm_event(
-            &caller,
+            &user,
             enter_result.context.farming_token_payment,
             enter_result.new_farm_token,
             enter_result.created_with_merge,
@@ -81,14 +90,18 @@ pub trait ExternalInteractionsModule:
     #[payable("*")]
     #[endpoint(claimRewardsOnBehalf)]
     fn claim_rewards_on_behalf(&self) -> ClaimRewardsResultType<Self::Api> {
-        let payment = self.call_value().single_esdt();
-        let user = self.check_and_return_original_owner(&payment);
+        let farm_token_mapper = self.farm_token();
         let caller = self.blockchain().get_caller();
+        let user = self
+            .get_claim_original_owner::<StakingFarmTokenAttributes<Self::Api>>(&farm_token_mapper);
         self.require_user_whitelisted(&user, &caller);
 
+        self.migrate_old_farm_positions(&user);
+
+        let payments = self.get_non_empty_payments();
         let claim_result = self.claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
             user.clone(),
-            ManagedVec::from_single_item(payment),
+            payments,
         );
 
         let mut virtual_farm_token = claim_result.new_farm_token.clone();
@@ -104,12 +117,11 @@ pub trait ExternalInteractionsModule:
         );
         virtual_farm_token.payment.token_nonce = new_farm_token_nonce;
 
-        let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
         self.send_payment_non_zero(&user, &claim_result.rewards);
 
         self.emit_claim_rewards_event(
-            &caller,
+            &user,
             claim_result.context,
             virtual_farm_token.clone(),
             claim_result.rewards.clone(),
@@ -119,68 +131,4 @@ pub trait ExternalInteractionsModule:
 
         (virtual_farm_token.payment, claim_result.rewards).into()
     }
-
-    fn check_and_return_original_owner(&self, payment: &EsdtTokenPayment) -> ManagedAddress {
-        let farm_token_mapper = self.farm_token();
-        let attributes: StakingFarmTokenAttributes<Self::Api> =
-            farm_token_mapper.get_token_attributes(payment.token_nonce);
-
-        require!(
-            !attributes.original_owner.is_zero(),
-            "Original owner could not be identified"
-        );
-
-        attributes.original_owner
-    }
-
-    fn check_additional_payments_original_owner(
-        &self,
-        user: &ManagedAddress,
-        payments: &ManagedVec<EsdtTokenPayment>,
-    ) {
-        if payments.len() == 1 {
-            return;
-        }
-
-        let farm_token_mapper = self.farm_token();
-        let farm_token_id = farm_token_mapper.get_token_id();
-        for payment in payments.into_iter() {
-            if payment.token_identifier != farm_token_id {
-                continue;
-            }
-
-            let attributes: StakingFarmTokenAttributes<Self::Api> =
-                farm_token_mapper.get_token_attributes(payment.token_nonce);
-
-            require!(
-                user == &attributes.original_owner,
-                "Provided address is not the same as the original owner"
-            );
-        }
-    }
-
-    fn require_user_whitelisted(&self, user: &ManagedAddress, authorized_address: &ManagedAddress) {
-        let permissions_hub_address = self.permissions_hub_address().get();
-        let is_whitelisted: bool = self
-            .permissions_hub_proxy(permissions_hub_address)
-            .is_whitelisted(user, authorized_address)
-            .execute_on_dest_context();
-
-        require!(is_whitelisted, "Caller is not whitelisted by the user");
-    }
-
-    #[only_owner]
-    #[endpoint(setPermissionsHubAddress)]
-    fn set_permissions_hub_address(&self, address: ManagedAddress) {
-        self.permissions_hub_address().set(&address);
-    }
-
-    #[proxy]
-    fn permissions_hub_proxy(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> permissions_hub::Proxy<Self::Api>;
-
-    #[storage_mapper("permissionsHubAddress")]
-    fn permissions_hub_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

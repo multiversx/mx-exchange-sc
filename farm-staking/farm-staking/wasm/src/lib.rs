@@ -59,6 +59,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeAdmin => remove_admin_endpoint
         updateOwnerOrAdmin => update_owner_or_admin_endpoint
         getPermissions => permissions
+        setPermissionsHubAddress => set_permissions_hub_address
         setBurnRoleForAddress => set_burn_role_for_address
         stakeFarmThroughProxy => stake_farm_through_proxy
         stakeFarm => stake_farm_endpoint
@@ -70,7 +71,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         unbondFarm => unbond_farm
         stakeFarmOnBehalf => stake_farm_on_behalf
         claimRewardsOnBehalf => claim_rewards_on_behalf
-        setPermissionsHubAddress => set_permissions_hub_address
         claimBoostedRewards => claim_boosted_rewards
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getBoostedYieldsRewardsPercentage => boosted_yields_rewards_percentage

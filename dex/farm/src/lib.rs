@@ -30,6 +30,8 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
+    + permissions_hub_module::PermissionsHubModule
+    + original_owner_helper::OriginalOwnerHelperModule
     + sc_whitelist_module::SCWhitelistModule
     + events::EventsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule

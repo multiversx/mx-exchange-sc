@@ -14,6 +14,7 @@ pub trait FarmStakingProxy:
     + external_contracts_interactions::ExternalContractsInteractionsModule
     + lp_farm_token::LpFarmTokenModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + permissions_hub_module::PermissionsHubModule
     + utils::UtilsModule
     + token_send::TokenSendModule
     + energy_query::EnergyQueryModule
