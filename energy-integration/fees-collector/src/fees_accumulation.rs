@@ -1,47 +1,86 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+use common_structs::Percent;
+use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
 use week_timekeeping::Week;
+use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
 
 #[multiversx_sc::module]
 pub trait FeesAccumulationModule:
     crate::config::ConfigModule
     + crate::events::FeesCollectorEventsModule
     + week_timekeeping::WeekTimekeepingModule
+    + energy_query::EnergyQueryModule
+    + utils::UtilsModule
 {
-    /// Pair SC will deposit the fees through this endpoint
+    /// Base token burn percent is between 0 (0%) and 10_000 (100%)
+    #[only_owner]
+    #[endpoint(setBaseTokenBurnPercent)]
+    fn set_base_token_burn_percent(&self, burn_percent: Percent) {
+        require!(burn_percent <= MAX_PENALTY_PERCENTAGE, "Invalid percent");
+
+        self.base_token_burn_percent().set(burn_percent);
+    }
+
+    /// Anyone can deposit tokens through this endpoint
+    ///
     /// Deposits for current week are accessible starting next week
+    ///
+    /// The contract accepts all payments but only the base and locked tokens are verified and allocated
     #[payable("*")]
     #[endpoint(depositSwapFees)]
     fn deposit_swap_fees(&self) {
-        let caller = self.blockchain().get_caller();
-        require!(
-            self.known_contracts().contains(&caller),
-            "Only known contracts can deposit"
-        );
+        let mut payment = self.call_value().single_esdt();
 
-        let payment = self.call_value().single_esdt();
-        require!(
-            self.known_tokens().contains(&payment.token_identifier),
-            "Invalid payment token"
-        );
         let current_week = self.get_current_week();
+        let base_token_id = self.get_base_token_id();
 
-        if payment.token_nonce > 0 {
-            require!(
-                payment.token_identifier == self.locked_token_id().get(),
-                "Invalid locked token"
-            );
-            self.send().esdt_local_burn(
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
+        if payment.token_nonce != 0 {
+            self.try_burn_locked_token(&payment);
+
+            self.accumulated_fees(current_week, &payment.token_identifier)
+                .update(|amt| *amt += &payment.amount);
+        } else if payment.token_identifier == base_token_id {
+            self.burn_part_of_base_token(&mut payment);
+
+            self.accumulated_fees(current_week, &payment.token_identifier)
+                .update(|amt| *amt += &payment.amount);
         }
-        self.accumulated_fees(current_week, &payment.token_identifier)
-            .update(|amt| *amt += &payment.amount);
 
-        self.emit_deposit_swap_fees_event(caller, current_week, payment);
+        let caller = self.blockchain().get_caller();
+        self.emit_deposit_swap_fees_event(&caller, current_week, &payment);
+    }
+
+    fn try_burn_locked_token(&self, payment: &EsdtTokenPayment) {
+        let locked_token_id = self.get_locked_token_id();
+        require!(
+            payment.token_identifier == locked_token_id,
+            "Only locked token accepted as SFT/NFT/MetaESDT"
+        );
+
+        self.send().esdt_local_burn(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+        );
+    }
+
+    fn burn_part_of_base_token(&self, payment: &mut EsdtTokenPayment) {
+        let burn_percent = self.base_token_burn_percent().get();
+        if burn_percent == 0 {
+            return;
+        }
+
+        let burn_amount = &payment.amount * burn_percent / MAX_PENALTY_PERCENTAGE;
+        if burn_amount == 0 {
+            return;
+        }
+
+        self.send()
+            .esdt_local_burn(&payment.token_identifier, 0, &burn_amount);
+
+        payment.amount -= burn_amount;
     }
 
     fn get_and_clear_accumulated_fees(
@@ -57,7 +96,39 @@ pub trait FeesAccumulationModule:
         }
     }
 
+    fn get_token_available_amount(
+        &self,
+        current_week: Week,
+        token_id: &TokenIdentifier,
+    ) -> BigUint {
+        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS;
+        if current_week < collect_rewards_offset {
+            return BigUint::zero();
+        }
+
+        let start_week = current_week - collect_rewards_offset;
+        let end_week = current_week;
+
+        let mut token_acc_amount = BigUint::zero();
+        for week in start_week..=end_week {
+            let week_amount = self.accumulated_fees(week, token_id).get();
+            token_acc_amount += week_amount;
+        }
+
+        let sc_address = self.blockchain().get_sc_address();
+        let token_total_balance = self.blockchain().get_esdt_balance(&sc_address, token_id, 0);
+
+        if token_total_balance <= token_acc_amount {
+            return BigUint::zero();
+        }
+
+        token_total_balance - token_acc_amount
+    }
+
     #[view(getAccumulatedFees)]
     #[storage_mapper("accumulatedFees")]
     fn accumulated_fees(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("baseTokenBurnPercent")]
+    fn base_token_burn_percent(&self) -> SingleValueMapper<Percent>;
 }
