@@ -116,9 +116,7 @@ pub trait FeesAccumulationModule:
         }
 
         let sc_address = self.blockchain().get_sc_address();
-        let token_total_balance = self
-            .blockchain()
-            .get_esdt_balance(&sc_address, &token_id, 0);
+        let token_total_balance = self.blockchain().get_esdt_balance(&sc_address, token_id, 0);
 
         if token_total_balance <= token_acc_amount {
             return BigUint::zero();

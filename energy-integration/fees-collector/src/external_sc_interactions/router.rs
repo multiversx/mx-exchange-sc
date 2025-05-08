@@ -114,7 +114,7 @@ pub trait RouterInteractionsModule:
             "No payments received from router"
         );
 
-        unsafe { output_payments.iter().last().unwrap_unchecked() }
+        unsafe { output_payments.iter().next_back().unwrap_unchecked() }
     }
 
     #[storage_mapper("routerAddress")]
