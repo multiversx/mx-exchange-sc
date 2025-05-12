@@ -25,6 +25,7 @@ pub trait CustomRewardsModule:
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule

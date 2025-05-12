@@ -52,9 +52,23 @@ pub trait EnergyFactoryMock {
         self.user_energy(&user).set(&energy);
     }
 
+    #[endpoint(transferUnlockedToken)]
+    fn transfer_unlocked_token(&self, dest: ManagedAddress, amount: BigUint) {
+        require!(amount != 0, "Invalid amount");
+
+        let base_asset_token_id = self.base_asset_token_id().get();
+        self.send()
+            .esdt_local_mint(&base_asset_token_id, 0, &amount);
+        self.send()
+            .direct_esdt(&dest, &base_asset_token_id, 0, &amount);
+    }
+
     #[storage_mapper("userEnergy")]
     fn user_energy(&self, user: &ManagedAddress) -> SingleValueMapper<Energy<Self::Api>>;
 
     #[storage_mapper("lockedTokenId")]
     fn locked_token(&self) -> NonFungibleTokenMapper;
+
+    #[storage_mapper("baseAssetTokenId")]
+    fn base_asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

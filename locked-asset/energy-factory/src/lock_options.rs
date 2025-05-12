@@ -1,17 +1,17 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::Epoch;
+use common_structs::{Epoch, Percent};
 use unwrappable::Unwrappable;
 
 pub const EPOCHS_PER_MONTH: Epoch = 30;
 pub const EPOCHS_PER_YEAR: Epoch = 12 * EPOCHS_PER_MONTH;
-pub const MAX_PENALTY_PERCENTAGE: u64 = 10_000; // 100%
+pub const MAX_PENALTY_PERCENTAGE: Percent = 10_000; // 100%
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy, Default)]
 pub struct LockOption {
     pub lock_epochs: Epoch,
-    pub penalty_start_percentage: u64,
+    pub penalty_start_percentage: Percent,
 }
 
 pub const MAX_LOCK_OPTIONS: usize = 10;

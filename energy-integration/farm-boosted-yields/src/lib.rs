@@ -8,11 +8,10 @@ use boosted_yields_factors::BoostedYieldsConfig;
 use common_types::PaymentsVec;
 use multiversx_sc::api::ErrorApi;
 use week_timekeeping::Week;
-use weekly_rewards_splitting::{
-    base_impl::WeeklyRewardsSplittingTraitsModule, USER_MAX_CLAIM_WEEKS,
-};
+use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
 
 pub mod boosted_yields_factors;
+pub mod undistributed_rewards;
 
 const MAX_PERCENT: u64 = 10_000;
 
@@ -43,34 +42,8 @@ pub trait FarmBoostedYieldsModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + undistributed_rewards::UndistributedRewardsModule
 {
-    #[endpoint(collectUndistributedBoostedRewards)]
-    fn collect_undistributed_boosted_rewards(&self) {
-        self.require_caller_has_admin_permissions();
-
-        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS + 1usize;
-        let current_week = self.get_current_week();
-        require!(
-            current_week > collect_rewards_offset,
-            "Current week must be higher than the week offset"
-        );
-
-        let last_collect_week_mapper = self.last_undistributed_boosted_rewards_collect_week();
-        let first_collect_week = last_collect_week_mapper.get() + 1;
-        let last_collect_week = current_week - collect_rewards_offset;
-        if first_collect_week > last_collect_week {
-            return;
-        }
-
-        for week in first_collect_week..=last_collect_week {
-            let rewards_to_distribute = self.remaining_boosted_rewards_to_distribute(week).take();
-            self.undistributed_boosted_rewards()
-                .update(|total_amount| *total_amount += rewards_to_distribute);
-        }
-
-        last_collect_week_mapper.set(last_collect_week);
-    }
-
     fn take_reward_slice(&self, full_reward: BigUint) -> SplitReward<Self::Api> {
         let percentage = self.boosted_yields_rewards_percentage().get();
         if percentage == 0 {
@@ -145,17 +118,6 @@ pub trait FarmBoostedYieldsModule:
     #[view(getFarmSupplyForWeek)]
     #[storage_mapper("farmSupplyForWeek")]
     fn farm_supply_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
-
-    #[view(getRemainingBoostedRewardsToDistribute)]
-    #[storage_mapper("remainingBoostedRewardsToDistribute")]
-    fn remaining_boosted_rewards_to_distribute(&self, week: Week) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("lastUndistributedBoostedRewardsCollectWeek")]
-    fn last_undistributed_boosted_rewards_collect_week(&self) -> SingleValueMapper<Week>;
-
-    #[view(getUndistributedBoostedRewards)]
-    #[storage_mapper("undistributedBoostedRewards")]
-    fn undistributed_boosted_rewards(&self) -> SingleValueMapper<BigUint>;
 }
 
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {

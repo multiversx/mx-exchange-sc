@@ -3,7 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-pub const USER_MAX_CLAIM_WEEKS: usize = 4;
+pub const USER_MAX_CLAIM_WEEKS: Week = 4;
 
 pub mod base_impl;
 pub mod events;
