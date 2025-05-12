@@ -132,24 +132,20 @@ pub trait FactoryModule: config::ConfigModule + read_pair_storage::ReadPairStora
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
     ) -> ManagedAddress {
-        let mut address = self
-            .pair_map()
-            .get(&PairTokens {
-                first_token_id: first_token_id.clone(),
-                second_token_id: second_token_id.clone(),
-            })
-            .unwrap_or_else(ManagedAddress::zero);
-
-        if address.is_zero() {
-            address = self
-                .pair_map()
-                .get(&PairTokens {
-                    first_token_id: second_token_id,
-                    second_token_id: first_token_id,
-                })
-                .unwrap_or_else(ManagedAddress::zero);
+        let mut opt_address = self.pair_map().get(&PairTokens {
+            first_token_id: first_token_id.clone(),
+            second_token_id: second_token_id.clone(),
+        });
+        if opt_address.is_some() {
+            return unsafe { opt_address.unwrap_unchecked() };
         }
-        address
+
+        opt_address = self.pair_map().get(&PairTokens {
+            first_token_id: second_token_id,
+            second_token_id: first_token_id,
+        });
+
+        opt_address.unwrap_or_else(ManagedAddress::zero)
     }
 
     fn get_pair_temporary_owner(&self, pair_address: &ManagedAddress) -> Option<ManagedAddress> {
