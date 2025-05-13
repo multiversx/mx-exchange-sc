@@ -24,6 +24,7 @@ pub trait ProxyLpModule:
     + crate::lp_interactions::LpInteractionsModule
     + crate::token_attributes::TokenAttributesModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + disable_add_liq::DisableAddLiqModule
 {
     #[only_owner]
     #[payable("EGLD")]
@@ -136,6 +137,8 @@ pub trait ProxyLpModule:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> AddLiquidityThroughProxyResultType<Self::Api> {
+        self.require_add_liq_enabled();
+
         let [first_payment, second_payment] = self.call_value().multi_esdt();
         let (mut first_payment_unlocked_wrapper, mut second_payment_unlocked_wrapper) =
             self.unlock_lp_payments(first_payment, second_payment);

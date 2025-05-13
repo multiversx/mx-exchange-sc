@@ -3,6 +3,7 @@
 
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
 use config::ConfigModule;
+use disable_add_liq::{DisableAddLiqModule, ADD_LIQ_ENABLED};
 use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
@@ -454,6 +455,8 @@ where
                 managed_address!(simple_lock_addr),
                 managed_address!(simple_lock_addr),
             );
+
+            sc.add_liq_enabled().set(ADD_LIQ_ENABLED);
 
             sc.wrapped_lp_token()
                 .set_token_id(managed_token_id!(WRAPPED_LP_TOKEN_ID));

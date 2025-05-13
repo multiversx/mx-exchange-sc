@@ -23,6 +23,7 @@ pub struct RemoveLiquidityResultWrapper<M: ManagedTypeApi> {
 // This avoids circular dependency
 mod lp_proxy {
     multiversx_sc::imports!();
+
     use super::{AddLiquidityResultType, RemoveLiquidityResultType};
 
     #[multiversx_sc::proxy]

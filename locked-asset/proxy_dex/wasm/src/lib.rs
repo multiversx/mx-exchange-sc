@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           30
+// Endpoints:                           33
 // Async Callback:                       1
-// Total number of exported functions:  33
+// Total number of exported functions:  36
 
 #![no_std]
 
@@ -50,6 +50,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
+        enableAddLiq => enable_add_liq
+        disableAddLiq => disable_add_liq
+        isAddLiqEnabled => add_liq_enabled
     )
 }
 

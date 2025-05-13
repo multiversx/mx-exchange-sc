@@ -34,6 +34,7 @@ pub trait ProxyFarmModule:
     + crate::proxy_lp::ProxyLpModule
     + crate::token_attributes::TokenAttributesModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + disable_add_liq::DisableAddLiqModule
 {
     #[only_owner]
     #[payable("EGLD")]

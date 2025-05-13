@@ -1,5 +1,7 @@
 #![no_std]
 
+use disable_add_liq::AddLiqStatus;
+
 multiversx_sc::imports!();
 
 pub mod basic_lock_unlock;
@@ -21,12 +23,15 @@ pub trait SimpleLock:
     + lp_interactions::LpInteractionsModule
     + farm_interactions::FarmInteractionsModule
     + token_attributes::TokenAttributesModule
+    + disable_add_liq::DisableAddLiqModule
 {
     #[init]
     fn init(&self) {}
 
     #[upgrade]
-    fn upgrade(&self) {}
+    fn upgrade(&self, enable_add_liq: AddLiqStatus) {
+        self.add_liq_enabled().set(enable_add_liq);
+    }
 
     /// Locks any token (including EGLD) until `unlock_epoch` and receive meta ESDT LOCKED tokens.
     /// on a 1:1 ratio. If unlock epoch has already passed, the original tokens are sent instead.
