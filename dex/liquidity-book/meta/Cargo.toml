@@ -1,0 +1,13 @@
+[package]
+name = "liquidity-book-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+authors = ["MultiversX <contact@multiversx.com>"]
+
+[dev-dependencies]
+[dependencies.liquidity-book]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.39.4"
