@@ -1,7 +1,9 @@
 #![allow(deprecated)]
 
 use config::ConfigModule;
-use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
+use energy_factory::{
+    energy::EnergyModule, unlocked_token_transfer::UnlockedTokenTransferModule, SimpleLockEnergy,
+};
 use energy_query::{Energy, EnergyQueryModule};
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
@@ -376,6 +378,17 @@ where
             })
             .assert_ok();
 
+        // Whitelist farms in energy factory
+        b_mock
+            .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
+                let mut farms = MultiValueEncoded::new();
+                farms.push(managed_address!(farm_wm_wrapper.address_ref()));
+                farms.push(managed_address!(farm_wu_wrapper.address_ref()));
+                farms.push(managed_address!(farm_wh_wrapper.address_ref()));
+                sc.add_to_unlocked_token_mint_whitelist(farms);
+            })
+            .assert_ok();
+
         // init governance sc
         b_mock
             .execute_tx(&owner, &gov_wrapper, &rust_zero, |sc| {
@@ -384,12 +397,6 @@ where
                     managed_token_id!(MEX_TOKEN_ID),
                     managed_address!(energy_factory_wrapper.address_ref()),
                 );
-
-                let mut farms = MultiValueEncoded::new();
-                farms.push(managed_address!(farm_wm_wrapper.address_ref()));
-                farms.push(managed_address!(farm_wu_wrapper.address_ref()));
-                farms.push(managed_address!(farm_wh_wrapper.address_ref()));
-                sc.whitelist_farms(farms);
             })
             .assert_ok();
 

@@ -4,7 +4,7 @@ mod mex_governance_setup;
 
 use config::ConfigModule;
 use mex_governance::{
-    config::ConfigModule as _, external_interactions::ExternalInteractionsModule,
+    config::ConfigModule as _, external_interactions::farm_interactions::FarmInteractionsModule,
 };
 use mex_governance_setup::*;
 use multiversx_sc::imports::MultiValue2;
@@ -440,8 +440,6 @@ fn test_blacklist_farm_with_active_votes() {
 
             // Check farm is blacklisted
             assert!(sc.blacklisted_farms().contains(&farm_id));
-            // Check farm is not in whitelist
-            assert!(!sc.whitelisted_farms().contains(&farm_id));
         })
         .assert_ok();
 
