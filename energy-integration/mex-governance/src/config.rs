@@ -5,6 +5,12 @@ use week_timekeeping::Week;
 
 use crate::errors::{EMISSION_RATE_ZERO, INVALID_ESDT_IDENTIFIER};
 
+/// Constant for maximum number of farms that receive rewards
+pub const MAX_REWARDED_FARMS: usize = 25;
+
+/// Maximum number of farms a user can vote for in a single transaction
+pub const MAX_FARMS_PER_VOTE: usize = 10;
+
 #[derive(
     ManagedVecItem,
     TopEncode,
@@ -16,7 +22,6 @@ use crate::errors::{EMISSION_RATE_ZERO, INVALID_ESDT_IDENTIFIER};
     PartialEq,
     Debug,
 )]
-
 pub struct FarmEmission<M: ManagedTypeApi> {
     pub farm_address: ManagedAddress<M>,
     pub farm_emission: BigUint<M>,
@@ -115,6 +120,18 @@ pub trait ConfigModule:
         user_id: AddressId,
         week: Week,
     ) -> SingleValueMapper<ManagedVec<FarmVote<Self::Api>>>;
+
+    #[storage_mapper("farmEmissionsForWeek")]
+    fn farm_emissions_for_week(
+        &self,
+        week: Week,
+    ) -> SingleValueMapper<ManagedVec<FarmEmission<Self::Api>>>;
+
+    #[storage_mapper("redistributedVotesForWeek")]
+    fn redistributed_votes_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("topFarmsWhitelist")]
+    fn top_farms_whitelist(&self, week: Week) -> WhitelistMapper<ManagedAddress>;
 
     // General storages
 
