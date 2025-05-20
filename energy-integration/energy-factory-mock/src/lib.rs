@@ -66,9 +66,6 @@ pub trait EnergyFactoryMock {
     #[storage_mapper("userEnergy")]
     fn user_energy(&self, user: &ManagedAddress) -> SingleValueMapper<Energy<Self::Api>>;
 
-    #[storage_mapper("baseAssetTokenId")]
-    fn base_asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
     #[storage_mapper("lockedTokenId")]
     fn locked_token(&self) -> NonFungibleTokenMapper;
 
