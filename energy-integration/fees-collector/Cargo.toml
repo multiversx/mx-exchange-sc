@@ -42,6 +42,9 @@ path = "../../common/modules/sc_whitelist_module"
 [dependencies.common-types]
 path = "../common-types"
 
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
@@ -53,3 +56,12 @@ version = "=0.53.2"
 
 [dev-dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
+
+[dev-dependencies.router]
+path = "../../dex/router"
+
+[dev-dependencies.pair]
+path = "../../dex/pair"
+
+[dev-dependencies.pausable]
+path = "../../common/modules/pausable"
