@@ -40,7 +40,6 @@ pub trait SCWhitelistModule {
         match opt_orig_caller {
             OptionalValue::Some(opt_caller) => {
                 self.require_sc_address_whitelisted(caller);
-
                 opt_caller
             }
             OptionalValue::None => caller.clone(),
