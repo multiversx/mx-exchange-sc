@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_types::{PaymentsVec, Week};
+use common_types::Week;
 use energy_query::Energy;
 use week_timekeeping::EPOCHS_IN_WEEK;
 
@@ -147,7 +147,10 @@ pub trait WeeklyRewardsGlobalInfo:
 
     #[view(getTotalRewardsForWeek)]
     #[storage_mapper("totalRewardsForWeek")]
-    fn total_rewards_for_week(&self, week: Week) -> SingleValueMapper<PaymentsVec<Self::Api>>;
+    fn total_rewards_for_week(
+        &self,
+        week: Week,
+    ) -> SingleValueMapper<ManagedVec<EsdtTokenPayment<Self::Api>>>;
 
     #[view(getTotalEnergyForWeek)]
     #[storage_mapper("totalEnergyForWeek")]
