@@ -47,6 +47,11 @@ pub trait FarmInteractionsModule:
     ) {
         let redistributed_votes = self.redistributed_votes_for_week(week).get();
         let top_farms_total_votes = &total_votes - &redistributed_votes;
+
+        if top_farms_total_votes == 0 {
+            return;
+        }
+
         let mut new_farm_emissions = ManagedVec::new();
         let mut total_distributed = BigUint::zero();
 
@@ -55,11 +60,14 @@ pub trait FarmInteractionsModule:
             let farm = farm_emissions.get(i);
 
             let mut farm_emission = &total_emission_rate * &farm.farm_emission / &total_votes;
+
             if redistributed_votes > 0 {
-                let redistributed_emission = &total_emission_rate
-                    * &(&redistributed_votes / &total_votes)
-                    * (&farm.farm_emission / &top_farms_total_votes);
-                farm_emission += redistributed_emission;
+                let total_redistributed_emission =
+                    &total_emission_rate * &redistributed_votes / &total_votes;
+
+                let farm_redistribution_share =
+                    &total_redistributed_emission * &farm.farm_emission / &top_farms_total_votes;
+                farm_emission += farm_redistribution_share;
             }
 
             total_distributed += &farm_emission;
