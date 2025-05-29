@@ -102,7 +102,7 @@ pub trait IncentiveModule:
             }
         }
 
-        if user_payments.len() > 0 {
+        if !user_payments.is_empty() {
             self.send().direct_multi(&caller, &user_payments);
 
             self.emit_claim_incentive_event(week, claimed_incentives);

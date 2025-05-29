@@ -92,7 +92,7 @@ pub trait FarmInteractionsModule:
             "Total distributed emissions exceed the total emission rate"
         );
 
-        if farm_emissions.len() > 0 {
+        if !farm_emissions.is_empty() {
             let last_farm = farm_emissions.get(farm_emissions.len() - 1);
             let last_farm_emission = &total_emission_rate - &total_distributed;
 

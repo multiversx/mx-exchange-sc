@@ -1544,7 +1544,7 @@ fn test_redistribution_calculation_accuracy() {
 
     let reward_ratio = farm_20_rewards as f64 / farm_0_rewards as f64;
     assert!(
-        reward_ratio >= 3.5 && reward_ratio <= 4.5,
+        (3.5..=4.5).contains(&reward_ratio),
         "Reward ratio ({:.2}) should be roughly 4x for 4x vote difference",
         reward_ratio
     );
