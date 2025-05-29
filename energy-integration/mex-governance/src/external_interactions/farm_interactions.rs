@@ -1,6 +1,10 @@
 multiversx_sc::imports!();
 
+use multiversx_sc::storage::StorageKey;
+
 use crate::config::FarmEmission;
+
+pub static PRODUCE_REWARDS_ENABLED_STORAGE_KEY: &[u8] = b"produce_rewards_enabled";
 
 #[multiversx_sc::module]
 pub trait FarmInteractionsModule:
@@ -9,6 +13,16 @@ pub trait FarmInteractionsModule:
     + week_timekeeping::WeekTimekeepingModule
     + energy_query::EnergyQueryModule
 {
+    #[only_owner]
+    #[endpoint(resetFarmEmissions)]
+    fn reset_farm_emissions(&self, farms: MultiValueEncoded<ManagedAddress>) {
+        for farm in farms.into_iter() {
+            self.farm_proxy(farm)
+                .end_produce_rewards_endpoint()
+                .execute_on_dest_context::<()>();
+        }
+    }
+
     #[endpoint(setFarmEmissions)]
     fn set_farm_emissions(&self) {
         let current_week = self.get_current_week();
@@ -59,22 +73,13 @@ pub trait FarmInteractionsModule:
         for i in 0..farms_to_process {
             let farm = farm_emissions.get(i);
 
-            let mut farm_emission = &total_emission_rate * &farm.farm_emission / &total_votes;
-
-            if redistributed_votes > 0 {
-                let total_redistributed_emission =
-                    &total_emission_rate * &redistributed_votes / &total_votes;
-
-                let farm_redistribution_share =
-                    &total_redistributed_emission * &farm.farm_emission / &top_farms_total_votes;
-                farm_emission += farm_redistribution_share;
-            }
+            // Simple calculation - distribute total emissions only among top farms
+            // Redistributed amount is applied implicitly
+            let farm_emission = &total_emission_rate * &farm.farm_emission / &top_farms_total_votes;
 
             total_distributed += &farm_emission;
 
-            self.farm_proxy(farm.farm_address.clone())
-                .set_per_block_rewards_endpoint(farm_emission.clone())
-                .execute_on_dest_context::<()>();
+            self.set_farm_emission(&farm.farm_address, &farm_emission);
 
             new_farm_emissions.push(FarmEmission {
                 farm_address: farm.farm_address,
@@ -91,9 +96,7 @@ pub trait FarmInteractionsModule:
             let last_farm = farm_emissions.get(farm_emissions.len() - 1);
             let last_farm_emission = &total_emission_rate - &total_distributed;
 
-            self.farm_proxy(last_farm.farm_address.clone())
-                .set_per_block_rewards_endpoint(last_farm_emission.clone())
-                .execute_on_dest_context::<()>();
+            self.set_farm_emission(&last_farm.farm_address, &last_farm_emission);
 
             new_farm_emissions.push(FarmEmission {
                 farm_address: last_farm.farm_address,
@@ -112,6 +115,28 @@ pub trait FarmInteractionsModule:
                 .end_produce_rewards_endpoint()
                 .execute_on_dest_context::<()>();
         }
+    }
+
+    fn set_farm_emission(&self, farm_address: &ManagedAddress, new_farm_emissions: &BigUint) {
+        self.farm_proxy(farm_address.clone())
+            .set_per_block_rewards_endpoint(new_farm_emissions.clone())
+            .execute_on_dest_context::<()>();
+
+        let produce_rewards_enabled = self.get_farm_produce_rewards_enabled(farm_address.clone());
+
+        if !produce_rewards_enabled {
+            self.farm_proxy(farm_address.clone())
+                .start_produce_rewards_endpoint()
+                .execute_on_dest_context::<()>();
+        }
+    }
+
+    fn get_farm_produce_rewards_enabled(&self, farm_address: ManagedAddress) -> bool {
+        SingleValueMapper::<_, _, ManagedAddress>::new_from_address(
+            farm_address,
+            StorageKey::new(PRODUCE_REWARDS_ENABLED_STORAGE_KEY),
+        )
+        .get()
     }
 
     #[proxy]

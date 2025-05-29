@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           13
+// Endpoints:                           14
 // Async Callback (empty):               1
-// Total number of exported functions:  16
+// Total number of exported functions:  17
 
 #![no_std]
 
@@ -24,6 +24,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeBlacklistFarm => remove_blacklist_farm
         setReferenceEmissionRate => set_reference_emission_rate
         setIncentiveToken => set_incentive_token
+        resetFarmEmissions => reset_farm_emissions
         setFarmEmissions => set_farm_emissions
         incentivizeFarm => incentivize_farm
         claimIncentive => claim_incentive

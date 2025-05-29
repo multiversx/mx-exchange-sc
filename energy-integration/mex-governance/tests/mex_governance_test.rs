@@ -3,9 +3,11 @@
 mod mex_governance_setup;
 
 use config::ConfigModule;
-use mex_governance::config::ConfigModule as _;
+use mex_governance::{
+    config::ConfigModule as _, external_interactions::farm_interactions::FarmInteractionsModule,
+};
 use mex_governance_setup::*;
-use multiversx_sc::imports::MultiValue2;
+use multiversx_sc::{imports::MultiValue2, types::MultiValueEncoded};
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint};
 use week_timekeeping::WeekTimekeepingModule;
 
@@ -802,6 +804,202 @@ fn test_edge_case_all_votes_outside_top_25() {
 }
 
 #[test]
+fn test_top_farms_selection_with_redistribution() {
+    // Setup with 30 farms to test the top 25 selection
+    let mut gov_setup = GovSetup::new_with_farms(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        mex_governance::contract_obj,
+        30,
+    );
+
+    let first_user = gov_setup.first_user.clone();
+    let second_user = gov_setup.second_user.clone();
+    let third_user = gov_setup.third_user.clone();
+
+    // Set up energy for users
+    gov_setup.set_user_energy(first_user.clone(), 35_500, 1, 35_500);
+    gov_setup.set_user_energy(second_user.clone(), 34_500, 1, 34_500);
+    gov_setup.set_user_energy(third_user.clone(), 27_000, 1, 27_000);
+
+    // First user votes for farms 0-9 with decreasing amounts
+    let mut first_user_votes = vec![];
+    for i in 0..10 {
+        let vote_amount = 4000 - (i as u64 * 100); // 4000, 3900, 3800...
+        first_user_votes.push(MultiValue2::from((
+            gov_setup.get_farm_address(i),
+            vote_amount,
+        )));
+    }
+
+    // Second user votes for farms 10-19 with decreasing amounts
+    let mut second_user_votes = vec![];
+    for i in 10..20 {
+        let vote_amount = 3900 - ((i - 10) as u64 * 100); // 3900, 3800, 3700...
+        second_user_votes.push(MultiValue2::from((
+            gov_setup.get_farm_address(i),
+            vote_amount,
+        )));
+    }
+
+    // Third user votes for farms 15-24 (overlap with second user + more)
+    let mut third_user_votes = vec![];
+    for i in 15..25 {
+        let vote_amount = 2700;
+        third_user_votes.push(MultiValue2::from((
+            gov_setup.get_farm_address(i),
+            vote_amount,
+        )));
+    }
+
+    // Submit votes
+    gov_setup
+        .vote(first_user.clone(), first_user_votes)
+        .assert_ok();
+    gov_setup
+        .vote(second_user.clone(), second_user_votes)
+        .assert_ok();
+    gov_setup
+        .vote(third_user.clone(), third_user_votes)
+        .assert_ok();
+
+    // Now add a fourth user to vote for farms 25-29 (outside top 25)
+    let fourth_user = gov_setup.b_mock.create_user_account(&rust_biguint!(0));
+    gov_setup.set_user_energy(fourth_user.clone(), 25_000, 1, 25_000);
+
+    let mut fourth_user_votes = vec![];
+    for i in 25..30 {
+        let vote_amount = 5000; // Equal votes for each
+        fourth_user_votes.push(MultiValue2::from((
+            gov_setup.get_farm_address(i),
+            vote_amount,
+        )));
+    }
+    gov_setup
+        .vote(fourth_user.clone(), fourth_user_votes)
+        .assert_ok();
+
+    // Verify top farms selection and redistribution
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let voting_week = 2;
+
+            // Check that only top 25 farms are in the emissions list
+            let farm_emissions = sc.farm_emissions_for_week(voting_week).get();
+            assert_eq!(farm_emissions.len(), 25, "Should have exactly 25 farms");
+
+            // Check redistributed votes
+            let redistributed = sc.redistributed_votes_for_week(voting_week).get();
+
+            // Calculate expected redistribution
+            // Farms 25-29 have 5000 votes each and make it to top 25
+            // Farms 20-24 have 2700 votes each and get redistributed
+            assert_eq!(
+                redistributed,
+                managed_biguint!(13_500),
+                "Votes for farms 20-24 (2700 each × 5) should be redistributed"
+            );
+
+            // Verify farms are sorted by vote amount in descending order
+            for i in 0..farm_emissions.len() - 1 {
+                let current = &farm_emissions.get(i);
+                let next = &farm_emissions.get(i + 1);
+                assert!(
+                    current.farm_emission >= next.farm_emission,
+                    "Farms should be sorted in descending order"
+                );
+            }
+
+            // Verify the top farm has the highest votes
+            let top_farm = farm_emissions.get(0);
+            // Farm 15 should be top with votes from both second user (3400) and third user (2700) = 6100
+            assert_eq!(top_farm.farm_emission, managed_biguint!(6_100));
+
+            // Verify total votes calculation
+            let total_votes = sc.total_energy_voted(voting_week).get();
+            assert_eq!(total_votes, managed_biguint!(122_000)); // 35,500 + 34,500 + 27,000 + 25,000
+        })
+        .assert_ok();
+
+    // Advance to next week
+    gov_setup.b_mock.set_block_epoch(10);
+    gov_setup.b_mock.set_block_nonce(100);
+
+    // Set farm emissions
+    gov_setup.set_farm_emissions().assert_ok();
+
+    // Get farm addresses for testing before queries
+    let farm_0_address = gov_setup.get_farm_address(0);
+    let farm_15_address = gov_setup.get_farm_address(15);
+
+    // Verify redistribution was applied correctly
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            // Test farm 0 (has 4000 votes)
+            let farm_0_id = sc
+                .farm_ids()
+                .get_id_non_zero(&managed_address!(&farm_0_address));
+            let farm_0_votes = sc.farm_votes_for_week(farm_0_id, 2).get();
+            assert_eq!(farm_0_votes, managed_biguint!(4_000));
+
+            // Test farm 15 (top farm with 6100 votes)
+            let farm_15_id = sc
+                .farm_ids()
+                .get_id_non_zero(&managed_address!(&farm_15_address));
+            let farm_15_votes = sc.farm_votes_for_week(farm_15_id, 2).get();
+            assert_eq!(farm_15_votes, managed_biguint!(6_100));
+        })
+        .assert_ok();
+
+    // Verify actual farm emissions with redistribution
+    let farm_0_wrapper = &gov_setup.farm_wrappers[0];
+    gov_setup
+        .b_mock
+        .execute_query(farm_0_wrapper, |sc| {
+            let per_block_rewards = sc.per_block_reward_amount().get();
+
+            // Calculate expected emission for farm 0:
+            // Base emission: 10,000 * 4,000 / 122,000 ≈ 327
+            // Redistribution calculation: 4,000 / 108,500 * 13,500 ≈ 497
+            // Redistribution bonus: 10,000 * 497 / 122,000 ≈ 41
+            // Total expected: 327 + 41 = 368
+
+            // Due to integer arithmetic, check within reasonable range
+            assert!(
+                per_block_rewards >= managed_biguint!(360)
+                    && per_block_rewards <= managed_biguint!(380),
+                "Farm 0 emission should be around 368, got: {:?}",
+                per_block_rewards
+            );
+        })
+        .assert_ok();
+
+    // Verify top farm gets higher redistribution
+    let farm_15_wrapper = &gov_setup.farm_wrappers[15];
+    gov_setup
+        .b_mock
+        .execute_query(farm_15_wrapper, |sc| {
+            let per_block_rewards = sc.per_block_reward_amount().get();
+
+            // Farm 15 should get more than farm 0 due to higher vote count
+            // Base emission: 10,000 * 6,100 / 122,000 ≈ 500
+            // Redistribution calculation: 6,100 / 108,500 * 13,500 ≈ 759
+            // Redistribution bonus: 10,000 * 759 / 122,000 ≈ 62
+            // Total expected: 500 + 62 = 562
+
+            assert!(
+                per_block_rewards >= managed_biguint!(550)
+                    && per_block_rewards <= managed_biguint!(570),
+                "Farm 15 emission should be around 562, got: {:?}",
+                per_block_rewards
+            );
+        })
+        .assert_ok();
+}
+
+#[test]
 fn test_division_by_zero_when_all_votes_redistributed() {
     // This test demonstrates the division by zero issue
     let mut gov_setup = GovSetup::new_with_farms(
@@ -1190,6 +1388,184 @@ fn test_tied_votes_at_boundary() {
             // Three farms with 2000 votes and two farms with 1000 votes should be outside top 25
             // So redistributed = 3*2000 + 2*1000 = 8000
             assert_eq!(redistributed, managed_biguint!(8_000));
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_redistribution_calculation_accuracy() {
+    let mut gov_setup = GovSetup::new_with_farms(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        mex_governance::contract_obj,
+        30,
+    );
+
+    let mut all_farm_addresses = Vec::new();
+    for i in 0..30 {
+        all_farm_addresses.push(gov_setup.get_farm_address(i));
+    }
+
+    gov_setup
+        .b_mock
+        .execute_tx(
+            &gov_setup.owner,
+            &gov_setup.gov_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut farm_addresses = MultiValueEncoded::new();
+                for farm_address in all_farm_addresses.iter() {
+                    farm_addresses.push(managed_address!(farm_address));
+                }
+                sc.reset_farm_emissions(farm_addresses);
+            },
+        )
+        .assert_ok();
+
+    let first_user = gov_setup.first_user.clone();
+    let second_user = gov_setup.second_user.clone();
+    let third_user = gov_setup.third_user.clone();
+    let fourth_user = gov_setup.b_mock.create_user_account(&rust_biguint!(0));
+
+    gov_setup.set_user_energy(first_user.clone(), 20_000, 1, 20_000);
+    gov_setup.set_user_energy(second_user.clone(), 20_000, 1, 20_000);
+    gov_setup.set_user_energy(third_user.clone(), 40_000, 1, 40_000);
+    gov_setup.set_user_energy(fourth_user.clone(), 20_000, 1, 20_000);
+
+    let mut first_user_votes = vec![];
+    for i in 0..10 {
+        first_user_votes.push(MultiValue2::from((gov_setup.get_farm_address(i), 2_000u64)));
+    }
+
+    let mut second_user_votes = vec![];
+    for i in 10..20 {
+        second_user_votes.push(MultiValue2::from((gov_setup.get_farm_address(i), 2_000u64)));
+    }
+
+    let mut third_user_votes = vec![];
+    for i in 20..25 {
+        third_user_votes.push(MultiValue2::from((gov_setup.get_farm_address(i), 8_000u64)));
+    }
+
+    let mut fourth_user_votes = vec![];
+    for i in 25..30 {
+        fourth_user_votes.push(MultiValue2::from((gov_setup.get_farm_address(i), 4_000u64)));
+    }
+
+    gov_setup
+        .vote(first_user.clone(), first_user_votes)
+        .assert_ok();
+    gov_setup
+        .vote(second_user.clone(), second_user_votes)
+        .assert_ok();
+    gov_setup
+        .vote(third_user.clone(), third_user_votes)
+        .assert_ok();
+    gov_setup
+        .vote(fourth_user.clone(), fourth_user_votes)
+        .assert_ok();
+
+    let farm_0_address = gov_setup.get_farm_address(0);
+    let farm_20_address = gov_setup.get_farm_address(20);
+
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let voting_week = 2;
+
+            let farm_emissions = sc.farm_emissions_for_week(voting_week).get();
+            assert_eq!(farm_emissions.len(), 25);
+
+            let redistributed = sc.redistributed_votes_for_week(voting_week).get();
+            assert_eq!(redistributed, managed_biguint!(10_000));
+
+            let total_votes = sc.total_energy_voted(voting_week).get();
+            assert_eq!(total_votes, managed_biguint!(100_000));
+        })
+        .assert_ok();
+
+    gov_setup.b_mock.set_block_epoch(10);
+    gov_setup.b_mock.set_block_nonce(100);
+
+    gov_setup.set_farm_emissions().assert_ok();
+
+    // Count emissions only from farms where produce_rewards is enabled
+    let mut total_distributed = 0u64;
+    let mut farms_with_active_rewards = 0u32;
+
+    for i in 0..30 {
+        let farm_wrapper = &gov_setup.farm_wrappers[i];
+        gov_setup
+            .b_mock
+            .execute_query(farm_wrapper, |sc| {
+                let produce_rewards_enabled = sc.produce_rewards_enabled().get();
+                if produce_rewards_enabled {
+                    let per_block_rewards = sc.per_block_reward_amount().get();
+                    total_distributed += per_block_rewards.to_u64().unwrap();
+                    farms_with_active_rewards += 1;
+                }
+            })
+            .assert_ok();
+    }
+
+    assert_eq!(
+        farms_with_active_rewards, 25,
+        "Should have exactly 25 farms with rewards enabled"
+    );
+    assert_eq!(total_distributed, DEFAULT_EMISSION_RATE);
+
+    let mut farm_0_rewards = 0u64;
+    let mut farm_20_rewards = 0u64;
+
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.farm_wrappers[0], |sc| {
+            if sc.produce_rewards_enabled().get() {
+                farm_0_rewards = sc.per_block_reward_amount().get().to_u64().unwrap();
+            }
+        })
+        .assert_ok();
+
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.farm_wrappers[20], |sc| {
+            if sc.produce_rewards_enabled().get() {
+                farm_20_rewards = sc.per_block_reward_amount().get().to_u64().unwrap();
+            }
+        })
+        .assert_ok();
+
+    assert!(
+        farm_20_rewards > farm_0_rewards,
+        "Farm 20 ({} rewards) should get more than farm 0 ({} rewards)",
+        farm_20_rewards,
+        farm_0_rewards
+    );
+
+    let reward_ratio = farm_20_rewards as f64 / farm_0_rewards as f64;
+    assert!(
+        reward_ratio >= 3.5 && reward_ratio <= 4.5,
+        "Reward ratio ({:.2}) should be roughly 4x for 4x vote difference",
+        reward_ratio
+    );
+
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let voting_week = 2;
+
+            let farm_0_id = sc
+                .farm_ids()
+                .get_id_non_zero(&managed_address!(&farm_0_address));
+            let farm_20_id = sc
+                .farm_ids()
+                .get_id_non_zero(&managed_address!(&farm_20_address));
+
+            let farm_0_votes = sc.farm_votes_for_week(farm_0_id, voting_week).get();
+            let farm_20_votes = sc.farm_votes_for_week(farm_20_id, voting_week).get();
+
+            assert_eq!(farm_0_votes, managed_biguint!(2_000));
+            assert_eq!(farm_20_votes, managed_biguint!(8_000));
         })
         .assert_ok();
 }
