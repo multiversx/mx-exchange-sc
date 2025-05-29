@@ -103,14 +103,7 @@ pub trait VoteModule:
             let is_in_top_farms = self.top_farms_whitelist(week).contains(&farm_address);
 
             if is_in_top_farms {
-                for i in 0..top_farms.len() {
-                    if &top_farms.get(i).farm_address == &farm_address {
-                        let mut farm_emission = top_farms.get(i);
-                        farm_emission.farm_emission += vote_amount;
-                        let _ = top_farms.set(i, &farm_emission);
-                        break;
-                    }
-                }
+                self.update_existing_farm_emission(top_farms, &farm_address, &vote_amount);
             } else {
                 // Add new farm to the list, even if it goes beyond max limit. Also, add to whitelist temporarily.
                 // This will help simplify the sorting logic later on
@@ -120,6 +113,22 @@ pub trait VoteModule:
                 });
 
                 self.top_farms_whitelist(week).add(&farm_address);
+            }
+        }
+    }
+
+    fn update_existing_farm_emission(
+        &self,
+        top_farms: &mut ManagedVec<FarmEmission<Self::Api>>,
+        farm_address: &ManagedAddress,
+        vote_amount: &BigUint,
+    ) {
+        for i in 0..top_farms.len() {
+            if &top_farms.get(i).farm_address == farm_address {
+                let mut farm_emission = top_farms.get(i);
+                farm_emission.farm_emission += vote_amount;
+                let _ = top_farms.set(i, &farm_emission);
+                break;
             }
         }
     }
