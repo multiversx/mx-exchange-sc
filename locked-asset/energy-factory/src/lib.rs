@@ -8,7 +8,7 @@ pub mod extend_lock;
 pub mod local_roles;
 pub mod lock_options;
 pub mod lock_options_endpoints;
-pub mod unlocked_token_transfer;
+pub mod locked_token_transfer;
 pub mod migration;
 pub mod penalty;
 pub mod token_merging;
@@ -198,7 +198,7 @@ pub trait SimpleLockEnergy:
 
         let caller = self.blockchain().get_caller();
         require!(
-            self.unlocked_token_mint_whitelist().contains(&caller),
+            self.token_transfer_whitelist().contains(&caller),
             "May not call this endpoint. Use lockTokens instead"
         );
 
