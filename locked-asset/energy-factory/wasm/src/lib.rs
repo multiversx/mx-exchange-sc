@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           36
+// Endpoints:                           39
 // Async Callback:                       1
-// Total number of exported functions:  39
+// Total number of exported functions:  42
 
 #![no_std]
 
@@ -51,6 +51,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         addSCAddressToWhitelist => add_sc_address_to_whitelist
         removeSCAddressFromWhitelist => remove_sc_address_from_whitelist
         isSCAddressWhitelisted => is_sc_address_whitelisted
+        addToTokenTransferWhitelist => add_to_token_transfer_whitelist
+        removeFromTokenTransferWhitelist => remove_from_token_transfer_whitelist
+        setUserEnergyAfterLockedTokenTransfer => set_user_energy_after_locked_token_transfer
         addToUnlockedTokenMintWhitelist => add_to_unlocked_token_mint_whitelist
         removeFromUnlockedTokenMintWhitelist => remove_from_unlocked_token_mint_whitelist
         setMultisigAddress => set_multisig_address

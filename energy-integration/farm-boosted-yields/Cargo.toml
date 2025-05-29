@@ -29,5 +29,8 @@ path = "../common-modules/weekly-rewards-splitting"
 [dependencies.energy-query]
 path = "../common-modules/energy-query"
 
+[dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"
+
 [dependencies.common-types]
 path = "../common-types"

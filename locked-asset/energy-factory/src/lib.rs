@@ -14,6 +14,7 @@ pub mod penalty;
 pub mod token_merging;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
+pub mod unlocked_token_transfer;
 pub mod unstake;
 pub mod virtual_lock;
 
@@ -46,6 +47,7 @@ pub trait SimpleLockEnergy:
     + utils::UtilsModule
     + virtual_lock::VirtualLockModule
     + sc_whitelist_module::SCWhitelistModule
+    + locked_token_transfer::LockedTokenTransferModule
     + unlocked_token_transfer::UnlockedTokenTransferModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
 {
