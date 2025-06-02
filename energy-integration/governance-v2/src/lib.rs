@@ -14,7 +14,7 @@ use proposal_storage::VoteType;
 use weekly_rewards_splitting::events::Week;
 use weekly_rewards_splitting::global_info::ProxyTrait as _;
 
-use crate::configurable::{FULL_PERCENTAGE, MAX_GAS_LIMIT_PER_BLOCK};
+use crate::configurable::{Timestamp, FULL_PERCENTAGE, MAX_GAS_LIMIT_PER_BLOCK};
 use crate::errors::*;
 use crate::proposal_storage::ProposalVotes;
 
@@ -31,8 +31,8 @@ pub trait GovernanceV2:
     /// - `min_energy_for_propose` - the minimum energy required for submitting a proposal
     /// - `min_fee_for_propose` - the minimum fee required for submitting a proposal
     /// - `quorum_percentage` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
-    /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
-    /// - `votingPeriodInBlocks` - Number of blocks the voting period lasts (voting delay does not count towards this)  
+    /// - `votingDelayInSeconds` - Number of seconds to wait after a timestamp is proposed before being able to vote/downvote that proposal
+    /// - `votingPeriodInSeconds` - Number of seconds the voting period lasts (voting delay does not count towards this)  
     /// - `withdraw_percentage_defeated` - Percetange of the fee to be returned if proposal defetead
     /// - `energy_factory_address`
     /// - `fees_collector_address`
@@ -43,8 +43,8 @@ pub trait GovernanceV2:
         min_energy_for_propose: BigUint,
         min_fee_for_propose: BigUint,
         quorum_percentage: u64,
-        voting_delay_in_blocks: u64,
-        voting_period_in_blocks: u64,
+        voting_delay_in_seconds: Timestamp,
+        voting_period_in_seconds: Timestamp,
         withdraw_percentage_defeated: u64,
         energy_factory_address: ManagedAddress,
         fees_collector_address: ManagedAddress,
@@ -53,8 +53,8 @@ pub trait GovernanceV2:
         self.try_change_min_energy_for_propose(min_energy_for_propose);
         self.try_change_min_fee_for_propose(min_fee_for_propose);
         self.try_change_quorum_percentage(quorum_percentage);
-        self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
-        self.try_change_voting_period_in_blocks(voting_period_in_blocks);
+        self.try_change_voting_delay_in_seconds(voting_delay_in_seconds);
+        self.try_change_voting_period_in_seconds(voting_period_in_seconds);
         self.try_change_withdraw_percentage_defeated(withdraw_percentage_defeated);
         self.set_energy_factory_address(energy_factory_address);
         self.fees_collector_address().set(&fees_collector_address);
@@ -121,10 +121,10 @@ pub trait GovernanceV2:
         );
 
         let minimum_quorum = self.quorum_percentage().get();
-        let voting_delay_in_blocks = self.voting_delay_in_blocks().get();
-        let voting_period_in_blocks = self.voting_period_in_blocks().get();
+        let voting_delay_in_seconds = self.voting_delay_in_seconds().get();
+        let voting_period_in_seconds = self.voting_period_in_seconds().get();
         let withdraw_percentage_defeated = self.withdraw_percentage_defeated().get();
-        let current_block = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
 
         let proposal = GovernanceProposal {
             proposal_id: self.proposals().len() + 1,
@@ -133,18 +133,18 @@ pub trait GovernanceV2:
             actions: gov_actions,
             fee_payment: user_fee,
             minimum_quorum,
-            voting_delay_in_blocks,
-            voting_period_in_blocks,
+            voting_delay_in_seconds,
+            voting_period_in_seconds,
             withdraw_percentage_defeated,
             total_quorum: BigUint::zero(),
-            proposal_start_block: current_block,
+            proposal_start_timestamp: current_timestamp,
             fee_withdrawn: false,
         };
         let proposal_id = self.proposals().push(&proposal);
 
         self.proposal_votes(proposal_id)
             .set(ProposalVotes::default());
-        self.proposal_created_event(proposal_id, &proposer, current_block, &proposal);
+        self.proposal_created_event(proposal_id, &proposer, current_timestamp, &proposal);
 
         proposal_id
     }

@@ -10,7 +10,7 @@ pub trait EventsModule {
         &self,
         #[indexed] proposal_id: usize,
         #[indexed] proposer: &ManagedAddress,
-        #[indexed] start_block: u64,
+        #[indexed] start_timestamp: u64,
         #[indexed] proposal: &GovernanceProposal<Self::Api>,
     );
 
