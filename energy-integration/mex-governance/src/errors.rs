@@ -1,5 +1,6 @@
 pub static EMISSION_RATE_ZERO: &[u8] = b"Emission rate cannot be zero";
 pub static ALREADY_VOTED_THIS_WEEK: &[u8] = b"Already voted this week";
+pub static INVALID_VOTE_ZERO: &[u8] = b"Vote amount cannot be zero";
 pub static INVALID_VOTE_AMOUNT: &[u8] = b"Invalid vote amount";
 pub static INVALID_ESDT_IDENTIFIER: &[u8] = b"Invalid ESDT identifier";
 pub static INVALID_INCENTIVE_PAYMENT: &[u8] = b"Invalid incentive payment";

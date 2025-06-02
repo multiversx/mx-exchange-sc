@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           14
+// Endpoints:                           27
 // Async Callback (empty):               1
-// Total number of exported functions:  17
+// Total number of exported functions:  30
 
 #![no_std]
 
@@ -24,6 +24,19 @@ multiversx_sc_wasm_adapter::endpoints! {
         removeBlacklistFarm => remove_blacklist_farm
         setReferenceEmissionRate => set_reference_emission_rate
         setIncentiveToken => set_incentive_token
+        isAddressBlacklisted => is_address_blacklisted
+        getEmissionRateForWeek => emission_rate_for_week
+        getVotedFarmsForWeek => voted_farms_for_week
+        getFarmVotesForWeek => farm_votes_for_week
+        getTotalEnergyVoted => total_energy_voted
+        getFarmIncentiveForWeek => farm_incentive_for_week
+        getUsersVotedInWeek => user_votes_in_week
+        getFarmEmissionsForWeek => farm_emissions_for_week
+        getRedistributedVotesForWeek => redistributed_votes_for_week
+        getVotingWeek => voting_week
+        getLastEmissionWeek => last_emission_week
+        getReferenceEmissionRate => reference_emission_rate
+        getIncentiveToken => incentive_token
         resetFarmEmissions => reset_farm_emissions
         setFarmEmissions => set_farm_emissions
         incentivizeFarm => incentivize_farm

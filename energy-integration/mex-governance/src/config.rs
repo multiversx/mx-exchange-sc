@@ -97,23 +97,35 @@ pub trait ConfigModule:
         self.emit_set_incentive_token_event(old_token, token_id);
     }
 
+    #[view(isAddressBlacklisted)]
+    fn is_address_blacklisted(&self, address: &ManagedAddress) -> bool {
+        let address_id = self.farm_ids().get_id_non_zero(address);
+        self.blacklisted_farms().contains(&address_id)
+    }
+
     // Weekly storages
+    #[view(getEmissionRateForWeek)]
     #[storage_mapper("emissionRateForWeek")]
     fn emission_rate_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
+    #[view(getVotedFarmsForWeek)]
     #[storage_mapper("votedFarmsForWeek")]
     fn voted_farms_for_week(&self, week: Week) -> UnorderedSetMapper<AddressId>;
 
-    #[storage_mapper("farmVotesForPeriod")]
+    #[view(getFarmVotesForWeek)]
+    #[storage_mapper("farmVotesForWeek")]
     fn farm_votes_for_week(&self, farm_id: AddressId, week: Week) -> SingleValueMapper<BigUint>;
 
+    #[view(getTotalEnergyVoted)]
     #[storage_mapper("totalEnergyVoted")]
     fn total_energy_voted(&self, week: Week) -> SingleValueMapper<BigUint>;
 
+    #[view(getFarmIncentiveForWeek)]
     #[storage_mapper("farmIncentiveForWeek")]
     fn farm_incentive_for_week(&self, farm_id: AddressId, week: Week)
         -> SingleValueMapper<BigUint>;
 
+    #[view(getUsersVotedInWeek)]
     #[storage_mapper("usersVotedInWeek")]
     fn user_votes_in_week(
         &self,
@@ -121,12 +133,14 @@ pub trait ConfigModule:
         week: Week,
     ) -> SingleValueMapper<ManagedVec<FarmVote<Self::Api>>>;
 
+    #[view(getFarmEmissionsForWeek)]
     #[storage_mapper("farmEmissionsForWeek")]
     fn farm_emissions_for_week(
         &self,
         week: Week,
     ) -> SingleValueMapper<ManagedVec<FarmEmission<Self::Api>>>;
 
+    #[view(getRedistributedVotesForWeek)]
     #[storage_mapper("redistributedVotesForWeek")]
     fn redistributed_votes_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
@@ -141,15 +155,22 @@ pub trait ConfigModule:
     #[storage_mapper("userIds")]
     fn user_ids(&self) -> AddressToIdMapper<Self::Api>;
 
+    #[view(getVotingWeek)]
     #[storage_mapper("votingWeek")]
     fn voting_week(&self) -> SingleValueMapper<Week>;
 
+    #[view(getLastEmissionWeek)]
+    #[storage_mapper("lastEmissionsWeek")]
+    fn last_emission_week(&self) -> SingleValueMapper<Week>;
+
+    #[view(getReferenceEmissionRate)]
     #[storage_mapper("referenceEmissionRate")]
     fn reference_emission_rate(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("blacklistedFarms")]
     fn blacklisted_farms(&self) -> UnorderedSetMapper<AddressId>;
 
+    #[view(getIncentiveToken)]
     #[storage_mapper("incentiveToken")]
     fn incentive_token(&self) -> SingleValueMapper<TokenIdentifier>;
 }

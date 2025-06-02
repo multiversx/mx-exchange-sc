@@ -1569,3 +1569,150 @@ fn test_redistribution_calculation_accuracy() {
         })
         .assert_ok();
 }
+
+#[test]
+fn test_cannot_vote_twice_same_week() {
+    let mut gov_setup = GovSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        mex_governance::contract_obj,
+    );
+
+    let first_user = gov_setup.first_user.clone();
+    let farm_0 = gov_setup.get_farm_address(0);
+    let farm_1 = gov_setup.get_farm_address(1);
+
+    // Set user energy
+    gov_setup.set_user_energy(first_user.clone(), 1_000, 1, 1_000);
+
+    // First vote - should succeed
+    let first_votes = vec![MultiValue2::from((farm_0.clone(), 1_000u64))];
+    gov_setup.vote(first_user.clone(), first_votes).assert_ok();
+
+    // Try to vote again in the same week - should fail
+    let second_votes = vec![MultiValue2::from((farm_1.clone(), 1_000u64))];
+    gov_setup
+        .vote(first_user.clone(), second_votes)
+        .assert_user_error("Already voted this week");
+
+    // Verify first vote is still recorded
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let voting_week = 2; // Votes are for next week
+            let farm_id = sc.farm_ids().get_id_non_zero(&managed_address!(&farm_0));
+            let farm_votes = sc.farm_votes_for_week(farm_id, voting_week).get();
+            assert_eq!(farm_votes, managed_biguint!(1_000));
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_cannot_set_emissions_twice_same_week() {
+    let mut gov_setup = GovSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        mex_governance::contract_obj,
+    );
+
+    let first_user = gov_setup.first_user.clone();
+    let farm_0 = gov_setup.get_farm_address(0);
+
+    // Set user energy and vote
+    gov_setup.set_user_energy(first_user.clone(), 1_000, 1, 1_000);
+    let votes = vec![MultiValue2::from((farm_0.clone(), 1_000u64))];
+    gov_setup.vote(first_user.clone(), votes).assert_ok();
+
+    // Advance to next week
+    gov_setup.b_mock.set_block_epoch(10);
+
+    // First setFarmEmissions - should succeed
+    gov_setup.set_farm_emissions().assert_ok();
+
+    // Try to set emissions again in the same week - should fail
+    gov_setup
+        .set_farm_emissions()
+        .assert_user_error("Emissions already set for this week");
+
+    // Verify emissions were set correctly the first time
+    let farm_0_wrapper = &gov_setup.farm_wrappers[0];
+    gov_setup
+        .b_mock
+        .execute_query(farm_0_wrapper, |sc| {
+            let per_block_rewards = sc.per_block_reward_amount().get();
+            assert_eq!(per_block_rewards, managed_biguint!(DEFAULT_EMISSION_RATE));
+        })
+        .assert_ok();
+
+    // Advance to next week and verify we can set emissions again
+    gov_setup.b_mock.set_block_epoch(20);
+
+    // Vote for next week
+    gov_setup.set_user_energy(first_user.clone(), 1_000, 20, 1_000);
+    let votes = vec![MultiValue2::from((farm_0.clone(), 1_000u64))];
+    gov_setup.vote(first_user.clone(), votes).assert_ok();
+
+    // Should succeed for new week
+    gov_setup.set_farm_emissions().assert_ok();
+}
+
+#[test]
+fn test_invalid_vote_amounts() {
+    let mut gov_setup = GovSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        mex_governance::contract_obj,
+    );
+
+    let first_user = gov_setup.first_user.clone();
+    let farm_0 = gov_setup.get_farm_address(0);
+    let farm_1 = gov_setup.get_farm_address(1);
+
+    // Set user energy
+    let user_energy = 1_000u64;
+    gov_setup.set_user_energy(first_user.clone(), user_energy, 1, user_energy);
+
+    // Test 1: Vote with MORE than user's energy - should fail
+    let excess_votes = vec![MultiValue2::from((farm_0.clone(), 1_500u64))];
+    gov_setup
+        .vote(first_user.clone(), excess_votes)
+        .assert_user_error("Invalid vote amount");
+
+    // Test 2: Vote with LESS than user's energy - should fail
+    let insufficient_votes = vec![MultiValue2::from((farm_0.clone(), 500u64))];
+    gov_setup
+        .vote(first_user.clone(), insufficient_votes)
+        .assert_user_error("Invalid vote amount");
+
+    // Test 3: Split votes but total doesn't match energy - should fail
+    let mismatched_split_votes = vec![
+        MultiValue2::from((farm_0.clone(), 600u64)),
+        MultiValue2::from((farm_1.clone(), 500u64)), // Total: 1100, not 1000
+    ];
+    gov_setup
+        .vote(first_user.clone(), mismatched_split_votes)
+        .assert_user_error("Invalid vote amount");
+
+    // Test 4: Vote with zero amount - should fail at farm level
+    let zero_votes = vec![
+        MultiValue2::from((farm_0.clone(), 0u64)),
+        MultiValue2::from((farm_1.clone(), 1_000u64)),
+    ];
+    gov_setup
+        .vote(first_user.clone(), zero_votes)
+        .assert_user_error("Vote amount cannot be zero");
+
+    // Test 5: User with zero energy tries to vote - should fail
+    let second_user = gov_setup.second_user.clone();
+    gov_setup.set_user_energy(second_user.clone(), 0, 1, 0);
+    let votes_no_energy = vec![MultiValue2::from((farm_0.clone(), 0u64))];
+    gov_setup
+        .vote(second_user.clone(), votes_no_energy)
+        .assert_user_error("No energy");
+
+    // Test 6: Correct vote amount - should succeed
+    let correct_votes = vec![MultiValue2::from((farm_0.clone(), user_energy))];
+    gov_setup
+        .vote(first_user.clone(), correct_votes)
+        .assert_ok();
+}

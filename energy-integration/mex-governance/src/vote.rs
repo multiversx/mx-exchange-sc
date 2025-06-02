@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 
 use crate::{
     config::{FarmEmission, FarmVote, MAX_FARMS_PER_VOTE, MAX_REWARDED_FARMS},
-    errors::{ALREADY_VOTED_THIS_WEEK, FARM_BLACKLISTED, INVALID_VOTE_AMOUNT},
+    errors::{ALREADY_VOTED_THIS_WEEK, FARM_BLACKLISTED, INVALID_VOTE_AMOUNT, INVALID_VOTE_ZERO},
 };
 
 #[multiversx_sc::module]
@@ -42,6 +42,7 @@ pub trait VoteModule:
 
         for vote in votes {
             let (farm_address, amount) = vote.into_tuple();
+            require!(amount > 0, INVALID_VOTE_ZERO);
 
             self.check_farm_is_whitelisted(&farm_address);
             let farm_id = self.farm_ids().get_id_or_insert(&farm_address);

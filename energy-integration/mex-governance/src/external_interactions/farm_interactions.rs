@@ -26,6 +26,13 @@ pub trait FarmInteractionsModule:
     #[endpoint(setFarmEmissions)]
     fn set_farm_emissions(&self) {
         let current_week = self.get_current_week();
+
+        let emissions_set_for_week_mapper = self.last_emission_week();
+        require!(
+            emissions_set_for_week_mapper.get() < current_week,
+            "Emissions already set for this week"
+        );
+
         let previous_week = current_week - 1; // Current week starts from 1, so we shouldn't overflow
         if previous_week > 0 {
             self.reset_previous_farms_emissions(previous_week);
@@ -35,12 +42,14 @@ pub trait FarmInteractionsModule:
         let total_votes = self.total_energy_voted(current_week).get();
 
         if total_votes == 0 {
+            emissions_set_for_week_mapper.set(current_week);
             return;
         }
 
         let current_farm_emissions = self.farm_emissions_for_week(current_week).get();
 
         if current_farm_emissions.is_empty() {
+            emissions_set_for_week_mapper.set(current_week);
             return;
         }
 
@@ -50,6 +59,8 @@ pub trait FarmInteractionsModule:
             total_emission_rate,
             total_votes,
         );
+
+        emissions_set_for_week_mapper.set(current_week);
     }
 
     fn distribute_emissions(
