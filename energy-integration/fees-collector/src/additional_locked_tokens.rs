@@ -1,8 +1,7 @@
 multiversx_sc::imports!();
 
 use common_types::Week;
-
-pub const BLOCKS_IN_WEEK: u64 = 100_800;
+use week_timekeeping::EPOCHS_IN_WEEK;
 
 #[multiversx_sc::module]
 pub trait AdditionalLockedTokensModule:
@@ -16,10 +15,10 @@ pub trait AdditionalLockedTokensModule:
     + multiversx_sc_modules::only_admin::OnlyAdminModule
 {
     #[only_owner]
-    #[endpoint(setLockedTokensPerBlock)]
-    fn set_locked_tokens_per_block(&self, locked_tokens_per_block: BigUint) {
+    #[endpoint(setLockedTokensPerEpoch)]
+    fn set_locked_tokens_per_epoch(&self, locked_tokens_per_epoch: BigUint) {
         self.accumulate_additional_locked_tokens();
-        self.locked_tokens_per_block().set(locked_tokens_per_block);
+        self.locked_tokens_per_epoch().set(locked_tokens_per_epoch);
     }
 
     fn accumulate_additional_locked_tokens(&self) {
@@ -30,9 +29,9 @@ pub trait AdditionalLockedTokensModule:
             return;
         }
 
-        let blocks_in_week = BLOCKS_IN_WEEK;
-        let amount_per_block = self.locked_tokens_per_block().get();
-        let new_tokens_amount = amount_per_block * blocks_in_week;
+        let epochs_in_week = EPOCHS_IN_WEEK;
+        let amount_per_epoch = self.locked_tokens_per_epoch().get();
+        let new_tokens_amount = amount_per_epoch * epochs_in_week;
 
         let locked_token_id = self.get_locked_token_id();
         self.accumulated_fees(current_week - 1, &locked_token_id)
@@ -45,7 +44,7 @@ pub trait AdditionalLockedTokensModule:
     #[storage_mapper("lastLockedTokenAddWeek")]
     fn last_locked_token_add_week(&self) -> SingleValueMapper<Week>;
 
-    #[view(getLockedTokensPerBlock)]
-    #[storage_mapper("lockedTokensPerBlock")]
-    fn locked_tokens_per_block(&self) -> SingleValueMapper<BigUint>;
+    #[view(getLockedTokensPerEpoch)]
+    #[storage_mapper("lockedTokensPerEpoch")]
+    fn locked_tokens_per_epoch(&self) -> SingleValueMapper<BigUint>;
 }

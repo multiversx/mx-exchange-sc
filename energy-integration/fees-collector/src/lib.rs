@@ -78,5 +78,13 @@ pub trait FeesCollector:
             known_tokens_mapper.remove(&token_id);
             reward_tokens_mapper.insert(token_id);
         }
+
+        let locked_tokens_per_block_mapper =
+            SingleValueMapper::<Self::Api, BigUint>::new(StorageKey::new(b"lockedTokensPerBlock"));
+        let locked_tokens_per_block = locked_tokens_per_block_mapper.take();
+        let locked_tokens_per_epoch = locked_tokens_per_block * 10u64 * 60u64 * 24u64; // 14400 blocks per epoch
+
+        self.locked_tokens_per_epoch()
+            .set_if_empty(locked_tokens_per_epoch);
     }
 }
