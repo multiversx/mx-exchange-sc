@@ -4,19 +4,23 @@ mod fees_collector_test_setup;
 mod router_setup;
 
 use energy_query::Energy;
-use fees_collector::additional_locked_tokens::{AdditionalLockedTokensModule, BLOCKS_IN_WEEK};
+use fees_collector::additional_locked_tokens::AdditionalLockedTokensModule;
 use fees_collector::config::ConfigModule;
 use fees_collector::external_sc_interactions::router::RouterInteractionsModule;
 use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector::redistribute_rewards::RedistributeRewardsModule;
+use fees_collector::FeesCollector;
 use fees_collector_test_setup::*;
-use multiversx_sc::types::{BigInt, EsdtTokenPayment, ManagedVec, MultiValueEncoded};
+use multiversx_sc::imports::{SingleValueMapper, StorageMapper};
+use multiversx_sc::storage::StorageKey;
+use multiversx_sc::types::{BigInt, BigUint, EsdtTokenPayment, ManagedVec, MultiValueEncoded};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, managed_token_id_wrapped,
     rust_biguint, DebugApi,
 };
 use router_setup::{RouterSetup, USDC_TOKEN_ID, WEGLD_TOKEN_ID};
 use simple_lock::locked_token::LockedTokenAttributes;
+use week_timekeeping::EPOCHS_IN_WEEK;
 use weekly_rewards_splitting::locked_token_buckets::LockedTokensBucket;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 use weekly_rewards_splitting::{
@@ -1212,7 +1216,7 @@ fn additional_locked_tokens_test() {
     let mut fc_setup =
         FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
-    fc_setup.advance_week(); //current_week = 1
+    fc_setup.advance_week(); //current_week = 2
 
     fc_setup
         .b_mock
@@ -1222,18 +1226,18 @@ fn additional_locked_tokens_test() {
             &fc_setup.fc_wrapper,
             &rust_zero,
             |sc| {
-                sc.set_locked_tokens_per_block(managed_biguint!(1_000));
+                sc.set_locked_tokens_per_epoch(managed_biguint!(1_000));
             },
         )
         .assert_ok();
 
-    // nothing accumulated yet, as locked_tokens_per_block was 0
+    // nothing accumulated yet, as locked_tokens_per_epoch was 0
     fc_setup
         .b_mock
         .borrow_mut()
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(sc.last_locked_token_add_week().get(), 2);
-            assert_eq!(sc.locked_tokens_per_block().get(), 1_000u64);
+            assert_eq!(sc.locked_tokens_per_epoch().get(), 1_000u64);
             assert_eq!(
                 sc.accumulated_fees(1, &managed_token_id!(LOCKED_TOKEN_ID))
                     .get(),
@@ -1242,8 +1246,7 @@ fn additional_locked_tokens_test() {
         })
         .assert_ok();
 
-    // cumulating again on same week does nothing
-
+    // accumulating again on same week does nothing
     fc_setup
         .b_mock
         .borrow_mut()
@@ -1262,7 +1265,7 @@ fn additional_locked_tokens_test() {
         .borrow_mut()
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(sc.last_locked_token_add_week().get(), 2);
-            assert_eq!(sc.locked_tokens_per_block().get(), 1_000u64);
+            assert_eq!(sc.locked_tokens_per_epoch().get(), 1_000u64);
             assert_eq!(
                 sc.accumulated_fees(1, &managed_token_id!(LOCKED_TOKEN_ID))
                     .get(),
@@ -1271,8 +1274,8 @@ fn additional_locked_tokens_test() {
         })
         .assert_ok();
 
-    // cumulate on next week - tokens are allocated in current_week (2) - 1
-    fc_setup.advance_week(); //current_week = 2
+    // accumulate on next week - tokens are allocated in current_week (3) - 1
+    fc_setup.advance_week(); //current_week = 3
 
     fc_setup
         .b_mock
@@ -1292,11 +1295,12 @@ fn additional_locked_tokens_test() {
         .borrow_mut()
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(sc.last_locked_token_add_week().get(), 3);
-            assert_eq!(sc.locked_tokens_per_block().get(), 1_000u64);
+            assert_eq!(sc.locked_tokens_per_epoch().get(), 1_000u64);
+            // 7 epochs per week * 1_000 tokens per epoch
             assert_eq!(
                 sc.accumulated_fees(2, &managed_token_id!(LOCKED_TOKEN_ID))
                     .get(),
-                BLOCKS_IN_WEEK * 1_000u64
+                EPOCHS_IN_WEEK * 1_000u64
             );
         })
         .assert_ok();
@@ -2244,4 +2248,41 @@ fn migration_with_token_swap_and_redistribute_test() {
             .borrow_mut()
             .get_esdt_balance(&sc_address, USDC_TOKEN_ID, 0);
     assert_eq!(sc_usdc_token_balance, rust_biguint!(0));
+}
+
+#[test]
+fn migrate_additional_tokens_storage_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
+
+    fc_setup.advance_week(); //current_week = 2
+
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                let locked_tokens_per_legacy_block = 1000u64; // 1_000 tokens per 6s
+                let locked_tokens_per_block_mapper = SingleValueMapper::<_, BigUint<DebugApi>>::new(
+                    StorageKey::<DebugApi>::new(b"lockedTokensPerBlock"),
+                );
+                locked_tokens_per_block_mapper
+                    .set(managed_biguint!(locked_tokens_per_legacy_block));
+                let legacy_blocks_per_week = 100_800u64;
+
+                sc.upgrade();
+
+                let set_locked_tokens_per_epoch = sc.locked_tokens_per_epoch().get();
+
+                assert_eq!(
+                    locked_tokens_per_legacy_block * legacy_blocks_per_week,
+                    set_locked_tokens_per_epoch.to_u64().unwrap() * EPOCHS_IN_WEEK
+                );
+            },
+        )
+        .assert_ok();
 }

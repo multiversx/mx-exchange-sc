@@ -35,9 +35,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         setBaseTokenBurnPercent => set_base_token_burn_percent
         depositSwapFees => deposit_swap_fees
         getAccumulatedFees => accumulated_fees
-        setLockedTokensPerBlock => set_locked_tokens_per_block
+        setLockedTokensPerEpoch => set_locked_tokens_per_epoch
         getLastLockedTokensAddWeek => last_locked_token_add_week
-        getLockedTokensPerBlock => locked_tokens_per_block
+        getLockedTokensPerEpoch => locked_tokens_per_epoch
         setLockingScAddress => set_locking_sc_address
         setLockEpochs => set_lock_epochs
         getLockingScAddress => locking_sc_address
