@@ -335,6 +335,23 @@ pub trait Router:
             .execute_on_dest_context();
     }
 
+    #[only_owner]
+    #[endpoint(claimDeveloperRewardsPairs)]
+    fn claim_developer_rewards_pairs(&self, pairs: MultiValueEncoded<ManagedAddress>) {
+        let mut total_egld_received = BigUint::zero();
+        for pair in pairs {
+            let (_return_value, transfers): (IgnoreValue, _) = self
+                .send()
+                .claim_developer_rewards(pair)
+                .execute_on_dest_context_with_back_transfers();
+
+            total_egld_received += transfers.total_egld_amount;
+        }
+
+        let owner = self.blockchain().get_caller();
+        self.send().direct_egld(&owner, &total_egld_received);
+    }
+
     #[callback]
     fn lp_token_issue_callback(
         &self,
