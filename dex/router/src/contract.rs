@@ -338,20 +338,23 @@ pub trait Router:
     #[only_owner]
     #[endpoint(claimDeveloperRewardsPairs)]
     fn claim_developer_rewards_pairs(&self, pairs: MultiValueEncoded<ManagedAddress>) {
-        let sc_address = self.blockchain().get_sc_address();
-        let egld_balance_before = self.blockchain().get_balance(&sc_address);
         for pair in pairs {
+            require!(self.blockchain().is_smart_contract(&pair), "Not a SC");
             let _: IgnoreValue = self
                 .send()
                 .claim_developer_rewards(pair)
                 .execute_on_dest_context();
         }
-        let egld_balance_after = self.blockchain().get_balance(&sc_address);
-        require!(egld_balance_after > egld_balance_before, "No EGLD received");
-        let total_egld_received = egld_balance_after - egld_balance_before;
+    }
+
+    #[only_owner]
+    #[endpoint(withdrawEgld)]
+    fn withdraw_egld(&self) {
+        let sc_address = self.blockchain().get_sc_address();
+        let egld_balance = self.blockchain().get_balance(&sc_address);
 
         let owner = self.blockchain().get_caller();
-        self.send().direct_egld(&owner, &total_egld_received);
+        self.send().direct_egld(&owner, &egld_balance);
     }
 
     #[callback]

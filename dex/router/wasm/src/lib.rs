@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           30
+// Endpoints:                           31
 // Async Callback:                       1
-// Total number of exported functions:  33
+// Total number of exported functions:  34
 
 #![no_std]
 
@@ -30,6 +30,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setFeeOn => set_fee_on
         setFeeOff => set_fee_off
         claimDeveloperRewardsPairs => claim_developer_rewards_pairs
+        withdrawEgld => withdraw_egld
         setPairCreationEnabled => set_pair_creation_enabled
         getPairCreationEnabled => pair_creation_enabled
         getState => state
