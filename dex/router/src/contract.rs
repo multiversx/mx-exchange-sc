@@ -338,15 +338,17 @@ pub trait Router:
     #[only_owner]
     #[endpoint(claimDeveloperRewardsPairs)]
     fn claim_developer_rewards_pairs(&self, pairs: MultiValueEncoded<ManagedAddress>) {
-        let mut total_egld_received = BigUint::zero();
+        let sc_address = self.blockchain().get_sc_address();
+        let egld_balance_before = self.blockchain().get_balance(&sc_address);
         for pair in pairs {
-            let (_return_value, transfers): (IgnoreValue, _) = self
+            let _: IgnoreValue = self
                 .send()
                 .claim_developer_rewards(pair)
-                .execute_on_dest_context_with_back_transfers();
-
-            total_egld_received += transfers.total_egld_amount;
+                .execute_on_dest_context();
         }
+        let egld_balance_after = self.blockchain().get_balance(&sc_address);
+        require!(egld_balance_after > egld_balance_before, "No EGLD received");
+        let total_egld_received = egld_balance_after - egld_balance_before;
 
         let owner = self.blockchain().get_caller();
         self.send().direct_egld(&owner, &total_egld_received);
