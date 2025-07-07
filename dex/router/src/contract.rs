@@ -13,8 +13,11 @@ pub mod multi_pair_swap;
 use factory::PairTokens;
 use pair::config::ProxyTrait as _;
 use pair::fee::ProxyTrait as _;
+use pair::safe_price::ProxyTrait as _;
 use pair::{read_pair_storage, ProxyTrait as _};
 use pausable::ProxyTrait as _;
+
+use pair::safe_price::Round;
 
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
@@ -332,6 +335,16 @@ pub trait Router:
         let _: IgnoreValue = self
             .pair_contract_proxy(pair_address)
             .set_fee_on(false, fee_to_address, fee_token)
+            .execute_on_dest_context();
+    }
+
+    #[only_owner]
+    #[endpoint(setSafePriceRoundSaveInterval)]
+    fn set_safe_price_round_save_interval(&self, address: ManagedAddress, new_interval: Round) {
+        self.check_is_pair_sc(&address);
+        let _: IgnoreValue = self
+            .pair_contract_proxy(address)
+            .set_safe_price_round_save_interval(new_interval)
             .execute_on_dest_context();
     }
 

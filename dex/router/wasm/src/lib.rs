@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           29
+// Endpoints:                           30
 // Async Callback:                       1
-// Total number of exported functions:  32
+// Total number of exported functions:  33
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         pause => pause
         resume => resume
+        setSafePriceRoundSaveInterval => set_safe_price_round_save_interval
         createPair => create_pair_endpoint
         upgradePair => upgrade_pair_endpoint
         issueLpToken => issue_lp_token
