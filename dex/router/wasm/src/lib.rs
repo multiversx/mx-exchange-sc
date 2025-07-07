@@ -22,7 +22,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         pause => pause
         resume => resume
-        setSafePriceRoundSaveInterval => set_safe_price_round_save_interval
         createPair => create_pair_endpoint
         upgradePair => upgrade_pair_endpoint
         issueLpToken => issue_lp_token
@@ -30,6 +29,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         removePair => remove_pair
         setFeeOn => set_fee_on
         setFeeOff => set_fee_off
+        setSafePriceRoundSaveInterval => set_safe_price_round_save_interval
         setPairCreationEnabled => set_pair_creation_enabled
         getPairCreationEnabled => pair_creation_enabled
         getState => state
