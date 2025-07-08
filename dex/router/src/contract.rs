@@ -340,12 +340,18 @@ pub trait Router:
 
     #[only_owner]
     #[endpoint(setSafePriceRoundSaveInterval)]
-    fn set_safe_price_round_save_interval(&self, address: ManagedAddress, new_interval: Round) {
-        self.check_is_pair_sc(&address);
-        let _: IgnoreValue = self
-            .pair_contract_proxy(address)
-            .set_safe_price_round_save_interval(new_interval)
-            .execute_on_dest_context();
+    fn set_safe_price_round_save_interval(
+        &self,
+        new_interval: Round,
+        addresses: MultiValueEncoded<ManagedAddress>,
+    ) {
+        for address in addresses.into_iter() {
+            self.check_is_pair_sc(&address);
+            let _: IgnoreValue = self
+                .pair_contract_proxy(address)
+                .set_safe_price_round_save_interval(new_interval)
+                .execute_on_dest_context();
+        }
     }
 
     #[callback]
