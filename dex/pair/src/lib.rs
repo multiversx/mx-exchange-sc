@@ -25,6 +25,7 @@ use pair_actions::common_result_types::{
 };
 use pausable::State;
 use permissions_module::Permissions;
+use safe_price::DEFAULT_ROUND_SAVE_INTERVAL;
 
 #[multiversx_sc::contract]
 pub trait Pair<ContractReader>:
@@ -99,10 +100,16 @@ pub trait Pair<ContractReader>:
             );
             self.add_permissions_for_all(admins, Permissions::ADMIN);
         };
+
+        self.safe_price_round_save_interval()
+            .set(DEFAULT_ROUND_SAVE_INTERVAL);
     }
 
     #[upgrade]
-    fn upgrade(&self) {}
+    fn upgrade(&self) {
+        self.safe_price_round_save_interval()
+            .set_if_empty(DEFAULT_ROUND_SAVE_INTERVAL);
+    }
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) {

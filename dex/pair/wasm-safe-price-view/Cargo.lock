@@ -253,6 +253,7 @@ dependencies = [
  "common_structs",
  "fees-collector",
  "itertools",
+ "math",
  "multiversx-sc",
  "pausable",
  "permissions_module",
