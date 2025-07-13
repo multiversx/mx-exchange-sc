@@ -82,27 +82,27 @@ where
     ) {
     }
 
-    fn mint_per_block_rewards(
+    fn mint_per_second_rewards(
         sc: &Self::FarmSc,
         _token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        let current_block_nonce = sc.blockchain().get_block_nonce();
-        let last_reward_nonce = sc.last_reward_block_nonce().get();
+        let current_timestamp = sc.blockchain().get_block_timestamp();
+        let last_reward_timestamp = sc.last_reward_timestamp().get();
 
-        if current_block_nonce <= last_reward_nonce {
+        if current_timestamp <= last_reward_timestamp {
             return BigUint::zero();
         }
 
         let extra_rewards_unbounded =
-            Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
+            Self::calculate_per_second_rewards(sc, current_timestamp, last_reward_timestamp);
 
         let farm_token_supply = sc.farm_token_supply().get();
-        let extra_rewards_apr_bounded_per_block = sc.get_amount_apr_bounded(&farm_token_supply);
+        let extra_rewards_apr_bounded_per_second = sc.get_amount_apr_bounded(&farm_token_supply);
 
-        let block_nonce_diff = current_block_nonce - last_reward_nonce;
-        let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
+        let timestamp_diff = current_timestamp - last_reward_timestamp;
+        let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_second * timestamp_diff;
 
-        sc.last_reward_block_nonce().set(current_block_nonce);
+        sc.last_reward_timestamp().set(current_timestamp);
 
         core::cmp::min(extra_rewards_unbounded, extra_rewards_apr_bounded)
     }
@@ -116,7 +116,7 @@ where
         let reward_capacity = sc.reward_capacity().get();
         let remaining_rewards = &reward_capacity - &accumulated_rewards;
 
-        let mut total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
+        let mut total_reward = Self::mint_per_second_rewards(sc, &storage_cache.reward_token_id);
         total_reward = core::cmp::min(total_reward, remaining_rewards);
         if total_reward == 0 {
             return;

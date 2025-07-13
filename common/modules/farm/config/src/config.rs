@@ -3,7 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::Nonce;
+use common_structs::{Nonce, Timestamp};
 use pausable::State;
 
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
@@ -52,16 +52,26 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
     #[storage_mapper("reward_token_id")]
     fn reward_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[view(getPerBlockRewardAmount)]
-    #[storage_mapper("per_block_reward_amount")]
-    fn per_block_reward_amount(&self) -> SingleValueMapper<BigUint>;
-
     #[storage_mapper("produce_rewards_enabled")]
     fn produce_rewards_enabled(&self) -> SingleValueMapper<bool>;
 
-    #[view(getLastRewardBlockNonce)]
-    #[storage_mapper("last_reward_block_nonce")]
-    fn last_reward_block_nonce(&self) -> SingleValueMapper<Nonce>;
+    #[view(getPerSecondRewardAmount)]
+    #[storage_mapper("per_second_reward_amount")]
+    fn per_second_reward_amount(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getLastRewardTimestamp)]
+    #[storage_mapper("last_reward_timestamp")]
+    fn last_reward_timestamp(&self) -> SingleValueMapper<Timestamp>;
+
+    // TODO: TO REMOVE STORAGES
+
+    // #[view(getPerBlockRewardAmount)]
+    // #[storage_mapper("per_block_reward_amount")]
+    // fn per_block_reward_amount(&self) -> SingleValueMapper<BigUint>;
+
+    // #[view(getLastRewardBlockNonce)]
+    // #[storage_mapper("last_reward_block_nonce")]
+    // fn last_reward_block_nonce(&self) -> SingleValueMapper<Nonce>;
 
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]

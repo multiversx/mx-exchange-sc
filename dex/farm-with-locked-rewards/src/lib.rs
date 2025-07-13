@@ -9,6 +9,7 @@ use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
 use fixed_supply_token::FixedSupplyToken;
+use multiversx_sc::storage::StorageKey;
 
 use farm::{
     base_functions::{BaseFunctionsModule, ClaimRewardsResultType, DoubleMultiPayment, Wrapper},
@@ -88,12 +89,53 @@ pub trait Farm:
 
     #[upgrade]
     fn upgrade(&self) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
+        // AGGREGATE REWARDS
+        let mut storage_cache = StorageCache::new(self);
+        let current_block_nonce = self.blockchain().get_block_nonce();
 
-        // Farm position migration code
-        let farm_token_mapper = self.farm_token();
-        self.try_set_farm_position_migration_nonce(farm_token_mapper);
+        let last_reward_block_nonce_mapper =
+            SingleValueMapper::<Self::Api, u64>::new(StorageKey::new(b"last_reward_block_nonce"));
+        let per_block_reward_amount_mapper = SingleValueMapper::<Self::Api, BigUint>::new(
+            StorageKey::new(b"per_block_reward_amount"),
+        );
+
+        let per_block_reward_amount: BigUint<Self::Api> = per_block_reward_amount_mapper.take();
+        let last_reward_nonce = last_reward_block_nonce_mapper.take();
+
+        let total_reward = if current_block_nonce > last_reward_nonce {
+            if current_block_nonce <= last_reward_nonce || !self.produces_per_second_rewards() {
+                BigUint::zero()
+            } else {
+                let block_nonce_diff = current_block_nonce - last_reward_nonce;
+
+                &per_block_reward_amount * block_nonce_diff
+            }
+        } else {
+            BigUint::zero()
+        };
+
+        if total_reward != 0 {
+            self.send()
+                .esdt_local_mint(&storage_cache.reward_token_id, 0, &total_reward);
+        }
+
+        if total_reward > 0u64 {
+            storage_cache.reward_reserve += &total_reward;
+            let split_rewards = self.take_reward_slice(total_reward);
+
+            if storage_cache.farm_token_supply != 0u64 {
+                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+                    / &storage_cache.farm_token_supply;
+                storage_cache.reward_per_share += &increase;
+            }
+        }
+
+        // MIGRATE DATA
+        let per_second_reward_amount = per_block_reward_amount / 6u64; // 6 seconds per block
+        self.per_second_reward_amount()
+            .set_if_empty(per_second_reward_amount);
+        self.last_reward_timestamp()
+            .set_if_empty(self.blockchain().get_block_timestamp());
     }
 
     #[payable("*")]
@@ -265,10 +307,10 @@ pub trait Farm:
         self.end_produce_rewards::<NoMintWrapper<Self>>();
     }
 
-    #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
+    #[endpoint(setPerSecondRewardAmount)]
+    fn set_per_second_rewards_endpoint(&self, per_second_amount: BigUint) {
         self.require_caller_has_admin_permissions();
-        self.set_per_block_rewards::<NoMintWrapper<Self>>(per_block_amount);
+        self.set_per_second_rewards::<NoMintWrapper<Self>>(per_second_amount);
     }
 
     #[endpoint(setBoostedYieldsRewardsPercentage)]
@@ -326,7 +368,7 @@ where
         sc: &Self::FarmSc,
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
-        let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
+        let total_reward = Self::mint_per_second_rewards(sc, &storage_cache.reward_token_id);
         if total_reward > 0u64 {
             storage_cache.reward_reserve += &total_reward;
             let split_rewards = sc.take_reward_slice(total_reward);

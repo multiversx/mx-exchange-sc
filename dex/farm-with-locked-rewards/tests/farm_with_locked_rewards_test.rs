@@ -5,7 +5,7 @@ use energy_factory::unlocked_token_transfer::UnlockedTokenTransferModule;
 use farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule;
 use farm_with_locked_rewards::Farm;
 use farm_with_locked_rewards_setup::{
-    FARMING_TOKEN_BALANCE, FARMING_TOKEN_ID, MAX_PERCENTAGE, PER_BLOCK_REWARD_AMOUNT,
+    FARMING_TOKEN_BALANCE, FARMING_TOKEN_ID, MAX_PERCENTAGE, PER_SECOND_REWARD_AMOUNT,
     REWARD_TOKEN_ID,
 };
 use multiversx_sc::{
@@ -42,8 +42,8 @@ fn farm_with_no_boost_no_proxy_test() {
     let second_user = farm_setup.second_user.clone();
     farm_setup.enter_farm(&second_user, second_farm_token_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
-    farm_setup.b_mock.set_block_nonce(10);
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
+    farm_setup.b_mock.set_block_timestamp(10);
 
     let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
 
@@ -154,9 +154,9 @@ fn farm_with_boosted_yields_no_proxy_test() {
     let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
     let _ = farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -297,9 +297,9 @@ fn total_farm_position_claim_with_locked_rewards_test() {
     // users claim rewards to get their energy registered
     let _ = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -376,7 +376,7 @@ fn claim_only_boosted_rewards_per_week_test() {
     farm_setup.check_farm_token_supply(farm_in_amount);
     farm_setup.check_farm_rps(0u64);
 
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
     farm_setup.b_mock.set_block_epoch(6);
     farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
     farm_setup.set_user_energy(&temp_user, 1, 6, 1);
@@ -387,7 +387,7 @@ fn claim_only_boosted_rewards_per_week_test() {
 
     // advance 1 week
     farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
-    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_timestamp(20);
     farm_setup.b_mock.set_block_epoch(13);
 
     let boosted_rewards = 2_500;
@@ -399,7 +399,7 @@ fn claim_only_boosted_rewards_per_week_test() {
 
     // advance 1 week
     farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
-    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_timestamp(30);
     farm_setup.b_mock.set_block_epoch(15);
     let third_week_received_reward_amt =
         farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user, 1);
@@ -440,7 +440,7 @@ fn claim_rewards_per_week_test() {
     farm_setup.check_farm_token_supply(farm_in_amount);
     farm_setup.check_farm_rps(0u64);
 
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
     farm_setup.b_mock.set_block_epoch(6);
     farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
     farm_setup.set_user_energy(&temp_user, 1, 6, 1);
@@ -454,7 +454,7 @@ fn claim_rewards_per_week_test() {
 
     // advance 1 week
     farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
-    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_timestamp(20);
     farm_setup.b_mock.set_block_epoch(13);
 
     let second_week_received_reward_amt = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
@@ -467,7 +467,7 @@ fn claim_rewards_per_week_test() {
 
     // advance 1 week
     farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
-    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_timestamp(30);
     farm_setup.b_mock.set_block_epoch(15);
     let third_week_received_reward_amt = farm_setup.claim_rewards(&first_user, 3, farm_in_amount);
 
@@ -507,7 +507,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
     farm_setup.check_farm_token_supply(farm_in_amount);
     farm_setup.check_farm_rps(0u64);
 
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
     farm_setup.b_mock.set_block_epoch(6);
     farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
     farm_setup.set_user_energy(&temp_user, 1, 6, 1);
@@ -518,7 +518,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
 
     // advance 1 week
     farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
-    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_timestamp(20);
     farm_setup.b_mock.set_block_epoch(13);
 
     farm_setup
@@ -538,7 +538,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
     // advance 1 week
     let boosted_rewards = 2_500;
     farm_setup.set_user_energy(&first_user, 1_000, 15, 1);
-    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_timestamp(30);
     farm_setup.b_mock.set_block_epoch(15);
     let third_week_received_reward_amt =
         farm_setup.claim_boosted_rewards_for_user(&first_user, &first_user, 1);
@@ -606,8 +606,8 @@ fn test_multiple_positions_on_behalf() {
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
-    let mut block_nonce = 0u64;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    let mut block_timestamp = 0u64;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
 
     // new external user
     let external_user = farm_setup.b_mock.create_user_account(&rust_biguint!(0));
@@ -628,12 +628,12 @@ fn test_multiple_positions_on_behalf() {
     farm_setup.enter_farm_on_behalf(&authorized_address, &external_user, farm_token_amount, 0, 0);
     farm_setup.check_farm_token_supply(farm_token_amount);
 
-    let block_nonce_diff = 10u64;
-    block_nonce += block_nonce_diff;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    let block_timestamp_diff = 10u64;
+    block_timestamp += block_timestamp_diff;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
 
-    // 1000 rewards per block
-    let total_rewards = PER_BLOCK_REWARD_AMOUNT * block_nonce_diff;
+    // 1000 rewards per second
+    let total_rewards = PER_SECOND_REWARD_AMOUNT * block_timestamp_diff;
     let base_rewards =
         total_rewards * (MAX_PERCENTAGE - BOOSTED_YIELDS_PERCENTAGE) / MAX_PERCENTAGE;
     let boosted_rewards = total_rewards * BOOSTED_YIELDS_PERCENTAGE / MAX_PERCENTAGE;
@@ -663,8 +663,8 @@ fn test_multiple_positions_on_behalf() {
     farm_setup.exit_farm(&temp_user, 3, 1);
 
     // advance 1 week
-    block_nonce += block_nonce_diff;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    block_timestamp += block_timestamp_diff;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
     farm_setup.b_mock.set_block_epoch(10);
     farm_setup.set_user_energy(&external_user, 1_000, 10, 1);
 
@@ -779,7 +779,7 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
     let _ = farm_setup.claim_rewards(&second_user, 2, farm_in_amount);
 
     // Week 1: Generate rewards by advancing blocks
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
     farm_setup.b_mock.set_block_epoch(6);
     farm_setup.set_user_energy(&first_user, 10_000, 6, 10);
     farm_setup.set_user_energy(&second_user, 5_000, 6, 10);
@@ -809,7 +809,7 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
     farm_setup.exit_farm(&rand_user, 6, 1);
 
     // Week 2: More activity
-    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_timestamp(20);
     farm_setup.b_mock.set_block_epoch(13);
     farm_setup.set_user_energy(&first_user, 10_000, 13, 10);
     farm_setup.set_user_energy(&second_user, 5_000, 13, 10);
@@ -819,7 +819,7 @@ fn farm_with_locked_rewards_collect_undistributed_rewards_test() {
     farm_setup.exit_farm(&rand_user, 7, 1);
 
     // Week 3: More activity
-    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_timestamp(30);
     farm_setup.b_mock.set_block_epoch(20);
     farm_setup.set_user_energy(&first_user, 10_000, 20, 10);
     farm_setup.set_user_energy(&second_user, 5_000, 20, 10);
@@ -1017,7 +1017,7 @@ fn collect_undistributed_rewards_conditions_checks_test() {
     let _ = farm_setup.claim_rewards(&second_user, 2, farm_in_amount);
 
     // Week 1: Generate rewards by advancing blocks
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
     farm_setup.b_mock.set_block_epoch(6);
     farm_setup.set_user_energy(&first_user, 10_000, 6, 10);
     farm_setup.set_user_energy(&second_user, 5_000, 6, 10);
@@ -1047,7 +1047,7 @@ fn collect_undistributed_rewards_conditions_checks_test() {
     farm_setup.exit_farm(&rand_user, 6, 1);
 
     // Week 2: More activity
-    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_timestamp(20);
     farm_setup.b_mock.set_block_epoch(13);
     farm_setup.set_user_energy(&first_user, 10_000, 13, 10);
     farm_setup.set_user_energy(&second_user, 5_000, 13, 10);
@@ -1057,7 +1057,7 @@ fn collect_undistributed_rewards_conditions_checks_test() {
     farm_setup.exit_farm(&rand_user, 7, 1);
 
     // 8. Week 3: More activity
-    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_timestamp(30);
     farm_setup.b_mock.set_block_epoch(20);
     farm_setup.set_user_energy(&first_user, 10_000, 20, 10);
     farm_setup.set_user_energy(&second_user, 5_000, 20, 10);

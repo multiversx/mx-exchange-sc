@@ -8,7 +8,7 @@ use farm_base_impl::base_traits_impl::FarmContract;
 use crate::base_impl_wrapper::FarmStakingWrapper;
 
 pub const MAX_PERCENT: u64 = 10_000;
-pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
+pub const SECONDS_IN_YEAR: u64 = 31_536_000;
 pub const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 pub const WITHDRAW_AMOUNT_TOO_HIGH: &str =
     "Withdraw amount is higher than the remaining uncollected rewards!";
@@ -85,14 +85,14 @@ pub trait CustomRewardsModule:
         self.produce_rewards_enabled().set(false);
     }
 
-    #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_rewards(&self, per_block_amount: BigUint) {
+    #[endpoint(setPerSecondRewardAmount)]
+    fn set_per_second_rewards(&self, per_second_amount: BigUint) {
         self.require_caller_has_admin_permissions();
-        require!(per_block_amount != 0, "Amount cannot be zero");
+        require!(per_second_amount != 0, "Amount cannot be zero");
 
         let mut storage_cache = StorageCache::new(self);
         FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
-        self.per_block_reward_amount().set(&per_block_amount);
+        self.per_second_reward_amount().set(&per_second_amount);
     }
 
     #[endpoint(setMaxApr)]
@@ -122,7 +122,7 @@ pub trait CustomRewardsModule:
 
     fn get_amount_apr_bounded(&self, amount: &BigUint) -> BigUint {
         let max_apr = self.max_annual_percentage_rewards().get();
-        amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR
+        amount * &max_apr / MAX_PERCENT / SECONDS_IN_YEAR
     }
 
     #[endpoint(startProduceRewards)]

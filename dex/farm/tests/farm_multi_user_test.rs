@@ -34,8 +34,8 @@ fn farm_with_no_boost_test() {
     let second_user = farm_setup.second_user.clone();
     farm_setup.enter_farm(&second_user, second_farm_token_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
-    farm_setup.b_mock.set_block_nonce(10);
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
+    farm_setup.b_mock.set_block_timestamp(10);
 
     let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
 
@@ -142,9 +142,9 @@ fn farm_with_boosted_yields_test() {
     let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
     let _ = farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -333,9 +333,9 @@ fn farm_boosted_yields_claim_with_different_user_pos_test() {
     let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
     let _ = farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -417,8 +417,8 @@ fn farm_known_proxy_test() {
 
     farm_setup.add_known_proxy(&first_user);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
-    farm_setup.b_mock.set_block_nonce(10);
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
+    farm_setup.b_mock.set_block_timestamp(10);
 
     let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
 
@@ -526,9 +526,9 @@ fn farm_enter_with_multiple_farm_token() {
     let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
     let _ = farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -645,9 +645,9 @@ fn farm_claim_with_minimum_tokens() {
     let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
     let _ = farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
 
-    // advance blocks - 100_800 blocks - 100_800 * 1_000 = 100_800_000 total rewards
+    // advance seconds - 100_800 seconds - 100_800 * 1_000 = 100_800_000 total rewards
     // 75_600_000 base farm, 25_200_000 boosted yields
-    farm_setup.b_mock.set_block_nonce(100_800);
+    farm_setup.b_mock.set_block_timestamp(100_800);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -768,9 +768,9 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
     let _ = farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -849,9 +849,9 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
         &rust_biguint!(second_receveived_reward_amt1),
     );
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_timestamp(20);
 
     // random tx on end of week 2, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(13);
@@ -861,9 +861,9 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.enter_farm(&third_user, 1);
     farm_setup.exit_farm(&third_user, 8, 1);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_timestamp(30);
 
     // random tx on end of week 3, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(20);

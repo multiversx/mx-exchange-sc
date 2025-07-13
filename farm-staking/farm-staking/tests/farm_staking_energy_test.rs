@@ -56,7 +56,7 @@ fn farm_staking_boosted_rewards_no_energy_test() {
     fs_setup.check_farm_token_supply(farm_in_amount);
 
     fs_setup.set_block_epoch(5);
-    fs_setup.set_block_nonce(10);
+    fs_setup.set_block_timestamp(10);
 
     // value taken from the "test_unstake_farm" test
     // originally, it was 40, but since 25% of the rewards go to boosted yields
@@ -189,7 +189,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
 
     fs_setup.set_user_energy(&rand_user, 1, 6, 1);
     fs_setup.set_block_epoch(6);
-    fs_setup.set_block_nonce(10);
+    fs_setup.set_block_timestamp(10);
 
     fs_setup
         .b_mock
@@ -222,7 +222,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
     // random user tx to collect rewards - week 2
     fs_setup.set_user_energy(&rand_user, 1, 13, 1);
     fs_setup.set_block_epoch(13);
-    fs_setup.set_block_nonce(20);
+    fs_setup.set_block_timestamp(20);
 
     fs_setup
         .b_mock
@@ -255,7 +255,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
     // random user tx to collect rewards - week 3
     fs_setup.set_user_energy(&rand_user, 1, 20, 1);
     fs_setup.set_block_epoch(20);
-    fs_setup.set_block_nonce(30);
+    fs_setup.set_block_timestamp(30);
 
     fs_setup
         .b_mock
@@ -288,7 +288,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
     // random user tx to collect rewards - week 4
     fs_setup.set_user_energy(&rand_user, 1, 27, 1);
     fs_setup.set_block_epoch(27);
-    fs_setup.set_block_nonce(40);
+    fs_setup.set_block_timestamp(40);
 
     fs_setup
         .b_mock
@@ -390,7 +390,7 @@ fn farm_staking_partial_position_handling_test() {
         )
         .assert_ok();
 
-    fs_setup.set_block_nonce(10);
+    fs_setup.set_block_timestamp(10);
 
     // random user tx to collect rewards
 
@@ -456,7 +456,7 @@ fn farm_staking_partial_position_handling_test() {
         },
     );
 
-    fs_setup.set_block_nonce(20);
+    fs_setup.set_block_timestamp(20);
 
     // random user tx to collect rewards
 
@@ -555,7 +555,7 @@ fn farm_staking_claim_boosted_rewards_for_user_test() {
         )
         .assert_ok();
 
-    fs_setup.set_block_nonce(10);
+    fs_setup.set_block_timestamp(10);
 
     // random user tx to collect rewards
     let rand_user = fs_setup.b_mock.create_user_account(&rust_biguint!(0));
@@ -673,7 +673,7 @@ fn farm_staking_full_position_boosted_rewards_test() {
         )
         .assert_ok();
 
-    fs_setup.set_block_nonce(10);
+    fs_setup.set_block_timestamp(10);
 
     // random user tx to collect rewards
 
@@ -826,7 +826,7 @@ fn position_owner_change_test() {
 
     fs_setup.set_user_energy(&rand_user, 1, 5, 1);
     fs_setup.set_block_epoch(5);
-    fs_setup.set_block_nonce(10);
+    fs_setup.set_block_timestamp(10);
 
     fs_setup
         .b_mock
@@ -882,7 +882,7 @@ fn position_owner_change_test() {
     // random user tx to collect rewards
     fs_setup.set_user_energy(&rand_user, 1, 12, 1);
     fs_setup.set_block_epoch(12);
-    fs_setup.set_block_nonce(20);
+    fs_setup.set_block_timestamp(20);
 
     fs_setup
         .b_mock
@@ -962,7 +962,7 @@ fn position_owner_change_test() {
     // random user tx to collect rewards
     fs_setup.set_user_energy(&rand_user, 1, 12, 1);
     fs_setup.set_block_epoch(20);
-    fs_setup.set_block_nonce(30);
+    fs_setup.set_block_timestamp(30);
 
     fs_setup
         .b_mock
@@ -1231,7 +1231,7 @@ fn boosted_rewards_config_change_test() {
 
     fs_setup.set_user_energy(&rand_user, 1, 6, 1);
     fs_setup.set_block_epoch(6);
-    fs_setup.set_block_nonce(100);
+    fs_setup.set_block_timestamp(100);
 
     fs_setup
         .b_mock
@@ -1292,7 +1292,7 @@ fn boosted_rewards_config_change_test() {
     // random user tx to collect rewards
     fs_setup.set_user_energy(&rand_user, 1, 13, 1);
     fs_setup.set_block_epoch(13);
-    fs_setup.set_block_nonce(200);
+    fs_setup.set_block_timestamp(200);
 
     fs_setup
         .b_mock
@@ -1368,7 +1368,7 @@ fn boosted_rewards_config_change_test() {
     // random user tx to collect rewards
     fs_setup.set_user_energy(&rand_user, 1, 20, 1);
     fs_setup.set_block_epoch(20);
-    fs_setup.set_block_nonce(300);
+    fs_setup.set_block_timestamp(300);
 
     fs_setup
         .b_mock
@@ -1481,7 +1481,7 @@ fn claim_only_boosted_rewards_per_week_test() {
     fs_setup.check_farm_token_supply(farm_in_amount);
     fs_setup.check_farm_rps(0u64);
 
-    fs_setup.b_mock.set_block_nonce(100);
+    fs_setup.b_mock.set_block_timestamp(100);
     fs_setup.b_mock.set_block_epoch(6);
     fs_setup.set_user_energy(&first_user, 1_000, 6, 1);
 
@@ -1509,7 +1509,7 @@ fn claim_only_boosted_rewards_per_week_test() {
 
     // advance 1 week
     fs_setup.set_user_energy(&first_user, 1_000, 13, 1);
-    fs_setup.b_mock.set_block_nonce(200);
+    fs_setup.b_mock.set_block_timestamp(200);
     fs_setup.b_mock.set_block_epoch(13);
 
     let boosted_rewards_for_week = 100;
@@ -1525,7 +1525,7 @@ fn claim_only_boosted_rewards_per_week_test() {
 
     // advance 1 week
     fs_setup.set_user_energy(&first_user, 1_000, 15, 1);
-    fs_setup.b_mock.set_block_nonce(300);
+    fs_setup.b_mock.set_block_timestamp(300);
     fs_setup.b_mock.set_block_epoch(15);
     fs_setup.claim_boosted_rewards_for_user(
         &first_user,
@@ -1579,7 +1579,7 @@ fn claim_rewards_per_week_test() {
     fs_setup.check_farm_token_supply(farm_in_amount);
     fs_setup.check_farm_rps(0u64);
 
-    fs_setup.b_mock.set_block_nonce(100);
+    fs_setup.b_mock.set_block_timestamp(100);
     fs_setup.b_mock.set_block_epoch(6);
     fs_setup.set_user_energy(&first_user, 1_000, 6, 1);
 
@@ -1607,7 +1607,7 @@ fn claim_rewards_per_week_test() {
 
     // advance 1 week
     fs_setup.set_user_energy(&first_user, 1_000, 13, 1);
-    fs_setup.b_mock.set_block_nonce(200);
+    fs_setup.b_mock.set_block_timestamp(200);
     fs_setup.b_mock.set_block_epoch(13);
 
     let base_rewards_for_week = 300;
@@ -1630,7 +1630,7 @@ fn claim_rewards_per_week_test() {
 
     // advance 1 week
     fs_setup.set_user_energy(&first_user, 1_000, 15, 1);
-    fs_setup.b_mock.set_block_nonce(300);
+    fs_setup.b_mock.set_block_timestamp(300);
     fs_setup.b_mock.set_block_epoch(15);
 
     current_farm_rps += farm_rps_increase;
@@ -1676,7 +1676,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
     fs_setup.check_farm_token_supply(farm_in_amount);
     fs_setup.check_farm_rps(0u64);
 
-    fs_setup.b_mock.set_block_nonce(100);
+    fs_setup.b_mock.set_block_timestamp(100);
     fs_setup.b_mock.set_block_epoch(6);
     fs_setup.set_user_energy(&first_user, 1_000, 6, 1);
 
@@ -1704,7 +1704,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
 
     // advance 1 week
     fs_setup.set_user_energy(&first_user, 1_000, 13, 1);
-    fs_setup.b_mock.set_block_nonce(200);
+    fs_setup.b_mock.set_block_timestamp(200);
     fs_setup.b_mock.set_block_epoch(13);
 
     let boosted_rewards_for_week = 100;
@@ -1725,7 +1725,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
 
     // advance 1 week
     fs_setup.set_user_energy(&first_user, 1_000, 15, 1);
-    fs_setup.b_mock.set_block_nonce(300);
+    fs_setup.b_mock.set_block_timestamp(300);
     fs_setup.b_mock.set_block_epoch(15);
     fs_setup.claim_boosted_rewards_for_user(
         &first_user,
@@ -1771,7 +1771,7 @@ fn test_multiple_positions_on_behalf() {
     fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     fs_setup.set_boosted_yields_factors();
     let mut block_nonce = 0u64;
-    fs_setup.b_mock.set_block_nonce(block_nonce);
+    fs_setup.b_mock.set_block_timestamp(block_nonce);
 
     // new external user
     let external_user = fs_setup.b_mock.create_user_account(&rust_biguint!(0));
@@ -1794,7 +1794,7 @@ fn test_multiple_positions_on_behalf() {
 
     let block_nonce_diff = 10u64;
     block_nonce += block_nonce_diff;
-    fs_setup.b_mock.set_block_nonce(block_nonce);
+    fs_setup.b_mock.set_block_timestamp(block_nonce);
 
     let base_rewards = 30u64;
     let boosted_rewards = 10u64;
@@ -1826,7 +1826,7 @@ fn test_multiple_positions_on_behalf() {
 
     // advance 1 week
     block_nonce += block_nonce_diff;
-    fs_setup.b_mock.set_block_nonce(block_nonce);
+    fs_setup.b_mock.set_block_timestamp(block_nonce);
     fs_setup.b_mock.set_block_epoch(10);
     fs_setup.set_user_energy(&external_user, 1_000, 10, 1);
 
@@ -1933,7 +1933,7 @@ fn owner_claim_undist_rewards_test() {
 
     fs_setup.set_user_energy(&rand_user, 1, 6, 1);
     fs_setup.set_block_epoch(6);
-    fs_setup.set_block_nonce(10);
+    fs_setup.set_block_timestamp(10);
 
     fs_setup
         .b_mock
@@ -1965,7 +1965,7 @@ fn owner_claim_undist_rewards_test() {
 
     // first user claim - week 2
     fs_setup.set_block_epoch(13);
-    fs_setup.set_block_nonce(20);
+    fs_setup.set_block_timestamp(20);
 
     fs_setup
         .b_mock
@@ -1983,7 +1983,7 @@ fn owner_claim_undist_rewards_test() {
 
     // first user claim - week 3
     fs_setup.set_block_epoch(20);
-    fs_setup.set_block_nonce(30);
+    fs_setup.set_block_timestamp(30);
 
     fs_setup
         .b_mock
@@ -2001,7 +2001,7 @@ fn owner_claim_undist_rewards_test() {
 
     // first user claim - week 4
     fs_setup.set_block_epoch(27);
-    fs_setup.set_block_nonce(40);
+    fs_setup.set_block_timestamp(40);
 
     fs_setup
         .b_mock
@@ -2032,7 +2032,7 @@ fn owner_claim_undist_rewards_test() {
 
     // first user claim - week 5
     fs_setup.set_block_epoch(34);
-    fs_setup.set_block_nonce(50);
+    fs_setup.set_block_timestamp(50);
 
     fs_setup
         .b_mock
@@ -2050,7 +2050,7 @@ fn owner_claim_undist_rewards_test() {
 
     // first user claim - week 6
     fs_setup.set_block_epoch(41);
-    fs_setup.set_block_nonce(50);
+    fs_setup.set_block_timestamp(50);
 
     fs_setup
         .b_mock
@@ -2068,7 +2068,7 @@ fn owner_claim_undist_rewards_test() {
 
     // first user claim - week 7
     fs_setup.set_block_epoch(48);
-    fs_setup.set_block_nonce(60);
+    fs_setup.set_block_timestamp(60);
 
     fs_setup
         .b_mock

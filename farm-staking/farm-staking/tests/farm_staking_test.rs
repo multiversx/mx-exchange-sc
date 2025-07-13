@@ -4,7 +4,7 @@ use multiversx_sc_scenario::{rust_biguint, whitebox_legacy::TxTokenTransfer, Deb
 
 pub mod farm_staking_setup;
 use farm_staking::{
-    custom_rewards::{BLOCKS_IN_YEAR, MAX_PERCENT},
+    custom_rewards::{MAX_PERCENT, SECONDS_IN_YEAR},
     token_attributes::UnbondSftAttributes,
 };
 use farm_staking_setup::*;
@@ -65,17 +65,17 @@ fn test_unstake_farm() {
     );
     farm_setup.check_farm_token_supply(farm_in_amount);
 
-    let current_block = 10;
+    let current_timestamp = 10;
     let current_epoch = 5;
     farm_setup.set_block_epoch(current_epoch);
-    farm_setup.set_block_nonce(current_block);
+    farm_setup.set_block_timestamp(current_timestamp);
 
-    let block_diff = current_block;
-    let expected_rewards_unbounded = block_diff * PER_BLOCK_REWARD_AMOUNT;
+    let timestamp_diff = current_timestamp;
+    let expected_rewards_unbounded = timestamp_diff * PER_SECOND_REWARD_AMOUNT;
 
     // ~= 4 * 10 = 40
     let expected_rewards_max_apr =
-        farm_in_amount * MAX_APR / MAX_PERCENT / BLOCKS_IN_YEAR * block_diff;
+        timestamp_diff * farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR;
     let expected_rewards = core::cmp::min(expected_rewards_unbounded, expected_rewards_max_apr);
     assert_eq!(expected_rewards, 40);
 
@@ -121,7 +121,7 @@ fn test_claim_rewards() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 
     farm_setup.set_block_epoch(5);
-    farm_setup.set_block_nonce(10);
+    farm_setup.set_block_timestamp(10);
 
     // value taken from the "test_unstake_farm" test
     let expected_reward_token_out = 40;
@@ -172,7 +172,7 @@ where
     farm_setup.check_farm_token_supply(farm_in_amount);
 
     farm_setup.set_block_epoch(5);
-    farm_setup.set_block_nonce(10);
+    farm_setup.set_block_timestamp(10);
 
     let second_farm_in_amount = 200_000_000;
     let prev_farm_tokens = [TxTokenTransfer {
@@ -228,7 +228,7 @@ fn test_exit_farm_after_enter_twice() {
     let second_farm_in_amount = 200_000_000;
 
     farm_setup.set_block_epoch(8);
-    farm_setup.set_block_nonce(25);
+    farm_setup.set_block_timestamp(25);
 
     let expected_rewards = 83;
     let expected_ride_token_balance =
@@ -273,17 +273,17 @@ fn test_unbond() {
     );
     farm_setup.check_farm_token_supply(farm_in_amount);
 
-    let current_block = 10;
+    let current_timestamp = 10;
     let current_epoch = 5;
     farm_setup.set_block_epoch(current_epoch);
-    farm_setup.set_block_nonce(current_block);
+    farm_setup.set_block_timestamp(current_timestamp);
 
-    let block_diff = current_block;
-    let expected_rewards_unbounded = block_diff * PER_BLOCK_REWARD_AMOUNT;
+    let timestamp_diff = current_timestamp;
+    let expected_rewards_unbounded = timestamp_diff * PER_SECOND_REWARD_AMOUNT;
 
     // ~= 4 * 10 = 40
     let expected_rewards_max_apr =
-        farm_in_amount * MAX_APR / MAX_PERCENT / BLOCKS_IN_YEAR * block_diff;
+        farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR * timestamp_diff;
     let expected_rewards = core::cmp::min(expected_rewards_unbounded, expected_rewards_max_apr);
     assert_eq!(expected_rewards, 40);
 
@@ -360,7 +360,7 @@ fn test_withdraw_after_produced_rewards() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 
     farm_setup.set_block_epoch(5);
-    farm_setup.set_block_nonce(10);
+    farm_setup.set_block_timestamp(10);
 
     let withdraw_amount = rust_biguint!(TOTAL_REWARDS_AMOUNT);
     farm_setup.withdraw_rewards_with_error(&withdraw_amount, 4, WITHDRAW_AMOUNT_TOO_HIGH);
