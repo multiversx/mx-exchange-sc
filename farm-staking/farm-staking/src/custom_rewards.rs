@@ -8,7 +8,7 @@ use farm_base_impl::base_traits_impl::FarmContract;
 use crate::base_impl_wrapper::FarmStakingWrapper;
 
 pub const MAX_PERCENT: u64 = 10_000;
-pub const SECONDS_IN_YEAR: u64 = 31_536_000;
+pub const SECONDS_IN_YEAR: u64 = 31_536_000 / 6;
 pub const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 pub const WITHDRAW_AMOUNT_TOO_HIGH: &str =
     "Withdraw amount is higher than the remaining uncollected rewards!";
