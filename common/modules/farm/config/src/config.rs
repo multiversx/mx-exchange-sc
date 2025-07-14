@@ -63,16 +63,6 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
     #[storage_mapper("last_reward_timestamp")]
     fn last_reward_timestamp(&self) -> SingleValueMapper<Timestamp>;
 
-    // TODO: TO REMOVE STORAGES
-
-    // #[view(getPerBlockRewardAmount)]
-    // #[storage_mapper("per_block_reward_amount")]
-    // fn per_block_reward_amount(&self) -> SingleValueMapper<BigUint>;
-
-    // #[view(getLastRewardBlockNonce)]
-    // #[storage_mapper("last_reward_block_nonce")]
-    // fn last_reward_block_nonce(&self) -> SingleValueMapper<Nonce>;
-
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<BigUint>;

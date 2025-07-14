@@ -59,10 +59,9 @@ where
 
             sc.state().set(State::Active);
             sc.produce_rewards_enabled().set(true);
-            sc.per_block_reward_amount()
-                .set(&managed_biguint!(STAKING_FARM_PER_BLOCK_REWARD_AMOUNT));
-            sc.last_reward_block_nonce()
-                .set(BLOCK_NONCE_AFTER_PAIR_SETUP);
+            sc.per_second_reward_amount()
+                .set(&managed_biguint!(STAKING_FARM_PER_SECOND_REWARD_AMOUNT));
+            sc.last_reward_timestamp().set(TIMESTAMP_AFTER_PAIR_SETUP);
             sc.reward_capacity().set(&managed_biguint!(REWARD_CAPACITY));
         })
         .assert_ok();

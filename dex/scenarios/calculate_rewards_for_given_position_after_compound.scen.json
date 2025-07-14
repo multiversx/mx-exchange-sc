@@ -34,7 +34,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "11",
+                "blockTimestamp": "11",
                 "blockEpoch": "10"
             }
         },

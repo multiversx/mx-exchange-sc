@@ -384,7 +384,7 @@ pub mod fuzz_data_tests {
         owner_addr: &Address,
         blockchain_wrapper: &mut BlockchainStateWrapper,
         farm_builder: FarmObjBuilder,
-        per_block_reward_amount: RustBigUint,
+        per_second_reward_amount: RustBigUint,
     ) -> FarmSetup<FarmObjBuilder>
     where
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
@@ -417,8 +417,8 @@ pub mod fuzz_data_tests {
                 let farm_token_id = managed_token_id!(farm_token);
                 sc.farm_token().set_token_id(farm_token_id);
 
-                sc.per_block_reward_amount()
-                    .set(&to_managed_biguint(per_block_reward_amount));
+                sc.per_second_reward_amount()
+                    .set(&to_managed_biguint(per_second_reward_amount));
                 sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
                 sc.penalty_percent().set(FARM_PENALTY_PERCENT);
 

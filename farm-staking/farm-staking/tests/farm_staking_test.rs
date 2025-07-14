@@ -75,7 +75,7 @@ fn test_unstake_farm() {
 
     // ~= 4 * 10 = 40
     let expected_rewards_max_apr =
-        timestamp_diff * farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR;
+        farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR * timestamp_diff;
     let expected_rewards = core::cmp::min(expected_rewards_unbounded, expected_rewards_max_apr);
     assert_eq!(expected_rewards, 40);
 
