@@ -4,8 +4,9 @@ use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
+    imports::{SingleValueMapper, StorageMapper},
     storage::mappers::StorageTokenWrapper,
-    types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
+    types::{Address, BigInt, BigUint, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
     imports::TxTokenTransfer,
@@ -37,7 +38,7 @@ pub static LOCKED_REWARD_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
-const DIV_SAFETY: u64 = 1_000_000_000_000;
+pub const DIV_SAFETY: u64 = 1_000_000_000_000;
 pub const PER_SECOND_REWARD_AMOUNT: u64 = 1_000;
 pub const FARMING_TOKEN_BALANCE: u64 = 100_000_000;
 pub const MAX_PERCENTAGE: u64 = 10_000; // 100%
@@ -594,5 +595,91 @@ where
                 assert_eq!(managed_biguint!(expected_amount), current_rps);
             })
             .assert_ok();
+    }
+
+    pub fn simulate_per_block_migration_storage(
+        &mut self,
+        per_block_reward_amount: u64,
+        last_reward_block_nonce: u64,
+    ) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                use multiversx_sc::storage::StorageKey;
+
+                // Set old storage values
+                let last_reward_block_nonce_mapper = SingleValueMapper::<DebugApi, u64>::new(
+                    StorageKey::new(b"last_reward_block_nonce"),
+                );
+                let per_block_reward_amount_mapper =
+                    SingleValueMapper::<DebugApi, BigUint<DebugApi>>::new(StorageKey::new(
+                        b"per_block_reward_amount",
+                    ));
+
+                last_reward_block_nonce_mapper.set(last_reward_block_nonce);
+                per_block_reward_amount_mapper.set(managed_biguint!(per_block_reward_amount));
+
+                // Clear the new storage to simulate pre-upgrade state
+                sc.per_second_reward_amount().clear();
+                sc.last_reward_timestamp().clear();
+
+                sc.produce_rewards_enabled().set(true);
+            })
+            .assert_ok();
+    }
+
+    pub fn verify_old_storage_cleared(&mut self) {
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |_sc| {
+                use multiversx_sc::storage::StorageKey;
+
+                let last_reward_block_nonce_mapper = SingleValueMapper::<DebugApi, u64>::new(
+                    StorageKey::new(b"last_reward_block_nonce"),
+                );
+                let per_block_reward_amount_mapper =
+                    SingleValueMapper::<DebugApi, BigUint<DebugApi>>::new(StorageKey::new(
+                        b"per_block_reward_amount",
+                    ));
+
+                let old_block_nonce: u64 = last_reward_block_nonce_mapper.get();
+                let old_per_block_amount: BigUint<DebugApi> = per_block_reward_amount_mapper.get();
+
+                assert_eq!(
+                    old_block_nonce, 0u64,
+                    "Old block nonce storage should be cleared"
+                );
+                assert_eq!(
+                    old_per_block_amount,
+                    managed_biguint!(0),
+                    "Old per block amount storage should be cleared"
+                );
+            })
+            .assert_ok();
+    }
+
+    pub fn get_reward_per_share(&mut self) -> u64 {
+        let mut reward_per_share = 0u64;
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                reward_per_share = sc.reward_per_share().get().to_u64().unwrap();
+            })
+            .assert_ok();
+
+        reward_per_share
+    }
+
+    pub fn advance_time(&mut self, seconds: u64) {
+        let mut current_timestamp = 0u64;
+        let mut current_block = 0u64;
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                use multiversx_sc::contract_base::ContractBase;
+
+                current_timestamp = sc.blockchain().get_block_timestamp();
+                current_block = sc.blockchain().get_block_nonce();
+            })
+            .assert_ok();
+
+        self.b_mock.set_block_timestamp(current_timestamp + seconds);
+        self.b_mock.set_block_nonce(current_block + seconds / 6); // 6 seconds per block
     }
 }

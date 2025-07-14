@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 use common_structs::FarmTokenAttributes;
+use config::ConfigModule;
 use energy_factory::unlocked_token_transfer::UnlockedTokenTransferModule;
 use farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule;
 use farm_with_locked_rewards::Farm;
@@ -14,11 +15,12 @@ use multiversx_sc::{
     types::{EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
+use rewards::RewardsModule;
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::farm_with_locked_rewards_setup::{
-    FarmSetup, BOOSTED_YIELDS_PERCENTAGE, FARM_TOKEN_ID, LOCKED_REWARD_TOKEN_ID,
+    FarmSetup, BOOSTED_YIELDS_PERCENTAGE, DIV_SAFETY, FARM_TOKEN_ID, LOCKED_REWARD_TOKEN_ID,
 };
 
 mod farm_with_locked_rewards_setup;
@@ -1153,4 +1155,151 @@ fn collect_undistributed_rewards_conditions_checks_test() {
             },
         )
         .assert_ok();
+}
+
+#[test]
+fn test_block_to_timestamp_migration_complete() {
+    DebugApi::dummy();
+    let mut farm_setup = FarmSetup::new(
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
+
+    // Set up boosted yields configuration
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    // Setup initial state
+    let first_user = farm_setup.first_user.clone();
+    let second_user = farm_setup.second_user.clone();
+    let farm_in_amount = 100_000_000;
+
+    // Set initial block and timestamp
+    let initial_block = 1000u64;
+    let initial_timestamp = 6000u64; // 1000 blocks * 6 seconds
+    farm_setup.b_mock.set_block_nonce(initial_block);
+    farm_setup.b_mock.set_block_timestamp(initial_timestamp);
+
+    // Disable the default per-second rewards before entering
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &farm_setup.owner,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                // Clear any default rewards setup
+                sc.per_second_reward_amount().clear();
+                sc.produce_rewards_enabled().set(false);
+            },
+        )
+        .assert_ok();
+
+    // Enter farm for both users
+    farm_setup.enter_farm(&first_user, farm_in_amount);
+    farm_setup.enter_farm(&second_user, farm_in_amount);
+
+    // Now set up the old block-based reward system
+    // This simulates the state of an old farm before upgrade
+    let per_block_reward_amount = 1_000u64;
+    farm_setup.simulate_per_block_migration_storage(per_block_reward_amount, initial_block);
+
+    // Advance blocks to accumulate rewards (but don't claim)
+    let blocks_passed = 100u64;
+    let new_block = initial_block + blocks_passed;
+    let new_timestamp = initial_timestamp + (blocks_passed * 6);
+    let new_epoch = 10; // New week
+    farm_setup.b_mock.set_block_nonce(new_block);
+    farm_setup.b_mock.set_block_timestamp(new_timestamp);
+    farm_setup.b_mock.set_block_epoch(new_epoch);
+
+    // Check RPS before upgrade - should be 0 because rewards haven't been aggregated
+    let rps_before_upgrade = farm_setup.get_reward_per_share();
+    assert_eq!(
+        rps_before_upgrade, 0,
+        "RPS should be 0 before upgrade (rewards pending but not aggregated)"
+    );
+
+    // Calculate expected rewards
+    let total_rewards = per_block_reward_amount * blocks_passed; // 100_000
+    let base_farm_rewards = total_rewards * (10_000 - BOOSTED_YIELDS_PERCENTAGE) / 10_000; // 75_000
+
+    // Execute the upgrade
+    farm_setup
+        .b_mock
+        .execute_tx(
+            &farm_setup.owner,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.upgrade();
+            },
+        )
+        .assert_ok();
+
+    // Verify upgrade results and get RPS after upgrade
+    let mut rps_after_upgrade = 0u64;
+    farm_setup
+        .b_mock
+        .execute_query(&farm_setup.farm_wrapper, |sc| {
+            // Verify timestamp-based rewards are set
+            let per_second_reward = sc.per_second_reward_amount().get();
+            assert_eq!(
+                per_second_reward,
+                managed_biguint!(per_block_reward_amount / 6),
+                "Per second reward incorrect"
+            );
+
+            // Verify RPS was updated with accumulated rewards
+            rps_after_upgrade = sc.reward_per_share().get().to_u64().unwrap();
+            let total_farm_supply = farm_in_amount * 2;
+            let expected_rps = base_farm_rewards * DIV_SAFETY / total_farm_supply;
+
+            assert_eq!(
+                rps_after_upgrade, expected_rps,
+                "RPS after upgrade incorrect"
+            );
+        })
+        .assert_ok();
+
+    // Verify old storage was cleared
+    farm_setup.verify_old_storage_cleared();
+
+    // User 1 claims immediately after upgrade
+    let first_user_rewards = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
+    assert_eq!(
+        first_user_rewards,
+        base_farm_rewards / 2, // 37_500
+        "First user should get half of base rewards"
+    );
+
+    // Advance time for timestamp-based rewards
+    let seconds_passed = 60u64;
+    farm_setup.advance_time(seconds_passed);
+
+    // User 2 claims after time has passed
+    let second_user_rewards = farm_setup.claim_rewards(&second_user, 2, farm_in_amount);
+
+    // Second user gets their share of old rewards + share of new rewards
+    let new_rewards = (per_block_reward_amount / 6) * seconds_passed;
+    let new_base_rewards = new_rewards * (10_000 - BOOSTED_YIELDS_PERCENTAGE) / 10_000;
+    let expected_second_rewards = base_farm_rewards / 2 + new_base_rewards / 2;
+
+    assert_eq!(
+        second_user_rewards, expected_second_rewards,
+        "Second user rewards incorrect"
+    );
+
+    // Verify RPS continues to increase with timestamp-based system
+    let rand_user = farm_setup.third_user.clone();
+    farm_setup.advance_time(120);
+    farm_setup.enter_farm(&rand_user, 1); // Trigger RPS update
+
+    let final_rps = farm_setup.get_reward_per_share();
+    assert!(
+        final_rps > rps_after_upgrade,
+        "RPS should continue increasing after upgrade"
+    );
 }

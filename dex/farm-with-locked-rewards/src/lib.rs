@@ -89,7 +89,7 @@ pub trait Farm:
 
     #[upgrade]
     fn upgrade(&self) {
-        // AGGREGATE REWARDS
+        // Aggregate rewards before migration
         let mut storage_cache = StorageCache::new(self);
         let current_block_nonce = self.blockchain().get_block_nonce();
 
@@ -102,23 +102,15 @@ pub trait Farm:
         let per_block_reward_amount: BigUint<Self::Api> = per_block_reward_amount_mapper.take();
         let last_reward_nonce = last_reward_block_nonce_mapper.take();
 
-        let total_reward = if current_block_nonce > last_reward_nonce {
-            if current_block_nonce <= last_reward_nonce || !self.produces_per_second_rewards() {
-                BigUint::zero()
-            } else {
+        let total_reward =
+            if current_block_nonce > last_reward_nonce && self.produces_per_second_rewards() {
                 let block_nonce_diff = current_block_nonce - last_reward_nonce;
-
                 &per_block_reward_amount * block_nonce_diff
-            }
-        } else {
-            BigUint::zero()
-        };
+            } else {
+                BigUint::zero()
+            };
 
-        if total_reward != 0 {
-            self.send()
-                .esdt_local_mint(&storage_cache.reward_token_id, 0, &total_reward);
-        }
-
+        // No minting, even if total_reward is not zero (NoMintWrapper)
         if total_reward > 0u64 {
             storage_cache.reward_reserve += &total_reward;
             let split_rewards = self.take_reward_slice(total_reward);
@@ -130,7 +122,7 @@ pub trait Farm:
             }
         }
 
-        // MIGRATE DATA
+        // Migrate storage
         let per_second_reward_amount = per_block_reward_amount / 6u64; // 6 seconds per block
         self.per_second_reward_amount()
             .set_if_empty(per_second_reward_amount);
