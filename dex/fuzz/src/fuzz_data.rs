@@ -418,7 +418,7 @@ pub mod fuzz_data_tests {
                 sc.farm_token().set_token_id(farm_token_id);
 
                 sc.per_second_reward_amount()
-                    .set(&to_managed_biguint(per_second_reward_amount));
+                    .set(to_managed_biguint(per_second_reward_amount));
                 sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
                 sc.penalty_percent().set(FARM_PENALTY_PERCENT);
 
