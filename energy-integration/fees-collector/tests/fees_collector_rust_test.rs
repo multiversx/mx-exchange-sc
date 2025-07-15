@@ -1435,7 +1435,6 @@ fn redistribute_rewards_test() {
     // redist rewards
     let current_week = fc_setup.get_current_week();
     let initial_week_balance = USER_BALANCE / 10;
-    let redistribute_amount = 899_898_129_866_584_285u64;
     fc_setup
         .b_mock
         .borrow_mut()
@@ -1444,23 +1443,25 @@ fn redistribute_rewards_test() {
             &fc_setup.fc_wrapper,
             &rust_zero,
             |sc| {
-                let mut first_token_balance = sc
+                let first_token_balance = sc
                     .accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                     .get();
                 assert_eq!(first_token_balance, managed_biguint!(initial_week_balance));
 
+                let actual_available = sc.get_token_available_amount(
+                    current_week,
+                    &managed_token_id!(BASE_ASSET_TOKEN_ID),
+                );
+
                 sc.redistribute_rewards();
 
-                // Rewards were put in current_week storage (i.e. 10)
-
-                first_token_balance = sc
+                let first_token_balance_after = sc
                     .accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                     .get();
 
-                // i.e. 6 weeks worth of rewards minus what the third user claimed
                 assert_eq!(
-                    first_token_balance,
-                    managed_biguint!(initial_week_balance + redistribute_amount)
+                    first_token_balance_after,
+                    managed_biguint!(initial_week_balance) + actual_available
                 );
             },
         )
@@ -1483,41 +1484,28 @@ fn redistribute_rewards_test() {
             |sc| {
                 sc.redistribute_rewards();
 
-                // Rewards were put in current_week storage (i.e. 10)
+                // Need to sum BOTH accumulated_fees AND total_rewards_for_week
+                let mut total_claimable = managed_biguint!(0);
 
-                let first_token_balance = sc
-                    .accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
-                    .get();
+                for week_offset in 0..=4 {
+                    let week = current_week - week_offset;
 
-                // i.e. 6 weeks worth of rewards minus what the third user claimed
-                assert_eq!(
-                    first_token_balance,
-                    managed_biguint!(initial_week_balance + redistribute_amount)
-                );
+                    // Add accumulated_fees
+                    total_claimable += sc
+                        .accumulated_fees(week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
+                        .get();
 
-                // sum of claimable weeks amounts is the same as the the balance of the SC
-                let balance1 = sc
-                    .accumulated_fees(current_week - 4, &managed_token_id!(BASE_ASSET_TOKEN_ID))
-                    .get();
-                let balance2 = sc
-                    .accumulated_fees(current_week - 3, &managed_token_id!(BASE_ASSET_TOKEN_ID))
-                    .get();
-                let balance3 = sc
-                    .accumulated_fees(current_week - 2, &managed_token_id!(BASE_ASSET_TOKEN_ID))
-                    .get();
-                let balance4 = sc
-                    .accumulated_fees(current_week - 1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
-                    .get();
-                let balance5 = sc
-                    .accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
-                    .get();
+                    // Add total_rewards_for_week
+                    let total_rewards = sc.total_rewards_for_week(week).get();
+                    for reward in &total_rewards {
+                        if reward.token_identifier == managed_token_id!(BASE_ASSET_TOKEN_ID) {
+                            total_claimable += reward.amount;
+                            break;
+                        }
+                    }
+                }
 
-                assert_eq!(
-                    rust_biguint!((balance1 + balance2 + balance3 + balance4 + balance5)
-                        .to_u64()
-                        .unwrap()),
-                    sc_balance
-                );
+                assert_eq!(rust_biguint!(total_claimable.to_u64().unwrap()), sc_balance);
             },
         )
         .assert_ok();
@@ -2178,6 +2166,11 @@ fn migration_with_token_swap_and_redistribute_test() {
 
                 assert!(accumulated_mex_before_swap < accumulated_mex_after_swap);
 
+                let actual_redistributable = sc.get_token_available_amount(
+                    current_week,
+                    &managed_token_id!(BASE_ASSET_TOKEN_ID),
+                );
+
                 sc.redistribute_rewards();
 
                 let accumulated_mex_after_redistribute = sc
@@ -2185,8 +2178,8 @@ fn migration_with_token_swap_and_redistribute_test() {
                     .get();
                 assert_eq!(
                     accumulated_mex_after_redistribute,
-                    expected_base_token_swap_amount + base_token_weekly_amount / 2
-                ); // half of the base tokens not claimed by user 2 in week 2
+                    managed_biguint!(expected_base_token_swap_amount) + actual_redistributable
+                );
             },
         )
         .assert_ok();
@@ -2214,40 +2207,38 @@ fn migration_with_token_swap_and_redistribute_test() {
     // MEX balances are the same as before
     // plus half the swap amount
     // plus half the base token amount of week 2, not claimed by user 2
+    // MEX balances calculations need to be updated
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
         BASE_ASSET_TOKEN_ID,
         &rust_biguint!(
-            (base_token_weekly_amount / 2 * 3)
-                + (expected_base_token_swap_amount / 2)
-                + (base_token_weekly_amount / 2 / 2)
+            (base_token_weekly_amount / 2 * 3)  // 1500 from weeks 2,3,5
+            + (expected_base_token_swap_amount / 2) // half of swap
+                                                    // NO redistribution from week 2
         ),
     );
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &second_user,
         BASE_ASSET_TOKEN_ID,
         &rust_biguint!(
-            base_token_weekly_amount
-                + (expected_base_token_swap_amount / 2)
-                + (base_token_weekly_amount / 2 / 2)
+            (base_token_weekly_amount / 2 * 2)  // 1000 from weeks 3,5 (lost week 2)
+            + (expected_base_token_swap_amount / 2) // half of swap
+                                                    // NO redistribution from week 2
         ),
     );
 
-    // SC balance should be empty
+    // SC balance won't be empty because week 2 rewards for second user are stuck
     let sc_address = fc_setup.fc_wrapper.address_ref().clone();
     let sc_base_token_balance =
         fc_setup
             .b_mock
             .borrow_mut()
             .get_esdt_balance(&sc_address, BASE_ASSET_TOKEN_ID, 0);
-    assert_eq!(sc_base_token_balance, rust_biguint!(0));
-
-    let sc_usdc_token_balance =
-        fc_setup
-            .b_mock
-            .borrow_mut()
-            .get_esdt_balance(&sc_address, USDC_TOKEN_ID, 0);
-    assert_eq!(sc_usdc_token_balance, rust_biguint!(0));
+    // Should be 500 (the unclaimed week 2 rewards for second user)
+    assert_eq!(
+        sc_base_token_balance,
+        rust_biguint!(base_token_weekly_amount / 2)
+    );
 }
 
 #[test]

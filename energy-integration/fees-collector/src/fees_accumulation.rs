@@ -13,6 +13,11 @@ pub trait FeesAccumulationModule:
     + week_timekeeping::WeekTimekeepingModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
 {
     /// Base token burn percent is between 0 (0%) and 10_000 (100%)
     #[only_owner]
@@ -113,6 +118,14 @@ pub trait FeesAccumulationModule:
         for week in start_week..=end_week {
             let week_amount = self.accumulated_fees(week, token_id).get();
             token_acc_amount += week_amount;
+
+            let total_rewards_for_week = self.total_rewards_for_week(week).get();
+            for reward in &total_rewards_for_week {
+                if &reward.token_identifier == token_id {
+                    token_acc_amount += &reward.amount;
+                    break;
+                }
+            }
         }
 
         let sc_address = self.blockchain().get_sc_address();

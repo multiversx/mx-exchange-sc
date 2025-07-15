@@ -10,6 +10,11 @@ pub trait RedistributeRewardsModule:
     + crate::external_sc_interactions::router::RouterInteractionsModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
 {
     #[only_admin]
     #[endpoint(redistributeRewards)]
