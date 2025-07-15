@@ -1,7 +1,6 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::Percent;
 use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
 use week_timekeeping::Week;
 use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
@@ -19,15 +18,6 @@ pub trait FeesAccumulationModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
 {
-    /// Base token burn percent is between 0 (0%) and 10_000 (100%)
-    #[only_owner]
-    #[endpoint(setBaseTokenBurnPercent)]
-    fn set_base_token_burn_percent(&self, burn_percent: Percent) {
-        require!(burn_percent <= MAX_PENALTY_PERCENTAGE, "Invalid percent");
-
-        self.base_token_burn_percent().set(burn_percent);
-    }
-
     /// Anyone can deposit tokens through this endpoint
     ///
     /// Deposits for current week are accessible starting next week
@@ -106,12 +96,12 @@ pub trait FeesAccumulationModule:
         current_week: Week,
         token_id: &TokenIdentifier,
     ) -> BigUint {
-        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS;
-        if current_week < collect_rewards_offset {
-            return BigUint::zero();
-        }
+        let start_week = if current_week >= USER_MAX_CLAIM_WEEKS {
+            current_week - USER_MAX_CLAIM_WEEKS
+        } else {
+            0
+        };
 
-        let start_week = current_week - collect_rewards_offset;
         let end_week = current_week;
 
         let mut token_acc_amount = BigUint::zero();
@@ -137,11 +127,4 @@ pub trait FeesAccumulationModule:
 
         token_total_balance - token_acc_amount
     }
-
-    #[view(getAccumulatedFees)]
-    #[storage_mapper("accumulatedFees")]
-    fn accumulated_fees(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("baseTokenBurnPercent")]
-    fn base_token_burn_percent(&self) -> SingleValueMapper<Percent>;
 }

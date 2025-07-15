@@ -1963,9 +1963,7 @@ fn migration_with_token_swap_and_redistribute_test() {
                 sc.set_router_address(managed_address!(&router_address));
 
                 // Only add the extra tokens, as BASE_ASSET_TOKEN_ID was added at deployment
-                let mut tokens = MultiValueEncoded::new();
-                tokens.push(managed_token_id!(USDC_TOKEN_ID));
-                sc.add_reward_tokens(tokens);
+                sc.reward_tokens().insert(managed_token_id!(USDC_TOKEN_ID));
             },
         )
         .assert_ok();
