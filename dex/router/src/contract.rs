@@ -341,6 +341,7 @@ pub trait Router:
         let sc_address = self.blockchain().get_sc_address();
         let egld_balance_before = self.blockchain().get_balance(&sc_address);
         for pair in pairs {
+            self.check_is_pair_sc(&pair);
             let _: IgnoreValue = self
                 .send()
                 .claim_developer_rewards(pair)
