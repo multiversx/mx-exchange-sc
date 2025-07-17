@@ -97,10 +97,13 @@ where
             Self::calculate_per_second_rewards(sc, current_timestamp, last_reward_timestamp);
 
         let farm_token_supply = sc.farm_token_supply().get();
-        let extra_rewards_apr_bounded_per_second = sc.get_amount_apr_bounded(&farm_token_supply);
+        let division_safety = sc.division_safety_constant().get();
+        let extra_rewards_apr_bounded_per_second =
+            sc.get_amount_apr_bounded(&farm_token_supply, &division_safety);
 
         let timestamp_diff = current_timestamp - last_reward_timestamp;
-        let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_second * timestamp_diff;
+        let extra_rewards_apr_bounded =
+            extra_rewards_apr_bounded_per_second * timestamp_diff / division_safety;
 
         sc.last_reward_timestamp().set(current_timestamp);
 
