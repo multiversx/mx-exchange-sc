@@ -62,17 +62,23 @@ pub trait RouterInteractionsModule:
     #[endpoint(swapTokenToBaseToken)]
     fn swap_token_to_base_token(
         &self,
-        token_to_send: TokenIdentifier,
+        token_to_send: EsdtTokenPayment,
         swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
     ) {
         self.check_swap_through_router_args(&token_to_send, &swap_operations);
         let current_week = self.get_current_week();
 
-        let token_amount = self.get_token_available_amount(current_week, &token_to_send);
-        require!(token_amount > 0, "No tokens available for swap");
+        let token_max_amount =
+            self.get_token_available_amount(current_week, &token_to_send.token_identifier);
+        require!(token_max_amount > 0, "No tokens available for swap");
+        require!(
+            token_to_send.amount <= token_max_amount,
+            "Not enough tokens available for swap"
+        );
+        let token_amount = token_to_send.amount;
 
         let router_address = self.router_address().get();
-        let swap_payment = EsdtTokenPayment::new(token_to_send, 0, token_amount);
+        let swap_payment = EsdtTokenPayment::new(token_to_send.token_identifier, 0, token_amount);
         let mut received_tokens =
             self.call_swap_through_router(router_address.clone(), swap_payment, swap_operations);
 
@@ -90,7 +96,7 @@ pub trait RouterInteractionsModule:
 
     fn check_swap_through_router_args(
         &self,
-        token_to_send: &TokenIdentifier,
+        token_to_send: &EsdtTokenPayment,
         swap_operation: &MultiValueEncoded<SwapOperationType<Self::Api>>,
     ) {
         require!(!swap_operation.is_empty(), "No arguments provided");
@@ -98,8 +104,13 @@ pub trait RouterInteractionsModule:
         let base_token_id = self.get_base_token_id();
         let locked_token_id = self.get_locked_token_id();
         require!(
-            token_to_send != &base_token_id && token_to_send != &locked_token_id,
+            token_to_send.token_identifier != base_token_id
+                && token_to_send.token_identifier != locked_token_id,
             "May not swap base token or locked token"
+        );
+        require!(
+            token_to_send.amount > 0,
+            "Token amount to swap must be greater than zero"
         );
     }
 

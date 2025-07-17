@@ -11,7 +11,7 @@ use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector::redistribute_rewards::RedistributeRewardsModule;
 use fees_collector::FeesCollector;
 use fees_collector_test_setup::*;
-use multiversx_sc::imports::{SingleValueMapper, StorageMapper};
+use multiversx_sc::imports::{OptionalValue, SingleValueMapper, StorageMapper};
 use multiversx_sc::storage::StorageKey;
 use multiversx_sc::types::{BigInt, BigUint, EsdtTokenPayment, ManagedVec, MultiValueEncoded};
 use multiversx_sc_scenario::{
@@ -1590,7 +1590,12 @@ fn fees_collector_single_swap_test() {
                     )
                         .into(),
                 );
-                sc.swap_token_to_base_token(managed_token_id!(WEGLD_TOKEN_ID), swap_operations);
+                let swap_token = EsdtTokenPayment::new(
+                    managed_token_id!(WEGLD_TOKEN_ID),
+                    0,
+                    managed_biguint!(1_000u64),
+                );
+                sc.swap_token_to_base_token(swap_token, swap_operations);
 
                 // About 1/5, which is the ratio of the pair
                 assert_eq!(
@@ -1733,10 +1738,46 @@ fn fees_collector_multiple_swap_test() {
                     )
                         .into(),
                 );
-                sc.swap_token_to_base_token(managed_token_id!("RAND-123456"), swap_operations);
+
+                let swap_token = EsdtTokenPayment::new(
+                    managed_token_id!("RAND-123456"),
+                    0,
+                    managed_biguint!(1_000u64),
+                );
+                sc.swap_token_to_base_token(swap_token, swap_operations);
             },
         )
         .assert_user_error("No tokens available for swap");
+
+    // try swap with bigger amount than available
+    fc_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let mut swap_operations = MultiValueEncoded::new();
+                swap_operations.push(
+                    (
+                        managed_address!(&wegld_usdc_pair_addr),
+                        managed_buffer!(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME),
+                        managed_token_id!(WEGLD_TOKEN_ID),
+                        managed_biguint!(1),
+                    )
+                        .into(),
+                );
+
+                let swap_token = EsdtTokenPayment::new(
+                    managed_token_id!(USDC_TOKEN_ID),
+                    0,
+                    managed_biguint!(10_000u64),
+                );
+                sc.swap_token_to_base_token(swap_token, swap_operations);
+            },
+        )
+        .assert_user_error("Not enough tokens available for swap");
 
     // try swap last token not MEX
     fc_setup
@@ -1757,7 +1798,13 @@ fn fees_collector_multiple_swap_test() {
                     )
                         .into(),
                 );
-                sc.swap_token_to_base_token(managed_token_id!(USDC_TOKEN_ID), swap_operations);
+
+                let swap_token = EsdtTokenPayment::new(
+                    managed_token_id!(USDC_TOKEN_ID),
+                    0,
+                    managed_biguint!(1_000u64),
+                );
+                sc.swap_token_to_base_token(swap_token, swap_operations);
             },
         )
         .assert_user_error("Invalid tokens received from router");
@@ -1791,7 +1838,13 @@ fn fees_collector_multiple_swap_test() {
                     )
                         .into(),
                 );
-                sc.swap_token_to_base_token(managed_token_id!(USDC_TOKEN_ID), swap_operations);
+
+                let swap_token = EsdtTokenPayment::new(
+                    managed_token_id!(USDC_TOKEN_ID),
+                    0,
+                    managed_biguint!(1_000u64),
+                );
+                sc.swap_token_to_base_token(swap_token, swap_operations);
 
                 // About 1/5, which is the ratio of the first pair, then multiplied by 3, which is the ratio of the second pair
                 // i.e. ~ 1000 / 5 * 3
@@ -1891,7 +1944,13 @@ fn test_burn_percentage_base_token_logic() {
                     )
                         .into(),
                 );
-                sc.swap_token_to_base_token(managed_token_id!(WEGLD_TOKEN_ID), swap_operations);
+
+                let swap_token = EsdtTokenPayment::new(
+                    managed_token_id!(WEGLD_TOKEN_ID),
+                    0,
+                    managed_biguint!(1_000u64),
+                );
+                sc.swap_token_to_base_token(swap_token, swap_operations);
 
                 // About 1/5, which is the ratio of the pair
                 assert_eq!(
@@ -2154,7 +2213,12 @@ fn migration_with_token_swap_and_redistribute_test() {
 
                 assert_eq!(accumulated_mex_before_swap, 0);
 
-                sc.swap_token_to_base_token(managed_token_id!(USDC_TOKEN_ID), swap_operations);
+                let swap_token = EsdtTokenPayment::new(
+                    managed_token_id!(USDC_TOKEN_ID),
+                    0,
+                    managed_biguint!(750u64),
+                );
+                sc.swap_token_to_base_token(swap_token, swap_operations);
 
                 let accumulated_mex_after_swap = sc
                     .accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))
@@ -2263,7 +2327,7 @@ fn migrate_additional_tokens_storage_test() {
                     .set(managed_biguint!(locked_tokens_per_legacy_block));
                 let legacy_blocks_per_week = 100_800u64;
 
-                sc.upgrade();
+                sc.upgrade(OptionalValue::None);
 
                 let set_locked_tokens_per_epoch = sc.locked_tokens_per_epoch().get();
 

@@ -7,7 +7,29 @@ use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
 pub trait ConfigModule:
     energy_query::EnergyQueryModule + week_timekeeping::WeekTimekeepingModule
 {
-    /// Base token burn percent is between 0 (0%) and 10_000 (100%)
+    #[only_owner]
+    #[endpoint(addKnownContracts)]
+    fn add_known_contracts(&self, contracts: MultiValueEncoded<ManagedAddress>) {
+        let mut mapper = self.known_contracts();
+        for sc in contracts {
+            require!(
+                self.blockchain().is_smart_contract(&sc),
+                "Invalid SC address"
+            );
+
+            let _ = mapper.insert(sc);
+        }
+    }
+
+    #[only_owner]
+    #[endpoint(removeKnownContracts)]
+    fn remove_known_contracts(&self, contracts: MultiValueEncoded<ManagedAddress>) {
+        let mut mapper = self.known_contracts();
+        for sc in contracts {
+            let _ = mapper.swap_remove(&sc);
+        }
+    }
+
     #[only_owner]
     #[endpoint(setBaseTokenBurnPercent)]
     fn set_base_token_burn_percent(&self, burn_percent: Percent) {
@@ -48,6 +70,10 @@ pub trait ConfigModule:
     #[view(getRewardTokens)]
     #[storage_mapper("rewardTokens")]
     fn reward_tokens(&self) -> UnorderedSetMapper<TokenIdentifier>;
+
+    #[view(getAllKnownContracts)]
+    #[storage_mapper("knownContracts")]
+    fn known_contracts(&self) -> UnorderedSetMapper<ManagedAddress>;
 
     #[view(getAccumulatedFees)]
     #[storage_mapper("accumulatedFees")]

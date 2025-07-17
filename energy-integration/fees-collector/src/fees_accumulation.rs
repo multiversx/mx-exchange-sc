@@ -26,12 +26,19 @@ pub trait FeesAccumulationModule:
     #[payable("*")]
     #[endpoint(depositSwapFees)]
     fn deposit_swap_fees(&self) {
+        let caller = self.blockchain().get_caller();
         let mut payment = self.call_value().single_esdt();
 
         let current_week = self.get_current_week();
         let base_token_id = self.get_base_token_id();
 
         if payment.token_nonce != 0 {
+            require!(
+                !self.blockchain().is_smart_contract(&caller)
+                    || self.known_contracts().contains(&caller),
+                "Caller must be a known contract"
+            );
+
             self.try_burn_locked_token(&payment);
 
             self.accumulated_fees(current_week, &payment.token_identifier)
@@ -43,7 +50,6 @@ pub trait FeesAccumulationModule:
                 .update(|amt| *amt += &payment.amount);
         }
 
-        let caller = self.blockchain().get_caller();
         self.emit_deposit_swap_fees_event(&caller, current_week, &payment);
     }
 
