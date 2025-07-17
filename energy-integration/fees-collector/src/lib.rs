@@ -60,6 +60,12 @@ pub trait FeesCollector:
 
     #[upgrade]
     fn upgrade(&self, blocks_per_epoch_opt: OptionalValue<u64>) {
+        // Legacy storage
+        let locked_token_id_mapper =
+            SingleValueMapper::<Self::Api, TokenIdentifier>::new(StorageKey::new(b"lockedTokenId"));
+        locked_token_id_mapper.clear();
+
+        // Migrate existing data to new storage structure
         let all_tokens_mapper = SingleValueMapper::<Self::Api, ManagedVec<TokenIdentifier>>::new(
             StorageKey::new(b"allTokens"),
         );
