@@ -73,11 +73,10 @@ fn test_unstake_farm() {
     let timestamp_diff = current_timestamp;
     let expected_rewards_unbounded = timestamp_diff * PER_SECOND_REWARD_AMOUNT;
 
-    // ~= 4 * 10 = 40
     let expected_rewards_max_apr =
-        farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR * timestamp_diff;
+        timestamp_diff * farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR;
     let expected_rewards = core::cmp::min(expected_rewards_unbounded, expected_rewards_max_apr);
-    assert_eq!(expected_rewards, 40);
+    assert_eq!(expected_rewards, 7);
 
     let expected_ride_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS) - farm_in_amount + expected_rewards;
@@ -123,11 +122,10 @@ fn test_claim_rewards() {
     farm_setup.set_block_epoch(5);
     farm_setup.set_block_timestamp(10);
 
-    // value taken from the "test_unstake_farm" test
-    let expected_reward_token_out = 40;
+    let expected_reward_token_out = 7;
     let expected_farming_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_token_out);
-    let expected_reward_per_share = 400_000;
+    let expected_reward_per_share = 70_000;
     farm_setup.claim_rewards(
         &user_address,
         farm_in_amount,
@@ -183,7 +181,7 @@ where
 
     let total_amount = farm_in_amount + second_farm_in_amount;
     let first_reward_share = 0;
-    let second_reward_share = 400_000;
+    let second_reward_share = 70_000;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
         + second_reward_share * second_farm_in_amount
         + total_amount
@@ -230,7 +228,7 @@ fn test_exit_farm_after_enter_twice() {
     farm_setup.set_block_epoch(8);
     farm_setup.set_block_timestamp(25);
 
-    let expected_rewards = 83;
+    let expected_rewards = 13;
     let expected_ride_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS) - farm_in_amount - second_farm_in_amount
             + expected_rewards;
@@ -281,11 +279,10 @@ fn test_unbond() {
     let timestamp_diff = current_timestamp;
     let expected_rewards_unbounded = timestamp_diff * PER_SECOND_REWARD_AMOUNT;
 
-    // ~= 4 * 10 = 40
     let expected_rewards_max_apr =
-        farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR * timestamp_diff;
+        timestamp_diff * farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR;
     let expected_rewards = core::cmp::min(expected_rewards_unbounded, expected_rewards_max_apr);
-    assert_eq!(expected_rewards, 40);
+    assert_eq!(expected_rewards, 7);
 
     let expected_ride_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS) - farm_in_amount + expected_rewards;

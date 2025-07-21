@@ -4,8 +4,11 @@ use external_interaction::ExternalInteractionsModule;
 use farm_staking::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule;
 use farm_staking::compound_stake_farm_rewards::CompoundStakeFarmRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
+use multiversx_sc::imports::{SingleValueMapper, StorageMapper};
 use multiversx_sc::storage::mappers::StorageTokenWrapper;
-use multiversx_sc::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc::types::{
+    Address, BigInt, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded,
+};
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
@@ -637,6 +640,28 @@ where
             .assert_ok();
     }
 
+    pub fn stake_farm_no_attribute_check(
+        &mut self,
+        user: &Address,
+        farm_in_amount: u64,
+        expected_farm_token_nonce: u64,
+    ) {
+        self.b_mock
+            .execute_esdt_transfer(
+                user,
+                &self.farm_wrapper,
+                FARMING_TOKEN_ID,
+                0,
+                &rust_biguint!(farm_in_amount),
+                |sc| {
+                    let result = sc.stake_farm_endpoint(OptionalValue::None);
+                    let (new_farm_token, _) = result.into_tuple();
+                    assert_eq!(new_farm_token.token_nonce, expected_farm_token_nonce);
+                },
+            )
+            .assert_ok();
+    }
+
     pub fn claim_rewards_on_behalf(
         &mut self,
         caller: &Address,
@@ -928,6 +953,66 @@ where
                     let user_energy =
                         sc.get_updated_energy_entry_for_user(&managed_address!(user_addr));
                     sc.set_energy_entry(&managed_address!(user_addr), user_energy);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn advance_time(&mut self, seconds: u64) {
+        let mut current_timestamp = 0u64;
+        let mut current_block = 0u64;
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                use multiversx_sc::contract_base::ContractBase;
+                current_timestamp = sc.blockchain().get_block_timestamp();
+                current_block = sc.blockchain().get_block_nonce();
+            })
+            .assert_ok();
+
+        self.b_mock.set_block_timestamp(current_timestamp + seconds);
+        self.b_mock.set_block_nonce(current_block + seconds / 6); // 6 seconds per block
+    }
+
+    pub fn get_reward_per_share(&mut self) -> u64 {
+        let mut rps = 0u64;
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                rps = sc.reward_per_share().get().to_u64().unwrap();
+            })
+            .assert_ok();
+        rps
+    }
+
+    pub fn simulate_per_block_migration_storage(
+        &mut self,
+        per_block_reward_amount: u64,
+        last_reward_block_nonce: u64,
+    ) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    use multiversx_sc::storage::StorageKey;
+
+                    // Set old storage values
+                    let last_reward_block_nonce_mapper = SingleValueMapper::<DebugApi, u64>::new(
+                        StorageKey::new(b"last_reward_block_nonce"),
+                    );
+                    let per_block_reward_amount_mapper =
+                        SingleValueMapper::<DebugApi, BigUint<DebugApi>>::new(StorageKey::new(
+                            b"per_block_reward_amount",
+                        ));
+
+                    last_reward_block_nonce_mapper.set(last_reward_block_nonce);
+                    per_block_reward_amount_mapper.set(managed_biguint!(per_block_reward_amount));
+
+                    // Clear the new storage to simulate pre-upgrade state
+                    sc.per_second_reward_amount().clear();
+                    sc.last_reward_timestamp().clear();
+
+                    sc.produce_rewards_enabled().set(true);
                 },
             )
             .assert_ok();
