@@ -150,19 +150,17 @@ pub trait FarmStaking:
 
         // COMPLETE REWARDS GENERATION
         total_reward = core::cmp::min(total_reward, remaining_rewards);
-        if total_reward == 0 {
-            return;
-        }
+        if total_reward > 0 {
+            storage_cache.reward_reserve += &total_reward;
+            accumulated_rewards += &total_reward;
+            accumulated_rewards_mapper.set(&accumulated_rewards);
 
-        storage_cache.reward_reserve += &total_reward;
-        accumulated_rewards += &total_reward;
-        accumulated_rewards_mapper.set(&accumulated_rewards);
-
-        let split_rewards = self.take_reward_slice(total_reward);
-        if storage_cache.farm_token_supply > 0 {
-            let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
-                / &storage_cache.farm_token_supply;
-            storage_cache.reward_per_share += &increase;
+            let split_rewards = self.take_reward_slice(total_reward);
+            if storage_cache.farm_token_supply > 0 {
+                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+                    / &storage_cache.farm_token_supply;
+                storage_cache.reward_per_share += &increase;
+            }
         }
 
         // MIGRATE DATA
