@@ -102,35 +102,69 @@ pub trait FeesAccumulationModule:
         current_week: Week,
         token_id: &TokenIdentifier,
     ) -> BigUint {
+        let (start_week, end_week) = self.get_week_range(current_week);
+        let remaining_claimable_token_amount =
+            self.calculate_remaining_claimable_token_amount(start_week, end_week, token_id);
+
+        self.calculate_available_balance(token_id, remaining_claimable_token_amount)
+    }
+
+    fn get_week_range(&self, current_week: Week) -> (Week, Week) {
         let start_week = if current_week >= USER_MAX_CLAIM_WEEKS {
             current_week - USER_MAX_CLAIM_WEEKS
         } else {
             0
         };
+        (start_week, current_week)
+    }
 
-        let end_week = current_week;
+    fn calculate_remaining_claimable_token_amount(
+        &self,
+        start_week: Week,
+        end_week: Week,
+        token_id: &TokenIdentifier,
+    ) -> BigUint {
+        let mut remaining_claimable_token_amount = BigUint::zero();
 
-        let mut token_acc_amount = BigUint::zero();
         for week in start_week..=end_week {
-            let week_amount = self.accumulated_fees(week, token_id).get();
-            token_acc_amount += week_amount;
+            let mut week_amount = self.accumulated_fees(week, token_id).get();
+            week_amount += self.find_total_reward_amount_for_token(week, token_id);
+            week_amount -= self.rewards_claimed(week, token_id).get();
 
-            let total_rewards_for_week = self.total_rewards_for_week(week).get();
-            for reward in &total_rewards_for_week {
-                if &reward.token_identifier == token_id {
-                    token_acc_amount += &reward.amount;
-                    break;
-                }
+            remaining_claimable_token_amount += week_amount;
+        }
+
+        remaining_claimable_token_amount
+    }
+
+    fn find_total_reward_amount_for_token(
+        &self,
+        week: Week,
+        token_id: &TokenIdentifier,
+    ) -> BigUint {
+        let total_rewards_for_week = self.total_rewards_for_week(week).get();
+
+        for reward in &total_rewards_for_week {
+            if &reward.token_identifier == token_id {
+                return reward.amount.clone();
             }
         }
 
+        BigUint::zero()
+    }
+
+    fn calculate_available_balance(
+        &self,
+        token_id: &TokenIdentifier,
+        remaining_claimable_token_amount: BigUint,
+    ) -> BigUint {
         let sc_address = self.blockchain().get_sc_address();
         let token_total_balance = self.blockchain().get_esdt_balance(&sc_address, token_id, 0);
 
-        if token_total_balance <= token_acc_amount {
+        if token_total_balance <= remaining_claimable_token_amount {
             return BigUint::zero();
         }
 
-        token_total_balance - token_acc_amount
+        token_total_balance - remaining_claimable_token_amount
     }
 }

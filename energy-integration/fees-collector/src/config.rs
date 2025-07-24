@@ -79,6 +79,10 @@ pub trait ConfigModule:
     #[storage_mapper("accumulatedFees")]
     fn accumulated_fees(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
 
+    #[view(getRewardsClaimed)]
+    #[storage_mapper("rewardsClaimed")]
+    fn rewards_claimed(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+
     #[storage_mapper("baseTokenBurnPercent")]
     fn base_token_burn_percent(&self) -> SingleValueMapper<Percent>;
 
