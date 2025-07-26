@@ -188,6 +188,10 @@ where
                 ));
                 sc.set_locking_sc_address(managed_address!(energy_factory_wrapper.address_ref()));
                 sc.set_lock_epochs(LOCK_OPTIONS[2]);
+
+                // Should be a SC, but this is a test setup
+                sc.known_contracts()
+                    .insert(managed_address!(&depositor_address));
             })
             .assert_ok();
 
