@@ -34,8 +34,7 @@ pub trait FeesAccumulationModule:
 
         if payment.token_nonce != 0 {
             require!(
-                !self.blockchain().is_smart_contract(&caller)
-                    || self.known_contracts().contains(&caller),
+                self.known_contracts().contains(&caller),
                 "Caller must be a known contract"
             );
 
