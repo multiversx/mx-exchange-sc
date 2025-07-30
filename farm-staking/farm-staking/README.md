@@ -46,16 +46,16 @@ The init function is called when deploying/upgrading the smart contract. It rece
 
 Because rewards are not minted but are instead distributed from a predefined amount, as time passes the rewards will be depleted. So new tokens must be added to the rewards pool, through this endpoint, to be further distributed to stakers.
 
-### setPerBlockRewardAmount
+### setPerSecondRewardAmount
 
 ```rust
-    #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_rewards(
+    #[endpoint(setPerSecondRewardAmount)]
+    fn set_per_second_rewards(
         &self, 
-        per_block_amount: BigUint
+        per_second_amount: BigUint
     );
 ```
-Endpoint that sets the amount of reward tokens that are distributed per block. Takes as an argument the amount __per_block_amount__.
+Endpoint that sets the amount of reward tokens that are distributed per second. Takes as an argument the amount __per_second_amount__.
 
 ### setMaxApr
 
