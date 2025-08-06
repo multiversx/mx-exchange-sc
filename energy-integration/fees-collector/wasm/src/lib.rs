@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           41
+// Endpoints:                           42
 // Async Callback (empty):               1
-// Total number of exported functions:  44
+// Total number of exported functions:  45
 
 #![no_std]
 
@@ -34,6 +34,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getCurrentClaimProgress => current_claim_progress
         setBaseTokenBurnPercent => set_base_token_burn_percent
         depositSwapFees => deposit_swap_fees
+        getTokenAvailableAmount => get_token_available_amount
         getAccumulatedFees => accumulated_fees
         setLockedTokensPerEpoch => set_locked_tokens_per_epoch
         getLastLockedTokensAddWeek => last_locked_token_add_week
