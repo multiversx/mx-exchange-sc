@@ -1589,12 +1589,12 @@ fn fees_collector_single_swap_test() {
                     )
                         .into(),
                 );
-                let swap_token = EsdtTokenPayment::new(
+
+                sc.swap_token_to_base_token(
                     managed_token_id!(WEGLD_TOKEN_ID),
-                    0,
                     managed_biguint!(1_000u64),
+                    swap_operations,
                 );
-                sc.swap_token_to_base_token(swap_token, swap_operations);
 
                 // About 1/5, which is the ratio of the pair
                 assert_eq!(
@@ -1738,15 +1738,14 @@ fn fees_collector_multiple_swap_test() {
                         .into(),
                 );
 
-                let swap_token = EsdtTokenPayment::new(
+                sc.swap_token_to_base_token(
                     managed_token_id!("RAND-123456"),
-                    0,
                     managed_biguint!(1_000u64),
+                    swap_operations,
                 );
-                sc.swap_token_to_base_token(swap_token, swap_operations);
             },
         )
-        .assert_user_error("No tokens available for swap");
+        .assert_user_error("Not enough tokens available for swap");
 
     // try swap with bigger amount than available
     fc_setup
@@ -1768,12 +1767,11 @@ fn fees_collector_multiple_swap_test() {
                         .into(),
                 );
 
-                let swap_token = EsdtTokenPayment::new(
+                sc.swap_token_to_base_token(
                     managed_token_id!(USDC_TOKEN_ID),
-                    0,
                     managed_biguint!(10_000u64),
+                    swap_operations,
                 );
-                sc.swap_token_to_base_token(swap_token, swap_operations);
             },
         )
         .assert_user_error("Not enough tokens available for swap");
@@ -1798,12 +1796,11 @@ fn fees_collector_multiple_swap_test() {
                         .into(),
                 );
 
-                let swap_token = EsdtTokenPayment::new(
+                sc.swap_token_to_base_token(
                     managed_token_id!(USDC_TOKEN_ID),
-                    0,
                     managed_biguint!(1_000u64),
+                    swap_operations,
                 );
-                sc.swap_token_to_base_token(swap_token, swap_operations);
             },
         )
         .assert_user_error("Invalid tokens received from router");
@@ -1838,12 +1835,11 @@ fn fees_collector_multiple_swap_test() {
                         .into(),
                 );
 
-                let swap_token = EsdtTokenPayment::new(
+                sc.swap_token_to_base_token(
                     managed_token_id!(USDC_TOKEN_ID),
-                    0,
                     managed_biguint!(1_000u64),
+                    swap_operations,
                 );
-                sc.swap_token_to_base_token(swap_token, swap_operations);
 
                 // About 1/5, which is the ratio of the first pair, then multiplied by 3, which is the ratio of the second pair
                 // i.e. ~ 1000 / 5 * 3
@@ -1944,12 +1940,11 @@ fn test_burn_percentage_base_token_logic() {
                         .into(),
                 );
 
-                let swap_token = EsdtTokenPayment::new(
+                sc.swap_token_to_base_token(
                     managed_token_id!(WEGLD_TOKEN_ID),
-                    0,
                     managed_biguint!(1_000u64),
+                    swap_operations,
                 );
-                sc.swap_token_to_base_token(swap_token, swap_operations);
 
                 // About 1/5, which is the ratio of the pair
                 assert_eq!(
@@ -2212,12 +2207,11 @@ fn migration_with_token_swap_and_redistribute_test() {
 
                 assert_eq!(accumulated_mex_before_swap, 0);
 
-                let swap_token = EsdtTokenPayment::new(
+                sc.swap_token_to_base_token(
                     managed_token_id!(USDC_TOKEN_ID),
-                    0,
                     managed_biguint!(750u64),
+                    swap_operations,
                 );
-                sc.swap_token_to_base_token(swap_token, swap_operations);
 
                 let accumulated_mex_after_swap = sc
                     .accumulated_fees(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID))

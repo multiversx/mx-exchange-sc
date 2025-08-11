@@ -63,8 +63,8 @@ pub trait ConfigModule:
         let locked_token_id = self.get_locked_token_id();
         let base_token_id = self.get_base_token_id();
 
-        self.reward_tokens().insert(locked_token_id);
-        self.reward_tokens().insert(base_token_id);
+        let _ = self.reward_tokens().insert(locked_token_id);
+        let _ = self.reward_tokens().insert(base_token_id);
     }
 
     #[view(getRewardTokens)]

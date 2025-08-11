@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           44
+// Endpoints:                           45
 // Async Callback (empty):               1
-// Total number of exported functions:  47
+// Total number of exported functions:  48
 
 #![no_std]
 
@@ -38,6 +38,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         updateEnergyForUser => update_energy_for_user
         getCurrentClaimProgress => current_claim_progress
         depositSwapFees => deposit_swap_fees
+        getTokenAvailableAmount => get_token_available_amount
         setLockedTokensPerEpoch => set_locked_tokens_per_epoch
         getLastLockedTokensAddWeek => last_locked_token_add_week
         getLockedTokensPerEpoch => locked_tokens_per_epoch

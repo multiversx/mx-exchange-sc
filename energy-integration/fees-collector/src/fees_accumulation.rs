@@ -5,6 +5,11 @@ use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
 use week_timekeeping::Week;
 use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
 
+pub struct WeekRange {
+    start_week: Week,
+    end_week: Week,
+}
+
 #[multiversx_sc::module]
 pub trait FeesAccumulationModule:
     crate::config::ConfigModule
@@ -102,20 +107,26 @@ pub trait FeesAccumulationModule:
         current_week: Week,
         token_id: &TokenIdentifier,
     ) -> BigUint {
-        let (start_week, end_week) = self.get_week_range(current_week);
-        let remaining_claimable_token_amount =
-            self.calculate_remaining_claimable_token_amount(start_week, end_week, token_id);
+        let week_range = self.get_week_range(current_week);
+        let remaining_claimable_token_amount = self.calculate_remaining_claimable_token_amount(
+            week_range.start_week,
+            week_range.end_week,
+            token_id,
+        );
 
         self.calculate_available_balance(token_id, remaining_claimable_token_amount)
     }
 
-    fn get_week_range(&self, current_week: Week) -> (Week, Week) {
+    fn get_week_range(&self, current_week: Week) -> WeekRange {
         let start_week = if current_week >= USER_MAX_CLAIM_WEEKS {
             current_week - USER_MAX_CLAIM_WEEKS
         } else {
             0
         };
-        (start_week, current_week)
+        WeekRange {
+            start_week,
+            end_week: current_week,
+        }
     }
 
     fn calculate_remaining_claimable_token_amount(
