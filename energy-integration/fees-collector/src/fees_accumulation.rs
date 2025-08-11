@@ -96,6 +96,7 @@ pub trait FeesAccumulationModule:
         }
     }
 
+    #[view(getTokenAvailableAmount)]
     fn get_token_available_amount(
         &self,
         current_week: Week,
