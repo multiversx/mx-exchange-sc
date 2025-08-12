@@ -83,10 +83,9 @@ pub trait FeesCollector:
         let locked_tokens_per_block_mapper =
             SingleValueMapper::<Self::Api, BigUint>::new(StorageKey::new(b"lockedTokensPerBlock"));
         let locked_tokens_per_block = locked_tokens_per_block_mapper.take();
-        let mut blocks_per_epoch = 10u64 * 60u64 * 24u64; // 14400 blocks per epoch
-       let blocks_per_epoch = match blocks_per_epoch_opt {
-           OptionalValue::Some(blocks_per_epoch_new) => blocks_per_epoch_new,
-           OptionalValue::None => 10u64 * 60u64 * 24u64
+        let blocks_per_epoch = match blocks_per_epoch_opt {
+            OptionalValue::Some(blocks_per_epoch_new) => blocks_per_epoch_new,
+            OptionalValue::None => 10u64 * 60u64 * 24u64,
         };
         let locked_tokens_per_epoch = locked_tokens_per_block * blocks_per_epoch;
 
