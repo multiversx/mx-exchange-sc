@@ -1,7 +1,12 @@
 multiversx_sc::imports!();
 
+use common_structs::{Percent, Week};
+use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
+
 #[multiversx_sc::module]
-pub trait ConfigModule {
+pub trait ConfigModule:
+    energy_query::EnergyQueryModule + week_timekeeping::WeekTimekeepingModule
+{
     #[only_owner]
     #[endpoint(addKnownContracts)]
     fn add_known_contracts(&self, contracts: MultiValueEncoded<ManagedAddress>) {
@@ -11,6 +16,7 @@ pub trait ConfigModule {
                 self.blockchain().is_smart_contract(&sc),
                 "Invalid SC address"
             );
+
             let _ = mapper.insert(sc);
         }
     }
@@ -25,59 +31,60 @@ pub trait ConfigModule {
     }
 
     #[only_owner]
-    #[endpoint(addKnownTokens)]
-    fn add_known_tokens(&self, tokens: MultiValueEncoded<TokenIdentifier>) {
-        let mut all_tokens_vec = self.all_tokens().get();
-        let known_tokens_mapper = self.known_tokens();
-        for token in tokens {
-            require!(token.is_valid_esdt_identifier(), "Invalid token ID");
+    #[endpoint(setBaseTokenBurnPercent)]
+    fn set_base_token_burn_percent(&self, burn_percent: Percent) {
+        require!(burn_percent <= MAX_PENALTY_PERCENTAGE, "Invalid percent");
 
-            if !known_tokens_mapper.contains(&token) {
-                known_tokens_mapper.add(&token);
-                all_tokens_vec.push(token);
-            }
-        }
-
-        self.all_tokens().set(&all_tokens_vec);
+        self.base_token_burn_percent().set(burn_percent);
     }
 
     #[only_owner]
-    #[endpoint(removeKnownTokens)]
-    fn remove_known_tokens(&self, tokens: MultiValueEncoded<TokenIdentifier>) {
-        let mut all_tokens_vec = self.all_tokens().get();
-        let known_tokens_mapper = self.known_tokens();
-        for token in tokens {
-            if known_tokens_mapper.contains(&token) {
-                known_tokens_mapper.remove(&token);
+    #[endpoint(removeRewardTokens)]
+    fn remove_reward_tokens(&self, token_ids: MultiValueEncoded<TokenIdentifier>) {
+        let locked_token_id = self.get_locked_token_id();
+        let base_token_id = self.get_base_token_id();
 
-                unsafe {
-                    let index = all_tokens_vec.find(&token).unwrap_unchecked();
-                    all_tokens_vec.remove(index);
-                }
-            }
+        for token_id in token_ids {
+            require!(
+                token_id != locked_token_id && token_id != base_token_id,
+                "Cannot remove locked or base token"
+            );
+            require!(
+                self.reward_tokens().swap_remove(&token_id),
+                "Token not found"
+            );
+
+            let current_week = self.get_current_week();
+            self.accumulated_fees(current_week, &token_id).clear();
         }
-
-        self.all_tokens().set(&all_tokens_vec);
     }
 
-    #[view(getLockedTokenId)]
-    #[storage_mapper("lockedTokenId")]
-    fn locked_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    fn set_base_reward_tokens(&self) {
+        let locked_token_id = self.get_locked_token_id();
+        let base_token_id = self.get_base_token_id();
 
-    #[view(getAllTokens)]
-    fn get_all_tokens(&self) -> MultiValueEncoded<TokenIdentifier> {
-        self.all_tokens().get().into()
+        let _ = self.reward_tokens().insert(locked_token_id);
+        let _ = self.reward_tokens().insert(base_token_id);
     }
+
+    #[view(getRewardTokens)]
+    #[storage_mapper("rewardTokens")]
+    fn reward_tokens(&self) -> UnorderedSetMapper<TokenIdentifier>;
 
     #[view(getAllKnownContracts)]
     #[storage_mapper("knownContracts")]
     fn known_contracts(&self) -> UnorderedSetMapper<ManagedAddress>;
 
-    #[storage_mapper("knownTokens")]
-    fn known_tokens(&self) -> WhitelistMapper<TokenIdentifier>;
+    #[view(getAccumulatedFees)]
+    #[storage_mapper("accumulatedFees")]
+    fn accumulated_fees(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("allTokens")]
-    fn all_tokens(&self) -> SingleValueMapper<ManagedVec<TokenIdentifier>>;
+    #[view(getRewardsClaimed)]
+    #[storage_mapper("rewardsClaimed")]
+    fn rewards_claimed(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("baseTokenBurnPercent")]
+    fn base_token_burn_percent(&self) -> SingleValueMapper<Percent>;
 
     // Update for this storage disabled for this version of the exchange
     #[view(getAllowExternalClaimRewards)]

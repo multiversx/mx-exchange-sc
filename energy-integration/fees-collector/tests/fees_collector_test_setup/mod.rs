@@ -1,5 +1,9 @@
 #![allow(deprecated)]
 
+use std::{cell::RefCell, rc::Rc};
+
+use claim::ClaimModule;
+use common_structs::Percent;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -22,6 +26,9 @@ use week_timekeeping::{Week, WeekTimekeepingModule, EPOCHS_IN_WEEK};
 pub const INIT_EPOCH: u64 = 5;
 pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
+pub const BASE_TOKEN_BURN_PERCENT: u64 = 0; // 0%
+
+use crate::router_setup::USDC_TOKEN_ID;
 
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static FIRST_TOKEN_ID: &[u8] = b"FIRST-123456";
@@ -31,12 +38,14 @@ pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
+pub static SWAP_TOKENS_FIXED_INPUT_FUNC_NAME: &[u8] = b"swapTokensFixedInput";
+
 pub struct FeesCollectorSetup<FeesCollectorObjBuilder, EnergyFactoryObjBuilder>
 where
     FeesCollectorObjBuilder: 'static + Copy + Fn() -> fees_collector::ContractObj<DebugApi>,
     EnergyFactoryObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
-    pub b_mock: BlockchainStateWrapper,
+    pub b_mock: Rc<RefCell<BlockchainStateWrapper>>,
     pub owner_address: Address,
     pub depositor_address: Address,
     pub fc_wrapper:
@@ -96,6 +105,11 @@ where
             LOCKED_TOKEN_ID,
             &[EsdtLocalRole::NftBurn],
         );
+        b_mock.set_esdt_local_roles(
+            fc_wrapper.address_ref(),
+            BASE_ASSET_TOKEN_ID,
+            &[EsdtLocalRole::Burn],
+        );
 
         b_mock.set_esdt_balance(
             &depositor_address,
@@ -105,6 +119,16 @@ where
         b_mock.set_esdt_balance(
             &depositor_address,
             SECOND_TOKEN_ID,
+            &rust_biguint!(USER_BALANCE * 2),
+        );
+        b_mock.set_esdt_balance(
+            &depositor_address,
+            USDC_TOKEN_ID,
+            &rust_biguint!(USER_BALANCE * 2),
+        );
+        b_mock.set_esdt_balance(
+            &depositor_address,
+            BASE_ASSET_TOKEN_ID,
             &rust_biguint!(USER_BALANCE * 2),
         );
 
@@ -146,34 +170,36 @@ where
             })
             .assert_ok();
 
+        let energy_factory_address = energy_factory_wrapper.address_ref().clone();
         b_mock
             .execute_tx(&owner_address, &fc_wrapper, &rust_zero, |sc| {
+                let mut admins = MultiValueEncoded::new();
+                admins.push(managed_address!(&owner_address));
+
                 sc.init(
-                    managed_token_id!(LOCKED_TOKEN_ID),
-                    managed_address!(energy_factory_wrapper.address_ref()),
+                    managed_address!(&energy_factory_address),
+                    managed_address!(energy_factory_wrapper.address_ref()), // unused
+                    BASE_TOKEN_BURN_PERCENT,
+                    admins,
                 );
-
-                let _ = sc
-                    .known_contracts()
-                    .insert(managed_address!(&depositor_address));
-
-                let mut tokens = MultiValueEncoded::new();
-                tokens.push(managed_token_id!(FIRST_TOKEN_ID));
-                tokens.push(managed_token_id!(SECOND_TOKEN_ID));
-                tokens.push(managed_token_id!(LOCKED_TOKEN_ID));
-
-                sc.add_known_tokens(tokens);
 
                 sc.set_energy_factory_address(managed_address!(
                     energy_factory_wrapper.address_ref()
                 ));
                 sc.set_locking_sc_address(managed_address!(energy_factory_wrapper.address_ref()));
                 sc.set_lock_epochs(LOCK_OPTIONS[2]);
+
+                // Should be a SC, but this is a test setup
+                sc.known_contracts()
+                    .insert(managed_address!(&depositor_address));
             })
             .assert_ok();
 
+        let b_mock_ref = RefCell::new(b_mock);
+        let b_mock_rc = Rc::new(b_mock_ref);
+
         FeesCollectorSetup {
-            b_mock,
+            b_mock: b_mock_rc,
             owner_address,
             depositor_address,
             fc_wrapper,
@@ -184,12 +210,13 @@ where
 
     pub fn advance_week(&mut self) {
         self.current_epoch += EPOCHS_IN_WEEK;
-        self.b_mock.set_block_epoch(self.current_epoch);
+        self.b_mock.borrow_mut().set_block_epoch(self.current_epoch);
     }
 
     pub fn get_current_week(&mut self) -> Week {
         let mut result = 0;
         self.b_mock
+            .borrow_mut()
             .execute_query(&self.fc_wrapper, |sc| result = sc.get_current_week())
             .assert_ok();
 
@@ -197,7 +224,7 @@ where
     }
 
     pub fn deposit(&mut self, token: &[u8], amount: u64) -> TxResult {
-        self.b_mock.execute_esdt_transfer(
+        self.b_mock.borrow_mut().execute_esdt_transfer(
             &self.depositor_address,
             &self.fc_wrapper,
             token,
@@ -209,11 +236,11 @@ where
         )
     }
 
-    pub fn deposit_locked_tokens(&mut self, token: &[u8], nonce: u64, amount: u64) -> TxResult {
-        self.b_mock.execute_esdt_transfer(
+    pub fn deposit_locked_tokens(&mut self, nonce: u64, amount: u64) -> TxResult {
+        self.b_mock.borrow_mut().execute_esdt_transfer(
             &self.depositor_address,
             &self.fc_wrapper,
-            token,
+            LOCKED_TOKEN_ID,
             nonce,
             &rust_biguint!(amount),
             |sc| {
@@ -224,6 +251,7 @@ where
 
     pub fn claim(&mut self, user: &Address) -> TxResult {
         self.b_mock
+            .borrow_mut()
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
                 let _ = sc.claim_rewards_endpoint(OptionalValue::None);
             })
@@ -231,6 +259,7 @@ where
 
     pub fn claim_for_user(&mut self, owner: &Address, broker: &Address) -> TxResult {
         self.b_mock
+            .borrow_mut()
             .execute_tx(broker, &self.fc_wrapper, &rust_biguint!(0), |sc| {
                 let _ = sc.claim_boosted_rewards(OptionalValue::Some(managed_address!(owner)));
             })
@@ -238,6 +267,7 @@ where
 
     pub fn allow_external_claim_rewards(&mut self, user: &Address) -> TxResult {
         self.b_mock
+            .borrow_mut()
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
                 sc.allow_external_claim_rewards(&managed_address!(user))
                     .set(true);
@@ -247,6 +277,7 @@ where
     pub fn set_energy(&mut self, user: &Address, total_locked_tokens: u64, energy_amount: u64) {
         let current_epoch = self.current_epoch;
         self.b_mock
+            .borrow_mut()
             .execute_tx(
                 user,
                 &self.energy_factory_wrapper,
@@ -260,5 +291,51 @@ where
                 },
             )
             .assert_ok();
+    }
+
+    pub fn set_burn_percent(&mut self, burn_percent: Percent) {
+        self.b_mock
+            .borrow_mut()
+            .execute_tx(
+                &self.owner_address,
+                &self.fc_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.set_base_token_burn_percent(burn_percent);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn simulate_increase_accumulated_fees(
+        &mut self,
+        week: usize,
+        token_id: &[u8],
+        amount: u64,
+    ) {
+        self.b_mock
+            .borrow_mut()
+            .execute_tx(
+                &self.owner_address,
+                &self.fc_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.accumulated_fees(week, &managed_token_id!(token_id))
+                        .update(|total_amount| {
+                            *total_amount += managed_biguint!(amount);
+                        });
+                },
+            )
+            .assert_ok();
+
+        let fc_address = self.fc_wrapper.address_ref();
+        let mut balance = self
+            .b_mock
+            .borrow()
+            .get_esdt_balance(fc_address, token_id, 0);
+        balance += amount;
+        self.b_mock
+            .borrow_mut()
+            .set_esdt_balance(fc_address, token_id, &balance);
     }
 }
