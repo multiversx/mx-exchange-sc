@@ -133,6 +133,41 @@ where
 {
     type WeeklyRewardsSplittingMod = T;
 
+    fn get_user_rewards_for_week(
+        &self,
+        sc: &Self::WeeklyRewardsSplittingMod,
+        week: Week,
+        energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+        total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
+        let mut user_rewards = ManagedVec::new();
+        if energy_amount == &0 || total_energy == &0 {
+            return user_rewards;
+        }
+
+        let locked_token_id = sc.get_locked_token_id();
+        let total_rewards = self.collect_and_get_rewards_for_week(sc, week);
+        for weekly_reward in &total_rewards {
+            let reward_amount = weekly_reward.amount * energy_amount / total_energy;
+            if reward_amount == 0 {
+                continue;
+            }
+
+            if weekly_reward.token_identifier != locked_token_id {
+                sc.rewards_claimed(week, &weekly_reward.token_identifier)
+                    .update(|amount| *amount += &reward_amount);
+            }
+
+            user_rewards.push(EsdtTokenPayment::new(
+                weekly_reward.token_identifier,
+                0,
+                reward_amount,
+            ));
+        }
+
+        user_rewards
+    }
+
     fn collect_rewards_for_week(
         &self,
         sc: &Self::WeeklyRewardsSplittingMod,

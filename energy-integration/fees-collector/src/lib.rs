@@ -59,12 +59,13 @@ pub trait FeesCollector:
     }
 
     #[upgrade]
-    fn upgrade(&self) {
-        let mut known_contracts_mapper = UnorderedSetMapper::<Self::Api, ManagedAddress>::new(
-            StorageKey::new(b"knownContracts"),
-        );
-        known_contracts_mapper.clear();
+    fn upgrade(&self, blocks_per_epoch_opt: OptionalValue<u64>) {
+        // Legacy storage
+        let locked_token_id_mapper =
+            SingleValueMapper::<Self::Api, TokenIdentifier>::new(StorageKey::new(b"lockedTokenId"));
+        locked_token_id_mapper.clear();
 
+        // Migrate existing data to new storage structure
         let all_tokens_mapper = SingleValueMapper::<Self::Api, ManagedVec<TokenIdentifier>>::new(
             StorageKey::new(b"allTokens"),
         );
@@ -82,7 +83,11 @@ pub trait FeesCollector:
         let locked_tokens_per_block_mapper =
             SingleValueMapper::<Self::Api, BigUint>::new(StorageKey::new(b"lockedTokensPerBlock"));
         let locked_tokens_per_block = locked_tokens_per_block_mapper.take();
-        let locked_tokens_per_epoch = locked_tokens_per_block * 10u64 * 60u64 * 24u64; // 14400 blocks per epoch
+        let blocks_per_epoch = match blocks_per_epoch_opt {
+            OptionalValue::Some(blocks_per_epoch_new) => blocks_per_epoch_new,
+            OptionalValue::None => 10u64 * 60u64 * 24u64,
+        };
+        let locked_tokens_per_epoch = locked_tokens_per_block * blocks_per_epoch;
 
         self.locked_tokens_per_epoch()
             .set_if_empty(locked_tokens_per_epoch);

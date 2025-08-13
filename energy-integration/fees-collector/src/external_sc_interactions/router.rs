@@ -33,6 +33,11 @@ pub trait RouterInteractionsModule:
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
     + multiversx_sc_modules::only_admin::OnlyAdminModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
 {
     #[only_owner]
     #[endpoint(setRouterAddress)]
@@ -44,7 +49,8 @@ pub trait RouterInteractionsModule:
 
     /// Swaps tokens to the base token (i.e. MEX).
     ///
-    /// `token_to_send` must be a known token to the fees collector, and the very last token received must be MEX.
+    /// `token_id` cannot be the base token (MEX) or locked token, and the very last token received must be MEX.
+    /// `token_amount` must be greater than zero.
     ///
     /// The fees collector uses the given pair paths through the router contract.
     ///
@@ -57,17 +63,22 @@ pub trait RouterInteractionsModule:
     #[endpoint(swapTokenToBaseToken)]
     fn swap_token_to_base_token(
         &self,
-        token_to_send: TokenIdentifier,
+        token_id: TokenIdentifier,
+        token_amount: BigUint,
         swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
     ) {
-        self.check_swap_through_router_args(&token_to_send, &swap_operations);
+        self.check_swap_through_router_args(&token_id, &token_amount, &swap_operations);
         let current_week = self.get_current_week();
 
-        let token_amount = self.get_token_available_amount(current_week, &token_to_send);
-        require!(token_amount > 0, "No tokens available for swap");
+        let token_max_amount =
+            self.get_token_available_amount(current_week, &token_id);
+        require!(
+            token_amount <= token_max_amount,
+            "Not enough tokens available for swap"
+        );
 
         let router_address = self.router_address().get();
-        let swap_payment = EsdtTokenPayment::new(token_to_send, 0, token_amount);
+        let swap_payment = EsdtTokenPayment::new(token_id, 0, token_amount);
         let mut received_tokens =
             self.call_swap_through_router(router_address.clone(), swap_payment, swap_operations);
 
@@ -85,7 +96,8 @@ pub trait RouterInteractionsModule:
 
     fn check_swap_through_router_args(
         &self,
-        token_to_send: &TokenIdentifier,
+        token_id: &TokenIdentifier,
+        token_amount: &BigUint,
         swap_operation: &MultiValueEncoded<SwapOperationType<Self::Api>>,
     ) {
         require!(!swap_operation.is_empty(), "No arguments provided");
@@ -93,8 +105,12 @@ pub trait RouterInteractionsModule:
         let base_token_id = self.get_base_token_id();
         let locked_token_id = self.get_locked_token_id();
         require!(
-            token_to_send != &base_token_id && token_to_send != &locked_token_id,
+            token_id != &base_token_id && token_id != &locked_token_id,
             "May not swap base token or locked token"
+        );
+        require!(
+            token_amount > &0,
+            "Token amount to swap must be greater than zero"
         );
     }
 

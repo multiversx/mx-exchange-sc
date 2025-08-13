@@ -13,6 +13,11 @@ pub trait AdditionalLockedTokensModule:
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
     + multiversx_sc_modules::only_admin::OnlyAdminModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
 {
     #[only_owner]
     #[endpoint(setLockedTokensPerEpoch)]

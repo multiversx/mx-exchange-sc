@@ -1,10 +1,14 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::Percent;
 use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
 use week_timekeeping::Week;
 use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
+
+pub struct WeekRange {
+    start_week: Week,
+    end_week: Week,
+}
 
 #[multiversx_sc::module]
 pub trait FeesAccumulationModule:
@@ -13,16 +17,12 @@ pub trait FeesAccumulationModule:
     + week_timekeeping::WeekTimekeepingModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
 {
-    /// Base token burn percent is between 0 (0%) and 10_000 (100%)
-    #[only_owner]
-    #[endpoint(setBaseTokenBurnPercent)]
-    fn set_base_token_burn_percent(&self, burn_percent: Percent) {
-        require!(burn_percent <= MAX_PENALTY_PERCENTAGE, "Invalid percent");
-
-        self.base_token_burn_percent().set(burn_percent);
-    }
-
     /// Anyone can deposit tokens through this endpoint
     ///
     /// Deposits for current week are accessible starting next week
@@ -31,12 +31,18 @@ pub trait FeesAccumulationModule:
     #[payable("*")]
     #[endpoint(depositSwapFees)]
     fn deposit_swap_fees(&self) {
+        let caller = self.blockchain().get_caller();
         let mut payment = self.call_value().single_esdt();
 
         let current_week = self.get_current_week();
         let base_token_id = self.get_base_token_id();
 
         if payment.token_nonce != 0 {
+            require!(
+                self.known_contracts().contains(&caller),
+                "Caller must be a known contract"
+            );
+
             self.try_burn_locked_token(&payment);
 
             self.accumulated_fees(current_week, &payment.token_identifier)
@@ -48,7 +54,6 @@ pub trait FeesAccumulationModule:
                 .update(|amt| *amt += &payment.amount);
         }
 
-        let caller = self.blockchain().get_caller();
         self.emit_deposit_swap_fees_event(&caller, current_week, &payment);
     }
 
@@ -102,34 +107,75 @@ pub trait FeesAccumulationModule:
         current_week: Week,
         token_id: &TokenIdentifier,
     ) -> BigUint {
-        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS;
-        if current_week < collect_rewards_offset {
-            return BigUint::zero();
+        let week_range = self.get_week_range(current_week);
+        let remaining_claimable_token_amount = self.calculate_remaining_claimable_token_amount(
+            week_range.start_week,
+            week_range.end_week,
+            token_id,
+        );
+
+        self.calculate_available_balance(token_id, remaining_claimable_token_amount)
+    }
+
+    fn get_week_range(&self, current_week: Week) -> WeekRange {
+        let start_week = if current_week >= USER_MAX_CLAIM_WEEKS {
+            current_week - USER_MAX_CLAIM_WEEKS
+        } else {
+            0
+        };
+        WeekRange {
+            start_week,
+            end_week: current_week,
         }
+    }
 
-        let start_week = current_week - collect_rewards_offset;
-        let end_week = current_week;
+    fn calculate_remaining_claimable_token_amount(
+        &self,
+        start_week: Week,
+        end_week: Week,
+        token_id: &TokenIdentifier,
+    ) -> BigUint {
+        let mut remaining_claimable_token_amount = BigUint::zero();
 
-        let mut token_acc_amount = BigUint::zero();
         for week in start_week..=end_week {
-            let week_amount = self.accumulated_fees(week, token_id).get();
-            token_acc_amount += week_amount;
+            let mut week_amount = self.accumulated_fees(week, token_id).get();
+            week_amount += self.find_total_reward_amount_for_token(week, token_id);
+            week_amount -= self.rewards_claimed(week, token_id).get();
+
+            remaining_claimable_token_amount += week_amount;
         }
 
+        remaining_claimable_token_amount
+    }
+
+    fn find_total_reward_amount_for_token(
+        &self,
+        week: Week,
+        token_id: &TokenIdentifier,
+    ) -> BigUint {
+        let total_rewards_for_week = self.total_rewards_for_week(week).get();
+
+        for reward in &total_rewards_for_week {
+            if &reward.token_identifier == token_id {
+                return reward.amount.clone();
+            }
+        }
+
+        BigUint::zero()
+    }
+
+    fn calculate_available_balance(
+        &self,
+        token_id: &TokenIdentifier,
+        remaining_claimable_token_amount: BigUint,
+    ) -> BigUint {
         let sc_address = self.blockchain().get_sc_address();
         let token_total_balance = self.blockchain().get_esdt_balance(&sc_address, token_id, 0);
 
-        if token_total_balance <= token_acc_amount {
+        if token_total_balance <= remaining_claimable_token_amount {
             return BigUint::zero();
         }
 
-        token_total_balance - token_acc_amount
+        token_total_balance - remaining_claimable_token_amount
     }
-
-    #[view(getAccumulatedFees)]
-    #[storage_mapper("accumulatedFees")]
-    fn accumulated_fees(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("baseTokenBurnPercent")]
-    fn base_token_burn_percent(&self) -> SingleValueMapper<Percent>;
 }

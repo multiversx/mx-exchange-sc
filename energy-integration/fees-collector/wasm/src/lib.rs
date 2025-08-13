@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           42
+// Endpoints:                           45
 // Async Callback (empty):               1
-// Total number of exported functions:  45
+// Total number of exported functions:  48
 
 #![no_std]
 
@@ -20,9 +20,14 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         init => init
         upgrade => upgrade
-        addRewardTokens => add_reward_tokens
+        addKnownContracts => add_known_contracts
+        removeKnownContracts => remove_known_contracts
+        setBaseTokenBurnPercent => set_base_token_burn_percent
         removeRewardTokens => remove_reward_tokens
         getRewardTokens => reward_tokens
+        getAllKnownContracts => known_contracts
+        getAccumulatedFees => accumulated_fees
+        getRewardsClaimed => rewards_claimed
         getAllowExternalClaimRewards => allow_external_claim_rewards
         getLastActiveWeekForUser => get_last_active_week_for_user_view
         getUserEnergyForWeek => get_user_energy_for_week_view
@@ -32,10 +37,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getTotalLockedTokensForWeek => total_locked_tokens_for_week
         updateEnergyForUser => update_energy_for_user
         getCurrentClaimProgress => current_claim_progress
-        setBaseTokenBurnPercent => set_base_token_burn_percent
         depositSwapFees => deposit_swap_fees
         getTokenAvailableAmount => get_token_available_amount
-        getAccumulatedFees => accumulated_fees
         setLockedTokensPerEpoch => set_locked_tokens_per_epoch
         getLastLockedTokensAddWeek => last_locked_token_add_week
         getLockedTokensPerEpoch => locked_tokens_per_epoch
