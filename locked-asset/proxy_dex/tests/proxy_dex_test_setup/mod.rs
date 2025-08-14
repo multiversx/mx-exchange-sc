@@ -41,7 +41,7 @@ pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
 // Farm
 pub static FARM_LOCKED_TOKEN_ID: &[u8] = b"FARML-123456";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000_000_000;
-pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
+pub const PER_SECOND_REWARD_AMOUNT: u64 = 5_000;
 pub const USER_REWARDS_BASE_CONST: u64 = 10;
 pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
@@ -322,8 +322,8 @@ where
             let farm_token_id = managed_token_id!(FARM_LOCKED_TOKEN_ID);
             sc.farm_token().set_token_id(farm_token_id);
 
-            sc.per_block_reward_amount()
-                .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
+            sc.per_second_reward_amount()
+                .set(&managed_biguint!(PER_SECOND_REWARD_AMOUNT));
 
             sc.state().set(State::Active);
             sc.produce_rewards_enabled().set(true);

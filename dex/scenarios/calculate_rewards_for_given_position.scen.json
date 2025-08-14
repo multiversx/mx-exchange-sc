@@ -34,9 +34,9 @@
         },
         {
             "step": "setState",
-            "comment": "set block nonce. Set per_block_reward and produce_rewards_enabled",
+            "comment": "set block timestamp. Set per_second_reward and produce_rewards_enabled",
             "currentBlockInfo": {
-                "blockNonce": "2"
+                "blockTimestamp": "2"
             },
             "accounts": {
                 "sc:farm_contract": {
@@ -77,7 +77,7 @@
                         "str:reward_token_id": "str:WEGLD-abcdef",
                         "str:router_address": "sc:router_contract",
                         "str:state": "1",
-                        "str:per_block_reward_amount": "500",
+                        "str:per_second_reward_amount": "500",
                         "str:produce_rewards_enabled": "1"
                     },
                     "code": "file:../farm/output/farm.wasm",

@@ -88,7 +88,7 @@ where
 
     let mut block_round: u64 = 1;
     b_mock.set_block_round(block_round);
-    b_mock.set_block_nonce(BLOCK_NONCE_FIRST_ADD_LIQ);
+    b_mock.set_block_timestamp(TIMESTAMP_FIRST_ADD_LIQ);
 
     let temp_user_addr = b_mock.create_user_account(&rust_zero);
     b_mock.set_esdt_balance(
@@ -117,7 +117,7 @@ where
 
     block_round += 1;
     b_mock.set_block_round(block_round);
-    b_mock.set_block_nonce(BLOCK_NONCE_SECOND_ADD_LIQ);
+    b_mock.set_block_timestamp(TIMESTAMP_SECOND_ADD_LIQ);
 
     add_liquidity(
         user_addr,
@@ -160,7 +160,7 @@ where
         })
         .assert_ok();
 
-    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP);
+    b_mock.set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP);
 
     pair_wrapper
 }
@@ -287,10 +287,9 @@ where
 
             sc.state().set(State::Active);
             sc.produce_rewards_enabled().set(true);
-            sc.per_block_reward_amount()
-                .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
-            sc.last_reward_block_nonce()
-                .set(BLOCK_NONCE_AFTER_PAIR_SETUP);
+            sc.per_second_reward_amount()
+                .set(&managed_biguint!(LP_FARM_PER_SECOND_REWARD_AMOUNT));
+            sc.last_reward_timestamp().set(TIMESTAMP_AFTER_PAIR_SETUP);
             sc.lock_epochs().set(LOCK_OPTIONS[2]);
             sc.locking_sc_address()
                 .set(managed_address!(energy_factory_address));

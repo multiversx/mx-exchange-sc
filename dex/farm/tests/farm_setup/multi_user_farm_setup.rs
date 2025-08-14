@@ -8,6 +8,8 @@ use energy_factory::unlocked_token_transfer::UnlockedTokenTransferModule;
 use farm::external_interaction::ExternalInteractionsModule;
 use farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
+use multiversx_sc::imports::{SingleValueMapper, StorageMapper};
+use multiversx_sc::types::BigUint;
 use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
@@ -29,6 +31,7 @@ use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use permissions_hub::PermissionsHub;
 use permissions_hub_module::PermissionsHubModule;
+use rewards::RewardsModule;
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenModule;
 use week_timekeeping::Epoch;
@@ -42,7 +45,7 @@ pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 pub const DIV_SAFETY: u64 = 1_000_000_000_000;
-pub const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
+pub const PER_SECOND_REWARD_AMOUNT: u64 = 1_000;
 pub const FARMING_TOKEN_BALANCE: u64 = 200_000_000;
 pub const MAX_PERCENTAGE: u64 = 10_000; // 100%
 pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
@@ -200,8 +203,8 @@ where
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
                 sc.farm_token().set_token_id(farm_token_id);
 
-                sc.per_block_reward_amount()
-                    .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
+                sc.per_second_reward_amount()
+                    .set(&managed_biguint!(PER_SECOND_REWARD_AMOUNT));
 
                 sc.state().set(State::Active);
                 sc.produce_rewards_enabled().set(true);
@@ -1028,5 +1031,91 @@ where
                 original_owner: managed_address!(&sender),
             }),
         );
+    }
+
+    pub fn simulate_per_block_migration_storage(
+        &mut self,
+        per_block_reward_amount: u64,
+        last_reward_block_nonce: u64,
+    ) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                use multiversx_sc::storage::StorageKey;
+
+                // Set old storage values
+                let last_reward_block_nonce_mapper = SingleValueMapper::<DebugApi, u64>::new(
+                    StorageKey::new(b"last_reward_block_nonce"),
+                );
+                let per_block_reward_amount_mapper =
+                    SingleValueMapper::<DebugApi, BigUint<DebugApi>>::new(StorageKey::new(
+                        b"per_block_reward_amount",
+                    ));
+
+                last_reward_block_nonce_mapper.set(last_reward_block_nonce);
+                per_block_reward_amount_mapper.set(managed_biguint!(per_block_reward_amount));
+
+                // Clear the new storage to simulate pre-upgrade state
+                sc.per_second_reward_amount().clear();
+                sc.last_reward_timestamp().clear();
+
+                sc.produce_rewards_enabled().set(true);
+            })
+            .assert_ok();
+    }
+
+    pub fn verify_old_storage_cleared(&mut self) {
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |_sc| {
+                use multiversx_sc::storage::StorageKey;
+
+                let last_reward_block_nonce_mapper = SingleValueMapper::<DebugApi, u64>::new(
+                    StorageKey::new(b"last_reward_block_nonce"),
+                );
+                let per_block_reward_amount_mapper =
+                    SingleValueMapper::<DebugApi, BigUint<DebugApi>>::new(StorageKey::new(
+                        b"per_block_reward_amount",
+                    ));
+
+                let old_block_nonce: u64 = last_reward_block_nonce_mapper.get();
+                let old_per_block_amount: BigUint<DebugApi> = per_block_reward_amount_mapper.get();
+
+                assert_eq!(
+                    old_block_nonce, 0u64,
+                    "Old block nonce storage should be cleared"
+                );
+                assert_eq!(
+                    old_per_block_amount,
+                    managed_biguint!(0),
+                    "Old per block amount storage should be cleared"
+                );
+            })
+            .assert_ok();
+    }
+
+    pub fn get_reward_per_share(&mut self) -> u64 {
+        let mut reward_per_share = 0u64;
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                reward_per_share = sc.reward_per_share().get().to_u64().unwrap();
+            })
+            .assert_ok();
+
+        reward_per_share
+    }
+
+    pub fn advance_time(&mut self, seconds: u64) {
+        let mut current_timestamp = 0u64;
+        let mut current_block = 0u64;
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                use multiversx_sc::contract_base::ContractBase;
+
+                current_timestamp = sc.blockchain().get_block_timestamp();
+                current_block = sc.blockchain().get_block_nonce();
+            })
+            .assert_ok();
+
+        self.b_mock.set_block_timestamp(current_timestamp + seconds);
+        self.b_mock.set_block_nonce(current_block + seconds / 6); // 6 seconds per block
     }
 }

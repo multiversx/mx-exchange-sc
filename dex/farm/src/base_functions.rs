@@ -249,13 +249,13 @@ pub trait BaseFunctionsModule:
         self.produce_rewards_enabled().set(false);
     }
 
-    fn set_per_block_rewards<FC: FarmContract<FarmSc = Self>>(&self, per_block_amount: BigUint) {
-        require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
+    fn set_per_second_rewards<FC: FarmContract<FarmSc = Self>>(&self, per_second_amount: BigUint) {
+        require!(per_second_amount != 0u64, ERROR_ZERO_AMOUNT);
 
         let mut storage = StorageCache::new(self);
         FC::generate_aggregated_rewards(self, &mut storage);
 
-        self.per_block_reward_amount().set(&per_block_amount);
+        self.per_second_reward_amount().set(&per_second_amount);
     }
 
     fn require_queried(&self) {
@@ -305,7 +305,7 @@ where
         sc: &Self::FarmSc,
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
-        let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
+        let total_reward = Self::mint_per_second_rewards(sc, &storage_cache.reward_token_id);
         if total_reward > 0u64 {
             storage_cache.reward_reserve += &total_reward;
             let split_rewards = sc.take_reward_slice(total_reward);

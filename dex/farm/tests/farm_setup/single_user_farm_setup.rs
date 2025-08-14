@@ -32,7 +32,7 @@ pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 pub const MIN_FARMING_EPOCHS: u64 = 2;
 pub const PENALTY_PERCENT: u64 = 10;
 pub const MAX_PERCENT: u64 = 10_000;
-pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
+pub const PER_SECOND_REWARD_AMOUNT: u64 = 5_000;
 pub const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
 pub const MAX_REWARDS_FACTOR: u64 = 10;
 pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
@@ -135,8 +135,8 @@ where
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
                 sc.farm_token().set_token_id(farm_token_id);
 
-                sc.per_block_reward_amount()
-                    .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
+                sc.per_second_reward_amount()
+                    .set(&managed_biguint!(PER_SECOND_REWARD_AMOUNT));
                 sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
                 sc.penalty_percent().set(PENALTY_PERCENT);
 
@@ -429,8 +429,8 @@ where
             .assert_ok();
     }
 
-    pub fn set_block_nonce(&mut self, block_nonce: u64) {
-        self.blockchain_wrapper.set_block_nonce(block_nonce);
+    pub fn set_block_timestamp(&mut self, block_timestamp: u64) {
+        self.blockchain_wrapper.set_block_timestamp(block_timestamp);
     }
 
     pub fn set_block_epoch(&mut self, block_epoch: u64) {

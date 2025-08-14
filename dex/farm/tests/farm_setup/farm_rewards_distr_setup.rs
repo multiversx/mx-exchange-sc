@@ -29,7 +29,7 @@ pub const PENALTY_PERCENT: u64 = 10;
 pub enum Action {
     EnterFarm(Address, RustBigUint),
     ExitFarm(Address, u64, RustBigUint, RustBigUint),
-    RewardPerBlockRateChange(RustBigUint),
+    RewardPerSecondRateChange(RustBigUint),
 }
 
 pub struct Expected {
@@ -65,7 +65,7 @@ impl<FarmObjBuilder> FarmRewardsDistrSetup<FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
-    pub fn new(farm_builder: FarmObjBuilder, per_block_reward_amount: RustBigUint) -> Self {
+    pub fn new(farm_builder: FarmObjBuilder, per_second_reward_amount: RustBigUint) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let mut blockchain_wrapper = BlockchainStateWrapper::new();
         let owner_addr = blockchain_wrapper.create_user_account(&rust_zero);
@@ -97,8 +97,8 @@ where
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
                 sc.farm_token().set_token_id(farm_token_id);
 
-                sc.per_block_reward_amount()
-                    .set(&to_managed_biguint(per_block_reward_amount));
+                sc.per_second_reward_amount()
+                    .set(to_managed_biguint(per_second_reward_amount));
                 sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
                 sc.penalty_percent().set(PENALTY_PERCENT);
 
@@ -207,14 +207,14 @@ where
         b_mock.check_esdt_balance(caller, MEX_TOKEN_ID, &expected_mex_balance);
     }
 
-    pub fn reward_per_block_rate_change(&mut self, new_rate: RustBigUint) {
+    pub fn reward_per_second_rate_change(&mut self, new_rate: RustBigUint) {
         self.blockchain_wrapper
             .execute_tx(
                 &self.owner_address,
                 &self.farm_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.set_per_block_rewards_endpoint(to_managed_biguint(new_rate));
+                    sc.set_per_second_rewards_endpoint(to_managed_biguint(new_rate));
                 },
             )
             .assert_ok();
@@ -231,8 +231,8 @@ where
                     expected_mex_balance,
                 )
             }
-            Action::RewardPerBlockRateChange(new_rate) => {
-                self.reward_per_block_rate_change(new_rate)
+            Action::RewardPerSecondRateChange(new_rate) => {
+                self.reward_per_second_rate_change(new_rate)
             }
         }
     }
@@ -259,8 +259,9 @@ where
             .assert_ok();
     }
 
-    pub fn step(&mut self, block_number: u64, action: Action, expected: Expected) {
-        self.blockchain_wrapper.set_block_nonce(block_number + 1); // spreadsheet correction
+    pub fn step(&mut self, timestamp_number: u64, action: Action, expected: Expected) {
+        self.blockchain_wrapper
+            .set_block_timestamp(timestamp_number + 1); // spreadsheet correction
         self.handle_action(action);
         self.check_expected(expected);
     }

@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           72
+// Endpoints:                           71
 // Async Callback:                       1
-// Total number of exported functions:  75
+// Total number of exported functions:  74
 
 #![no_std]
 
@@ -26,7 +26,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         topUpRewards => top_up_rewards
         withdrawRewards => withdraw_rewards
         endProduceRewards => end_produce_rewards
-        setPerBlockRewardAmount => set_per_block_rewards
+        setPerSecondRewardAmount => set_per_second_rewards
         setMaxApr => set_max_apr
         setMinUnbondEpochs => set_min_unbond_epochs_endpoint
         startProduceRewards => start_produce_rewards_endpoint
@@ -38,8 +38,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getRewardReserve => reward_reserve
         getFarmingTokenId => farming_token_id
         getRewardTokenId => reward_token_id
-        getPerBlockRewardAmount => per_block_reward_amount
-        getLastRewardBlockNonce => last_reward_block_nonce
+        getPerSecondRewardAmount => per_second_reward_amount
+        getLastRewardTimestamp => last_reward_timestamp
         getDivisionSafetyConstant => division_safety_constant
         getUserTotalFarmPosition => user_total_farm_position
         getAllowExternalClaim => allow_external_claim
@@ -77,7 +77,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         getFarmSupplyForWeek => farm_supply_for_week
         setBoostedYieldsFactors => set_boosted_yields_factors
         getBoostedYieldsFactors => get_boosted_yields_factors
-        setMinGasForProcess => set_min_gas_for_process
         collectUndistributedBoostedRewards => collect_undistributed_boosted_rewards
         getRemainingBoostedRewardsToDistribute => remaining_boosted_rewards_to_distribute
         getCurrentWeek => get_current_week

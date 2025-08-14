@@ -8,20 +8,20 @@ pub trait RewardsModule:
 {
     fn start_produce_rewards(&self) {
         require!(
-            self.per_block_reward_amount().get() != 0u64,
+            self.per_second_reward_amount().get() != 0u64,
             "Cannot produce zero reward amount"
         );
         require!(
             !self.produce_rewards_enabled().get(),
             "Producing rewards is already enabled"
         );
-        let current_nonce = self.blockchain().get_block_nonce();
+        let current_timestamp = self.blockchain().get_block_timestamp();
         self.produce_rewards_enabled().set(true);
-        self.last_reward_block_nonce().set(current_nonce);
+        self.last_reward_timestamp().set(current_timestamp);
     }
 
     #[inline]
-    fn produces_per_block_rewards(&self) -> bool {
+    fn produces_per_second_rewards(&self) -> bool {
         self.produce_rewards_enabled().get()
     }
 
