@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
+use common_structs::{FarmToken, FarmTokenAttributes, Timestamp};
 use config::ConfigModule;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
@@ -56,8 +56,8 @@ pub trait FarmContract {
 
     fn calculate_per_second_rewards(
         sc: &Self::FarmSc,
-        current_timestamp: Nonce,
-        last_reward_timestamp: Nonce,
+        current_timestamp: Timestamp,
+        last_reward_timestamp: Timestamp,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         if current_timestamp <= last_reward_timestamp || !sc.produces_per_second_rewards() {
             return BigUint::zero();
