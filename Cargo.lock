@@ -2136,6 +2136,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "whitelists-hub"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "permissions_module",
+]
+
+[[package]]
+name = "whitelists-hub-meta"
+version = "0.0.0"
+dependencies = [
+ "multiversx-sc-meta-lib",
+ "whitelists-hub",
+]
+
+[[package]]
 name = "winapi-util"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
