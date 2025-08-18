@@ -1,3 +1,5 @@
+use common_structs::Epoch;
+
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -13,7 +15,7 @@ multiversx_sc::derive_imports!();
     Debug,
 )]
 pub struct UnstakePair<M: ManagedTypeApi> {
-    pub unlock_epoch: u64,
+    pub unlock_epoch: Epoch,
     pub locked_tokens: EsdtTokenPayment<M>,
     pub unlocked_tokens: EsdtTokenPayment<M>,
 }
@@ -22,7 +24,7 @@ pub struct UnstakePair<M: ManagedTypeApi> {
 pub trait TokensPerUserModule {
     #[view(getUnbondEpochs)]
     #[storage_mapper("unbondEpochs")]
-    fn unbond_epochs(&self) -> SingleValueMapper<u64>;
+    fn unbond_epochs(&self) -> SingleValueMapper<Epoch>;
 
     #[view(getUnlockedTokensForUser)]
     #[storage_mapper("unlockedTokensForUser")]
