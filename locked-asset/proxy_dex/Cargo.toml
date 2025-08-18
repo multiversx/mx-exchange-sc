@@ -63,6 +63,9 @@ path = "../simple-lock"
 [dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
 
+[dependencies.disable-add-liq]
+path = "../../common/modules/disable-add-liq"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"
