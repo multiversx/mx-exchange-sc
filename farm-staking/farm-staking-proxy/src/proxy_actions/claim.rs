@@ -30,7 +30,7 @@ pub trait ProxyClaimModule:
 
         let payment = self.call_value().single_esdt();
 
-        let claim_result = self.claim_dual_yield_common(orig_caller, payment);
+        let claim_result = self.claim_dual_yield_common(orig_caller, payment.clone());
 
         claim_result.send_and_return(self, &caller)
     }

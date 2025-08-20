@@ -29,10 +29,10 @@ pub trait UtilsModule {
     }
 
     fn get_non_empty_payments(&self) -> PaymentsVec<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
+        let payments = self.call_value().all_esdt_transfers().clone_value();
         require!(!payments.is_empty(), ERR_EMPTY_PAYMENTS);
 
-        payments.clone_value()
+        payments
     }
 
     fn pop_first_payment(
@@ -41,7 +41,7 @@ pub trait UtilsModule {
     ) -> EsdtTokenPayment<Self::Api> {
         require!(!payments.is_empty(), ERR_EMPTY_PAYMENTS);
 
-        let first_payment = payments.get(0);
+        let first_payment = payments.get(0).clone();
         payments.remove(0);
 
         first_payment

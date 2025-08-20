@@ -27,7 +27,7 @@ pub trait LockedTokenWrapper:
     #[payable("*")]
     #[endpoint(wrapLockedToken)]
     fn wrap_locked_token_endpoint(&self) -> EsdtTokenPayment {
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
         let caller = self.blockchain().get_caller();
 
         require!(
@@ -45,7 +45,7 @@ pub trait LockedTokenWrapper:
     #[endpoint(unwrapLockedToken)]
     fn unwrap_locked_token_endpoint(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
         let locked_token_id = self.get_locked_token_id();
         let original_locked_tokens = self.unwrap_locked_token(locked_token_id, payment);
 

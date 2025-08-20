@@ -143,7 +143,7 @@ pub trait ExternalContractsInteractionsModule:
         farm_token_amount: BigUint,
     ) -> StakingFarmExitResult<Self::Api> {
         let staking_farm_token_id = self.staking_farm_token_id().get();
-        let mut payments = ManagedVec::from_single_item(staking_tokens);
+        let mut payments = ManagedVec::from_single_item(staking_tokens.clone());
         payments.push(EsdtTokenPayment::new(
             staking_farm_token_id,
             farm_token_nonce,

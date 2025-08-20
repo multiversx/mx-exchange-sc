@@ -5,7 +5,8 @@ use permissions_module::Permissions;
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
 pub enum State {
     Inactive,
     Active,

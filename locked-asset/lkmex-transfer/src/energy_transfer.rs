@@ -53,7 +53,7 @@ pub trait EnergyTransferModule:
                 let epoch_diff = current_epoch - attributes.unlock_epoch;
                 let simulated_deplete_amount = &token.amount * epoch_diff;
                 energy.remove_energy_raw(BigUint::zero(), simulated_deplete_amount);
-                energy.add_energy_raw(token.amount, BigInt::zero());
+                energy.add_energy_raw(token.amount.clone(), BigInt::zero());
             }
         }
 

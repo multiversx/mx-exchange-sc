@@ -51,8 +51,11 @@ pub trait UnbondFarmModule:
         farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         let caller = self.blockchain().get_caller();
-        let farming_tokens =
-            EsdtTokenPayment::new(storage_cache.farming_token_id.clone(), 0, payment.amount);
+        let farming_tokens = EsdtTokenPayment::new(
+            storage_cache.farming_token_id.clone(),
+            0,
+            payment.amount.clone(),
+        );
         self.send_payment_non_zero(&caller, &farming_tokens);
 
         farming_tokens

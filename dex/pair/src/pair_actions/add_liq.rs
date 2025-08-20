@@ -74,8 +74,8 @@ pub trait AddLiquidityModule:
         );
 
         let mut add_liq_context = AddLiquidityContext::new(
-            first_payment,
-            second_payment,
+            first_payment.clone(),
+            second_payment.clone(),
             first_token_amount_min,
             second_token_amount_min,
         );

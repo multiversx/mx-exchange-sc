@@ -1,6 +1,3 @@
-[settings]
-main = "pair"
-
 [contracts.pair]
 name = "pair"
 add-unlabelled = true

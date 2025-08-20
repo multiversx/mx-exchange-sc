@@ -14,7 +14,7 @@ pub trait OriginalOwnerHelperModule {
         let farm_token_id = farm_token_mapper.get_token_id();
 
         let mut opt_original_owner = None;
-        for payment in payments.into_iter() {
+        for payment in payments.iter() {
             require!(
                 payment.token_identifier == farm_token_id,
                 "Invalid payment token"
@@ -58,7 +58,7 @@ pub trait OriginalOwnerHelperModule {
         }
 
         let farm_token_id = farm_token_mapper.get_token_id();
-        for payment in payments.into_iter() {
+        for payment in payments {
             if payment.token_identifier != farm_token_id {
                 continue;
             }

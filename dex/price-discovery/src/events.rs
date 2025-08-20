@@ -3,7 +3,8 @@ use crate::phase::Phase;
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct DepositEvent<M: ManagedTypeApi> {
     token_id_in: EgldOrEsdtTokenIdentifier<M>,
     token_amount_in: BigUint<M>,
@@ -16,7 +17,8 @@ pub struct DepositEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct WithdrawEvent<M: ManagedTypeApi> {
     token_id_out: EgldOrEsdtTokenIdentifier<M>,
     token_amount_out: BigUint<M>,
@@ -29,7 +31,8 @@ pub struct WithdrawEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct RedeemEvent<M: ManagedTypeApi> {
     redeem_token_id: TokenIdentifier<M>,
     redeem_token_nonce: u64,

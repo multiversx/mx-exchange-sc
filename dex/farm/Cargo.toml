@@ -78,11 +78,11 @@ path = "../../energy-integration/common-modules/energy-query"
 path = "../permissions-hub"
 
 [dependencies.multiversx-sc]
-version = "=0.53.2"
+version = "=0.60.0"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.53.2"
+version = "=0.60.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -91,7 +91,7 @@ num-bigint = "0.4.2"
 path = "../../energy-integration/energy-update"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.53.2"
+version = "=0.60.0"
 
 [dev-dependencies.energy-factory]
 path = "../../locked-asset/energy-factory"

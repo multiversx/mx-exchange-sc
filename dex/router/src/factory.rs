@@ -6,13 +6,15 @@ use pair::read_pair_storage;
 
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq)]
 pub struct PairTokens<M: ManagedTypeApi> {
     pub first_token_id: TokenIdentifier<M>,
     pub second_token_id: TokenIdentifier<M>,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, PartialEq)]
 pub struct PairContractMetadata<M: ManagedTypeApi> {
     first_token_id: TokenIdentifier<M>,
     second_token_id: TokenIdentifier<M>,

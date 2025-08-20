@@ -11,7 +11,8 @@ static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
 static PAIR_STATE_STORAGE_KEY: &[u8] = b"state";
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
     pub locked_token_id: TokenIdentifier<M>,
     pub min_locked_token_value: BigUint<M>,

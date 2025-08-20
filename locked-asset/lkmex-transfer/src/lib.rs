@@ -13,15 +13,15 @@ use permissions_module::Permissions;
 
 use crate::constants::*;
 
-#[derive(
-    TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, ManagedVecItem, TypeAbi, Debug,
-)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, ManagedVecItem, Debug)]
 pub struct LockedFunds<M: ManagedTypeApi> {
     pub funds: PaymentsVec<M>,
     pub locked_epoch: Epoch,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode)]
 pub struct ScheduledTransfer<M: ManagedTypeApi> {
     pub sender: ManagedAddress<M>,
     pub locked_funds: LockedFunds<M>,
@@ -125,7 +125,7 @@ pub trait LkmexTransfer:
         let sender_last_transfer_mapper = self.sender_last_transfer_epoch(&sender);
         self.check_address_on_cooldown(&sender_last_transfer_mapper);
 
-        let payments = self.call_value().all_esdt_transfers().clone_value();
+        let payments = self.call_value().all_esdt_transfers();
         let locked_token_id = self.locked_token_id().get();
         for payment in payments.iter() {
             require!(
@@ -138,7 +138,7 @@ pub trait LkmexTransfer:
 
         let current_epoch = self.blockchain().get_block_epoch();
         let locked_funds = LockedFunds {
-            funds: payments,
+            funds: payments.clone(),
             locked_epoch: current_epoch,
         };
         self.locked_funds(&receiver, &sender)

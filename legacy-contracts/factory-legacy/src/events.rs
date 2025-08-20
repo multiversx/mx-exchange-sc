@@ -3,7 +3,8 @@ multiversx_sc::derive_imports!();
 
 use common_structs::LockedAssetTokenAttributesEx;
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     destination: ManagedAddress<M>,
@@ -17,7 +18,8 @@ pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct UnlockAssetsEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     input_locked_assets_token_id: TokenIdentifier<M>,

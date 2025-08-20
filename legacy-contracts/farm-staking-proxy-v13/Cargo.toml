@@ -9,11 +9,11 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "=0.53.2"
+version = "=0.60.0"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.53.2"
+version = "=0.60.0"
 
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
@@ -57,4 +57,4 @@ path = "../../common/modules/pausable"
 path = "../../common/modules/sc_whitelist_module"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.53.2"
+version = "=0.60.0"

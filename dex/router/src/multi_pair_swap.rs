@@ -27,7 +27,7 @@ pub trait MultiPairSwap:
     ) -> ManagedVec<EsdtTokenPayment> {
         require!(self.is_active(), "Not active");
 
-        let (token_id, nonce, amount) = self.call_value().single_esdt().into_tuple();
+        let (token_id, nonce, amount) = self.call_value().single_esdt().clone().into_tuple();
         require!(nonce == 0, "Invalid nonce. Should be zero");
         require!(amount > 0u64, "Invalid amount. Should not be zero");
         require!(

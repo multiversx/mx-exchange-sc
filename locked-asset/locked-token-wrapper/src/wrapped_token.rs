@@ -5,6 +5,7 @@ use common_structs::Nonce;
 
 pub static WRAPPED_TOKEN_NAME: &[u8] = b"WrappedLKMEX";
 
+#[type_abi]
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct WrappedTokenAttributes {
     pub locked_token_nonce: Nonce,
@@ -24,10 +25,10 @@ pub trait WrappedTokenModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().egld_value().clone_value();
+        let payment_amount = self.call_value().egld().clone_value();
 
         self.wrapped_token().issue_and_set_all_roles(
-            EsdtTokenType::Meta,
+            EsdtTokenType::MetaFungible,
             payment_amount,
             token_display_name,
             token_ticker,

@@ -71,7 +71,8 @@ pub trait WrappedLpTokenMerge:
             .get(0)
             .attributes
             .locked_tokens
-            .token_identifier;
+            .token_identifier
+            .clone();
         let factory_address = self.get_factory_address_for_locked_token(&locked_token_id);
 
         let wrapped_lp_token_mapper = self.wrapped_lp_token();

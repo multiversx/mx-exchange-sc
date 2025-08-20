@@ -114,7 +114,11 @@ pub trait OutputBuilderModule:
         &self,
         output_payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> RemoveLiquidityResultType<Self::Api> {
-        (output_payments.get(0), output_payments.get(1)).into()
+        (
+            output_payments.get(0).clone(),
+            output_payments.get(1).clone(),
+        )
+            .into()
     }
 
     fn build_swap_output_payments(
@@ -152,13 +156,17 @@ pub trait OutputBuilderModule:
         &self,
         output_payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
-        output_payments.get(0)
+        output_payments.get(0).clone()
     }
 
     fn build_swap_fixed_output_results(
         &self,
         output_payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {
-        (output_payments.get(0), output_payments.get(1)).into()
+        (
+            output_payments.get(0).clone(),
+            output_payments.get(1).clone(),
+        )
+            .into()
     }
 }

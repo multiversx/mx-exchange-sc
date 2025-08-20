@@ -6,7 +6,8 @@ use crate::contexts::swap::SwapContext;
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct SwapEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     token_id_in: TokenIdentifier<M>,
@@ -21,7 +22,8 @@ pub struct SwapEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct SwapNoFeeAndForwardEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     token_id_in: TokenIdentifier<M>,
@@ -34,7 +36,8 @@ pub struct SwapNoFeeAndForwardEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct AddLiquidityEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     first_token_id: TokenIdentifier<M>,
@@ -51,7 +54,8 @@ pub struct AddLiquidityEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     first_token_id: TokenIdentifier<M>,

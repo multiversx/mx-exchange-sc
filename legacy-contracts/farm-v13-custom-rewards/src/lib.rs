@@ -12,13 +12,15 @@ type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type INCORRECTReturnType<ManagedTypeApi> = ManagedBuffer<ManagedTypeApi>;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq)]
 pub enum State {
     Inactive,
     Active,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone)]
 pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub original_entering_epoch: u64,

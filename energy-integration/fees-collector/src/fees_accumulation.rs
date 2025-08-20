@@ -41,7 +41,7 @@ pub trait FeesAccumulationModule:
         self.accumulated_fees(current_week, &payment.token_identifier)
             .update(|amt| *amt += &payment.amount);
 
-        self.emit_deposit_swap_fees_event(caller, current_week, payment);
+        self.emit_deposit_swap_fees_event(caller, current_week, payment.clone());
     }
 
     fn get_and_clear_accumulated_fees(

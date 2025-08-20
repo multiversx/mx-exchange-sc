@@ -99,7 +99,7 @@ pub trait FeesCollector:
         let mut len = rewards.len();
         let mut total_locked_token_rewards_amount = BigUint::zero();
         while i < len {
-            let rew = rewards.get(i);
+            let rew = rewards.get(i).clone();
             if rew.token_identifier != locked_token_id {
                 i += 1;
                 continue;
@@ -163,7 +163,7 @@ where
         for token in &all_tokens {
             let opt_accumulated_fees = sc.get_and_clear_accumulated_fees(week, &token);
             if let Some(accumulated_fees) = opt_accumulated_fees {
-                results.push(EsdtTokenPayment::new(token, 0, accumulated_fees));
+                results.push(EsdtTokenPayment::new(token.clone(), 0, accumulated_fees));
             }
         }
 
