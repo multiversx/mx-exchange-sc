@@ -12,7 +12,6 @@ use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     contract_base::{CallableContract, ContractBase},
-    storage::mappers::StorageTokenWrapper,
     types::{Address, EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded},
 };
 use multiversx_sc_modules::pause::PauseModule;

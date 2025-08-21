@@ -3,7 +3,6 @@
 mod router_setup;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
-    storage::mappers::StorageTokenWrapper,
     types::{
         Address, EgldOrEsdtTokenIdentifier, EsdtLocalRole, ManagedAddress, ManagedVec,
         MultiValueEncoded,

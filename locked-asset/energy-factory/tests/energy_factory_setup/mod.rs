@@ -9,7 +9,6 @@ use energy_factory::{
 };
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
-    storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_modules::pause::PauseModule;

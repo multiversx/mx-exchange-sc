@@ -3,7 +3,6 @@
 // use energy_query::EnergyQueryModule;
 // use farm_token::FarmTokenModule;
 // use farm_with_locked_rewards::Farm;
-// use multiversx_sc::imports::StorageTokenWrapper;
 // use multiversx_sc::types::{Address, EsdtLocalRole, MultiValueEncoded};
 // use multiversx_sc_modules::pause::PauseModule;
 // use multiversx_sc_scenario::{

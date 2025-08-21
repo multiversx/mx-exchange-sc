@@ -6,7 +6,7 @@ use locked_token_wrapper::{
     wrapped_token::{WrappedTokenAttributes, WrappedTokenModule},
     LockedTokenWrapper,
 };
-use multiversx_sc::{storage::mappers::StorageTokenWrapper, types::EsdtLocalRole};
+use multiversx_sc::types::EsdtLocalRole;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     whitebox_legacy::BlockchainStateWrapper, DebugApi,
