@@ -4,7 +4,8 @@ multiversx_sc::derive_imports!();
 use crate::error_messages::*;
 use crate::locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPaymentWrapper};
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
     pub lp_token_id: TokenIdentifier<M>,
     pub first_token_id: TokenIdentifier<M>,
@@ -34,10 +35,10 @@ pub trait ProxyLpModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().egld_value().clone_value();
+        let payment_amount = self.call_value().egld().clone_value();
 
         self.lp_proxy_token().issue_and_set_all_roles(
-            EsdtTokenType::Meta,
+            EsdtTokenType::MetaFungible,
             payment_amount,
             token_display_name,
             token_ticker,
@@ -138,7 +139,7 @@ pub trait ProxyLpModule:
     ) -> AddLiquidityThroughProxyResultType<Self::Api> {
         let [first_payment, second_payment] = self.call_value().multi_esdt();
         let (mut first_payment_unlocked_wrapper, mut second_payment_unlocked_wrapper) =
-            self.unlock_lp_payments(first_payment, second_payment);
+            self.unlock_lp_payments(first_payment.clone(), second_payment.clone());
         let lp_address = self.try_get_lp_address_and_fix_token_order(
             &mut first_payment_unlocked_wrapper,
             &mut second_payment_unlocked_wrapper,
@@ -235,7 +236,7 @@ pub trait ProxyLpModule:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> RemoveLiquidityThroughProxyResultType<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
 
         self.remove_liquidity_locked_token_common(
             payment,

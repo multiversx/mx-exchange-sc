@@ -4,6 +4,7 @@ multiversx_sc::derive_imports!();
 pub const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
 const FIRST_INDEX: usize = 1;
 
+#[type_abi]
 #[derive(TopEncode, TopDecode, Default)]
 pub enum OngoingOperation {
     #[default]

@@ -5,7 +5,6 @@ use energy_factory::SimpleLockEnergy;
 use energy_query::EnergyQueryModule;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;

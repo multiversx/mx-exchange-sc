@@ -3,16 +3,16 @@ multiversx_sc::derive_imports!();
 
 use crate::error_messages::*;
 
-#[derive(
-    TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy,
-)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy)]
 pub enum FarmType {
     SimpleFarm,
     FarmWithLockedRewards,
-    FarmWithBoostedRewards
+    FarmWithBoostedRewards,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct FarmProxyTokenAttributes<M: ManagedTypeApi> {
     pub farm_type: FarmType,
     pub farm_token_id: TokenIdentifier<M>,
@@ -29,7 +29,7 @@ pub trait ProxyFarmModule:
     #[payable("*")]
     #[endpoint(exitFarmLockedToken)]
     fn exit_farm_locked_token(&self) -> EsdtTokenPayment {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
+        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt().clone();
         let caller = self.blockchain().get_caller();
 
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =

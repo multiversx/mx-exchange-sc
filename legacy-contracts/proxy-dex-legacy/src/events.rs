@@ -3,7 +3,8 @@ multiversx_sc::derive_imports!();
 
 use crate::proxy_common::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     pair_address: ManagedAddress<M>,
@@ -22,7 +23,8 @@ pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct ExitFarmProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     farm_address: ManagedAddress<M>,

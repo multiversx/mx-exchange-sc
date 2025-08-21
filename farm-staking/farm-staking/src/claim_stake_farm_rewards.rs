@@ -67,7 +67,7 @@ pub trait ClaimStakeFarmRewardsModule:
         let mut claim_result = self
             .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
                 original_caller.clone(),
-                ManagedVec::from_single_item(payment),
+                ManagedVec::from_single_item(payment.clone()),
             );
 
         let mut virtual_farm_token = claim_result.new_farm_token.clone();

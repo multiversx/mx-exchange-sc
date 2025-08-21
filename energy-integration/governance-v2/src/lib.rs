@@ -131,7 +131,7 @@ pub trait GovernanceV2:
             proposer: proposer.clone(),
             description,
             actions: gov_actions,
-            fee_payment: user_fee,
+            fee_payment: user_fee.clone(),
             minimum_quorum,
             voting_delay_in_blocks,
             voting_period_in_blocks,

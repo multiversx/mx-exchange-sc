@@ -74,6 +74,7 @@ pub trait PairMock {
         );
 
         let (first_payment, second_payment) = payments
+            .clone_value()
             .into_iter()
             .collect_tuple()
             .ok_or("bad payments len")

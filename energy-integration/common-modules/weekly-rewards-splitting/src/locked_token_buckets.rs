@@ -13,6 +13,7 @@ pub struct BucketPair {
     pub opt_current_bucket: Option<BucketId>,
 }
 
+#[type_abi]
 #[derive(TopEncode, TopDecode, PartialEq, Debug)]
 pub struct LockedTokensBucket<M: ManagedTypeApi> {
     pub token_amount: BigUint<M>,

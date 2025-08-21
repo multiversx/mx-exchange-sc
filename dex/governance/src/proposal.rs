@@ -4,7 +4,8 @@ multiversx_sc::derive_imports!();
 use crate::config;
 use crate::errors::*;
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq, Debug)]
 pub enum ProposalStatus {
     Pending, //Starts from 0
     Active,
@@ -13,7 +14,8 @@ pub enum ProposalStatus {
     Executed,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct Action<M: ManagedTypeApi> {
     pub gas_limit: u64,
     pub dest_address: ManagedAddress<M>,
@@ -22,13 +24,15 @@ pub struct Action<M: ManagedTypeApi> {
     pub arguments: ManagedVec<M, ManagedBuffer<M>>,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct ProposalCreationArgs<M: ManagedTypeApi> {
     pub description: ManagedBuffer<M>,
     pub actions: ManagedVec<M, Action<M>>,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct Proposal<M: ManagedTypeApi> {
     pub id: u64,
     pub creation_block: u64,

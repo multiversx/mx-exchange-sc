@@ -2,7 +2,6 @@
 // use farm_token::FarmTokenModule;
 // use lp_farm_token::LpFarmTokenModule;
 // use multiversx_sc::{
-//     imports::StorageTokenWrapper,
 //     types::{Address, EsdtLocalRole, MultiValueEncoded},
 // };
 // use multiversx_sc_scenario::{

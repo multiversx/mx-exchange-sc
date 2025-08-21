@@ -3,7 +3,8 @@ multiversx_sc::derive_imports!();
 
 use common_structs::Nonce;
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone)]
 pub struct WrappedLpTokenAttributes<M: ManagedTypeApi> {
     pub lp_token_id: TokenIdentifier<M>,
     pub lp_token_total_amount: BigUint<M>,
@@ -11,7 +12,8 @@ pub struct WrappedLpTokenAttributes<M: ManagedTypeApi> {
     pub locked_assets_nonce: Nonce,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone)]
 pub struct WrappedFarmTokenAttributes<M: ManagedTypeApi> {
     pub farm_token_id: TokenIdentifier<M>,
     pub farm_token_nonce: Nonce,
@@ -72,7 +74,7 @@ pub trait ProxyCommonModule {
         let mut non_zero_payments = ManagedVec::new();
         for payment in payments {
             if payment.amount > 0u32 {
-                non_zero_payments.push(payment);
+                non_zero_payments.push(payment.clone());
             }
         }
 

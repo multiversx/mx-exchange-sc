@@ -94,7 +94,7 @@ pub trait SimpleLockMigrationModule:
                 );
 
                 let new_token = self.migrate_single_old_token(
-                    payment,
+                    payment.clone(),
                     is_smart_contract_address,
                     current_epoch,
                     energy,

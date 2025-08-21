@@ -11,16 +11,9 @@ use crate::{
     wrapped_lp_attributes::{merge_wrapped_lp_tokens, WrappedLpToken},
 };
 
+#[type_abi]
 #[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    TypeAbi,
-    Clone,
-    PartialEq,
-    Debug,
+    ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug,
 )]
 pub struct WrappedFarmTokenAttributes<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
@@ -77,7 +70,7 @@ impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi> WrappedFarmToken<M> {
             let attributes: WrappedFarmTokenAttributes<M> =
                 wrapped_token_mapper.get_token_attributes(payment.token_nonce);
             let wrapped_farm_token = WrappedFarmToken {
-                payment,
+                payment: payment.clone(),
                 attributes,
             };
 
@@ -98,7 +91,7 @@ pub fn merge_wrapped_farm_tokens<M: CallTypeApi + StorageMapperApi>(
     wrapped_farm_token_mapper: &NonFungibleTokenMapper<M>,
     mut wrapped_farm_tokens: ManagedVec<M, WrappedFarmToken<M>>,
 ) -> WrappedFarmToken<M> {
-    let first_item = wrapped_farm_tokens.get(0);
+    let first_item = wrapped_farm_tokens.get(0).clone();
     wrapped_farm_tokens.remove(0);
 
     let first_token_attributes = first_item.attributes.into_part(&first_item.payment.amount);
@@ -110,6 +103,7 @@ pub fn merge_wrapped_farm_tokens<M: CallTypeApi + StorageMapperApi>(
     for wrapped_farm in &wrapped_farm_tokens {
         let attributes = wrapped_farm
             .attributes
+            .clone()
             .into_part(&wrapped_farm.payment.amount);
         first_token_attributes.error_if_not_externally_mergeable(&attributes);
 

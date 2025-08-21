@@ -35,7 +35,7 @@ where
             }
         }
 
-        let first_payment = payments.get(0);
+        let first_payment: EsdtTokenPayment<M> = payments.get(0).clone();
         payments.remove(0);
 
         let own_sc_address = api_wrapper.get_sc_address();

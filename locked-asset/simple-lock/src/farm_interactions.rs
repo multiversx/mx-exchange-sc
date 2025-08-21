@@ -82,7 +82,7 @@ pub trait FarmInteractionsModule {
             ));
 
         for farm_token in &additional_farm_tokens {
-            contract_call = contract_call.with_esdt_transfer(farm_token);
+            contract_call = contract_call.with_esdt_transfer(farm_token.clone());
         }
 
         let raw_results: RawResultsType<Self::Api> = contract_call.execute_on_dest_context();

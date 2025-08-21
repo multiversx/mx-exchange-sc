@@ -9,7 +9,8 @@ pub type Round = u64;
 
 pub const MAX_OBSERVATIONS: usize = 65_536; // 2^{16} records, to optimise binary search
 
-#[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, TypeAbi, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, Debug)]
 pub struct PriceObservation<M: ManagedTypeApi> {
     pub first_token_reserve_accumulated: BigUint<M>,
     pub second_token_reserve_accumulated: BigUint<M>,

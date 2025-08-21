@@ -9,7 +9,8 @@ use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 
 static NOT_IMPLEMENTED_ERR_MSG: &[u8] = b"Conversion not implemented";
 
-#[derive(ManagedVecItem, TopEncode, NestedEncode, TypeAbi, Clone, PartialEq, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, NestedEncode, Clone, PartialEq, Debug)]
 pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub compounded_reward: BigUint<M>,
@@ -133,7 +134,8 @@ impl<M: ManagedTypeApi> Mergeable<M> for StakingFarmTokenAttributes<M> {
     }
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq, Debug)]
 pub struct UnbondSftAttributes {
     pub unlock_epoch: u64,
 }

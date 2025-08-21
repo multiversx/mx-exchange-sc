@@ -40,8 +40,8 @@ pub trait FeesHandlerModule:
             .update(|unstake_pairs| {
                 let unstake_pair = UnstakePair {
                     unlock_epoch,
-                    locked_tokens,
-                    unlocked_tokens,
+                    locked_tokens: locked_tokens.clone(),
+                    unlocked_tokens: unlocked_tokens.clone(),
                 };
                 unstake_pairs.push(unstake_pair);
             });
@@ -64,7 +64,7 @@ pub trait FeesHandlerModule:
         let locked_token_id = self.get_locked_token_id();
         require!(payment.token_identifier == locked_token_id, "Invalid token");
 
-        self.burn_penalty(payment);
+        self.burn_penalty(payment.clone());
     }
 
     #[only_owner]
@@ -77,7 +77,7 @@ pub trait FeesHandlerModule:
         self.fees_burn_percentage().set(fees_burn_percentage);
     }
 
-    fn burn_penalty(&self, payment: EsdtTokenPayment) {
+    fn burn_penalty(&self, payment: EsdtTokenPayment<Self::Api>) {
         let fees_burn_percentage = self.fees_burn_percentage().get();
         let burn_amount = &payment.amount * fees_burn_percentage / MAX_PENALTY_PERCENTAGE;
         let remaining_amount = &payment.amount - &burn_amount;
@@ -89,7 +89,7 @@ pub trait FeesHandlerModule:
         );
 
         self.send_fees_to_collector(EsdtTokenPayment::new(
-            payment.token_identifier,
+            payment.token_identifier.clone(),
             payment.token_nonce,
             remaining_amount,
         ));

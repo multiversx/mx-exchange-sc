@@ -27,7 +27,7 @@ pub trait TokenMergeHelperModule {
         let mut elem_weight_sum = BigUint::zero();
         for item in &dataset {
             weight_sum += &item.weight;
-            elem_weight_sum += item.value * item.weight;
+            elem_weight_sum += &item.value * &item.weight;
         }
 
         match average_type {

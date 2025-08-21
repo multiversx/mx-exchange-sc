@@ -56,7 +56,7 @@ pub trait ProxyPairModule:
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
-        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
+        let (token_id, token_nonce, amount) = self.call_value().single_esdt().clone().into_tuple();
         require!(token_nonce != 0, "Can only be called with an SFT");
         require!(amount != 0, "Payment amount cannot be zero");
 

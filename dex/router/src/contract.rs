@@ -183,7 +183,7 @@ pub trait Router:
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
     ) {
-        let issue_cost = self.call_value().egld_value().clone_value();
+        let issue_cost = self.call_value().egld().clone_value();
 
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();

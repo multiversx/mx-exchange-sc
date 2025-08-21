@@ -1,7 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedDecode, NestedEncode, PartialEq, Debug, Clone)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedDecode, NestedEncode, PartialEq, Debug, Clone)]
 pub struct LockedTokenAttributes<M: ManagedTypeApi> {
     pub original_token_id: EgldOrEsdtTokenIdentifier<M>,
     pub original_token_nonce: u64,
@@ -62,10 +63,10 @@ pub trait LockedTokenModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().egld_value().clone_value();
+        let payment_amount = self.call_value().egld().clone_value();
 
         self.locked_token().issue_and_set_all_roles(
-            EsdtTokenType::Meta,
+            EsdtTokenType::MetaFungible,
             payment_amount,
             token_display_name,
             token_ticker,

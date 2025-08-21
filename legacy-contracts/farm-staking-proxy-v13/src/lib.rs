@@ -31,7 +31,7 @@ pub trait FarmStakingProxy:
     ) -> UnstakeResult<Self::Api> {
         let caller = self.blockchain().get_caller();
         let (payment_token, payment_nonce, payment_amount) =
-            self.call_value().single_esdt().into_tuple();
+            self.call_value().single_esdt().clone().into_tuple();
         self.require_dual_yield_token(&payment_token);
 
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);

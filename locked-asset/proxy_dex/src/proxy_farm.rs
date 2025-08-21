@@ -185,7 +185,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_lp_token_id_not_empty();
 
         let wrapped_farm_token_mapper = self.wrapped_farm_token();
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
         wrapped_farm_token_mapper.require_same_token(&payment.token_identifier);
 
         let full_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api> = self
@@ -298,7 +298,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_lp_token_id_not_empty();
 
         let wrapped_farm_token_mapper = self.wrapped_farm_token();
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
         wrapped_farm_token_mapper.require_same_token(&payment.token_identifier);
 
         let wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api> =

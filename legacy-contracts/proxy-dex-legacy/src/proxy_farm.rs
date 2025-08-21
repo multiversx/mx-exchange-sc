@@ -52,7 +52,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
-        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
+        let (token_id, token_nonce, amount) = self.call_value().single_esdt().clone().into_tuple();
 
         require!(amount != 0, "Payment amount cannot be zero");
         require!(

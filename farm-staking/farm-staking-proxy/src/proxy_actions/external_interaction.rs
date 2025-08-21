@@ -49,7 +49,7 @@ pub trait ProxyExternalInteractionsModule:
         let original_owner = self.get_underlying_positions_original_owner(&payment);
         self.require_user_whitelisted(&original_owner, &caller);
 
-        let claim_result = self.claim_dual_yield_common(original_owner.clone(), payment);
+        let claim_result = self.claim_dual_yield_common(original_owner.clone(), payment.clone());
 
         self.send_payment_non_zero(&original_owner, &claim_result.lp_farm_rewards);
         self.send_payment_non_zero(&original_owner, &claim_result.staking_farm_rewards);

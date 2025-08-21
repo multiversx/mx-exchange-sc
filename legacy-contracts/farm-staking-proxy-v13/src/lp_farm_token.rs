@@ -1,16 +1,9 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
+#[type_abi]
 #[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    TypeAbi,
-    Clone,
-    PartialEq,
-    Debug,
+    ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug,
 )]
 pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
