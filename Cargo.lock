@@ -606,6 +606,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "farm-staking-locked"
+version = "0.0.0"
+dependencies = [
+ "common_errors",
+ "common_structs",
+ "config",
+ "contexts",
+ "energy-factory",
+ "energy-query",
+ "events",
+ "farm",
+ "farm-boosted-yields",
+ "farm_base_impl",
+ "farm_token",
+ "fixed-supply-token",
+ "math",
+ "mergeable",
+ "multiversx-sc",
+ "multiversx-sc-modules",
+ "multiversx-sc-scenario",
+ "num-bigint",
+ "original_owner_helper",
+ "pair",
+ "pausable",
+ "permissions-hub",
+ "permissions_hub_module",
+ "permissions_module",
+ "rewards",
+ "sc_whitelist_module",
+ "token_send",
+ "utils",
+ "week-timekeeping",
+ "weekly-rewards-splitting",
+]
+
+[[package]]
+name = "farm-staking-locked-abi"
+version = "0.0.0"
+dependencies = [
+ "farm-staking-locked",
+ "multiversx-sc-meta-lib",
+]
+
+[[package]]
 name = "farm-staking-proxy"
 version = "0.0.0"
 dependencies = [

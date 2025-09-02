@@ -34,6 +34,8 @@ members = [
 
   "farm-staking/farm-staking",
   "farm-staking/farm-staking/meta",
+  "farm-staking/farm-staking-locked",
+  "farm-staking/farm-staking-locked/meta",
   "farm-staking/farm-staking-proxy",
   "farm-staking/farm-staking-proxy/meta",
 
