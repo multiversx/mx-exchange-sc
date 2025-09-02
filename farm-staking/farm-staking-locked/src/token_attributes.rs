@@ -5,52 +5,18 @@ use common_structs::{FarmToken, FarmTokenAttributes};
 use fixed_supply_token::FixedSupplyToken;
 use math::weighted_average_round_up;
 use mergeable::Mergeable;
-use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 
 static NOT_IMPLEMENTED_ERR_MSG: &[u8] = b"Conversion not implemented";
 
 #[type_abi]
-#[derive(ManagedVecItem, TopEncode, NestedEncode, Clone, PartialEq, Debug)]
+#[derive(
+    ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug,
+)]
 pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,
     pub original_owner: ManagedAddress<M>,
-}
-
-impl<M: ManagedTypeApi> TopDecode for StakingFarmTokenAttributes<M> {
-    fn top_decode<I>(input: I) -> Result<Self, DecodeError>
-    where
-        I: TopDecodeInput,
-    {
-        let mut buffer = input.into_nested_buffer();
-        Self::dep_decode(&mut buffer)
-    }
-}
-
-impl<M: ManagedTypeApi> NestedDecode for StakingFarmTokenAttributes<M> {
-    fn dep_decode<I: NestedDecodeInput>(input: &mut I) -> Result<Self, DecodeError> {
-        let reward_per_share = BigUint::dep_decode(input)?;
-        let compounded_reward = BigUint::dep_decode(input)?;
-        let current_farm_amount = BigUint::dep_decode(input)?;
-
-        let original_owner = if !input.is_depleted() {
-            ManagedAddress::dep_decode(input)?
-        } else {
-            ManagedAddress::zero()
-        };
-
-        if !input.is_depleted() {
-            return Result::Err(DecodeError::INPUT_TOO_LONG);
-        }
-
-        Result::Ok(StakingFarmTokenAttributes {
-            reward_per_share,
-            compounded_reward,
-            current_farm_amount,
-            original_owner,
-        })
-    }
 }
 
 #[derive(ManagedVecItem, Clone)]

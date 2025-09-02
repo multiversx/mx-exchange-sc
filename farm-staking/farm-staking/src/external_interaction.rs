@@ -2,15 +2,12 @@ multiversx_sc::imports!();
 
 use farm::{base_functions::ClaimRewardsResultType, EnterFarmResultType};
 
-use crate::{
-    base_impl_wrapper::FarmStakingWrapper, claim_only_boosted_staking_rewards,
-    claim_stake_farm_rewards, compound_stake_farm_rewards, custom_rewards, farm_token_roles,
-    stake_farm, token_attributes::StakingFarmTokenAttributes, unbond_farm, unstake_farm,
-};
+use crate::{base_impl_wrapper::FarmStakingWrapper, token_attributes::StakingFarmTokenAttributes};
 
 #[multiversx_sc::module]
 pub trait ExternalInteractionsModule:
-    custom_rewards::CustomRewardsModule
+    crate::custom_rewards::CustomRewardsModule
+    + crate::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
@@ -19,23 +16,11 @@ pub trait ExternalInteractionsModule:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + permissions_hub_module::PermissionsHubModule
-    + original_owner_helper::OriginalOwnerHelperModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
-    + farm_base_impl::enter_farm::BaseEnterFarmModule
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
-    + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
-    + farm_base_impl::exit_farm::BaseExitFarmModule
     + utils::UtilsModule
-    + farm_token_roles::FarmTokenRolesModule
-    + stake_farm::StakeFarmModule
-    + claim_stake_farm_rewards::ClaimStakeFarmRewardsModule
-    + compound_stake_farm_rewards::CompoundStakeFarmRewardsModule
-    + unstake_farm::UnstakeFarmModule
-    + unbond_farm::UnbondFarmModule
-    + claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
     + farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule
@@ -46,6 +31,9 @@ pub trait ExternalInteractionsModule:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
+    + permissions_hub_module::PermissionsHubModule
+    + original_owner_helper::OriginalOwnerHelperModule
+    + farm_base_impl::enter_farm::BaseEnterFarmModule
 {
     #[payable("*")]
     #[endpoint(stakeFarmOnBehalf)]
