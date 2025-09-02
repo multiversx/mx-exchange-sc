@@ -6,6 +6,8 @@ use fixed_supply_token::FixedSupplyToken;
 use math::weighted_average_round_up;
 use mergeable::Mergeable;
 
+use crate::custom_rewards::Timestamp;
+
 static NOT_IMPLEMENTED_ERR_MSG: &[u8] = b"Conversion not implemented";
 
 #[type_abi]
@@ -17,6 +19,7 @@ pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,
     pub original_owner: ManagedAddress<M>,
+    pub unlock_timestamp: Timestamp,
 }
 
 #[derive(ManagedVecItem, Clone)]
@@ -73,6 +76,7 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for StakingFarmTokenAttributes<M> {
             compounded_reward: new_compounded_reward,
             current_farm_amount: new_current_farm_amount,
             original_owner: self.original_owner,
+            unlock_timestamp: self.unlock_timestamp,
         }
     }
 }
@@ -97,6 +101,7 @@ impl<M: ManagedTypeApi> Mergeable<M> for StakingFarmTokenAttributes<M> {
 
         self.compounded_reward += other.compounded_reward;
         self.current_farm_amount += other.current_farm_amount;
+        self.unlock_timestamp = core::cmp::max(self.unlock_timestamp, other.unlock_timestamp);
     }
 }
 

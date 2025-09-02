@@ -11,7 +11,7 @@ use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
 use token_attributes::StakingFarmTokenAttributes;
 
-use crate::custom_rewards::MAX_MIN_UNBOND_EPOCHS;
+use crate::custom_rewards::{Timestamp, MAX_MIN_UNBOND_EPOCHS};
 
 pub mod base_impl_wrapper;
 pub mod claim_only_boosted_staking_rewards;
@@ -72,6 +72,7 @@ pub trait FarmStaking:
         division_safety_constant: BigUint,
         max_apr: BigUint,
         min_unbond_epochs: u64,
+        farming_token_lock_period: Timestamp,
         owner: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
@@ -95,6 +96,9 @@ pub trait FarmStaking:
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set(current_epoch);
+
+        self.farming_token_lock_period()
+            .set(farming_token_lock_period);
     }
 
     #[upgrade]

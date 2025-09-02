@@ -31,6 +31,10 @@ pub trait ClaimOnlyBoostedStakingRewardsModule:
 {
     #[endpoint(claimBoostedRewards)]
     fn claim_boosted_rewards(&self, opt_user: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
+        if !cfg!(debug_assertions) {
+            sc_panic!("Endpoint disabled");
+        }
+
         let caller = self.blockchain().get_caller();
         let user = match &opt_user {
             OptionalValue::Some(user) => user,

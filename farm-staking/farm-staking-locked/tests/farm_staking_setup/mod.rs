@@ -124,6 +124,7 @@ where
                     division_safety_constant,
                     managed_biguint!(MAX_APR),
                     MIN_UNBOND_EPOCHS,
+                    0,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::new(),
                 );
@@ -248,6 +249,7 @@ where
             compounded_reward: managed_biguint!(expected_compounded_reward),
             current_farm_amount: managed_biguint!(expected_total_out_amount),
             original_owner: managed_address!(&user),
+            unlock_timestamp: 0,
         };
         self.b_mock.check_nft_balance(
             user,
@@ -370,6 +372,7 @@ where
             compounded_reward: managed_biguint!(0),
             current_farm_amount: managed_biguint!(farm_token_amount),
             original_owner: managed_address!(user),
+            unlock_timestamp: 0,
         };
 
         self.b_mock.check_nft_balance(
@@ -473,6 +476,7 @@ where
                 expected_farm_token_amount + expected_compounded_reward
             ),
             original_owner: managed_address!(&user),
+            unlock_timestamp: 0,
         };
         self.b_mock.check_nft_balance(
             user,
@@ -843,6 +847,7 @@ where
                 compounded_reward: managed_biguint!(0),
                 current_farm_amount: managed_biguint!(amount),
                 original_owner: managed_address!(&sender),
+                unlock_timestamp: 0,
             }),
         );
 
@@ -865,6 +870,7 @@ where
                 compounded_reward: managed_biguint!(0),
                 current_farm_amount: managed_biguint!(amount),
                 original_owner: managed_address!(&sender),
+                unlock_timestamp: 0,
             },
         );
 
@@ -878,6 +884,7 @@ where
                 compounded_reward: managed_biguint!(0),
                 current_farm_amount: managed_biguint!(amount),
                 original_owner: managed_address!(&sender),
+                unlock_timestamp: 0,
             },
         );
 
@@ -900,6 +907,7 @@ where
                 compounded_reward: managed_biguint!(0),
                 current_farm_amount: managed_biguint!(amount),
                 original_owner: managed_address!(&sender),
+                unlock_timestamp: 0,
             }),
         );
     }

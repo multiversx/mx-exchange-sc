@@ -38,6 +38,10 @@ pub trait ClaimStakeFarmRewardsModule:
         &self,
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsResultType<Self::Api> {
+        if !cfg!(debug_assertions) {
+            sc_panic!("Endpoint disabled");
+        }
+
         let caller = self.blockchain().get_caller();
         let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
 
@@ -51,6 +55,10 @@ pub trait ClaimStakeFarmRewardsModule:
         new_farming_amount: BigUint,
         original_caller: ManagedAddress,
     ) -> ClaimRewardsResultType<Self::Api> {
+        if !cfg!(debug_assertions) {
+            sc_panic!("Endpoint disabled");
+        }
+
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
 

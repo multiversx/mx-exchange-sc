@@ -149,16 +149,21 @@ where
     }
 
     fn create_enter_farm_initial_attributes(
-        _sc: &Self::FarmSc,
+        sc: &Self::FarmSc,
         caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         farming_token_amount: BigUint<<Self::FarmSc as ContractBase>::Api>,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
+        let current_timestamp = sc.blockchain().get_block_timestamp();
+        let token_lock_period = sc.farming_token_lock_period().get();
+        let unlock_timestamp = current_timestamp + token_lock_period;
+
         StakingFarmTokenAttributes {
             reward_per_share: current_reward_per_share,
             compounded_reward: BigUint::zero(),
             current_farm_amount: farming_token_amount,
             original_owner: caller,
+            unlock_timestamp,
         }
     }
 
@@ -173,6 +178,7 @@ where
             compounded_reward: first_token_attributes.compounded_reward,
             current_farm_amount: first_token_attributes.current_farm_amount,
             original_owner: caller,
+            unlock_timestamp: first_token_attributes.unlock_timestamp,
         }
     }
 
@@ -190,6 +196,7 @@ where
             compounded_reward: new_pos_compounded_reward,
             current_farm_amount: new_pos_current_farm_amount,
             original_owner: caller,
+            unlock_timestamp: first_token_attributes.unlock_timestamp,
         }
     }
 

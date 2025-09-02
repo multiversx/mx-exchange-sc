@@ -13,6 +13,8 @@ pub const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 pub const WITHDRAW_AMOUNT_TOO_HIGH: &str =
     "Withdraw amount is higher than the remaining uncollected rewards!";
 
+pub type Timestamp = u64;
+
 #[multiversx_sc::module]
 pub trait CustomRewardsModule:
     rewards::RewardsModule
@@ -95,6 +97,12 @@ pub trait CustomRewardsModule:
         self.per_block_reward_amount().set(&per_block_amount);
     }
 
+    #[endpoint(startProduceRewards)]
+    fn start_produce_rewards_endpoint(&self) {
+        self.require_caller_has_admin_permissions();
+        self.start_produce_rewards();
+    }
+
     #[endpoint(setMaxApr)]
     fn set_max_apr(&self, max_apr: BigUint) {
         self.require_caller_has_admin_permissions();
@@ -111,6 +119,12 @@ pub trait CustomRewardsModule:
         self.try_set_min_unbond_epochs(min_unbond_epochs);
     }
 
+    #[endpoint(setTokenLockPeriod)]
+    fn set_token_lock_period(&self, lock_period: Timestamp) {
+        self.require_caller_has_admin_permissions();
+        self.farming_token_lock_period().set(lock_period);
+    }
+
     fn try_set_min_unbond_epochs(&self, min_unbond_epochs: Epoch) {
         require!(
             min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
@@ -123,12 +137,6 @@ pub trait CustomRewardsModule:
     fn get_amount_apr_bounded(&self, amount: &BigUint) -> BigUint {
         let max_apr = self.max_annual_percentage_rewards().get();
         amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR
-    }
-
-    #[endpoint(startProduceRewards)]
-    fn start_produce_rewards_endpoint(&self) {
-        self.require_caller_has_admin_permissions();
-        self.start_produce_rewards();
     }
 
     #[view(getAccumulatedRewards)]
@@ -146,4 +154,7 @@ pub trait CustomRewardsModule:
     #[view(getMinUnbondEpochs)]
     #[storage_mapper("minUnbondEpochs")]
     fn min_unbond_epochs(&self) -> SingleValueMapper<Epoch>;
+
+    #[storage_mapper("farmingTokenLockPeriod")]
+    fn farming_token_lock_period(&self) -> SingleValueMapper<Timestamp>;
 }

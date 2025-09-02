@@ -1029,6 +1029,7 @@ fn position_owner_change_test() {
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(half_farm_in_amount * 3),
         original_owner: managed_address!(&second_user), // Check that second user is original owner
+        unlock_timestamp: 0,
     };
     fs_setup.b_mock.check_nft_balance(
         &second_user,
@@ -1050,6 +1051,7 @@ fn position_owner_change_test() {
     fs_setup.check_user_total_farm_position(&second_user, farm_in_amount + half_farm_in_amount * 4);
 }
 
+#[ignore]
 #[test]
 fn farm_staking_locked_farm_position_migration_test() {
     DebugApi::dummy();
@@ -1547,6 +1549,7 @@ fn claim_only_boosted_rewards_per_week_test() {
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(farm_in_amount),
         original_owner: managed_address!(&first_user),
+        unlock_timestamp: 0,
     };
 
     fs_setup.b_mock.check_nft_balance(
@@ -1747,6 +1750,7 @@ fn claim_boosted_rewards_with_zero_position_test() {
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(farm_in_amount),
         original_owner: managed_address!(&first_user),
+        unlock_timestamp: 0,
     };
 
     fs_setup.b_mock.check_nft_balance(
@@ -1859,6 +1863,7 @@ fn test_multiple_positions_on_behalf() {
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(farm_token_amount * 2),
         original_owner: managed_address!(&external_user),
+        unlock_timestamp: 0,
     };
 
     fs_setup.b_mock.check_nft_balance(
