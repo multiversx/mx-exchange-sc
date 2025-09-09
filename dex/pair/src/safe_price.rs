@@ -91,6 +91,96 @@ pub trait SafePriceModule:
         }
 
         let current_round = self.blockchain().get_block_round();
+        let round_save_interval = self.safe_price_round_save_interval().get();
+
+        // Handle the case where offset is 1 (immediate save)
+        if round_save_interval <= 1 {
+            self.handle_immediate_save(
+                current_round,
+                first_token_reserve,
+                second_token_reserve,
+                lp_supply,
+            );
+            return;
+        }
+
+        // Check if enough rounds have passed since last finalized observation for direct save
+        let safe_price_current_index = self.safe_price_current_index().get();
+        let last_observation = if safe_price_current_index > 0 {
+            let price_observations = self.price_observations();
+            price_observations.get(safe_price_current_index)
+        } else {
+            PriceObservation::default()
+        };
+        
+        if safe_price_current_index > 0 {
+            let rounds_since_last = current_round - last_observation.recording_round;
+
+            if rounds_since_last >= round_save_interval {
+                self.handle_immediate_save(
+                    current_round,
+                    first_token_reserve,
+                    second_token_reserve,
+                    lp_supply,
+                );
+                return;
+            }
+        }
+
+        // If no current intermediate observation exists, start a new one
+        if self.current_price_observation().is_empty() {
+            let new_intermediate = self.compute_new_observation(
+                current_round,
+                first_token_reserve,
+                second_token_reserve,
+                lp_supply,
+                &last_observation,
+            );
+            self.current_price_observation().set(&new_intermediate);
+            return;
+        }
+
+        let current_intermediate = self.current_price_observation().get();
+
+        // Calculate weight that would be added by this update
+        let weight_to_add = current_round - current_intermediate.recording_round;
+        let total_weight_after_update = current_intermediate.weight_accumulated + weight_to_add;
+
+        if total_weight_after_update < round_save_interval {
+            // Update the intermediate observation with current round's data
+            self.update_intermediate_observation(
+                current_round,
+                first_token_reserve,
+                second_token_reserve,
+                lp_supply,
+            );
+        } else {
+            // Offset period has passed, update the intermediate observation one final time, then save it
+            self.update_intermediate_observation(
+                current_round,
+                first_token_reserve,
+                second_token_reserve,
+                lp_supply,
+            );
+            
+            // Save the current intermediate observation and start a new one
+            self.save_averaged_observation_and_start_new(
+                current_round,
+                first_token_reserve,
+                second_token_reserve,
+                lp_supply,
+                &last_observation,
+            );
+        }
+    }
+
+    fn handle_immediate_save(
+        &self,
+        current_round: Round,
+        first_token_reserve: &BigUint,
+        second_token_reserve: &BigUint,
+        lp_supply: &BigUint,
+    ) {
         let safe_price_current_index = self.safe_price_current_index().get();
         require!(
             safe_price_current_index <= MAX_OBSERVATIONS,
@@ -127,7 +217,78 @@ pub trait SafePriceModule:
         }
 
         self.safe_price_current_index().set(new_index);
+
+        // Clear any existing intermediate observation since we did a direct save
+        self.current_price_observation().clear();
     }
+
+    fn update_intermediate_observation(
+        &self,
+        current_round: Round,
+        first_token_reserve: &BigUint,
+        second_token_reserve: &BigUint,
+        lp_supply: &BigUint,
+    ) {
+        let mut current_intermediate = self.current_price_observation().get();
+
+        // Add weighted values based on the rounds passed since last recording
+        let weight_to_add = current_round - current_intermediate.recording_round;
+        current_intermediate.first_token_reserve_accumulated +=
+            BigUint::from(weight_to_add) * first_token_reserve;
+        current_intermediate.second_token_reserve_accumulated +=
+            BigUint::from(weight_to_add) * second_token_reserve;
+        current_intermediate.lp_supply_accumulated += BigUint::from(weight_to_add) * lp_supply;
+        current_intermediate.weight_accumulated += weight_to_add;
+        current_intermediate.recording_round = current_round;
+        current_intermediate.recording_timestamp = self.blockchain().get_block_timestamp();
+
+        self.current_price_observation().set(&current_intermediate);
+    }
+
+    fn save_averaged_observation_and_start_new(
+        &self,
+        current_round: Round,
+        first_token_reserve: &BigUint,
+        second_token_reserve: &BigUint,
+        lp_supply: &BigUint,
+        last_finalized_observation: &PriceObservation<Self::Api>,
+    ) {
+        let current_intermediate = self.current_price_observation().get();
+
+        // Save the averaged observation to the main storage
+        let safe_price_current_index = self.safe_price_current_index().get();
+        require!(
+            safe_price_current_index <= MAX_OBSERVATIONS,
+            ERROR_SAFE_PRICE_CURRENT_INDEX
+        );
+
+        let mut price_observations = self.price_observations();
+
+        let new_index = if price_observations.is_empty() {
+            1
+        } else {
+            (safe_price_current_index % MAX_OBSERVATIONS) + 1
+        };
+
+        if price_observations.len() == MAX_OBSERVATIONS {
+            price_observations.set(new_index, &current_intermediate);
+        } else {
+            price_observations.push(&current_intermediate);
+        }
+
+        self.safe_price_current_index().set(new_index);
+
+        // Create a new intermediate observation using the last finalized observation as base
+        let new_intermediate = self.compute_new_observation(
+            current_round,
+            first_token_reserve,
+            second_token_reserve,
+            lp_supply,
+            last_finalized_observation,
+        );
+        self.current_price_observation().set(&new_intermediate);
+    }
+
 
     fn compute_new_observation(
         &self,
@@ -176,4 +337,8 @@ pub trait SafePriceModule:
     #[view(getSafePriceRoundSaveInterval)]
     #[storage_mapper("safe_price_round_save_interval")]
     fn safe_price_round_save_interval(&self) -> SingleValueMapper<Round>;
+
+    #[view(getCurrentPriceObservation)]
+    #[storage_mapper("current_price_observation")]
+    fn current_price_observation(&self) -> SingleValueMapper<PriceObservation<Self::Api>>;
 }
