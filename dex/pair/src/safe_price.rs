@@ -112,7 +112,7 @@ pub trait SafePriceModule:
         } else {
             PriceObservation::default()
         };
-        
+
         if safe_price_current_index > 0 {
             let rounds_since_last = current_round - last_observation.recording_round;
 
@@ -140,38 +140,20 @@ pub trait SafePriceModule:
             return;
         }
 
-        let current_intermediate = self.current_price_observation().get();
+        self.update_intermediate_observation(
+            current_round,
+            first_token_reserve,
+            second_token_reserve,
+            lp_supply,
+        );
 
-        // Calculate weight that would be added by this update
-        let weight_to_add = current_round - current_intermediate.recording_round;
-        let total_weight_after_update = current_intermediate.weight_accumulated + weight_to_add;
-
-        if total_weight_after_update < round_save_interval {
-            // Update the intermediate observation with current round's data
-            self.update_intermediate_observation(
-                current_round,
-                first_token_reserve,
-                second_token_reserve,
-                lp_supply,
-            );
-        } else {
-            // Offset period has passed, update the intermediate observation one final time, then save it
-            self.update_intermediate_observation(
-                current_round,
-                first_token_reserve,
-                second_token_reserve,
-                lp_supply,
-            );
-            
-            // Save the current intermediate observation and start a new one
-            self.save_averaged_observation_and_start_new(
-                current_round,
-                first_token_reserve,
-                second_token_reserve,
-                lp_supply,
-                &last_observation,
-            );
-        }
+        self.save_averaged_observation_if_needed(
+            current_round,
+            first_token_reserve,
+            second_token_reserve,
+            lp_supply,
+            &last_observation,
+        );
     }
 
     fn handle_immediate_save(
@@ -245,7 +227,7 @@ pub trait SafePriceModule:
         self.current_price_observation().set(&current_intermediate);
     }
 
-    fn save_averaged_observation_and_start_new(
+    fn save_averaged_observation_if_needed(
         &self,
         current_round: Round,
         first_token_reserve: &BigUint,
@@ -254,8 +236,12 @@ pub trait SafePriceModule:
         last_finalized_observation: &PriceObservation<Self::Api>,
     ) {
         let current_intermediate = self.current_price_observation().get();
+        let round_save_interval = self.safe_price_round_save_interval().get();
 
-        // Save the averaged observation to the main storage
+        if current_intermediate.weight_accumulated < round_save_interval {
+            return;
+        }
+
         let safe_price_current_index = self.safe_price_current_index().get();
         require!(
             safe_price_current_index <= MAX_OBSERVATIONS,
@@ -288,7 +274,6 @@ pub trait SafePriceModule:
         );
         self.current_price_observation().set(&new_intermediate);
     }
-
 
     fn compute_new_observation(
         &self,
