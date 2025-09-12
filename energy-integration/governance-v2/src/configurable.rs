@@ -77,8 +77,6 @@ pub trait ConfigurablePropertiesModule:
         self.try_change_voting_period_in_blocks(new_value);
     }
 
-    /// Change the voting period for a specific ongoing proposal.
-    /// This can only be done by the owner and only for Active proposals.
     #[only_owner]
     #[endpoint(changeProposalVotingPeriod)]
     fn change_proposal_voting_period(&self, proposal_id: ProposalId, new_voting_period: u64) {

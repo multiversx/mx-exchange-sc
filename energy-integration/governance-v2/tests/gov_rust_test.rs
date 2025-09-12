@@ -850,9 +850,6 @@ fn change_proposal_voting_period_success_test() {
         .assert_ok();
 }
 
-// Note: Authorization test removed due to framework limitations in test environment
-// The `only_owner` macro is handled by the multiversx-sc framework
-
 #[test]
 fn change_proposal_voting_period_invalid_status_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
