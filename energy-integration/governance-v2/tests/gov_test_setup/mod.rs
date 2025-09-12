@@ -1,4 +1,5 @@
 use governance_v2::{
+    configurable::ConfigurablePropertiesModule,
     proposal_storage::{ProposalStorageModule, VoteType},
     GovernanceV2,
 };
@@ -440,5 +441,17 @@ where
         ManagedByteArray::from(&hex!(
             "0fdb09afb35351d5becc3a79dd9bf03bae7c2366d186a6c8e8276f545d024ef5"
         ))
+    }
+
+    pub fn change_proposal_voting_period(
+        &mut self,
+        caller: &Address,
+        proposal_id: usize,
+        new_voting_period: u64,
+    ) -> TxResult {
+        self.b_mock
+            .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
+                sc.change_proposal_voting_period(proposal_id, new_voting_period);
+            })
     }
 }
