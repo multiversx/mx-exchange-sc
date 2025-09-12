@@ -7,9 +7,7 @@ use crate::{
 
 #[multiversx_sc::module]
 pub trait ViewsModule:
-    crate::proposal_storage::ProposalStorageModule
-    + crate::configurable::ConfigurablePropertiesModule
-    + crate::caller_check::CallerCheckModule
+    crate::proposal_storage::ProposalStorageModule + crate::caller_check::CallerCheckModule
 {
     #[view(getProposalStatus)]
     fn get_proposal_status(&self, proposal_id: ProposalId) -> GovernanceProposalStatus {

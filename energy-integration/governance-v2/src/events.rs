@@ -55,4 +55,11 @@ pub trait EventsModule {
 
     #[event("proposalWithdrawAfterDefeated")]
     fn proposal_withdraw_after_defeated_event(&self, #[indexed] proposal_id: ProposalId);
+
+    #[event("proposalVotingPeriodChanged")]
+    fn proposal_voting_period_changed_event(
+        &self,
+        #[indexed] proposal_id: ProposalId,
+        #[indexed] new_voting_period: u64,
+    );
 }

@@ -1,4 +1,8 @@
-use crate::{errors::ERROR_NOT_AN_ESDT, FULL_PERCENTAGE};
+use crate::{
+    errors::ERROR_NOT_AN_ESDT,
+    proposal::{GovernanceProposalStatus, ProposalId},
+    FULL_PERCENTAGE,
+};
 
 multiversx_sc::imports!();
 
@@ -40,7 +44,12 @@ const MAX_MIN_FEE_FOR_PROPOSE: u64 = 200_000_000_000;
 const DECIMALS_CONST: u64 = 1_000_000_000_000_000_000;
 
 #[multiversx_sc::module]
-pub trait ConfigurablePropertiesModule {
+pub trait ConfigurablePropertiesModule:
+    crate::caller_check::CallerCheckModule
+    + crate::views::ViewsModule
+    + crate::proposal_storage::ProposalStorageModule
+    + crate::events::EventsModule
+{
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
 
@@ -66,6 +75,35 @@ pub trait ConfigurablePropertiesModule {
     #[endpoint(changeVotingPeriodInBlocks)]
     fn change_voting_period_in_blocks(&self, new_value: u64) {
         self.try_change_voting_period_in_blocks(new_value);
+    }
+
+    /// Change the voting period for a specific ongoing proposal.
+    /// This can only be done by the owner and only for Active proposals.
+    #[only_owner]
+    #[endpoint(changeProposalVotingPeriod)]
+    fn change_proposal_voting_period(&self, proposal_id: ProposalId, new_voting_period: u64) {
+        self.require_caller_not_self();
+        self.require_valid_proposal_id(proposal_id);
+
+        // Ensure the proposal is currently Active
+        require!(
+            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Active,
+            "Proposal must be in Active status to change voting period"
+        );
+
+        // Validate the new voting period
+        require!(
+            new_voting_period > MIN_VOTING_PERIOD && new_voting_period < MAX_VOTING_PERIOD,
+            "Not valid value for voting period!"
+        );
+
+        // Update the proposal's voting period
+        let mut proposal = self.proposals().get(proposal_id);
+        proposal.voting_period_in_blocks = new_voting_period;
+        self.proposals().set(proposal_id, &proposal);
+
+        // Emit event for the change
+        self.proposal_voting_period_changed_event(proposal_id, new_voting_period);
     }
 
     fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
