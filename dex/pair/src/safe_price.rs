@@ -147,13 +147,7 @@ pub trait SafePriceModule:
             lp_supply,
         );
 
-        self.save_averaged_observation_if_needed(
-            current_round,
-            first_token_reserve,
-            second_token_reserve,
-            lp_supply,
-            &last_observation,
-        );
+        self.save_averaged_observation_if_needed(last_observation.recording_round);
     }
 
     fn handle_immediate_save(
@@ -182,6 +176,13 @@ pub trait SafePriceModule:
 
         if rounds_since_last_observation < round_save_interval {
             return;
+        }
+
+        if !self.current_price_observation().is_empty() {
+            let current_intermediate = self.current_price_observation().get();
+            if current_intermediate.recording_round > last_price_observation.recording_round {
+                last_price_observation = current_intermediate;
+            }
         }
 
         let new_price_observation = self.compute_new_observation(
@@ -227,18 +228,11 @@ pub trait SafePriceModule:
         self.current_price_observation().set(&current_intermediate);
     }
 
-    fn save_averaged_observation_if_needed(
-        &self,
-        current_round: Round,
-        first_token_reserve: &BigUint,
-        second_token_reserve: &BigUint,
-        lp_supply: &BigUint,
-        last_finalized_observation: &PriceObservation<Self::Api>,
-    ) {
+    fn save_averaged_observation_if_needed(&self, last_observation_round: Round) {
         let current_intermediate = self.current_price_observation().get();
         let round_save_interval = self.safe_price_round_save_interval().get();
 
-        if current_intermediate.weight_accumulated < round_save_interval {
+        if current_intermediate.recording_round - last_observation_round < round_save_interval {
             return;
         }
 
@@ -264,15 +258,8 @@ pub trait SafePriceModule:
 
         self.safe_price_current_index().set(new_index);
 
-        // Create a new intermediate observation using the last finalized observation as base
-        let new_intermediate = self.compute_new_observation(
-            current_round,
-            first_token_reserve,
-            second_token_reserve,
-            lp_supply,
-            last_finalized_observation,
-        );
-        self.current_price_observation().set(&new_intermediate);
+        // Clear the intermediate observation after saving
+        self.current_price_observation().clear();
     }
 
     fn compute_new_observation(
