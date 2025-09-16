@@ -335,6 +335,29 @@ pub trait Router:
             .execute_on_dest_context();
     }
 
+    #[only_owner]
+    #[endpoint(claimDeveloperRewardsPairs)]
+    fn claim_developer_rewards_pairs(&self, pairs: MultiValueEncoded<ManagedAddress>) {
+        let sc_address = self.blockchain().get_sc_address();
+        let egld_balance_before = self.blockchain().get_balance(&sc_address);
+
+        for pair in pairs {
+            self.check_is_pair_sc(&pair);
+
+            let _: IgnoreValue = self
+                .send()
+                .claim_developer_rewards(pair)
+                .execute_on_dest_context();
+        }
+
+        let egld_balance_after = self.blockchain().get_balance(&sc_address);
+        require!(egld_balance_after > egld_balance_before, "No EGLD received");
+        let total_egld_received = egld_balance_after - egld_balance_before;
+
+        let owner = self.blockchain().get_caller();
+        self.send().direct_egld(&owner, &total_egld_received);
+    }
+
     #[callback]
     fn lp_token_issue_callback(
         &self,
