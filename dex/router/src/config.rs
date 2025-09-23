@@ -60,12 +60,22 @@ pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
         self.pair_template_address().set(&address);
     }
 
+    #[only_owner]
+    #[endpoint(setFeesCollectorAddress)]
+    fn set_fees_collector_address(&self, address: ManagedAddress) {
+        self.fees_collector_address().set(&address);
+    }
+
     #[storage_mapper("pair_map")]
     fn pair_map(&self) -> MapMapper<PairTokens<Self::Api>, ManagedAddress>;
 
     #[view(getPairTemplateAddress)]
     #[storage_mapper("pair_template_address")]
     fn pair_template_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getFeesCollectorAddress)]
+    #[storage_mapper("fees_collector_address")]
+    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getTemporaryOwnerPeriod)]
     #[storage_mapper("temporary_owner_period")]

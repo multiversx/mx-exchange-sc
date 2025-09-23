@@ -258,7 +258,10 @@ fn user_enable_pair_swaps_through_router_test() {
                 managed_token_id!(LOCKED_TOKEN_ID),
                 managed_biguint!(MIN_LOCKED_TOKEN_VALUE),
                 MIN_LOCKED_PERIOD_EPOCHS,
-            )
+            );
+
+            // The actual fees collector address is not relevant for this test
+            sc.set_fees_collector_address(managed_address!(router_wrapper.address_ref()));
         })
         .assert_ok();
 
