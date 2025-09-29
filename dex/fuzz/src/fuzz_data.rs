@@ -322,7 +322,8 @@ pub mod fuzz_data_tests {
             .execute_tx(owner_addr, &pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(first_token);
                 let second_token_id = managed_token_id!(second_token);
-                let router_address = managed_address!(owner_addr);
+                // Set router address to pair's own address so fees_collector_address lookup returns empty
+                let router_address = sc.blockchain().get_sc_address();
                 let router_owner_address = managed_address!(owner_addr);
                 let total_fee_percent = TOTAL_FEE_PERCENT;
                 let special_fee_percent = SPECIAL_FEE_PERCENT;

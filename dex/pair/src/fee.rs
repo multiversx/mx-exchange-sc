@@ -103,7 +103,12 @@ pub trait FeeModule:
     }
 
     fn send_fees_collector_cut(&self, token: TokenIdentifier, cut_amount: BigUint) {
-        let fees_collector_address = self.get_fees_collector_address_mapper().get();
+        let fees_collector_mapper = self.get_fees_collector_address_mapper();
+        if fees_collector_mapper.is_empty() {
+            return;
+        }
+
+        let fees_collector_address = fees_collector_mapper.get();
         let _: IgnoreValue = self
             .fees_collector_proxy(fees_collector_address)
             .deposit_swap_fees()
