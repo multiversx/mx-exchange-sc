@@ -313,6 +313,7 @@ version = "0.0.0"
 dependencies = [
  "common_structs",
  "config",
+ "energy-factory",
  "farm",
  "farm-boosted-yields",
  "farm-staking",

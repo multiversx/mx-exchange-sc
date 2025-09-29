@@ -19,10 +19,6 @@
         },
         {
             "step": "externalSteps",
-            "path": "steps/set_fee_on.steps.json"
-        },
-        {
-            "step": "externalSteps",
             "path": "steps/pair_whitelist.steps.json"
         }
     ]
