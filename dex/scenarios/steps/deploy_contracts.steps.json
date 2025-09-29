@@ -62,6 +62,27 @@
                 "gas": "*",
                 "refund": "*"
             }
+        },
+        {
+            "step": "scCall",
+            "txId": "set-fees-collector-address",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "setFeesCollectorAddress",
+                "arguments": [
+                    "sc:router_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
         }
     ]
 }
