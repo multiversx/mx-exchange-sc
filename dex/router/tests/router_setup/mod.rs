@@ -1,3 +1,4 @@
+use fees_collector::FeesCollector;
 use multiversx_sc::codec::multi_types::{MultiValue4, OptionalValue};
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
@@ -66,6 +67,30 @@ where
             router_builder,
             ROUTER_WASM_PATH,
         );
+        let router_address = router_wrapper.address_ref();
+
+        let fees_collector_wrapper = b_mock.create_sc_account(
+            &rust_biguint!(0),
+            Some(&owner_addr),
+            fees_collector::contract_obj,
+            "fees collector path",
+        );
+
+        b_mock
+            .execute_tx(
+                &owner_addr,
+                &fees_collector_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.init(
+                        managed_address!(router_address),
+                        managed_address!(router_address),
+                        0,
+                        MultiValueEncoded::new(),
+                    );
+                },
+            )
+            .assert_ok();
 
         let mex_pair_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner_addr), pair_builder, PAIR_WASM_PATH);
@@ -77,7 +102,7 @@ where
             .execute_tx(&owner_addr, &mex_pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(MEX_TOKEN_ID);
-                let router_address = managed_address!(&owner_addr);
+                let router_address = managed_address!(router_address);
                 let router_owner_address = managed_address!(&owner_addr);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
@@ -104,7 +129,7 @@ where
             .execute_tx(&owner_addr, &usdc_pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(USDC_TOKEN_ID);
-                let router_address = managed_address!(&owner_addr);
+                let router_address = managed_address!(router_address);
                 let router_owner_address = managed_address!(&owner_addr);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
@@ -145,6 +170,10 @@ where
                     },
                     managed_address!(usdc_pair_wrapper.address_ref()),
                 );
+
+                sc.set_fees_collector_address(managed_address!(
+                    fees_collector_wrapper.address_ref()
+                ));
             })
             .assert_ok();
 

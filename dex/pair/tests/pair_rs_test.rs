@@ -2,7 +2,6 @@
 
 mod pair_setup;
 use energy_factory_mock::EnergyFactoryMock;
-use fees_collector::FeesCollector;
 use multiversx_sc::codec::{self, TopDecode};
 use multiversx_sc::{
     api::ManagedTypeApi,
@@ -12,15 +11,14 @@ use multiversx_sc::{
         top_encode_to_vec_u8,
     },
     storage::mappers::StorageTokenWrapper,
-    types::{BigUint, EsdtLocalRole, MultiValueEncoded},
+    types::{BigUint, EsdtLocalRole},
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     whitebox_legacy::TxTokenTransfer, DebugApi,
 };
+use pair::config::MAX_PERCENTAGE;
 use pair::{
-    config::MAX_PERCENTAGE,
-    fee::FeeModule,
     locking_wrapper::LockingWrapperModule,
     pair_actions::swap::SwapModule,
     safe_price::{PriceObservation, Round, SafePriceModule},
@@ -42,12 +40,20 @@ pub struct OldPriceObservation<M: ManagedTypeApi> {
 
 #[test]
 fn test_pair_setup() {
-    let _ = PairSetup::new(pair::contract_obj);
+    let _ = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
 }
 
 #[test]
 fn test_add_liquidity() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -56,7 +62,11 @@ fn test_add_liquidity() {
 
 #[test]
 fn test_swap_fixed_input() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -67,7 +77,11 @@ fn test_swap_fixed_input() {
 
 #[test]
 fn test_swap_fixed_output() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -78,7 +92,11 @@ fn test_swap_fixed_output() {
 
 #[test]
 fn test_perfect_swap_fixed_output() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
 
     let token_amount = 1_001_000;
 
@@ -107,7 +125,11 @@ fn test_perfect_swap_fixed_output() {
 
 #[test]
 fn test_safe_price_observation_decoding() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
     let _ = pair_setup.b_mock.execute_tx(
         &pair_setup.owner_address,
         &pair_setup.pair_wrapper,
@@ -141,7 +163,11 @@ fn test_safe_price_observation_decoding() {
 
 #[test]
 fn test_safe_price_migration() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let starting_round = 1000;
     let payment_amount = 1000;
@@ -315,7 +341,11 @@ fn test_safe_price_migration() {
 
 #[test]
 fn test_safe_price() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let payment_amount = 1000;
     let starting_round = 1000;
@@ -671,7 +701,11 @@ fn test_safe_price() {
 
 #[test]
 fn test_safe_price_linear_interpolation() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
     let min_pool_reserve = 1_000;
@@ -714,7 +748,7 @@ fn test_safe_price_linear_interpolation() {
         second_token_accumulated,
     );
 
-    first_token_reserve += first_token_payment_amount;
+    first_token_reserve += first_token_payment_amount - (first_token_payment_amount * 50 / 100000); // Subtract special fee
     second_token_reserve -= second_token_expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
@@ -743,7 +777,7 @@ fn test_safe_price_linear_interpolation() {
     weight = 1_000;
     block_round += weight;
     pair_setup.b_mock.set_block_round(block_round);
-    first_token_reserve += first_token_payment_amount;
+    first_token_reserve += first_token_payment_amount - (first_token_payment_amount * 50 / 100000); // Subtract special fee
     second_token_reserve -= second_token_expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
@@ -771,13 +805,14 @@ fn test_safe_price_linear_interpolation() {
     weight = 1;
     block_round += weight;
     first_token_reserve -= first_token_expected_amount;
-    second_token_reserve += second_token_payment_amount;
+    second_token_reserve +=
+        second_token_payment_amount - (second_token_payment_amount * 50 / 100000); // Subtract special fee
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
 
     // New price ~ 40
     first_token_payment_amount = 1_000;
-    second_token_expected_amount = 40_495;
+    second_token_expected_amount = 40_493;
 
     // In the new round (1003), we save the new reserves that impacted the price from ~30 to ~40
     pair_setup.b_mock.set_block_round(block_round);
@@ -814,7 +849,7 @@ fn test_safe_price_linear_interpolation() {
     );
 
     interpolation_round += 10;
-    safe_price_expected_amount = 31_771;
+    safe_price_expected_amount = 31_770;
     pair_setup.check_safe_price(
         &pair_address,
         interpolation_round,
@@ -826,7 +861,7 @@ fn test_safe_price_linear_interpolation() {
     );
 
     interpolation_round += 10;
-    safe_price_expected_amount = 34_293;
+    safe_price_expected_amount = 34_291;
     pair_setup.check_safe_price(
         &pair_address,
         interpolation_round,
@@ -838,7 +873,7 @@ fn test_safe_price_linear_interpolation() {
     );
 
     interpolation_round += 10;
-    safe_price_expected_amount = 37_012;
+    safe_price_expected_amount = 37_011;
     pair_setup.check_safe_price(
         &pair_address,
         interpolation_round,
@@ -850,7 +885,7 @@ fn test_safe_price_linear_interpolation() {
     );
 
     interpolation_round += 10;
-    safe_price_expected_amount = 39_955;
+    safe_price_expected_amount = 39_952;
     pair_setup.check_safe_price(
         &pair_address,
         interpolation_round,
@@ -866,7 +901,11 @@ fn test_safe_price_linear_interpolation() {
 // The purpose of this test is to see if values are returned from the correct contract
 #[test]
 fn test_both_legacy_and_new_safe_price_from_other_contract() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let payment_amount = 1000;
     let starting_round = 1000;
@@ -1035,7 +1074,7 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 //             second_token_expected_amount,
 //         );
 
-//         first_token_reserve += first_token_payment_amount;
+//         first_token_reserve += first_token_payment_amount - (first_token_payment_amount * 50 / 100000); // Subtract special fee
 //         second_token_reserve -= second_token_expected_amount;
 //         first_token_accumulated += weight * first_token_reserve;
 //         second_token_accumulated += weight * second_token_reserve;
@@ -1067,7 +1106,7 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 //     );
 
 //     first_token_reserve -= first_token_expected_amount;
-//     second_token_reserve += second_token_payment_amount;
+//     second_token_reserve += second_token_payment_amount - (second_token_payment_amount * 50 / 100000); // Subtract special fee
 //     first_token_accumulated += weight * first_token_reserve;
 //     second_token_accumulated += weight * second_token_reserve;
 
@@ -1090,7 +1129,7 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 //         );
 
 //         first_token_reserve -= first_token_expected_amount;
-//         second_token_reserve += second_token_payment_amount;
+//         second_token_reserve += second_token_payment_amount - (second_token_payment_amount * 50 / 100000); // Subtract special fee
 //         first_token_accumulated += weight * first_token_reserve;
 //         second_token_accumulated += weight * second_token_reserve;
 
@@ -1139,7 +1178,11 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 
 #[test]
 fn test_locked_asset() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -1269,7 +1312,11 @@ fn test_locked_asset() {
 
 #[test]
 fn add_liquidity_through_simple_lock_proxy() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
+        fees_collector::contract_obj,
+    );
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -1579,12 +1626,10 @@ fn add_liquidity_through_simple_lock_proxy() {
 
 #[test]
 fn fees_collector_pair_test() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
-    let fees_collector_wrapper = pair_setup.b_mock.create_sc_account(
-        &rust_biguint!(0),
-        Some(&pair_setup.owner_address),
+    let mut pair_setup = PairSetup::new(
+        pair::contract_obj,
+        router::contract_obj,
         fees_collector::contract_obj,
-        "fees collector path",
     );
 
     let energy_factory_mock_wrapper = pair_setup.b_mock.create_sc_account(
@@ -1609,48 +1654,17 @@ fn fees_collector_pair_test() {
         )
         .assert_ok();
 
-    let energy_factory_mock_addr = energy_factory_mock_wrapper.address_ref().clone();
-    pair_setup
-        .b_mock
-        .execute_tx(
-            &pair_setup.owner_address,
-            &fees_collector_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                sc.init(
-                    managed_address!(&energy_factory_mock_addr),
-                    managed_address!(&energy_factory_mock_addr), // unused
-                    0,
-                    MultiValueEncoded::new(),
-                );
-            },
-        )
-        .assert_ok();
-
-    pair_setup
-        .b_mock
-        .execute_tx(
-            &pair_setup.owner_address,
-            &pair_setup.pair_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                sc.setup_fees_collector(
-                    managed_address!(fees_collector_wrapper.address_ref()),
-                    MAX_PERCENTAGE / 2,
-                );
-            },
-        )
-        .assert_ok();
-
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
     );
 
-    pair_setup.swap_fixed_input(WEGLD_TOKEN_ID, 100_000, MEX_TOKEN_ID, 900, 90_669);
+    let payment_amount = 100_000;
+    pair_setup.swap_fixed_input(WEGLD_TOKEN_ID, payment_amount, MEX_TOKEN_ID, 900, 90_669);
 
+    // The entire special fee percent goes to the fees collector
     pair_setup.b_mock.check_esdt_balance(
-        fees_collector_wrapper.address_ref(),
+        pair_setup.fees_collector_wrapper.address_ref(),
         WEGLD_TOKEN_ID,
-        &rust_biguint!(25),
+        &rust_biguint!(payment_amount * SPECIAL_FEE_PERCENT / MAX_PERCENTAGE),
     );
 }

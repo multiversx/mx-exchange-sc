@@ -12,7 +12,6 @@ pub mod multi_pair_swap;
 
 use factory::PairTokens;
 use pair::config::ProxyTrait as _;
-use pair::fee::ProxyTrait as _;
 use pair::{read_pair_storage, ProxyTrait as _};
 use pausable::ProxyTrait as _;
 
@@ -299,40 +298,6 @@ pub trait Router:
         }
 
         pair_address
-    }
-
-    #[only_owner]
-    #[endpoint(setFeeOn)]
-    fn set_fee_on(
-        &self,
-        pair_address: ManagedAddress,
-        fee_to_address: ManagedAddress,
-        fee_token: TokenIdentifier,
-    ) {
-        require!(self.is_active(), "Not active");
-        self.check_is_pair_sc(&pair_address);
-
-        let _: IgnoreValue = self
-            .pair_contract_proxy(pair_address)
-            .set_fee_on(true, fee_to_address, fee_token)
-            .execute_on_dest_context();
-    }
-
-    #[only_owner]
-    #[endpoint(setFeeOff)]
-    fn set_fee_off(
-        &self,
-        pair_address: ManagedAddress,
-        fee_to_address: ManagedAddress,
-        fee_token: TokenIdentifier,
-    ) {
-        require!(self.is_active(), "Not active");
-        self.check_is_pair_sc(&pair_address);
-
-        let _: IgnoreValue = self
-            .pair_contract_proxy(pair_address)
-            .set_fee_on(false, fee_to_address, fee_token)
-            .execute_on_dest_context();
     }
 
     #[only_owner]

@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           32
+// Endpoints:                           30
 // Async Callback:                       1
-// Total number of exported functions:  35
+// Total number of exported functions:  33
 
 #![no_std]
 
@@ -27,8 +27,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         issueLpToken => issue_lp_token
         setLocalRoles => set_local_roles
         removePair => remove_pair
-        setFeeOn => set_fee_on
-        setFeeOff => set_fee_off
         claimDeveloperRewardsPairs => claim_developer_rewards_pairs
         setPairCreationEnabled => set_pair_creation_enabled
         getPairCreationEnabled => pair_creation_enabled

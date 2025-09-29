@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           63
+// Endpoints:                           57
 // Async Callback (empty):               1
-// Total number of exported functions:  66
+// Total number of exported functions:  60
 
 #![no_std]
 
@@ -21,18 +21,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         init => init
         upgrade => upgrade
         setLpTokenIdentifier => set_lp_token_identifier
-        getFeeState => is_fee_enabled
         whitelist => whitelist_endpoint
         removeWhitelist => remove_whitelist
         addTrustedSwapPair => add_trusted_swap_pair
         removeTrustedSwapPair => remove_trusted_swap_pair
-        setupFeesCollector => setup_fees_collector
-        setFeeOn => set_fee_on
-        getFeeDestinations => get_fee_destinations
         getTrustedSwapPairs => get_trusted_swap_pairs
         getWhitelistedManagedAddresses => get_whitelisted_managed_addresses
-        getFeesCollectorAddress => fees_collector_address
-        getFeesCollectorCutPercentage => fees_collector_cut_percentage
         setStateActiveNoSwaps => set_state_active_no_swaps
         setFeePercents => set_fee_percent
         getLpTokenIdentifier => get_lp_token_identifier

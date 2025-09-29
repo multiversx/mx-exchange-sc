@@ -138,14 +138,7 @@ pub trait SwapModule:
         );
         require!(initial_k <= new_k, ERROR_K_INVARIANT_FAILED);
 
-        if swap_context.fee_amount > 0 {
-            self.send_fee(
-                &mut storage_cache,
-                swap_context.swap_tokens_order,
-                &swap_context.input_token_id,
-                &swap_context.fee_amount,
-            );
-        }
+        self.send_fee(&swap_context.input_token_id, &swap_context.fee_amount);
 
         let caller = self.blockchain().get_caller();
         let output_payments = self.build_swap_output_payments(&swap_context);
@@ -211,12 +204,7 @@ pub trait SwapModule:
         require!(initial_k <= new_k, ERROR_K_INVARIANT_FAILED);
 
         if swap_context.fee_amount > 0 {
-            self.send_fee(
-                &mut storage_cache,
-                swap_context.swap_tokens_order,
-                &swap_context.input_token_id,
-                &swap_context.fee_amount,
-            );
+            self.send_fee(&swap_context.input_token_id, &swap_context.fee_amount);
         }
 
         let caller = self.blockchain().get_caller();
@@ -251,12 +239,10 @@ pub trait SwapModule:
         context.final_output_amount = amount_out_optimal;
 
         let mut amount_in_after_fee = context.input_token_amount.clone();
-        if self.is_fee_enabled() {
-            let fee_amount = self.get_special_fee_from_input(&amount_in_after_fee);
-            amount_in_after_fee -= &fee_amount;
+        let fee_amount = self.get_special_fee_from_input(&amount_in_after_fee);
+        amount_in_after_fee -= &fee_amount;
 
-            context.fee_amount = fee_amount;
-        }
+        context.fee_amount = fee_amount;
 
         *storage_cache.get_mut_reserve_in(context.swap_tokens_order) += amount_in_after_fee;
         *storage_cache.get_mut_reserve_out(context.swap_tokens_order) -=
@@ -284,12 +270,10 @@ pub trait SwapModule:
         context.final_input_amount = amount_in_optimal.clone();
 
         let mut amount_in_optimal_after_fee = amount_in_optimal;
-        if self.is_fee_enabled() {
-            let fee_amount = self.get_special_fee_from_input(&amount_in_optimal_after_fee);
-            amount_in_optimal_after_fee -= &fee_amount;
+        let fee_amount = self.get_special_fee_from_input(&amount_in_optimal_after_fee);
+        amount_in_optimal_after_fee -= &fee_amount;
 
-            context.fee_amount = fee_amount;
-        }
+        context.fee_amount = fee_amount;
 
         *storage_cache.get_mut_reserve_in(context.swap_tokens_order) += amount_in_optimal_after_fee;
         *storage_cache.get_mut_reserve_out(context.swap_tokens_order) -=

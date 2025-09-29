@@ -1403,6 +1403,7 @@ dependencies = [
  "num-bigint",
  "pausable",
  "permissions_module",
+ "router",
  "simple-lock",
  "token_send",
  "utils",
@@ -1750,6 +1751,7 @@ dependencies = [
 name = "router"
 version = "0.0.0"
 dependencies = [
+ "fees-collector",
  "locking_module",
  "multiversx-sc",
  "multiversx-sc-scenario",
