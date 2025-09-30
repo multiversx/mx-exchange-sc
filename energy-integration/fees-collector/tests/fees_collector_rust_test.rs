@@ -1562,12 +1562,6 @@ fn fees_collector_single_swap_test() {
         )
         .assert_ok();
 
-    // advance weeks to allow swaps
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-
     // swap WEGLD to MEX
     let current_week = fc_setup.get_current_week();
     let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
@@ -2284,7 +2278,6 @@ fn migration_with_token_swap_and_redistribute_test() {
         ),
     );
 
-    // SC balance won't be empty because week 2 rewards for second user are stuck
     let sc_address = fc_setup.fc_wrapper.address_ref().clone();
     let sc_base_token_balance =
         fc_setup
