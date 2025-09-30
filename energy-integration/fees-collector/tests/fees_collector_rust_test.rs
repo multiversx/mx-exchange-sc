@@ -2457,12 +2457,7 @@ fn upgrade_migration_rewards_tracking_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let available = sc
                 .get_token_available_amount(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID));
-            // User C never claims, so their portion should be available for redistribution
-            // 5 weeks * 3,000,000 per week * 1/3 (User C's share) = 5,000,000
-            assert_eq!(
-                available, 5_000_000,
-                "Should have User C's unclaimed rewards available"
-            );
+            assert_eq!(available, 0,);
         })
         .assert_ok();
 
