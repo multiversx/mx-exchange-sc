@@ -1,11 +1,16 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use pair::{config::ProxyTrait as _, pair_actions::views::ProxyTrait as _, read_pair_storage};
+use pair::{
+    config::ProxyTrait as _, fee::ProxyTrait as _, pair_actions::views::ProxyTrait as _,
+    read_pair_storage,
+};
 use pausable::{ProxyTrait as _, State};
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::{config, DEFAULT_SPECIAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT};
+use crate::{
+    config, DEFAULT_SPECIAL_FEE_PERCENT, MAX_TOTAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT,
+};
 
 static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
@@ -135,6 +140,7 @@ pub trait EnableSwapByUserModule:
         self.require_caller_initial_liquidity_adder(&pair_address, &caller);
 
         self.set_fee_percents(pair_address.clone());
+        self.set_pair_fees_collector(pair_address.clone());
         self.pair_resume(pair_address.clone());
 
         self.send().direct_esdt(
@@ -226,6 +232,18 @@ pub trait EnableSwapByUserModule:
             }
             None => sc_panic!("No initial liq adder was set for pair"),
         }
+    }
+
+    fn set_pair_fees_collector(&self, pair_address: ManagedAddress) {
+        let fees_collector_address = self.fees_collector_address().get();
+        if fees_collector_address.is_zero() {
+            return;
+        }
+
+        let _: IgnoreValue = self
+            .user_pair_proxy(pair_address)
+            .setup_fees_collector(fees_collector_address, MAX_TOTAL_FEE_PERCENT)
+            .execute_on_dest_context();
     }
 
     fn set_fee_percents(&self, pair_address: ManagedAddress) {

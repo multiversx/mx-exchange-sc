@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           30
+// Endpoints:                           32
 // Async Callback:                       1
-// Total number of exported functions:  33
+// Total number of exported functions:  35
 
 #![no_std]
 
@@ -36,7 +36,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         getOwner => owner
         setTemporaryOwnerPeriod => set_temporary_owner_period
         setPairTemplateAddress => set_pair_template_address
+        setFeesCollectorAddress => set_fees_collector_address
         getPairTemplateAddress => pair_template_address
+        getFeesCollectorAddress => fees_collector_address
         getTemporaryOwnerPeriod => temporary_owner_period
         getCommonTokensForUserPairs => common_tokens_for_user_pairs
         getAllPairsManagedAddresses => get_all_pairs_addresses
