@@ -29,15 +29,13 @@ pub trait RouterInteractionsModule:
     crate::fees_accumulation::FeesAccumulationModule
     + crate::config::ConfigModule
     + crate::events::FeesCollectorEventsModule
-    + week_timekeeping::WeekTimekeepingModule
     + energy_query::EnergyQueryModule
-    + utils::UtilsModule
-    + multiversx_sc_modules::only_admin::OnlyAdminModule
-    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
-    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+    + utils::UtilsModule
+    + multiversx_sc_modules::only_admin::OnlyAdminModule
 {
     #[only_owner]
     #[endpoint(setRouterAddress)]
@@ -70,8 +68,7 @@ pub trait RouterInteractionsModule:
         self.check_swap_through_router_args(&token_id, &token_amount, &swap_operations);
         let current_week = self.get_current_week();
 
-        let token_max_amount =
-            self.get_token_available_amount(current_week, &token_id);
+        let token_max_amount = self.get_token_available_amount(current_week, &token_id);
         require!(
             token_amount <= token_max_amount,
             "Not enough tokens available for swap"

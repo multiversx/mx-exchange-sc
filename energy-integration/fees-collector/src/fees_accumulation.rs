@@ -14,14 +14,11 @@ pub struct WeekRange {
 pub trait FeesAccumulationModule:
     crate::config::ConfigModule
     + crate::events::FeesCollectorEventsModule
-    + week_timekeeping::WeekTimekeepingModule
     + energy_query::EnergyQueryModule
-    + utils::UtilsModule
-    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
-    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
 {
     /// Anyone can deposit tokens through this endpoint
     ///
