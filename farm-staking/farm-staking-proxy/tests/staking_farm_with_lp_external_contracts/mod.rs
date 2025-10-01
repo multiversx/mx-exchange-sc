@@ -60,7 +60,7 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                ManagedAddress::<DebugApi>::zero(),
+                ManagedAddress::<DebugApi>::zero(), // initial_liquidity_adder - disabled
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
@@ -68,6 +68,13 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(pausable::State::Active);
+        })
+        .assert_ok();
+
+    // Disable fees by setting percentages to zero
+    b_mock
+        .execute_tx(owner_addr, &pair_wrapper, &rust_biguint!(0), |sc| {
+            sc.set_fee_percents(0, 0);
         })
         .assert_ok();
 

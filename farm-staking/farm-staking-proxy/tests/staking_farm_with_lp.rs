@@ -1171,7 +1171,7 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         .assert_ok();
 
     // Total farm position should be updated after claim, as a few swaps happened
-    let new_expected_token_amount = 92_416_406u64;
+    let new_expected_token_amount = 92_395_115u64;
     setup.check_user_total_staking_farm_position(&user_address, new_expected_token_amount);
 
     // User does not have any dual yield tokens with the before the claim token nonce

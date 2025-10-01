@@ -18,6 +18,21 @@
                     "creatorAddress": "address:owner",
                     "creatorNonce": "1",
                     "newAddress": "sc:farm_contract"
+                },
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "2",
+                    "newAddress": "sc:energy_factory_contract"
+                },
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "3",
+                    "newAddress": "sc:dummy_old_factory"
+                },
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "4",
+                    "newAddress": "sc:fees_collector_contract"
                 }
             ]
         },
@@ -59,6 +74,98 @@
             "expect": {
                 "out": [],
                 "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scDeploy",
+            "txId": "deploy-dummy-old-factory",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "file:../../pair/output/pair.wasm",
+                "arguments": [
+                    "str:WEGLD-abcdef",
+                    "str:ALC-abcdef",
+                    "sc:router_contract",
+                    "sc:router_contract",
+                    "0",
+                    "0",
+                    "address:owner"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scDeploy",
+            "txId": "deploy-energy-factory",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "file:../../../locked-asset/energy-factory/output/energy-factory.wasm",
+                "arguments": [
+                    "str:WEGLD-abcdef",
+                    "str:LKMEX-abcdef",
+                    "sc:dummy_old_factory",
+                    "10",
+                    "365",
+                    "2000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scDeploy",
+            "txId": "deploy-fees-collector",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "file:../../../energy-integration/fees-collector/output/fees-collector.wasm",
+                "arguments": [
+                    "sc:energy_factory_contract",
+                    "sc:router_contract",
+                    "0",
+                    "address:owner"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "set-fees-collector-address",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "setFeesCollectorAddress",
+                "arguments": [
+                    "sc:fees_collector_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
                 "gas": "*",
                 "refund": "*"
             }

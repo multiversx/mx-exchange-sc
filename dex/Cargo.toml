@@ -59,5 +59,8 @@ path = "governance"
 [dev-dependencies.fees-collector]
 path = "../energy-integration/fees-collector"
 
+[dev-dependencies.energy-factory]
+path = "../locked-asset/energy-factory"
+
 [dev-dependencies.farm-boosted-yields]
 path = "../energy-integration/farm-boosted-yields"

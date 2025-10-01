@@ -1,4 +1,6 @@
+use fees_collector::FeesCollector;
 use multiversx_sc::codec::multi_types::MultiValue3;
+use multiversx_sc::imports::OptionalValue;
 use multiversx_sc::types::{
     Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, MultiValueEncoded,
 };
@@ -19,6 +21,9 @@ pub const LP_PROXY_TOKEN_ID: &[u8] = b"LPPROXY-abcdef";
 pub const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
+pub const TOTAL_FEE_PERCENT: u64 = 300; // 3%
+pub const SPECIAL_FEE_PERCENT: u64 = 50; // 0.5%
+
 use pair::config::ConfigModule as PairConfigModule;
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::swap::SwapModule;
@@ -26,27 +31,56 @@ use pair::safe_price::SafePriceModule;
 use pair::safe_price_view::*;
 use pair::*;
 use pausable::{PausableModule, State};
+use router::config::ConfigModule;
+use router::factory::PairTokens;
+use router::Router;
 
 #[allow(dead_code)]
-pub struct PairSetup<PairObjBuilder>
+pub struct PairSetup<PairObjBuilder, RouterObjBuilder, FeesCollectorObjBuilder>
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
+    FeesCollectorObjBuilder: 'static + Copy + Fn() -> fees_collector::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner_address: Address,
     pub user_address: Address,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
     pub second_pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    pub router_wrapper: ContractObjWrapper<router::ContractObj<DebugApi>, RouterObjBuilder>,
+    pub fees_collector_wrapper:
+        ContractObjWrapper<fees_collector::ContractObj<DebugApi>, FeesCollectorObjBuilder>,
 }
 
-impl<PairObjBuilder> PairSetup<PairObjBuilder>
+impl<PairObjBuilder, RouterObjBuilder, FeesCollectorObjBuilder>
+    PairSetup<PairObjBuilder, RouterObjBuilder, FeesCollectorObjBuilder>
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
+    FeesCollectorObjBuilder: 'static + Copy + Fn() -> fees_collector::ContractObj<DebugApi>,
 {
-    pub fn new(pair_builder: PairObjBuilder) -> Self {
+    pub fn new(
+        pair_builder: PairObjBuilder,
+        router_builder: RouterObjBuilder,
+        fees_collector_builder: FeesCollectorObjBuilder,
+    ) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner_addr = b_mock.create_user_account(&rust_zero);
+        let router_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner_addr),
+            router_builder,
+            "dex/router/output/router.wasm",
+        );
+
+        let fees_collector_wrapper = b_mock.create_sc_account(
+            &rust_biguint!(0),
+            Some(&owner_addr),
+            fees_collector_builder,
+            "fees collector path",
+        );
+
         let pair_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner_addr), pair_builder, PAIR_WASM_PATH);
 
@@ -54,13 +88,56 @@ where
             b_mock.create_sc_account(&rust_zero, Some(&owner_addr), pair_builder, PAIR_WASM_PATH);
 
         b_mock
+            .execute_tx(&owner_addr, &router_wrapper, &rust_zero, |sc| {
+                sc.init(OptionalValue::Some(managed_address!(
+                    pair_wrapper.address_ref()
+                )));
+
+                sc.pair_map().insert(
+                    PairTokens {
+                        first_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+                        second_token_id: managed_token_id!(MEX_TOKEN_ID),
+                    },
+                    managed_address!(pair_wrapper.address_ref()),
+                );
+                sc.pair_map().insert(
+                    PairTokens {
+                        first_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+                        second_token_id: managed_token_id!(OTHER_TOKEN_ID),
+                    },
+                    managed_address!(second_pair_wrapper.address_ref()),
+                );
+
+                sc.set_fees_collector_address(managed_address!(
+                    fees_collector_wrapper.address_ref()
+                ));
+            })
+            .assert_ok();
+
+        b_mock
+            .execute_tx(
+                &owner_addr,
+                &fees_collector_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.init(
+                        managed_address!(router_wrapper.address_ref()), // unused
+                        managed_address!(router_wrapper.address_ref()),
+                        0,
+                        MultiValueEncoded::new(),
+                    );
+                },
+            )
+            .assert_ok();
+
+        b_mock
             .execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(MEX_TOKEN_ID);
-                let router_address = managed_address!(&owner_addr);
+                let router_address = managed_address!(router_wrapper.address_ref());
                 let router_owner_address = managed_address!(&owner_addr);
-                let total_fee_percent = 300u64;
-                let special_fee_percent = 50u64;
+                let total_fee_percent = TOTAL_FEE_PERCENT;
+                let special_fee_percent = SPECIAL_FEE_PERCENT;
 
                 sc.init(
                     first_token_id,
@@ -84,7 +161,7 @@ where
             .execute_tx(&owner_addr, &second_pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(OTHER_TOKEN_ID);
-                let router_address = managed_address!(&owner_addr);
+                let router_address = managed_address!(router_wrapper.address_ref());
                 let router_owner_address = managed_address!(&owner_addr);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
@@ -128,6 +205,8 @@ where
             user_address: user_addr,
             pair_wrapper,
             second_pair_wrapper,
+            router_wrapper,
+            fees_collector_wrapper,
         }
     }
 

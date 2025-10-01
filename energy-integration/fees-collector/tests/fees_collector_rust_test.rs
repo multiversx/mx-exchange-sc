@@ -18,6 +18,7 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, managed_token_id_wrapped,
     rust_biguint, DebugApi,
 };
+use router::config::ConfigModule as RouterConfigModule;
 use router_setup::{RouterSetup, USDC_TOKEN_ID, WEGLD_TOKEN_ID};
 use simple_lock::locked_token::LockedTokenAttributes;
 use week_timekeeping::EPOCHS_IN_WEEK;
@@ -1623,6 +1624,7 @@ fn fees_collector_multiple_swap_test() {
     router_setup.add_liquidity();
 
     let router_address = router_setup.router_wrapper.address_ref().clone();
+    let fc_address = fc_setup.fc_wrapper.address_ref().clone();
     fc_setup
         .b_mock
         .borrow_mut()
@@ -1632,6 +1634,20 @@ fn fees_collector_multiple_swap_test() {
             &rust_zero,
             |sc| {
                 sc.set_router_address(managed_address!(&router_address));
+            },
+        )
+        .assert_ok();
+
+    // Set fees collector address in router
+    router_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &router_setup.owner_address,
+            &router_setup.router_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.set_fees_collector_address(managed_address!(&fc_address));
             },
         )
         .assert_ok();
@@ -1993,6 +2009,7 @@ fn migration_with_token_swap_and_redistribute_test() {
 
     // Setup router and add all tokens to reward_tokens list
     let router_address = router_setup.router_wrapper.address_ref().clone();
+    let fc_address = fc_setup.fc_wrapper.address_ref().clone();
     fc_setup
         .b_mock
         .borrow_mut()
@@ -2005,6 +2022,20 @@ fn migration_with_token_swap_and_redistribute_test() {
 
                 // Only add the extra tokens, as BASE_ASSET_TOKEN_ID was added at deployment
                 sc.reward_tokens().insert(managed_token_id!(USDC_TOKEN_ID));
+            },
+        )
+        .assert_ok();
+
+    // Set fees collector address in router
+    router_setup
+        .b_mock
+        .borrow_mut()
+        .execute_tx(
+            &router_setup.owner_address,
+            &router_setup.router_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.set_fees_collector_address(managed_address!(&fc_address));
             },
         )
         .assert_ok();

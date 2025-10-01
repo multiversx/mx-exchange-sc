@@ -6,6 +6,14 @@ fn world() -> ScenarioWorld {
     blockchain.register_contract("file:router/output/router.wasm", router::ContractBuilder);
     blockchain.register_contract("file:pair/output/pair.wasm", pair::ContractBuilder);
     blockchain.register_contract("file:farm/output/farm.wasm", farm::ContractBuilder);
+    blockchain.register_contract(
+        "file:../energy-integration/fees-collector/output/fees-collector.wasm",
+        fees_collector::ContractBuilder,
+    );
+    blockchain.register_contract(
+        "file:../locked-asset/energy-factory/output/energy-factory.wasm",
+        energy_factory::ContractBuilder,
+    );
 
     blockchain
 }

@@ -258,7 +258,7 @@ fn user_enable_pair_swaps_through_router_test() {
                 managed_token_id!(LOCKED_TOKEN_ID),
                 managed_biguint!(MIN_LOCKED_TOKEN_VALUE),
                 MIN_LOCKED_PERIOD_EPOCHS,
-            )
+            );
         })
         .assert_ok();
 

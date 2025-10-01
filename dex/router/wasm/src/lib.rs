@@ -27,8 +27,6 @@ multiversx_sc_wasm_adapter::endpoints! {
         issueLpToken => issue_lp_token
         setLocalRoles => set_local_roles
         removePair => remove_pair
-        setFeeOn => set_fee_on
-        setFeeOff => set_fee_off
         claimDeveloperRewardsPairs => claim_developer_rewards_pairs
         setPairCreationEnabled => set_pair_creation_enabled
         getPairCreationEnabled => pair_creation_enabled
@@ -36,7 +34,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         getOwner => owner
         setTemporaryOwnerPeriod => set_temporary_owner_period
         setPairTemplateAddress => set_pair_template_address
+        setFeesCollectorAddress => set_fees_collector_address
         getPairTemplateAddress => pair_template_address
+        getFeesCollectorAddress => fees_collector_address
         getTemporaryOwnerPeriod => temporary_owner_period
         getCommonTokensForUserPairs => common_tokens_for_user_pairs
         getAllPairsManagedAddresses => get_all_pairs_addresses
