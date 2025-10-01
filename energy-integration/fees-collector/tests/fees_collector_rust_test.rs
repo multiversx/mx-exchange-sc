@@ -54,7 +54,7 @@ fn claim_first_week_test() {
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // user claim first week - users only get registered for week 2, without receiving rewards
+    // Users claim first week - get registered for week 2 without receiving rewards
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
@@ -112,10 +112,10 @@ fn claim_first_week_test() {
         })
         .assert_ok();
 
-    // user try claim first week again
+    // User tries to claim first week again
     fc_setup.claim(&first_user).assert_ok();
 
-    // state remains unchanged
+    // State remains unchanged
     fc_setup
         .b_mock
         .borrow_mut()
@@ -182,28 +182,28 @@ fn claim_after_dex_inactive_test() {
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // user claim first week
+    // User claims first week
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
-    // advance to week 2 (inactive week)
+    // Advance to week 2 (no deposits - inactive week)
     fc_setup.advance_week();
 
-    // advance to week 3 (inactive week)
+    // Advance to week 3 (no deposits - inactive week)
     fc_setup.advance_week();
 
-    // advance to week 4 (active week)
+    // Advance to week 4 (active week with deposits)
     fc_setup.advance_week();
 
-    // deposit rewards week 4
+    // Deposit rewards for week 4
     fc_setup
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // decrease user energy
+    // Decrease user energy
     fc_setup.set_energy(&first_user, 50, 2_500);
 
-    // users claims in week 4
+    // Users claim rewards in week 4
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
@@ -275,11 +275,11 @@ fn claim_second_week_test() {
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // user claim first week - users only get registered for week 2, without receiving rewards
+    // Users claim first week - get registered for week 2 without receiving rewards
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
-    // advance week
+    // Advance to next week
     fc_setup.advance_week();
 
     // increase first user's energy
@@ -360,10 +360,10 @@ fn claim_second_week_test() {
         })
         .assert_ok();
 
-    // first user try claim again
+    // First user tries to claim again
     fc_setup.claim(&first_user).assert_ok();
 
-    // no rewards were given, and state remains intact
+    // No rewards given - state remains intact, no double claiming
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
         BASE_ASSET_TOKEN_ID,
@@ -432,11 +432,11 @@ fn claim_for_other_user_test() {
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // user claim first week - user only get registered for week 2, without receiving rewards
+    // User claims first week - user only get registered for week 2, without receiving rewards
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
-    // advance week
+    // Advance to next week
     fc_setup.advance_week();
 
     // increase first user's energy
@@ -545,11 +545,11 @@ fn claim_inactive_week_test() {
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // user claim first week - users only get registered for week 2, without receiving rewards
+    // Users claim first week - get registered for week 2 without receiving rewards
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
-    // advance week
+    // Advance to next week
     fc_setup.advance_week();
 
     // deposit rewards week 2
@@ -557,7 +557,7 @@ fn claim_inactive_week_test() {
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // decrease user energy
+    // Decrease user energy
     fc_setup.set_energy(&first_user, 50, 2_650);
 
     // only first user claims in second week
@@ -599,7 +599,7 @@ fn claim_inactive_week_test() {
         })
         .assert_ok();
 
-    // advance week
+    // Advance to next week
     fc_setup.advance_week();
 
     // second user claim third week
@@ -632,7 +632,7 @@ fn locked_token_buckets_shifting_test() {
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // user claim first week - users only get registered for week 2, without receiving rewards
+    // Users claim first week - get registered for week 2 without receiving rewards
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
@@ -677,7 +677,7 @@ fn locked_token_buckets_shifting_test() {
         })
         .assert_ok();
 
-    // advance week
+    // Advance to next week
     fc_setup.advance_week();
 
     // deposit rewards week 2
@@ -685,7 +685,7 @@ fn locked_token_buckets_shifting_test() {
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // advance 5 weeks
+    // Advance 5 weeks to test bucket shifting
     fc_setup.advance_week();
     fc_setup.advance_week();
     fc_setup.advance_week();
@@ -826,7 +826,7 @@ fn multi_bucket_shift_consistency_test() {
         .deposit(BASE_ASSET_TOKEN_ID, USER_BALANCE)
         .assert_ok();
 
-    // user claim first week - users only get registered for week 2, without receiving rewards
+    // Users claim first week - get registered for week 2 without receiving rewards
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
@@ -1015,11 +1015,11 @@ fn claim_locked_rewards_with_energy_update_test() {
         .deposit_locked_tokens(1, USER_BALANCE / 100)
         .assert_ok();
 
-    // user claim first week - users only get registered for week 2, without receiving rewards
+    // Users claim first week - get registered for week 2 without receiving rewards
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
-    // advance week
+    // Advance to next week
     fc_setup.advance_week();
 
     // increase first user's energy
@@ -1128,10 +1128,10 @@ fn claim_locked_rewards_with_energy_update_test() {
         })
         .assert_ok();
 
-    // first user try claim again
+    // First user tries to claim again
     fc_setup.claim(&first_user).assert_ok();
 
-    // no rewards were given, and state remains intact
+    // No rewards given - state remains intact, no double claiming
     fc_setup.b_mock.borrow_mut().check_esdt_balance(
         &first_user,
         BASE_ASSET_TOKEN_ID,
@@ -1328,7 +1328,7 @@ fn redistribute_rewards_test() {
     fc_setup.claim(&second_user).assert_ok();
     fc_setup.claim(&third_user).assert_ok();
 
-    // advance to week 2 (inactive week)
+    // Advance to week 2 (no deposits - inactive week)
     fc_setup.advance_week();
 
     fc_setup
@@ -1352,7 +1352,7 @@ fn redistribute_rewards_test() {
         })
         .assert_ok();
 
-    // advance to week 3 (inactive week)
+    // Advance to week 3 (no deposits - inactive week)
     fc_setup.advance_week();
 
     fc_setup
@@ -1362,7 +1362,7 @@ fn redistribute_rewards_test() {
     fc_setup.set_energy(&third_user, 1, 1);
     fc_setup.claim(&third_user).assert_ok();
 
-    // advance to week 4 (active week)
+    // Advance to week 4 (active week with deposits)
     fc_setup.advance_week();
 
     fc_setup
@@ -1536,7 +1536,7 @@ fn fees_collector_single_swap_test() {
         )
         .assert_ok();
 
-    // try deposit WEGLD
+    // Try to deposit WEGLD
     fc_setup.b_mock.borrow_mut().set_esdt_balance(
         &fc_setup.owner_address,
         WEGLD_TOKEN_ID,
@@ -1561,12 +1561,6 @@ fn fees_collector_single_swap_test() {
             },
         )
         .assert_ok();
-
-    // advance weeks to allow swaps
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-    fc_setup.advance_week();
 
     // swap WEGLD to MEX
     let current_week = fc_setup.get_current_week();
@@ -1682,7 +1676,7 @@ fn fees_collector_multiple_swap_test() {
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
 
-    // try deposit USDC
+    // Try to deposit USDC
     fc_setup.b_mock.borrow_mut().set_esdt_balance(
         &fc_setup.owner_address,
         USDC_TOKEN_ID,
@@ -1707,7 +1701,7 @@ fn fees_collector_multiple_swap_test() {
             },
         )
         .assert_ok();
-    // try swap unknown token
+    // Try to swap unknown token (should fail)
     let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
     let wegld_usdc_pair_addr = router_setup.wegld_usdc_pair_wrapper.address_ref().clone();
     fc_setup
@@ -1913,12 +1907,6 @@ fn test_burn_percentage_base_token_logic() {
     );
     fc_setup.deposit(WEGLD_TOKEN_ID, 1_000).assert_ok();
 
-    // advance weeks to allow swaps
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-    fc_setup.advance_week();
-
     let current_week = fc_setup.get_current_week();
     let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
     fc_setup
@@ -1956,7 +1944,7 @@ fn test_burn_percentage_base_token_logic() {
         )
         .assert_ok();
 
-    // user deposit mex
+    // User deposits MEX tokens
     fc_setup.b_mock.borrow_mut().set_esdt_balance(
         &fc_setup.depositor_address,
         BASE_ASSET_TOKEN_ID,
@@ -2168,8 +2156,8 @@ fn migration_with_token_swap_and_redistribute_test() {
     fc_setup.claim(&first_user).assert_ok();
 
     // Swap USDC_TOKEN_ID to MEX through router
-    // We're using USDC_TOKEN_ID → WEGLD → MEX path
-    // Also redistribute all old rewards
+    // Using USDC_TOKEN_ID → WEGLD → MEX path
+    // Redistribute any unclaimed rewards from previous weeks
     let expected_base_token_swap_amount = 446;
     let wegld_mex_pair_addr = router_setup.wegld_mex_pair_wrapper.address_ref().clone();
     let wegld_usdc_pair_addr = router_setup.wegld_usdc_pair_wrapper.address_ref().clone();
@@ -2284,7 +2272,6 @@ fn migration_with_token_swap_and_redistribute_test() {
         ),
     );
 
-    // SC balance won't be empty because week 2 rewards for second user are stuck
     let sc_address = fc_setup.fc_wrapper.address_ref().clone();
     let sc_base_token_balance =
         fc_setup
@@ -2343,16 +2330,16 @@ fn upgrade_migration_rewards_tracking_test() {
     let user_b = fc_setup.b_mock.borrow_mut().create_user_account(&rust_zero);
     let user_c = fc_setup.b_mock.borrow_mut().create_user_account(&rust_zero);
 
-    // Set identical energy for all users: 100,000 locked tokens, 144,000,000 energy
+    // Set identical energy for all users to ensure equal reward distribution
     fc_setup.set_energy(&user_a, 100_000, 144_000_000);
     fc_setup.set_energy(&user_b, 100_000, 144_000_000);
     fc_setup.set_energy(&user_c, 100_000, 144_000_000);
 
-    // Weekly deposit amount
-    let weekly_deposit = 3_000_000u64; // Each user should get 1_000_000 per week
+    // Weekly deposit amount - each user should get 1,000,000 per week
+    let weekly_deposit = 3_000_000u64;
 
     // =====================================
-    // WEEKS 1-6: OLD LOGIC SIMULATION
+    // WEEKS 1-6: PRE-UPGRADE BEHAVIOR SIMULATION
     // =====================================
 
     // Week 1: Setup - users register but don't receive rewards
@@ -2365,13 +2352,13 @@ fn upgrade_migration_rewards_tracking_test() {
     fc_setup.set_energy(&user_b, 100_000, 144_000_000);
     fc_setup.set_energy(&user_c, 100_000, 144_000_000);
 
-    fc_setup.claim(&user_a).assert_ok(); // Register for next week
-    fc_setup.claim(&user_b).assert_ok(); // Register for next week
-    fc_setup.claim(&user_c).assert_ok(); // Register for next week
+    fc_setup.claim(&user_a).assert_ok();
+    fc_setup.claim(&user_b).assert_ok();
+    fc_setup.claim(&user_c).assert_ok();
 
-    // Weeks 2-6: Simulate old logic where rewards_claimed is not properly tracked
+    // Weeks 2-6: Simulate pre-upgrade behavior by manually clearing rewards_claimed tracking
     for week_num in 2..=6 {
-        fc_setup.advance_week(); // Advance to week
+        fc_setup.advance_week();
         fc_setup
             .deposit(BASE_ASSET_TOKEN_ID, weekly_deposit)
             .assert_ok();
@@ -2381,10 +2368,10 @@ fn upgrade_migration_rewards_tracking_test() {
         fc_setup.set_energy(&user_b, 100_000, 144_000_000);
         fc_setup.set_energy(&user_c, 100_000, 144_000_000);
 
-        // User A claims every week (but we'll simulate old logic by clearing rewards_claimed)
+        // User A claims every week (simulate pre-upgrade by clearing rewards_claimed)
         fc_setup.claim(&user_a).assert_ok();
 
-        // Clear rewards_claimed to simulate old logic behavior
+        // Clear rewards_claimed to simulate pre-upgrade behavior
         fc_setup
             .b_mock
             .borrow_mut()
@@ -2393,7 +2380,7 @@ fn upgrade_migration_rewards_tracking_test() {
                 &fc_setup.fc_wrapper,
                 &rust_zero,
                 |sc| {
-                    // Clear rewards_claimed for the previous week to simulate old behavior
+                    // Clear rewards_claimed for previous week to simulate pre-upgrade behavior
                     if week_num > 2 {
                         sc.rewards_claimed(week_num - 1, &managed_token_id!(BASE_ASSET_TOKEN_ID))
                             .clear();
@@ -2405,7 +2392,7 @@ fn upgrade_migration_rewards_tracking_test() {
         // User B claims every week except week 6 (will claim after upgrade)
         if week_num < 6 {
             fc_setup.claim(&user_b).assert_ok();
-            // Clear rewards_claimed to simulate old logic
+            // Clear rewards_claimed to simulate pre-upgrade behavior
             fc_setup
                 .b_mock
                 .borrow_mut()
@@ -2463,16 +2450,14 @@ fn upgrade_migration_rewards_tracking_test() {
         "User C should have no rewards"
     );
 
-    // Check available amount for redistribution (should be underestimated due to missing rewards_claimed)
+    // Check available amount for redistribution
     fc_setup
         .b_mock
         .borrow_mut()
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let available = sc
                 .get_token_available_amount(current_week, &managed_token_id!(BASE_ASSET_TOKEN_ID));
-            // Note: With proper energy updates, rewards_claimed might be tracked correctly
-            // even before upgrade, so available amount might be 0
-            let _ = available; // Just check that the function works
+            assert_eq!(available, 0,);
         })
         .assert_ok();
 
