@@ -6,18 +6,12 @@ use week_timekeeping::EPOCHS_IN_WEEK;
 #[multiversx_sc::module]
 pub trait AdditionalLockedTokensModule:
     crate::config::ConfigModule
-    + crate::fees_accumulation::FeesAccumulationModule
     + crate::events::FeesCollectorEventsModule
-    + week_timekeeping::WeekTimekeepingModule
-    + crate::external_sc_interactions::router::RouterInteractionsModule
     + energy_query::EnergyQueryModule
-    + utils::UtilsModule
-    + multiversx_sc_modules::only_admin::OnlyAdminModule
-    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
-    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
 {
     #[only_owner]
     #[endpoint(setLockedTokensPerEpoch)]
