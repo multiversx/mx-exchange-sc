@@ -109,6 +109,10 @@ pub trait Pair<ContractReader>:
     fn upgrade(&self) {
         self.safe_price_round_save_interval()
             .set_if_empty(DEFAULT_ROUND_SAVE_INTERVAL);
+
+        let default_safe_price_rounds_offset = 10 * 60;
+        self.default_safe_price_rounds_offset()
+            .set_if_empty(default_safe_price_rounds_offset);
     }
 
     #[endpoint(setLpTokenIdentifier)]

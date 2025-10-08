@@ -11,7 +11,6 @@ use crate::{
     safe_price::{self, PriceObservation, Round, Timestamp, MAX_OBSERVATIONS},
 };
 
-pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
 pub const OFFSET_PRECISION_FACTOR: u64 = 1_000_000;
 
 struct PriceObservationWeightedAmounts<M: ManagedTypeApi> {
@@ -533,53 +532,129 @@ pub trait SafePriceViewModule:
             return last_observation;
         }
 
-        let mut search_index = 1;
-        let mut left_index;
-        let mut right_index;
-        let observation_at_index_1 = price_observations.get(search_index);
+        let oldest_observation =
+            self.get_oldest_price_observation(current_index, price_observations);
+        require!(
+            oldest_observation.recording_timestamp <= target_timestamp,
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
 
-        if observation_at_index_1.recording_timestamp <= target_timestamp {
-            left_index = search_index;
-            right_index = current_index;
+        let at_or_after_index = self.binary_search_first_at_or_after_timestamp(
+            current_index,
+            price_observations,
+            target_timestamp,
+        );
+
+        if at_or_after_index == 0 {
+            sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST);
+        }
+
+        let at_or_after_obs = price_observations.get(at_or_after_index);
+
+        if at_or_after_obs.recording_timestamp == target_timestamp {
+            return at_or_after_obs;
+        }
+
+        let before_index = self.get_previous_observation_index(
+            at_or_after_index,
+            current_index,
+            price_observations.len(),
+        );
+
+        let before_obs = price_observations.get(before_index);
+
+        require!(
+            before_obs.recording_timestamp <= target_timestamp,
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
+
+        before_obs
+    }
+
+    fn binary_search_first_at_or_after_timestamp(
+        &self,
+        current_index: usize,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
+        target_timestamp: Timestamp,
+    ) -> usize {
+        let oldest_index = if price_observations.len() == MAX_OBSERVATIONS {
+            (current_index % MAX_OBSERVATIONS) + 1
         } else {
-            left_index = current_index;
-            right_index = price_observations.len();
-        }
+            1
+        };
 
-        let mut closest_observation = observation_at_index_1.clone();
-        let mut min_timestamp_diff =
-            if target_timestamp > observation_at_index_1.recording_timestamp {
-                target_timestamp - observation_at_index_1.recording_timestamp
+        if oldest_index <= current_index {
+            self.binary_search_range_first_at_or_after_timestamp(
+                oldest_index,
+                current_index,
+                price_observations,
+                target_timestamp,
+            )
+        } else {
+            let result_in_upper = self.binary_search_range_first_at_or_after_timestamp(
+                oldest_index,
+                price_observations.len(),
+                price_observations,
+                target_timestamp,
+            );
+
+            if result_in_upper > 0 {
+                return result_in_upper;
+            }
+
+            self.binary_search_range_first_at_or_after_timestamp(
+                1,
+                current_index,
+                price_observations,
+                target_timestamp,
+            )
+        }
+    }
+
+    fn binary_search_range_first_at_or_after_timestamp(
+        &self,
+        start: usize,
+        end: usize,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
+        target_timestamp: Timestamp,
+    ) -> usize {
+        let mut left = start;
+        let mut right = end;
+        let mut result_index = 0;
+
+        while left <= right {
+            let mid = (left + right) / 2;
+            let mid_obs = price_observations.get(mid);
+
+            if mid_obs.recording_timestamp < target_timestamp {
+                left = mid + 1;
             } else {
-                observation_at_index_1.recording_timestamp - target_timestamp
-            };
-
-        while left_index <= right_index {
-            search_index = (left_index + right_index) / 2;
-            let current_observation = price_observations.get(search_index);
-            let current_timestamp_diff =
-                if target_timestamp > current_observation.recording_timestamp {
-                    target_timestamp - current_observation.recording_timestamp
-                } else {
-                    current_observation.recording_timestamp - target_timestamp
-                };
-
-            if current_timestamp_diff < min_timestamp_diff {
-                min_timestamp_diff = current_timestamp_diff;
-                closest_observation = current_observation.clone();
-            }
-
-            match current_observation
-                .recording_timestamp
-                .cmp(&target_timestamp)
-            {
-                Ordering::Equal => return current_observation,
-                Ordering::Less => left_index = search_index + 1,
-                Ordering::Greater => right_index = search_index - 1,
+                result_index = mid;
+                if mid == left {
+                    break;
+                }
+                right = mid - 1;
             }
         }
 
-        closest_observation
+        result_index
+    }
+
+    fn get_previous_observation_index(
+        &self,
+        current: usize,
+        _newest_index: usize,
+        total_len: usize,
+    ) -> usize {
+        if current == 1 {
+            if total_len == MAX_OBSERVATIONS {
+                MAX_OBSERVATIONS
+            } else {
+                1
+            }
+        } else {
+            current - 1
+        }
     }
 
     fn compute_weighted_amounts(
@@ -632,8 +707,9 @@ pub trait SafePriceViewModule:
             self.get_oldest_price_observation(safe_price_current_index, &price_observations);
 
         let mut default_offset_rounds = end_round - oldest_price_observation.recording_round;
-        if default_offset_rounds > DEFAULT_SAFE_PRICE_ROUNDS_OFFSET {
-            default_offset_rounds = DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+        let default_safe_price_rounds_offset = self.default_safe_price_rounds_offset().get();
+        if default_offset_rounds > default_safe_price_rounds_offset {
+            default_offset_rounds = default_safe_price_rounds_offset;
         }
 
         default_offset_rounds
