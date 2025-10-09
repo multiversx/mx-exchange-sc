@@ -1,4 +1,6 @@
-use crate::events;
+use common_structs::PaymentsVec;
+
+use crate::{events, tokens_per_user::UnstakePair};
 
 multiversx_sc::imports!();
 
@@ -20,7 +22,8 @@ pub trait UnbondTokensModule:
         let mut penalty_tokens = ManagedVec::<Self::Api, _>::new();
         let mut processed_count = 0;
 
-        self.unlocked_tokens_for_user(&caller)
+        let new_unlocked_tokens = self
+            .unlocked_tokens_for_user(&caller)
             .update(|user_entries| {
                 while !user_entries.is_empty() && processed_count < MAX_CLAIM_UNLOCKED_TOKENS {
                     let entry = user_entries.get(0);
@@ -28,33 +31,15 @@ pub trait UnbondTokensModule:
                         break;
                     }
 
-                    let locked_tokens = entry.locked_tokens;
-                    let unlocked_tokens = entry.unlocked_tokens;
+                    self.handle_single_unbond_entry(&entry, &mut penalty_tokens);
 
-                    // we only burn the tokens that are not unlocked
-                    // the rest are sent back as penalty
-                    let locked_tokens_burn_amount = unlocked_tokens.amount.clone();
-                    self.send().esdt_local_burn(
-                        &locked_tokens.token_identifier,
-                        locked_tokens.token_nonce,
-                        &locked_tokens_burn_amount,
-                    );
-
-                    let penalty_amount = &locked_tokens.amount - &unlocked_tokens.amount;
-                    if penalty_amount > 0 {
-                        let penalty = EsdtTokenPayment::new(
-                            locked_tokens.token_identifier,
-                            locked_tokens.token_nonce,
-                            penalty_amount,
-                        );
-                        penalty_tokens.push(penalty);
-                    }
-
-                    output_payments.push(unlocked_tokens);
+                    output_payments.push(entry.unlocked_tokens);
                     user_entries.remove(0);
 
                     processed_count += 1;
                 }
+
+                (*user_entries).clone()
             });
 
         require!(!output_payments.is_empty(), "Nothing to unbond");
@@ -64,10 +49,38 @@ pub trait UnbondTokensModule:
         }
 
         self.send().direct_multi(&caller, &output_payments);
-
-        let new_unlocked_tokens = self.unlocked_tokens_for_user(&caller).get();
         self.emit_unlocked_tokens_event(&caller, new_unlocked_tokens);
 
         output_payments.into()
+    }
+
+    fn handle_single_unbond_entry(
+        &self,
+        entry: &UnstakePair<Self::Api>,
+        penalty_tokens: &mut PaymentsVec<Self::Api>,
+    ) {
+        let locked_tokens = &entry.locked_tokens;
+        let unlocked_tokens = &entry.unlocked_tokens;
+
+        // we only burn the tokens that are not unlocked
+        // the rest are sent back as penalty
+        let locked_tokens_burn_amount = &unlocked_tokens.amount;
+        self.send().esdt_local_burn(
+            &locked_tokens.token_identifier,
+            locked_tokens.token_nonce,
+            locked_tokens_burn_amount,
+        );
+
+        let penalty_amount = &locked_tokens.amount - &unlocked_tokens.amount;
+        if penalty_amount == 0 {
+            return;
+        }
+
+        let penalty = EsdtTokenPayment::new(
+            locked_tokens.token_identifier.clone(),
+            locked_tokens.token_nonce,
+            penalty_amount,
+        );
+        penalty_tokens.push(penalty);
     }
 }
