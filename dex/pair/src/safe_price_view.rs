@@ -555,11 +555,8 @@ pub trait SafePriceViewModule:
             return at_or_after_obs;
         }
 
-        let before_index = self.get_previous_observation_index(
-            at_or_after_index,
-            current_index,
-            price_observations.len(),
-        );
+        let before_index =
+            self.get_previous_observation_index(at_or_after_index, price_observations.len());
 
         let before_obs = price_observations.get(before_index);
 
@@ -583,32 +580,23 @@ pub trait SafePriceViewModule:
             1
         };
 
-        if oldest_index <= current_index {
-            self.binary_search_range_first_at_or_after_timestamp(
-                oldest_index,
-                current_index,
-                price_observations,
-                target_timestamp,
-            )
-        } else {
-            let result_in_upper = self.binary_search_range_first_at_or_after_timestamp(
-                oldest_index,
-                price_observations.len(),
-                price_observations,
-                target_timestamp,
-            );
+        let result_in_upper = self.binary_search_range_first_at_or_after_timestamp(
+            oldest_index,
+            price_observations.len(),
+            price_observations,
+            target_timestamp,
+        );
 
-            if result_in_upper > 0 {
-                return result_in_upper;
-            }
-
-            self.binary_search_range_first_at_or_after_timestamp(
-                1,
-                current_index,
-                price_observations,
-                target_timestamp,
-            )
+        if result_in_upper > 0 {
+            return result_in_upper;
         }
+
+        self.binary_search_range_first_at_or_after_timestamp(
+            1,
+            current_index,
+            price_observations,
+            target_timestamp,
+        )
     }
 
     fn binary_search_range_first_at_or_after_timestamp(
@@ -640,21 +628,16 @@ pub trait SafePriceViewModule:
         result_index
     }
 
-    fn get_previous_observation_index(
-        &self,
-        current: usize,
-        _newest_index: usize,
-        total_len: usize,
-    ) -> usize {
-        if current == 1 {
-            if total_len == MAX_OBSERVATIONS {
-                MAX_OBSERVATIONS
-            } else {
-                1
-            }
-        } else {
-            current - 1
+    fn get_previous_observation_index(&self, current: usize, total_len: usize) -> usize {
+        if current > 1 {
+            return current - 1;
         }
+
+        if total_len == MAX_OBSERVATIONS {
+            return MAX_OBSERVATIONS;
+        }
+
+        1
     }
 
     fn compute_weighted_amounts(
