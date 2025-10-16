@@ -172,14 +172,65 @@ pub trait SafePriceViewModule:
         pair_address: ManagedAddress,
         round_offset: Round,
         input_payment: EsdtTokenPayment,
-    ) -> EsdtTokenPayment {
+    ) -> (
+        EsdtTokenPayment,
+        PriceObservation<Self::Api>,
+        PriceObservation<Self::Api>,
+    ) {
         let current_round = self.blockchain().get_block_round();
         require!(
             round_offset > 0 && round_offset < current_round,
             ERROR_PARAMETERS
         );
         let start_round = current_round - round_offset;
-        self.get_safe_price(pair_address, start_round, current_round, input_payment)
+
+        // self.get_safe_price(pair_address, start_round, current_round, input_payment)
+
+        let end_round = current_round;
+
+        require!(end_round > start_round, ERROR_PARAMETERS);
+
+        let safe_price_current_index = self
+            .get_safe_price_current_index_mapper(pair_address.clone())
+            .get();
+        let price_observations = self.get_price_observation_mapper(pair_address.clone());
+
+        let oldest_price_observation =
+            self.get_oldest_price_observation(safe_price_current_index, &price_observations);
+        require!(
+            oldest_price_observation.recording_round <= start_round,
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
+
+        let first_token_id = self.get_first_token_id_mapper(pair_address.clone()).get();
+        let second_token_id = self.get_second_token_id_mapper(pair_address.clone()).get();
+        let first_price_observation = self.get_price_observation(
+            &pair_address,
+            &first_token_id,
+            &second_token_id,
+            safe_price_current_index,
+            &price_observations,
+            start_round,
+        );
+        let last_price_observation = self.get_price_observation(
+            &pair_address,
+            &first_token_id,
+            &second_token_id,
+            safe_price_current_index,
+            &price_observations,
+            end_round,
+        );
+
+        return (
+            self.compute_weighted_price(
+                &pair_address,
+                input_payment,
+                &first_price_observation,
+                &last_price_observation,
+            ),
+            first_price_observation,
+            last_price_observation,
+        );
     }
 
     #[label("safe-price-view")]
@@ -189,17 +240,68 @@ pub trait SafePriceViewModule:
         pair_address: ManagedAddress,
         timestamp_offset: Timestamp,
         input_payment: EsdtTokenPayment,
-    ) -> EsdtTokenPayment {
+    ) -> (
+        EsdtTokenPayment,
+        PriceObservation<Self::Api>,
+        PriceObservation<Self::Api>,
+    ) {
         let target_observation =
             self.get_observation_by_timestamp_offset(timestamp_offset, pair_address.clone());
 
         let current_round = self.blockchain().get_block_round();
-        self.get_safe_price(
-            pair_address,
-            target_observation.recording_round,
-            current_round,
-            input_payment,
-        )
+        // self.get_safe_price(
+        //     pair_address,
+        //     target_observation.recording_round,
+        //     current_round,
+        //     input_payment,
+        // )
+
+        let start_round = target_observation.recording_round;
+        let end_round = current_round;
+
+        require!(end_round > start_round, ERROR_PARAMETERS);
+
+        let safe_price_current_index = self
+            .get_safe_price_current_index_mapper(pair_address.clone())
+            .get();
+        let price_observations = self.get_price_observation_mapper(pair_address.clone());
+
+        let oldest_price_observation =
+            self.get_oldest_price_observation(safe_price_current_index, &price_observations);
+        require!(
+            oldest_price_observation.recording_round <= start_round,
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
+
+        let first_token_id = self.get_first_token_id_mapper(pair_address.clone()).get();
+        let second_token_id = self.get_second_token_id_mapper(pair_address.clone()).get();
+        let first_price_observation = self.get_price_observation(
+            &pair_address,
+            &first_token_id,
+            &second_token_id,
+            safe_price_current_index,
+            &price_observations,
+            start_round,
+        );
+        let last_price_observation = self.get_price_observation(
+            &pair_address,
+            &first_token_id,
+            &second_token_id,
+            safe_price_current_index,
+            &price_observations,
+            end_round,
+        );
+
+        return (
+            self.compute_weighted_price(
+                &pair_address,
+                input_payment,
+                &first_price_observation,
+                &last_price_observation,
+            ),
+            first_price_observation,
+            last_price_observation,
+        );
     }
 
     fn get_observation_by_timestamp_offset(
