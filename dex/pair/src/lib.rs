@@ -110,7 +110,9 @@ pub trait Pair<ContractReader>:
         self.safe_price_round_save_interval()
             .set_if_empty(DEFAULT_ROUND_SAVE_INTERVAL);
 
-        let default_safe_price_rounds_offset = 10 * 60;
+        let blocks_per_minute = 10;
+        let minutes_per_hour = 60;
+        let default_safe_price_rounds_offset = blocks_per_minute * minutes_per_hour;
         self.default_safe_price_rounds_offset()
             .set_if_empty(default_safe_price_rounds_offset);
     }
