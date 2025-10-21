@@ -77,3 +77,5 @@ This smart contract allows users to interact with the DEX using Locked MEX as fu
 ### Locked MEX Factory Contract
 
 Locked MEX is a Meta ESDT. Since there can be only one address (per shard) that can hold the role of creating a Meta ESDT, this contract was created so the multiple other contracts that need to create Locked MEX can just request them from only one place.
+<br>## Welcome to Rust DEX Contracts<br>MultiversX's Rust SCs power efficient exchanges—new contributors, start with the AMM pair tutorial for your first liquidity pool. Tip: Use ESDT for tokens! <br>
+
