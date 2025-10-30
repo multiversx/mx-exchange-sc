@@ -122,12 +122,15 @@ pub trait Farm:
             }
         }
 
+        // Set farm supply for current week to ensure boosted rewards can be claimed correctly
+        self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
+
         // Migrate storage
         let per_second_reward_amount = per_block_reward_amount / 6u64; // 6 seconds per block
         self.per_second_reward_amount()
-            .set_if_empty(per_second_reward_amount);
+            .set(&per_second_reward_amount);
         self.last_reward_timestamp()
-            .set_if_empty(self.blockchain().get_block_timestamp());
+            .set(self.blockchain().get_block_timestamp());
     }
 
     #[payable("*")]
