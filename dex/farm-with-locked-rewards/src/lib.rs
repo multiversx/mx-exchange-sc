@@ -102,13 +102,17 @@ pub trait Farm:
         let per_block_reward_amount: BigUint<Self::Api> = per_block_reward_amount_mapper.take();
         let last_reward_nonce = last_reward_block_nonce_mapper.take();
 
-        let total_reward =
-            if current_block_nonce > last_reward_nonce && self.produces_per_second_rewards() {
-                let block_nonce_diff = current_block_nonce - last_reward_nonce;
-                &per_block_reward_amount * block_nonce_diff
-            } else {
-                BigUint::zero()
-            };
+        require!(
+            self.produces_per_second_rewards(),
+            "Farm must produce rewards"
+        );
+
+        let total_reward = if current_block_nonce > last_reward_nonce {
+            let block_nonce_diff = current_block_nonce - last_reward_nonce;
+            &per_block_reward_amount * block_nonce_diff
+        } else {
+            BigUint::zero()
+        };
 
         // No minting, even if total_reward is not zero (NoMintWrapper)
         if total_reward > 0u64 {

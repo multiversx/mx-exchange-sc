@@ -127,16 +127,18 @@ pub trait FarmStaking:
         let last_reward_nonce = last_reward_block_nonce_mapper.take();
         let per_block_reward = per_block_reward_amount_mapper.take();
 
-        // CALCULATE PER BLOCK REWARDS
-        let extra_rewards_unbounded =
-            if current_block_nonce <= last_reward_nonce || !self.produces_per_second_rewards() {
-                BigUint::zero()
-            } else {
-                let block_nonce_diff = current_block_nonce - last_reward_nonce;
+        require!(
+            self.produces_per_second_rewards(),
+            "Farm must produce rewards"
+        );
 
-                // Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
-                &per_block_reward * block_nonce_diff
-            };
+        // CALCULATE PER BLOCK REWARDS
+        let extra_rewards_unbounded = if current_block_nonce <= last_reward_nonce {
+            BigUint::zero()
+        } else {
+            let block_nonce_diff = current_block_nonce - last_reward_nonce;
+            &per_block_reward * block_nonce_diff
+        };
 
         let farm_token_supply = self.farm_token_supply().get();
         let max_apr = self.max_annual_percentage_rewards().get();
