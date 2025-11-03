@@ -11,7 +11,6 @@ use crate::{
     safe_price::{self, PriceObservation, Round, Timestamp, MAX_OBSERVATIONS},
 };
 
-pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
 pub const OFFSET_PRECISION_FACTOR: u64 = 1_000_000;
 
 struct PriceObservationWeightedAmounts<M: ManagedTypeApi> {
@@ -219,12 +218,23 @@ pub trait SafePriceViewModule:
         let safe_price_current_index = self
             .get_safe_price_current_index_mapper(pair_address.clone())
             .get();
-        let price_observations = self.get_price_observation_mapper(pair_address);
+        let first_token_id = self.get_first_token_id_mapper(pair_address.clone()).get();
+        let second_token_id = self.get_second_token_id_mapper(pair_address.clone()).get();
+        let price_observations = self.get_price_observation_mapper(pair_address.clone());
 
-        self.find_observation_by_timestamp(
+        let target_round = self.find_equivalent_round_for_timestamp(
             target_timestamp,
             safe_price_current_index,
             &price_observations,
+        );
+
+        self.get_price_observation(
+            &pair_address,
+            &first_token_id,
+            &second_token_id,
+            safe_price_current_index,
+            &price_observations,
+            target_round,
         )
     }
 
@@ -517,69 +527,104 @@ pub trait SafePriceViewModule:
         }
     }
 
-    fn find_observation_by_timestamp(
+    fn find_equivalent_round_for_timestamp(
         &self,
         target_timestamp: Timestamp,
         current_index: usize,
         price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
-    ) -> PriceObservation<Self::Api> {
+    ) -> Round {
         require!(
             !price_observations.is_empty(),
             ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
         );
 
         let last_observation = price_observations.get(current_index);
-        if last_observation.recording_timestamp <= target_timestamp {
-            return last_observation;
+        if last_observation.recording_timestamp == target_timestamp {
+            return last_observation.recording_round;
         }
 
+        if last_observation.recording_timestamp < target_timestamp {
+            return last_observation.recording_round;
+        }
+
+        let (price_observation, last_search_index) = self
+            .price_observation_by_binary_search_timestamp(
+                current_index,
+                price_observations,
+                target_timestamp,
+            );
+
+        if price_observation.recording_timestamp > 0 {
+            return price_observation.recording_round;
+        }
+
+        self.interpolate_round_by_timestamp(price_observations, target_timestamp, last_search_index)
+    }
+
+    fn price_observation_by_binary_search_timestamp(
+        &self,
+        current_index: usize,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
+        target_timestamp: Timestamp,
+    ) -> (PriceObservation<Self::Api>, usize) {
         let mut search_index = 1;
         let mut left_index;
         let mut right_index;
         let observation_at_index_1 = price_observations.get(search_index);
-
         if observation_at_index_1.recording_timestamp <= target_timestamp {
             left_index = search_index;
-            right_index = current_index;
+            right_index = current_index - 1;
         } else {
-            left_index = current_index;
+            left_index = current_index + 1;
             right_index = price_observations.len();
         }
 
-        let mut closest_observation = observation_at_index_1.clone();
-        let mut min_timestamp_diff =
-            if target_timestamp > observation_at_index_1.recording_timestamp {
-                target_timestamp - observation_at_index_1.recording_timestamp
-            } else {
-                observation_at_index_1.recording_timestamp - target_timestamp
-            };
-
         while left_index <= right_index {
             search_index = (left_index + right_index) / 2;
-            let current_observation = price_observations.get(search_index);
-            let current_timestamp_diff =
-                if target_timestamp > current_observation.recording_timestamp {
-                    target_timestamp - current_observation.recording_timestamp
-                } else {
-                    current_observation.recording_timestamp - target_timestamp
-                };
-
-            if current_timestamp_diff < min_timestamp_diff {
-                min_timestamp_diff = current_timestamp_diff;
-                closest_observation = current_observation.clone();
-            }
-
-            match current_observation
-                .recording_timestamp
-                .cmp(&target_timestamp)
-            {
-                Ordering::Equal => return current_observation,
+            let price_observation = price_observations.get(search_index);
+            match price_observation.recording_timestamp.cmp(&target_timestamp) {
+                Ordering::Equal => return (price_observation, search_index),
                 Ordering::Less => left_index = search_index + 1,
                 Ordering::Greater => right_index = search_index - 1,
             }
         }
 
-        closest_observation
+        (PriceObservation::default(), search_index)
+    }
+
+    fn interpolate_round_by_timestamp(
+        &self,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
+        target_timestamp: Timestamp,
+        search_index: usize,
+    ) -> Round {
+        let last_found_observation = price_observations.get(search_index);
+        let left_observation;
+        let right_observation;
+
+        if last_found_observation.recording_timestamp < target_timestamp {
+            left_observation = last_found_observation;
+            let right_observation_index = (search_index % MAX_OBSERVATIONS) + 1;
+            right_observation = price_observations.get(right_observation_index);
+        } else {
+            let left_observation_index = if search_index == 1 {
+                MAX_OBSERVATIONS
+            } else {
+                search_index - 1
+            };
+            left_observation = price_observations.get(left_observation_index);
+            right_observation = last_found_observation;
+        };
+
+        let left_weight = right_observation.recording_timestamp - target_timestamp;
+        let right_weight = target_timestamp - left_observation.recording_timestamp;
+
+        weighted_average(
+            left_observation.recording_round,
+            left_weight,
+            right_observation.recording_round,
+            right_weight,
+        )
     }
 
     fn compute_weighted_amounts(
@@ -632,8 +677,9 @@ pub trait SafePriceViewModule:
             self.get_oldest_price_observation(safe_price_current_index, &price_observations);
 
         let mut default_offset_rounds = end_round - oldest_price_observation.recording_round;
-        if default_offset_rounds > DEFAULT_SAFE_PRICE_ROUNDS_OFFSET {
-            default_offset_rounds = DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+        let default_safe_price_rounds_offset = self.default_safe_price_rounds_offset().get();
+        if default_offset_rounds > default_safe_price_rounds_offset {
+            default_offset_rounds = default_safe_price_rounds_offset;
         }
 
         default_offset_rounds

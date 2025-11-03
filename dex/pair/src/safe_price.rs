@@ -299,6 +299,16 @@ pub trait SafePriceModule:
         self.safe_price_round_save_interval().set(new_interval);
     }
 
+    #[only_owner]
+    #[endpoint(setDefaultSafePriceRoundsOffset)]
+    fn set_default_safe_price_rounds_offset(&self, new_offset: u64) {
+        require!(
+            new_offset > 0,
+            "Default safe price rounds offset must be greater than 0"
+        );
+        self.default_safe_price_rounds_offset().set(new_offset);
+    }
+
     #[storage_mapper("price_observations")]
     fn price_observations(&self) -> VecMapper<PriceObservation<Self::Api>>;
 
@@ -313,4 +323,8 @@ pub trait SafePriceModule:
     #[view(getCurrentPriceObservation)]
     #[storage_mapper("current_price_observation")]
     fn current_price_observation(&self) -> SingleValueMapper<PriceObservation<Self::Api>>;
+
+    #[view(getDefaultSafePriceRoundsOffset)]
+    #[storage_mapper("default_safe_price_rounds_offset")]
+    fn default_safe_price_rounds_offset(&self) -> SingleValueMapper<u64>;
 }
