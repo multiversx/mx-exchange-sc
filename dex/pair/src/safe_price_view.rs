@@ -599,22 +599,24 @@ pub trait SafePriceViewModule:
         search_index: usize,
     ) -> Round {
         let last_found_observation = price_observations.get(search_index);
-        let left_observation;
-        let right_observation;
-
-        if last_found_observation.recording_timestamp < target_timestamp {
-            left_observation = last_found_observation;
-            let right_observation_index = (search_index % MAX_OBSERVATIONS) + 1;
-            right_observation = price_observations.get(right_observation_index);
-        } else {
-            let left_observation_index = if search_index == 1 {
-                MAX_OBSERVATIONS
+        let (left_observation, right_observation) =
+            if last_found_observation.recording_timestamp < target_timestamp {
+                let right_observation_index = (search_index % MAX_OBSERVATIONS) + 1;
+                (
+                    last_found_observation,
+                    price_observations.get(right_observation_index),
+                )
             } else {
-                search_index - 1
+                let left_observation_index = if search_index == 1 {
+                    MAX_OBSERVATIONS
+                } else {
+                    search_index - 1
+                };
+                (
+                    price_observations.get(left_observation_index),
+                    last_found_observation,
+                )
             };
-            left_observation = price_observations.get(left_observation_index);
-            right_observation = last_found_observation;
-        };
 
         let left_weight = right_observation.recording_timestamp - target_timestamp;
         let right_weight = target_timestamp - left_observation.recording_timestamp;

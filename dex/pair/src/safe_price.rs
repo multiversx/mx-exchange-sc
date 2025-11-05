@@ -107,8 +107,7 @@ pub trait SafePriceModule:
         // Check if enough rounds have passed since last finalized observation for direct save
         let safe_price_current_index = self.safe_price_current_index().get();
         let last_observation = if safe_price_current_index > 0 {
-            let price_observations = self.price_observations();
-            price_observations.get(safe_price_current_index)
+            self.price_observations().get(safe_price_current_index)
         } else {
             PriceObservation::default()
         };
