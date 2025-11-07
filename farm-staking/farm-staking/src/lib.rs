@@ -143,7 +143,7 @@ pub trait FarmStaking:
         let farm_token_supply = self.farm_token_supply().get();
         let max_apr = self.max_annual_percentage_rewards().get();
         let extra_rewards_apr_bounded_per_block =
-            farm_token_supply * &max_apr / MAX_PERCENT / SECONDS_IN_YEAR / 6u64; // 6 seconds per block
+            farm_token_supply * &max_apr / MAX_PERCENT / (SECONDS_IN_YEAR / 6u64);
 
         let block_nonce_diff = current_block_nonce - last_reward_nonce;
         let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
