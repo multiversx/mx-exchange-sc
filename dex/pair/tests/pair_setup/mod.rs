@@ -486,21 +486,4 @@ where
             },
         );
     }
-
-    pub fn check_price_observation_by_timestamp(
-        &mut self,
-        pair_address: &Address,
-        timestamp_offset: u64,
-        expected_timestamp: u64,
-    ) {
-        self.b_mock
-            .execute_query(&self.pair_wrapper, |sc| {
-                let price_observation = sc.get_observation_by_timestamp_offset(
-                    timestamp_offset,
-                    managed_address!(pair_address),
-                );
-                assert_eq!(price_observation.recording_timestamp, expected_timestamp);
-            })
-            .assert_ok();
-    }
 }
