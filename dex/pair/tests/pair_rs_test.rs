@@ -1905,7 +1905,7 @@ fn test_intermediate_price_observation_accumulation() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -1946,7 +1946,7 @@ fn test_intermediate_price_observation_accumulation() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -1976,7 +1976,7 @@ fn test_intermediate_price_observation_accumulation() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2018,7 +2018,7 @@ fn test_intermediate_observation_finalization() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2034,7 +2034,7 @@ fn test_intermediate_observation_finalization() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2052,7 +2052,7 @@ fn test_intermediate_observation_finalization() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2081,7 +2081,7 @@ fn test_intermediate_observation_finalization() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2135,7 +2135,7 @@ fn test_immediate_save_path_with_interval_one() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2167,7 +2167,7 @@ fn test_immediate_save_path_with_interval_one() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2207,7 +2207,7 @@ fn test_intermediate_observation_with_zero_reserves() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2233,7 +2233,7 @@ fn test_intermediate_observation_with_zero_reserves() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2259,7 +2259,7 @@ fn test_intermediate_observation_with_zero_reserves() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2301,7 +2301,7 @@ fn test_direct_save_when_interval_exceeded() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2329,7 +2329,7 @@ fn test_direct_save_when_interval_exceeded() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
@@ -2357,7 +2357,7 @@ fn test_direct_save_when_interval_exceeded() {
     pair_setup
         .b_mock
         .execute_tx(
-            &pair_setup.pair_wrapper.address_ref(),
+            pair_setup.pair_wrapper.address_ref(),
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
