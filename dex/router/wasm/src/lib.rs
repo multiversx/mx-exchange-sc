@@ -30,6 +30,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setFeeOn => set_fee_on
         setFeeOff => set_fee_off
         setSafePriceRoundSaveInterval => set_safe_price_round_save_interval
+        claimDeveloperRewardsPairs => claim_developer_rewards_pairs
         setPairCreationEnabled => set_pair_creation_enabled
         getPairCreationEnabled => pair_creation_enabled
         getState => state

@@ -22,7 +22,7 @@ jobs:
     name: Contracts
     uses: multiversx/mx-sc-actions/.github/workflows/contracts.yml@v4.2.2
     with:
-      rust-toolchain: stable
+      rust-toolchain: 1.86
       coverage-args: --ignore-filename-regex='/.cargo/git' --output ./coverage.md
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}

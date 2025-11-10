@@ -2,6 +2,7 @@
 
 pub mod farm_staking_setup;
 use config::ConfigModule;
+use farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule;
 use farm_staking::{
     claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule,
     claim_stake_farm_rewards::ClaimStakeFarmRewardsModule,
@@ -1867,4 +1868,278 @@ fn test_multiple_positions_on_behalf() {
         &rust_biguint!(farm_token_amount * 2),
         Some(&farm_token_attributes),
     );
+}
+
+#[test]
+fn owner_claim_undist_rewards_test() {
+    DebugApi::dummy();
+
+    let mut fs_setup = FarmStakingSetup::new(
+        farm_staking::contract_obj,
+        energy_factory::contract_obj,
+        permissions_hub::contract_obj,
+    );
+
+    let user_address = fs_setup.user_address.clone();
+    let user_address2 = fs_setup.user_address2.clone();
+
+    fs_setup.set_boosted_yields_factors();
+    fs_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+
+    fs_setup.set_user_energy(&user_address, 9_800, 0, 100);
+    fs_setup.set_user_energy(&user_address2, 4_900, 0, 350);
+
+    let farm_in_amount = 100_000_000;
+    fs_setup.stake_farm(&user_address, farm_in_amount, &[], 1, 0, 0);
+    fs_setup.stake_farm(&user_address2, farm_in_amount, &[], 2, 0, 0);
+    fs_setup.check_farm_token_supply(farm_in_amount * 2);
+
+    // claim to get energy registered
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &user_address,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            1,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &user_address2,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            2,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // random user tx to collect rewards - week 1
+    let rand_user = fs_setup.b_mock.create_user_account(&rust_biguint!(0));
+    fs_setup.b_mock.set_esdt_balance(
+        &rand_user,
+        FARMING_TOKEN_ID,
+        &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
+    );
+
+    fs_setup.set_user_energy(&rand_user, 1, 6, 1);
+    fs_setup.set_block_epoch(6);
+    fs_setup.set_block_nonce(10);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARMING_TOKEN_ID,
+            0,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.stake_farm_endpoint(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            5,
+            &rust_biguint!(10),
+            |sc| {
+                let _ = sc.unstake_farm(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // first user claim - week 2
+    fs_setup.set_block_epoch(13);
+    fs_setup.set_block_nonce(20);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &user_address,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            3,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // first user claim - week 3
+    fs_setup.set_block_epoch(20);
+    fs_setup.set_block_nonce(30);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &user_address,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            7,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // first user claim - week 4
+    fs_setup.set_block_epoch(27);
+    fs_setup.set_block_nonce(40);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &user_address,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            8,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // try to collect rewards too early - should fail
+    fs_setup
+        .b_mock
+        .execute_tx(
+            &fs_setup.owner_address,
+            &fs_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.collect_undistributed_boosted_rewards();
+            },
+        )
+        .assert_error(4, "Current week must be higher than the week offset");
+
+    // first user claim - week 5
+    fs_setup.set_block_epoch(34);
+    fs_setup.set_block_nonce(50);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &user_address,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            9,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // first user claim - week 6
+    fs_setup.set_block_epoch(41);
+    fs_setup.set_block_nonce(50);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &user_address,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            10,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    // first user claim - week 7
+    fs_setup.set_block_epoch(48);
+    fs_setup.set_block_nonce(60);
+
+    fs_setup
+        .b_mock
+        .execute_esdt_transfer(
+            &user_address,
+            &fs_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            11,
+            &rust_biguint!(farm_in_amount),
+            |sc| {
+                let _ = sc.claim_rewards(OptionalValue::None);
+            },
+        )
+        .assert_ok();
+
+    fs_setup.set_block_epoch(49);
+
+    // Verify remaining rewards state
+    fs_setup
+        .b_mock
+        .execute_query(&fs_setup.farm_wrapper, |sc| {
+            // Check remaining rewards for weeks 1-3
+            let remaining1 = sc.remaining_boosted_rewards_to_distribute(1).get();
+            let remaining2 = sc.remaining_boosted_rewards_to_distribute(2).get();
+            let remaining3 = sc.remaining_boosted_rewards_to_distribute(3).get();
+
+            // We should have some undistributed rewards
+            assert!(
+                remaining1 > 0 && remaining2 > 0 && remaining3 > 0,
+                "Should have remaining rewards to distribute in weeks 1 to 3"
+            );
+
+            // Check last_collect_undist_week is not set yet
+            let last_collect = sc.last_collect_undist_week().get();
+            assert_eq!(last_collect, 0, "Last collect week should be 0 initially");
+        })
+        .assert_ok();
+
+    // owner collect undist rewards
+    let owner = fs_setup.owner_address.clone();
+    fs_setup
+        .b_mock
+        .execute_tx(
+            &fs_setup.owner_address,
+            &fs_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let undist_rewards = sc.collect_undistributed_boosted_rewards();
+                assert_eq!(undist_rewards, 22);
+
+                // Verify last_collect_undist_week was updated
+                let last_collect = sc.last_collect_undist_week().get();
+                assert!(last_collect == 4, "Last collect week should be updated");
+
+                // Verify remaining rewards for week 1 are now zero
+                let remaining1 = sc.remaining_boosted_rewards_to_distribute(1).get();
+                assert_eq!(remaining1, 0u64, "Week 1 rewards should now be zero");
+
+                // Verify remaining rewards for week 2 are now zero
+                let remaining2 = sc.remaining_boosted_rewards_to_distribute(2).get();
+                assert_eq!(remaining2, 0u64, "Week 2 rewards should now be zero");
+
+                // Verify remaining rewards for week 3 are now zero
+                let remaining3 = sc.remaining_boosted_rewards_to_distribute(3).get();
+                assert_eq!(remaining3, 0u64, "Week 3 rewards should now be zero");
+            },
+        )
+        .assert_ok();
+
+    // check owner received tokens
+    fs_setup
+        .b_mock
+        .check_esdt_balance(&owner, REWARD_TOKEN_ID, &rust_biguint!(22));
 }

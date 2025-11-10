@@ -9,7 +9,10 @@ use multiversx_sc_scenario::{
 use num_bigint::ToBigInt;
 use num_traits::cast::ToPrimitive;
 use simple_lock::locked_token::LockedTokenAttributes;
-use token_unstake::tokens_per_user::{TokensPerUserModule, UnstakePair};
+use token_unstake::{
+    tokens_per_user::{TokensPerUserModule, UnstakePair},
+    unbond_tokens::MAX_CLAIM_UNLOCKED_TOKENS,
+};
 use token_unstake_setup::*;
 
 pub struct ResultWrapper<EnergyFactoryBuilder, UnstakeScBuilder>
@@ -97,6 +100,42 @@ fn cancel_unbond_test() {
     let user_energy = setup.get_user_energy(&first_user);
     let expected_energy = rust_biguint!(LOCK_OPTIONS[0] - 10) * balance_after_second_reduce;
     assert_eq!(user_energy, expected_energy);
+}
+
+#[test]
+fn unstake_multiple_position_test() {
+    let mut setup =
+        TokenUnstakeSetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let first_user = setup.first_user.clone();
+
+    let _ = setup.lock(
+        &first_user,
+        BASE_ASSET_TOKEN_ID,
+        USER_BALANCE,
+        LOCK_OPTIONS[2],
+    );
+
+    let number_of_unlocks = MAX_CLAIM_UNLOCKED_TOKENS * 2;
+    for _ in 0..number_of_unlocks {
+        let _ = setup.unlock_early(&first_user, 1, USER_BALANCE / number_of_unlocks);
+    }
+
+    // unbond epochs pass
+    setup.b_mock.set_block_epoch(10 + UNBOND_EPOCHS);
+    // unbond ok
+    setup.unbond(&first_user).assert_ok();
+    let balance_after_half_unlocks = rust_biguint!(USER_BALANCE as u128 / 2 * 2000 / 10000); // 80% fee on half balance
+    setup.b_mock.check_esdt_balance(
+        &first_user,
+        BASE_ASSET_TOKEN_ID,
+        &balance_after_half_unlocks,
+    );
+
+    setup.unbond(&first_user).assert_ok();
+    let balance_after_all_unlocks = balance_after_half_unlocks * 2u64;
+    setup
+        .b_mock
+        .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &balance_after_all_unlocks);
 }
 
 fn unbond_test_common<EnergyFactoryBuilder, UnstakeScBuilder>(

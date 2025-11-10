@@ -134,7 +134,10 @@ pub trait ExternalContractsInteractionsModule:
     fn staking_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_staking::Proxy<Self::Api>;
 
     #[proxy]
-    fn lp_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_v13_locked_rewards::Proxy<Self::Api>;
+    fn lp_farm_proxy_obj(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> farm_v13_locked_rewards::Proxy<Self::Api>;
 
     #[proxy]
     fn pair_proxy_obj(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;

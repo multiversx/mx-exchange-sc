@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            4
+// Endpoints:                            5
 // Async Callback (empty):               1
-// Total number of exported functions:   6
+// Total number of exported functions:   7
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getEnergyAmountForUser => get_energy_amount_for_user
         getEnergyEntryForUser => get_energy_entry_for_user
         setUserEnergyAfterLockedTokenTransfer => set_user_energy_after_locked_token_transfer
+        transferUnlockedToken => transfer_unlocked_token
     )
 }
 

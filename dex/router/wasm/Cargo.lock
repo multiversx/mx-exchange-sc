@@ -87,6 +87,7 @@ version = "0.0.0"
 dependencies = [
  "common-types",
  "common_errors",
+ "common_structs",
  "energy-factory",
  "energy-query",
  "locking_module",

@@ -38,6 +38,7 @@ pub trait ExternalInteractionsModule:
     + claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
     + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
