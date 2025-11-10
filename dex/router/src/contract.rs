@@ -351,6 +351,7 @@ pub trait Router:
                 .pair_contract_proxy(address)
                 .set_safe_price_round_save_interval(new_interval)
                 .execute_on_dest_context();
+        }
     }
 
     #[endpoint(claimDeveloperRewardsPairs)]
