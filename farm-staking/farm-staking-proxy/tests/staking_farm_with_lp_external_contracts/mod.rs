@@ -14,11 +14,12 @@ use multiversx_sc_scenario::{
 };
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::remove_liq::RemoveLiquidityModule;
+use pair::safe_price::SafePriceModule;
 use simple_lock::locked_token::LockedTokenModule;
 
 use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
-use pair::safe_price_view::{SafePriceViewModule, DEFAULT_SAFE_PRICE_ROUNDS_OFFSET};
+use pair::safe_price_view::SafePriceViewModule;
 use pair::*;
 use pair_config::ConfigModule as _;
 use pausable::{PausableModule, State};
@@ -30,6 +31,8 @@ use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::*;
 
 use crate::constants::*;
+
+pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
 
 pub fn setup_pair<PairObjBuilder>(
     owner_addr: &Address,
@@ -68,6 +71,9 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(pausable::State::Active);
+
+            sc.default_safe_price_rounds_offset()
+                .set(DEFAULT_SAFE_PRICE_ROUNDS_OFFSET);
         })
         .assert_ok();
 
