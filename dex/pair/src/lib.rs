@@ -59,6 +59,7 @@ pub trait Pair<ContractReader>:
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
+        default_safe_price_rounds_offset: u64,
         initial_liquidity_adder: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
@@ -103,6 +104,8 @@ pub trait Pair<ContractReader>:
 
         self.safe_price_round_save_interval()
             .set(DEFAULT_ROUND_SAVE_INTERVAL);
+        self.default_safe_price_rounds_offset()
+            .set(default_safe_price_rounds_offset);
     }
 
     #[upgrade]

@@ -61,6 +61,7 @@ where
                 let router_owner_address = managed_address!(&owner_addr);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
+                let default_safe_price_rounds_offset = 600u64;
 
                 sc.init(
                     first_token_id,
@@ -69,6 +70,7 @@ where
                     router_owner_address,
                     total_fee_percent,
                     special_fee_percent,
+                    default_safe_price_rounds_offset,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
                 );
@@ -88,6 +90,7 @@ where
                 let router_owner_address = managed_address!(&owner_addr);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
+                let default_safe_price_rounds_offset = 600u64;
 
                 sc.init(
                     first_token_id,
@@ -96,6 +99,7 @@ where
                     router_owner_address,
                     total_fee_percent,
                     special_fee_percent,
+                    default_safe_price_rounds_offset,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
                 );

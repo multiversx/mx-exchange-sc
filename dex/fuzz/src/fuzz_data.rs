@@ -326,6 +326,7 @@ pub mod fuzz_data_tests {
                 let router_owner_address = managed_address!(owner_addr);
                 let total_fee_percent = TOTAL_FEE_PERCENT;
                 let special_fee_percent = SPECIAL_FEE_PERCENT;
+                let default_safe_price_rounds_offset = 600u64;
 
                 sc.init(
                     first_token_id,
@@ -334,6 +335,7 @@ pub mod fuzz_data_tests {
                     router_owner_address,
                     total_fee_percent,
                     special_fee_percent,
+                    default_safe_price_rounds_offset,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
                 );

@@ -339,6 +339,32 @@ pub trait Router:
     }
 
     #[only_owner]
+    #[endpoint(setRouterSafePriceRoundSaveInterval)]
+    fn set_router_default_safe_price_rounds_offset(&self, new_offset: Round) {
+        require!(
+            new_offset > 0,
+            "Default safe price rounds offset must be greater than 0"
+        );
+        self.default_safe_price_rounds_offset().set(new_offset);
+    }
+
+    #[only_owner]
+    #[endpoint(setPairSafePriceRoundSaveInterval)]
+    fn set_pair_safe_price_round_save_interval(
+        &self,
+        new_offset: Round,
+        addresses: MultiValueEncoded<ManagedAddress>,
+    ) {
+        for address in addresses.into_iter() {
+            self.check_is_pair_sc(&address);
+            let _: IgnoreValue = self
+                .pair_contract_proxy(address)
+                .set_default_safe_price_rounds_offset(new_offset)
+                .execute_on_dest_context();
+        }
+    }
+
+    #[only_owner]
     #[endpoint(setSafePriceRoundSaveInterval)]
     fn set_safe_price_round_save_interval(
         &self,

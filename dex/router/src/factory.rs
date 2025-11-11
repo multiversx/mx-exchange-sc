@@ -57,6 +57,7 @@ pub trait FactoryModule: config::ConfigModule + read_pair_storage::ReadPairStora
                 owner,
                 total_fee_percent,
                 special_fee_percent,
+                self.default_safe_price_rounds_offset().get(),
                 initial_liquidity_adder,
                 admins,
             )

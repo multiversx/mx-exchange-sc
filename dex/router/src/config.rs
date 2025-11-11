@@ -83,4 +83,8 @@ pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
     #[view(getCommonTokensForUserPairs)]
     #[storage_mapper("commonTokensForUserPairs")]
     fn common_tokens_for_user_pairs(&self) -> UnorderedSetMapper<TokenIdentifier>;
+
+    #[view(getDefaultSafePriceRoundsOffset)]
+    #[storage_mapper("default_safe_price_rounds_offset")]
+    fn default_safe_price_rounds_offset(&self) -> SingleValueMapper<u64>;
 }

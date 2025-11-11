@@ -11,8 +11,6 @@ use crate::{
     safe_price::{self, PriceObservation, Round, Timestamp, MAX_OBSERVATIONS},
 };
 
-pub const OFFSET_PRECISION_FACTOR: u64 = 1_000_000;
-
 struct PriceObservationWeightedAmounts<M: ManagedTypeApi> {
     weighted_first_token_reserve: BigUint<M>,
     weighted_second_token_reserve: BigUint<M>,
