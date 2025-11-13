@@ -25,7 +25,6 @@ use pair_actions::common_result_types::{
 };
 use pausable::State;
 use permissions_module::Permissions;
-use safe_price::DEFAULT_ROUND_SAVE_INTERVAL;
 
 #[multiversx_sc::contract]
 pub trait Pair<ContractReader>:
@@ -59,7 +58,6 @@ pub trait Pair<ContractReader>:
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-        default_safe_price_rounds_offset: u64,
         initial_liquidity_adder: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
@@ -101,24 +99,10 @@ pub trait Pair<ContractReader>:
             );
             self.add_permissions_for_all(admins, Permissions::ADMIN);
         };
-
-        self.safe_price_round_save_interval()
-            .set(DEFAULT_ROUND_SAVE_INTERVAL);
-        self.default_safe_price_rounds_offset()
-            .set(default_safe_price_rounds_offset);
     }
 
     #[upgrade]
-    fn upgrade(&self) {
-        self.safe_price_round_save_interval()
-            .set_if_empty(DEFAULT_ROUND_SAVE_INTERVAL);
-
-        let blocks_per_minute = 10;
-        let minutes_per_hour = 60;
-        let default_safe_price_rounds_offset = blocks_per_minute * minutes_per_hour;
-        self.default_safe_price_rounds_offset()
-            .set_if_empty(default_safe_price_rounds_offset);
-    }
+    fn upgrade(&self) {}
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) {

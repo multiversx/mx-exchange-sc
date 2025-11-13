@@ -78,7 +78,6 @@ fn test_router_upgrade_pair() {
                 router_owner_address,
                 0,
                 0,
-                0,
                 managed_address!(&user),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
@@ -278,7 +277,6 @@ fn user_enable_pair_swaps_through_router_test() {
                 router_owner_address,
                 0,
                 0,
-                0,
                 managed_address!(&user),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
@@ -462,7 +460,6 @@ fn user_enable_pair_swaps_fail_test() {
                 second_token_id,
                 router_address,
                 router_owner_address,
-                0,
                 0,
                 0,
                 managed_address!(&user),

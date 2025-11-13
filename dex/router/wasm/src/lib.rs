@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           31
+// Endpoints:                           34
 // Async Callback:                       1
-// Total number of exported functions:  34
+// Total number of exported functions:  37
 
 #![no_std]
 
@@ -30,6 +30,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setFeeOn => set_fee_on
         setFeeOff => set_fee_off
         setSafePriceRoundSaveInterval => set_safe_price_round_save_interval
+        setDefaultSafePriceRoundsOffset => set_default_safe_price_rounds_offset
         claimDeveloperRewardsPairs => claim_developer_rewards_pairs
         setPairCreationEnabled => set_pair_creation_enabled
         getPairCreationEnabled => pair_creation_enabled
@@ -40,6 +41,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getPairTemplateAddress => pair_template_address
         getTemporaryOwnerPeriod => temporary_owner_period
         getCommonTokensForUserPairs => common_tokens_for_user_pairs
+        getSafePriceRoundSaveInterval => safe_price_round_save_interval
+        getDefaultSafePriceRoundsOffset => default_safe_price_rounds_offset
         getAllPairsManagedAddresses => get_all_pairs_addresses
         getAllPairTokens => get_all_token_pairs
         getAllPairContractMetadata => get_all_pair_contract_metadata

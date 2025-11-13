@@ -3,12 +3,11 @@ multiversx_sc::derive_imports!();
 
 use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 
-use crate::{amm, config, errors::ERROR_SAFE_PRICE_CURRENT_INDEX};
+use crate::{amm, config, errors::ERROR_SAFE_PRICE_CURRENT_INDEX, read_pair_storage};
 
 pub type Round = u64;
 pub type Timestamp = u64;
 
-pub const DEFAULT_ROUND_SAVE_INTERVAL: Round = 1;
 pub const MAX_OBSERVATIONS: usize = 65_536; // 2^{16} records, to optimise binary search
 
 #[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, TypeAbi, Debug)]
@@ -75,6 +74,7 @@ impl<M: ManagedTypeApi> NestedDecode for PriceObservation<M> {
 #[multiversx_sc::module]
 pub trait SafePriceModule:
     config::ConfigModule
+    + read_pair_storage::ReadPairStorageModule
     + token_send::TokenSendModule
     + amm::AmmModule
     + permissions_module::PermissionsModule
@@ -91,7 +91,7 @@ pub trait SafePriceModule:
         }
 
         let current_round = self.blockchain().get_block_round();
-        let round_save_interval = self.safe_price_round_save_interval().get();
+        let round_save_interval = self.get_safe_price_round_save_interval();
 
         // Handle the case where offset is 1 (immediate save)
         if round_save_interval <= 1 {
@@ -171,7 +171,7 @@ pub trait SafePriceModule:
         }
 
         let rounds_since_last_observation = current_round - last_price_observation.recording_round;
-        let round_save_interval = self.safe_price_round_save_interval().get();
+        let round_save_interval = self.get_safe_price_round_save_interval();
 
         if rounds_since_last_observation < round_save_interval {
             return;
@@ -229,7 +229,7 @@ pub trait SafePriceModule:
 
     fn save_averaged_observation_if_needed(&self, last_observation_round: Round) {
         let current_intermediate = self.current_price_observation().get();
-        let round_save_interval = self.safe_price_round_save_interval().get();
+        let round_save_interval = self.get_safe_price_round_save_interval();
 
         if current_intermediate.recording_round - last_observation_round < round_save_interval {
             return;
@@ -288,24 +288,16 @@ pub trait SafePriceModule:
         new_price_observation
     }
 
-    #[only_owner]
-    #[endpoint(setSafePriceRoundSaveInterval)]
-    fn set_safe_price_round_save_interval(&self, new_interval: Round) {
+    fn get_safe_price_round_save_interval(&self) -> Round {
+        let router_address = self.router_address().get();
+        let default_safe_price_rounds_offset = self
+            .get_safe_price_round_save_interval_mapper(router_address)
+            .get();
         require!(
-            new_interval > 0,
-            "Round save interval must be greater than 0"
+            default_safe_price_rounds_offset > 0,
+            "Safe price round save interval not set"
         );
-        self.safe_price_round_save_interval().set(new_interval);
-    }
-
-    #[only_owner]
-    #[endpoint(setDefaultSafePriceRoundsOffset)]
-    fn set_default_safe_price_rounds_offset(&self, new_offset: u64) {
-        require!(
-            new_offset > 0,
-            "Default safe price rounds offset must be greater than 0"
-        );
-        self.default_safe_price_rounds_offset().set(new_offset);
+        default_safe_price_rounds_offset
     }
 
     #[storage_mapper("price_observations")]
@@ -315,15 +307,7 @@ pub trait SafePriceModule:
     #[storage_mapper("safe_price_current_index")]
     fn safe_price_current_index(&self) -> SingleValueMapper<usize>;
 
-    #[view(getSafePriceRoundSaveInterval)]
-    #[storage_mapper("safe_price_round_save_interval")]
-    fn safe_price_round_save_interval(&self) -> SingleValueMapper<Round>;
-
     #[view(getCurrentPriceObservation)]
     #[storage_mapper("current_price_observation")]
     fn current_price_observation(&self) -> SingleValueMapper<PriceObservation<Self::Api>>;
-
-    #[view(getDefaultSafePriceRoundsOffset)]
-    #[storage_mapper("default_safe_price_rounds_offset")]
-    fn default_safe_price_rounds_offset(&self) -> SingleValueMapper<u64>;
 }

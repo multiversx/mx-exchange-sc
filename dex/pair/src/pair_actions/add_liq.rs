@@ -17,6 +17,7 @@ pub trait AddLiquidityModule:
     + crate::events::EventsModule
     + crate::safe_price::SafePriceModule
     + crate::config::ConfigModule
+    + crate::read_pair_storage::ReadPairStorageModule
     + token_send::TokenSendModule
     + permissions_module::PermissionsModule
     + pausable::PausableModule
