@@ -151,11 +151,6 @@ pub trait SwapModule:
         let caller = self.blockchain().get_caller();
         let output_payments = self.build_swap_output_payments(&swap_context);
 
-        require!(
-            output_payments.get(0).amount >= swap_context.output_token_amount,
-            ERROR_SLIPPAGE_EXCEEDED
-        );
-
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
         self.emit_swap_event(&storage_cache, swap_context);
