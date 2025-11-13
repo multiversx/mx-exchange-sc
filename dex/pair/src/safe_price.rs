@@ -112,18 +112,16 @@ pub trait SafePriceModule:
             PriceObservation::default()
         };
 
-        if safe_price_current_index > 0 {
-            let rounds_since_last = current_round - last_observation.recording_round;
+        let rounds_since_last = current_round - last_observation.recording_round;
 
-            if rounds_since_last >= round_save_interval {
-                self.handle_immediate_save(
-                    current_round,
-                    first_token_reserve,
-                    second_token_reserve,
-                    lp_supply,
-                );
-                return;
-            }
+        if safe_price_current_index > 0 && rounds_since_last >= round_save_interval {
+            self.handle_immediate_save(
+                current_round,
+                first_token_reserve,
+                second_token_reserve,
+                lp_supply,
+            );
+            return;
         }
 
         // If no current intermediate observation exists, start a new one
@@ -173,7 +171,7 @@ pub trait SafePriceModule:
         let rounds_since_last_observation = current_round - last_price_observation.recording_round;
         let round_save_interval = self.get_safe_price_round_save_interval();
 
-        if rounds_since_last_observation < round_save_interval {
+        if rounds_since_last_observation <= round_save_interval {
             return;
         }
 

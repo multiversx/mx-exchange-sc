@@ -105,15 +105,14 @@ pub trait AddLiquidityModule:
         self.send()
             .esdt_local_mint(&storage_cache.lp_token_id, 0, &add_liq_context.liq_added);
 
-        let lp_payment = EsdtTokenPayment::new(
+        let mut output_payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
             storage_cache.lp_token_id.clone(),
             0,
             add_liq_context.liq_added.clone(),
-        );
+        ));
 
-        let mut output_payments =
-            self.build_add_liq_output_payments(&storage_cache, &add_liq_context);
-        output_payments.push(lp_payment);
+        output_payments
+            .append_vec(self.build_add_liq_output_payments(&storage_cache, &add_liq_context));
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
