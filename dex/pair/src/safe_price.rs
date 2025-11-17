@@ -155,18 +155,13 @@ pub trait SafePriceModule:
         lp_supply: &BigUint,
     ) {
         let safe_price_current_index = self.safe_price_current_index().get();
-        require!(
-            safe_price_current_index <= MAX_OBSERVATIONS,
-            ERROR_SAFE_PRICE_CURRENT_INDEX
-        );
+        let price_observations = self.price_observations();
 
-        let mut price_observations = self.price_observations();
-        let mut last_price_observation = PriceObservation::default();
-        let mut new_index = 1;
-        if !price_observations.is_empty() {
-            last_price_observation = price_observations.get(safe_price_current_index);
-            new_index = (safe_price_current_index % MAX_OBSERVATIONS) + 1;
-        }
+        let mut last_price_observation = if price_observations.is_empty() {
+            PriceObservation::default()
+        } else {
+            price_observations.get(safe_price_current_index)
+        };
 
         let rounds_since_last_observation = current_round - last_price_observation.recording_round;
         let round_save_interval = self.get_safe_price_round_save_interval();
@@ -190,16 +185,7 @@ pub trait SafePriceModule:
             &last_price_observation,
         );
 
-        if price_observations.len() == MAX_OBSERVATIONS {
-            price_observations.set(new_index, &new_price_observation);
-        } else {
-            price_observations.push(&new_price_observation);
-        }
-
-        self.safe_price_current_index().set(new_index);
-
-        // Clear any existing intermediate observation since we did a direct save
-        self.current_price_observation().clear();
+        self.save_observation_to_storage(&new_price_observation);
     }
 
     fn update_intermediate_observation(
@@ -210,29 +196,17 @@ pub trait SafePriceModule:
         lp_supply: &BigUint,
     ) {
         let mut current_intermediate = self.current_price_observation().get();
-
-        // Add weighted values based on the rounds passed since last recording
-        let weight_to_add = current_round - current_intermediate.recording_round;
-        current_intermediate.first_token_reserve_accumulated +=
-            BigUint::from(weight_to_add) * first_token_reserve;
-        current_intermediate.second_token_reserve_accumulated +=
-            BigUint::from(weight_to_add) * second_token_reserve;
-        current_intermediate.lp_supply_accumulated += BigUint::from(weight_to_add) * lp_supply;
-        current_intermediate.weight_accumulated += weight_to_add;
-        current_intermediate.recording_round = current_round;
-        current_intermediate.recording_timestamp = self.blockchain().get_block_timestamp();
-
+        self.accumulate_into_observation(
+            &mut current_intermediate,
+            current_round,
+            first_token_reserve,
+            second_token_reserve,
+            lp_supply,
+        );
         self.current_price_observation().set(&current_intermediate);
     }
 
-    fn save_averaged_observation_if_needed(&self, last_observation_round: Round) {
-        let current_intermediate = self.current_price_observation().get();
-        let round_save_interval = self.get_safe_price_round_save_interval();
-
-        if current_intermediate.recording_round - last_observation_round < round_save_interval {
-            return;
-        }
-
+    fn save_observation_to_storage(&self, price_observation: &PriceObservation<Self::Api>) {
         let safe_price_current_index = self.safe_price_current_index().get();
         require!(
             safe_price_current_index <= MAX_OBSERVATIONS,
@@ -248,15 +222,46 @@ pub trait SafePriceModule:
         };
 
         if price_observations.len() == MAX_OBSERVATIONS {
-            price_observations.set(new_index, &current_intermediate);
+            price_observations.set(new_index, price_observation);
         } else {
-            price_observations.push(&current_intermediate);
+            price_observations.push(price_observation);
         }
 
         self.safe_price_current_index().set(new_index);
-
-        // Clear the intermediate observation after saving
         self.current_price_observation().clear();
+    }
+
+    fn save_averaged_observation_if_needed(&self, last_observation_round: Round) {
+        let current_intermediate = self.current_price_observation().get();
+        let round_save_interval = self.get_safe_price_round_save_interval();
+
+        if current_intermediate.recording_round - last_observation_round < round_save_interval {
+            return;
+        }
+
+        self.save_observation_to_storage(&current_intermediate);
+    }
+
+    fn accumulate_into_observation(
+        &self,
+        observation: &mut PriceObservation<Self::Api>,
+        current_round: Round,
+        first_token_reserve: &BigUint,
+        second_token_reserve: &BigUint,
+        lp_supply: &BigUint,
+    ) {
+        let mut weight = 1;
+        if observation.recording_round > 0 {
+            weight = current_round - observation.recording_round;
+        }
+
+        observation.first_token_reserve_accumulated += BigUint::from(weight) * first_token_reserve;
+        observation.second_token_reserve_accumulated +=
+            BigUint::from(weight) * second_token_reserve;
+        observation.lp_supply_accumulated += BigUint::from(weight) * lp_supply;
+        observation.weight_accumulated += weight;
+        observation.recording_round = current_round;
+        observation.recording_timestamp = self.blockchain().get_block_timestamp();
     }
 
     fn compute_new_observation(
@@ -267,22 +272,14 @@ pub trait SafePriceModule:
         new_lp_supply: &BigUint,
         current_price_observation: &PriceObservation<Self::Api>,
     ) -> PriceObservation<Self::Api> {
-        let new_weight = if current_price_observation.recording_round == 0 {
-            1
-        } else {
-            new_round - current_price_observation.recording_round
-        };
-
         let mut new_price_observation = current_price_observation.clone();
-        new_price_observation.first_token_reserve_accumulated +=
-            BigUint::from(new_weight) * new_first_reserve;
-        new_price_observation.second_token_reserve_accumulated +=
-            BigUint::from(new_weight) * new_second_reserve;
-        new_price_observation.lp_supply_accumulated += BigUint::from(new_weight) * new_lp_supply;
-        new_price_observation.weight_accumulated += new_weight;
-        new_price_observation.recording_round = new_round;
-        new_price_observation.recording_timestamp = self.blockchain().get_block_timestamp();
-
+        self.accumulate_into_observation(
+            &mut new_price_observation,
+            new_round,
+            new_first_reserve,
+            new_second_reserve,
+            new_lp_supply,
+        );
         new_price_observation
     }
 
