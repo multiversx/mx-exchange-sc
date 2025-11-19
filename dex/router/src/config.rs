@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use crate::{enable_swap_by_user::EnableSwapByUserConfig, factory::PairTokens};
-use pair::read_pair_storage;
+use pair::{read_pair_storage, safe_price::Round};
 
 #[multiversx_sc::module]
 pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
@@ -84,7 +84,11 @@ pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
     #[storage_mapper("commonTokensForUserPairs")]
     fn common_tokens_for_user_pairs(&self) -> UnorderedSetMapper<TokenIdentifier>;
 
+    #[view(getSafePriceRoundSaveInterval)]
+    #[storage_mapper("safe_price_round_save_interval")]
+    fn safe_price_round_save_interval(&self) -> SingleValueMapper<Round>;
+
     #[view(getDefaultSafePriceRoundsOffset)]
     #[storage_mapper("default_safe_price_rounds_offset")]
-    fn default_safe_price_rounds_offset(&self) -> SingleValueMapper<u64>;
+    fn default_safe_price_rounds_offset(&self) -> SingleValueMapper<Round>;
 }

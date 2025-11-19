@@ -42,12 +42,12 @@ pub struct OldPriceObservation<M: ManagedTypeApi> {
 
 #[test]
 fn test_pair_setup() {
-    let _ = PairSetup::new(pair::contract_obj);
+    let _ = PairSetup::new(pair::contract_obj, router::contract_obj);
 }
 
 #[test]
 fn test_add_liquidity() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -56,7 +56,7 @@ fn test_add_liquidity() {
 
 #[test]
 fn test_swap_fixed_input() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -67,7 +67,7 @@ fn test_swap_fixed_input() {
 
 #[test]
 fn test_swap_fixed_output() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -78,7 +78,7 @@ fn test_swap_fixed_output() {
 
 #[test]
 fn test_perfect_swap_fixed_output() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     let token_amount = 1_001_000;
 
@@ -107,7 +107,7 @@ fn test_perfect_swap_fixed_output() {
 
 #[test]
 fn test_safe_price_observation_decoding() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let _ = pair_setup.b_mock.execute_tx(
         &pair_setup.owner_address,
         &pair_setup.pair_wrapper,
@@ -141,7 +141,7 @@ fn test_safe_price_observation_decoding() {
 
 #[test]
 fn test_safe_price_migration() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let starting_round = 1000;
     let payment_amount = 1000;
@@ -315,7 +315,7 @@ fn test_safe_price_migration() {
 
 #[test]
 fn test_safe_price() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let payment_amount = 1000;
     let starting_round = 1000;
@@ -671,7 +671,7 @@ fn test_safe_price() {
 
 #[test]
 fn test_safe_price_linear_interpolation() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
     let min_pool_reserve = 1_000;
@@ -866,7 +866,7 @@ fn test_safe_price_linear_interpolation() {
 // The purpose of this test is to see if values are returned from the correct contract
 #[test]
 fn test_both_legacy_and_new_safe_price_from_other_contract() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let payment_amount = 1000;
     let starting_round = 1000;
@@ -994,7 +994,7 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 
 #[test]
 fn test_safe_price_round_interval() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
     // 10 Round save interval
@@ -1100,7 +1100,7 @@ fn test_safe_price_round_interval() {
 
 #[test]
 fn test_safe_price_new_timestamp_logic() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     // 10 Round save interval
     pair_setup.set_safe_price_save_interval(10u64);
@@ -1228,7 +1228,7 @@ fn test_safe_price_new_timestamp_logic() {
 // This is necessary as using the MAINNET variable requires too many operations for a unit test
 // #[test]
 // fn test_safe_price_max_length() {
-//     let mut pair_setup = PairSetup::new(pair::contract_obj);
+//     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 //     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 //     let max_observations = MAX_OBSERVATIONS.try_into().unwrap(); // should be 100
 //     let min_pool_reserve = 1_000;
@@ -1370,7 +1370,7 @@ fn test_safe_price_new_timestamp_logic() {
 
 #[test]
 fn test_locked_asset() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -1500,7 +1500,7 @@ fn test_locked_asset() {
 
 #[test]
 fn add_liquidity_through_simple_lock_proxy() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -1810,7 +1810,7 @@ fn add_liquidity_through_simple_lock_proxy() {
 
 #[test]
 fn fees_collector_pair_test() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let fees_collector_wrapper = pair_setup.b_mock.create_sc_account(
         &rust_biguint!(0),
         Some(&pair_setup.owner_address),
@@ -1888,7 +1888,7 @@ fn fees_collector_pair_test() {
 
 #[test]
 fn test_intermediate_price_observation_accumulation() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     // Set 5 round save interval
     pair_setup.set_safe_price_save_interval(5u64);
@@ -2006,7 +2006,7 @@ fn test_intermediate_price_observation_accumulation() {
 
 #[test]
 fn test_intermediate_observation_finalization() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     // Set 3 round save interval
     pair_setup.set_safe_price_save_interval(3u64);
@@ -2118,7 +2118,7 @@ fn test_intermediate_observation_finalization() {
 
 #[test]
 fn test_immediate_save_path_with_interval_one() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     // Set interval to 1 - should trigger immediate save path
     pair_setup.set_safe_price_save_interval(1u64);
@@ -2196,7 +2196,7 @@ fn test_immediate_save_path_with_interval_one() {
 
 #[test]
 fn test_intermediate_observation_with_zero_reserves() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.set_safe_price_save_interval(3u64);
 
@@ -2284,7 +2284,7 @@ fn test_intermediate_observation_with_zero_reserves() {
 
 #[test]
 fn test_direct_save_when_interval_exceeded() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     // Set interval to 5 rounds
     pair_setup.set_safe_price_save_interval(5u64);

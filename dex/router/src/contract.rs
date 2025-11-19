@@ -13,7 +13,6 @@ pub mod multi_pair_swap;
 use factory::PairTokens;
 use pair::config::ProxyTrait as _;
 use pair::fee::ProxyTrait as _;
-use pair::safe_price::ProxyTrait as _;
 use pair::{read_pair_storage, ProxyTrait as _};
 use pausable::ProxyTrait as _;
 
@@ -48,6 +47,16 @@ pub trait Router:
 
     #[upgrade]
     fn upgrade(&self) {
+        let safe_price_round_save_interval = 1u64;
+        self.safe_price_round_save_interval()
+            .set_if_empty(safe_price_round_save_interval);
+
+        let blocks_per_minute = 10;
+        let minutes_per_hour = 60;
+        let default_safe_price_rounds_offset = blocks_per_minute * minutes_per_hour;
+        self.default_safe_price_rounds_offset()
+            .set_if_empty(default_safe_price_rounds_offset);
+
         self.state().set(false);
     }
 
@@ -339,45 +348,23 @@ pub trait Router:
     }
 
     #[only_owner]
-    #[endpoint(setRouterSafePriceRoundSaveInterval)]
-    fn set_router_default_safe_price_rounds_offset(&self, new_offset: Round) {
+    #[endpoint(setSafePriceRoundSaveInterval)]
+    fn set_safe_price_round_save_interval(&self, new_interval: Round) {
+        require!(
+            new_interval > 0,
+            "Round save interval must be greater than 0"
+        );
+        self.safe_price_round_save_interval().set(new_interval);
+    }
+
+    #[only_owner]
+    #[endpoint(setDefaultSafePriceRoundsOffset)]
+    fn set_default_safe_price_rounds_offset(&self, new_offset: u64) {
         require!(
             new_offset > 0,
             "Default safe price rounds offset must be greater than 0"
         );
         self.default_safe_price_rounds_offset().set(new_offset);
-    }
-
-    #[only_owner]
-    #[endpoint(setPairSafePriceRoundSaveInterval)]
-    fn set_pair_safe_price_round_save_interval(
-        &self,
-        new_offset: Round,
-        addresses: MultiValueEncoded<ManagedAddress>,
-    ) {
-        for address in addresses.into_iter() {
-            self.check_is_pair_sc(&address);
-            let _: IgnoreValue = self
-                .pair_contract_proxy(address)
-                .set_default_safe_price_rounds_offset(new_offset)
-                .execute_on_dest_context();
-        }
-    }
-
-    #[only_owner]
-    #[endpoint(setSafePriceRoundSaveInterval)]
-    fn set_safe_price_round_save_interval(
-        &self,
-        new_interval: Round,
-        addresses: MultiValueEncoded<ManagedAddress>,
-    ) {
-        for address in addresses.into_iter() {
-            self.check_is_pair_sc(&address);
-            let _: IgnoreValue = self
-                .pair_contract_proxy(address)
-                .set_safe_price_round_save_interval(new_interval)
-                .execute_on_dest_context();
-        }
     }
 
     #[endpoint(claimDeveloperRewardsPairs)]

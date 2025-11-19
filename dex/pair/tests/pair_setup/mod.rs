@@ -1,4 +1,5 @@
 use multiversx_sc::codec::multi_types::MultiValue3;
+use multiversx_sc::imports::OptionalValue;
 use multiversx_sc::types::{
     Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, MultiValueEncoded,
 };
@@ -26,42 +27,58 @@ use pair::safe_price::SafePriceModule;
 use pair::safe_price_view::*;
 use pair::*;
 use pausable::{PausableModule, State};
+use router::Router;
 
 #[allow(dead_code)]
-pub struct PairSetup<PairObjBuilder>
+pub struct PairSetup<PairObjBuilder, RouterObjBuilder>
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner_address: Address,
     pub user_address: Address,
+    pub router_wrapper: ContractObjWrapper<router::ContractObj<DebugApi>, RouterObjBuilder>,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
     pub second_pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
 }
 
-impl<PairObjBuilder> PairSetup<PairObjBuilder>
+impl<PairObjBuilder, RouterObjBuilder> PairSetup<PairObjBuilder, RouterObjBuilder>
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
 {
-    pub fn new(pair_builder: PairObjBuilder) -> Self {
+    pub fn new(pair_builder: PairObjBuilder, router_builder: RouterObjBuilder) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner_addr = b_mock.create_user_account(&rust_zero);
+        let router_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner_addr), router_builder, "router_path");
         let pair_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner_addr), pair_builder, PAIR_WASM_PATH);
-
         let second_pair_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner_addr), pair_builder, PAIR_WASM_PATH);
+
+        b_mock
+            .execute_tx(&owner_addr, &router_wrapper, &rust_zero, |sc| {
+                sc.init(OptionalValue::None);
+
+                let safe_price_round_save_interval = 1u64;
+                let safe_price_rounds_offset = 600u64;
+
+                sc.set_safe_price_round_save_interval(safe_price_round_save_interval);
+                sc.set_default_safe_price_rounds_offset(safe_price_rounds_offset);
+            })
+            .assert_ok();
 
         b_mock
             .execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(MEX_TOKEN_ID);
-                let router_address = managed_address!(&owner_addr);
+                let router_address = managed_address!(router_wrapper.address_ref());
                 let router_owner_address = managed_address!(&owner_addr);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
-                let default_safe_price_rounds_offset = 600u64;
 
                 sc.init(
                     first_token_id,
@@ -70,7 +87,6 @@ where
                     router_owner_address,
                     total_fee_percent,
                     special_fee_percent,
-                    default_safe_price_rounds_offset,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
                 );
@@ -90,7 +106,6 @@ where
                 let router_owner_address = managed_address!(&owner_addr);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
-                let default_safe_price_rounds_offset = 600u64;
 
                 sc.init(
                     first_token_id,
@@ -99,7 +114,6 @@ where
                     router_owner_address,
                     total_fee_percent,
                     special_fee_percent,
-                    default_safe_price_rounds_offset,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
                 );
@@ -130,6 +144,7 @@ where
             b_mock,
             owner_address: owner_addr,
             user_address: user_addr,
+            router_wrapper,
             pair_wrapper,
             second_pair_wrapper,
         }
@@ -483,7 +498,7 @@ where
     pub fn set_safe_price_save_interval(&mut self, save_interval: u64) {
         let _ = self.b_mock.execute_tx(
             &self.owner_address,
-            &self.pair_wrapper,
+            &self.router_wrapper,
             &rust_biguint!(0u64),
             |sc| {
                 sc.set_safe_price_round_save_interval(save_interval);

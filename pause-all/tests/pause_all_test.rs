@@ -73,7 +73,6 @@ fn pause_all_test() {
                 managed_address!(&owner_address),
                 TOTAL_FEE_PERCENT,
                 SPECIAL_FEE_PERCENT,
-                0,
                 ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );

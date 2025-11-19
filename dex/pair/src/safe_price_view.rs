@@ -676,8 +676,12 @@ pub trait SafePriceViewModule:
         let oldest_price_observation =
             self.get_oldest_price_observation(safe_price_current_index, &price_observations);
 
+        let router_address = self.get_pair_router_mapper(pair_address.clone()).get();
+        let default_safe_price_rounds_offset = self
+            .get_default_safe_price_rounds_offset_mapper(router_address)
+            .get();
+
         let mut default_offset_rounds = end_round - oldest_price_observation.recording_round;
-        let default_safe_price_rounds_offset = self.default_safe_price_rounds_offset().get();
         if default_offset_rounds > default_safe_price_rounds_offset {
             default_offset_rounds = default_safe_price_rounds_offset;
         }
