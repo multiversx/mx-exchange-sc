@@ -285,14 +285,14 @@ pub trait SafePriceModule:
 
     fn get_safe_price_round_save_interval(&self) -> Round {
         let router_address = self.router_address().get();
-        let default_safe_price_rounds_offset = self
+        let safe_price_round_save_interval = self
             .get_safe_price_round_save_interval_mapper(router_address)
             .get();
         require!(
-            default_safe_price_rounds_offset > 0,
+            safe_price_round_save_interval > 0,
             "Safe price round save interval not set"
         );
-        default_safe_price_rounds_offset
+        safe_price_round_save_interval
     }
 
     #[storage_mapper("price_observations")]

@@ -10,6 +10,7 @@ pub static SECOND_TOKEN_ID_STORAGE_KEY: &[u8] = b"second_token_id";
 pub static SAFE_PRICE_CURRENT_INDEX_STORAGE_KEY: &[u8] = b"safe_price_current_index";
 pub static PRICE_OBSERVATIONS_STORAGE_KEY: &[u8] = b"price_observations";
 pub static PAIR_RESERVE_BASE_STORAGE_KEY: &[u8] = b"reserve";
+pub static PAIR_ROUTER_STORAGE_KEY: &[u8] = b"router_address";
 
 // Router storage keys
 pub static SAFE_PRICE_ROUND_SAVE_INTERVAL_STORAGE_KEY: &[u8] = b"safe_price_round_save_interval";
@@ -77,6 +78,16 @@ pub trait ReadPairStorageModule {
         storage_key.append_item(&token_id);
 
         SingleValueMapper::<_, _, ManagedAddress>::new_from_address(pair_address, storage_key)
+    }
+
+    fn get_pair_router_mapper(
+        &self,
+        pair_address: ManagedAddress,
+    ) -> SingleValueMapper<ManagedAddress, ManagedAddress> {
+        SingleValueMapper::<_, _, ManagedAddress>::new_from_address(
+            pair_address,
+            StorageKey::new(PAIR_ROUTER_STORAGE_KEY),
+        )
     }
 
     fn get_safe_price_round_save_interval_mapper(
