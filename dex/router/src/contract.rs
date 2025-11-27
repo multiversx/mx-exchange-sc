@@ -40,7 +40,7 @@ pub trait Router:
         self.pair_creation_enabled().set_if_empty(false);
 
         self.init_factory(pair_template_address_opt.into_option());
-        self.owner().set(&self.blockchain().get_caller());
+        self.owner().set(self.blockchain().get_caller());
     }
 
     #[upgrade]
@@ -213,7 +213,7 @@ pub trait Router:
                 issue_cost,
                 &lp_token_display_name,
                 &lp_token_ticker,
-                &BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
+                BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,
                     can_freeze: true,

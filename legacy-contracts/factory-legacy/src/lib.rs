@@ -282,7 +282,7 @@ pub trait LockedAssetFactory:
             .esdt_system_sc_proxy()
             .set_special_roles(
                 &address,
-                &self.locked_asset_token_id().get(),
+                self.locked_asset_token_id().get(),
                 [EsdtLocalRole::Transfer][..].iter().cloned(),
             )
             .async_call_and_exit()
@@ -300,7 +300,7 @@ pub trait LockedAssetFactory:
             .esdt_system_sc_proxy()
             .unset_special_roles(
                 &address,
-                &self.locked_asset_token_id().get(),
+                self.locked_asset_token_id().get(),
                 [EsdtLocalRole::Transfer][..].iter().cloned(),
             )
             .async_call_and_exit()
@@ -318,7 +318,7 @@ pub trait LockedAssetFactory:
             .esdt_system_sc_proxy()
             .set_special_roles(
                 &address,
-                &self.locked_asset_token_id().get(),
+                self.locked_asset_token_id().get(),
                 [EsdtLocalRole::NftBurn][..].iter().cloned(),
             )
             .async_call_and_exit()
