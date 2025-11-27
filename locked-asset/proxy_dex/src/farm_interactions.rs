@@ -29,7 +29,8 @@ pub trait FarmInteractionsModule {
             .farm_contract_proxy(farm_address)
             .enter_farm_endpoint(OptionalValue::Some(user))
             .with_esdt_transfer((farming_token_id, 0, farming_token_amount))
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
 
         let (output_farm_token_payment, rewards_payment) = enter_farm_result.into_tuple();
 
@@ -49,7 +50,8 @@ pub trait FarmInteractionsModule {
             .farm_contract_proxy(farm_address)
             .exit_farm_endpoint(OptionalValue::Some(user))
             .with_esdt_transfer(farm_token)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (farming_tokens, reward_tokens) = raw_result.into_tuple();
 
         ExitFarmResultWrapper {
@@ -68,7 +70,8 @@ pub trait FarmInteractionsModule {
             .farm_contract_proxy(farm_address)
             .claim_rewards_endpoint(OptionalValue::Some(user))
             .with_esdt_transfer(farm_token)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (new_farm_token, rewards) = raw_result.into_tuple();
 
         ClaimRewardsResultWrapper {

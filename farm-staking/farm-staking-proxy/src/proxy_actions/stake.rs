@@ -82,7 +82,7 @@ pub trait ProxyStakeModule:
         let (merged_lp_farm_tokens, lp_farm_boosted_rewards) = self
             .merge_lp_farm_tokens(
                 original_caller,
-                lp_farm_token_payment,
+                lp_farm_token_payment.clone(),
                 additional_lp_farm_tokens,
             )
             .into_tuple();

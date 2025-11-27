@@ -13,7 +13,7 @@ pub trait TokenSendModule {
         let mut non_zero_payments = ManagedVec::new();
         for payment in payments {
             if payment.amount > 0u32 {
-                non_zero_payments.push(payment);
+                non_zero_payments.push(payment.clone());
             }
         }
 

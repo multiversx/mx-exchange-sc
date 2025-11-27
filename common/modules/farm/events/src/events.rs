@@ -10,7 +10,8 @@ use contexts::{
     storage_cache::{FarmContracTraitBounds, StorageCache},
 };
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct EnterFarmEvent<M: ManagedTypeApi> {
     farming_token_id: TokenIdentifier<M>,
     farming_token_amount: BigUint<M>,
@@ -22,7 +23,8 @@ pub struct EnterFarmEvent<M: ManagedTypeApi> {
     created_with_merge: bool,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct ExitFarmEvent<M: ManagedTypeApi> {
     farming_token_id: TokenIdentifier<M>,
     farming_token_amount: BigUint<M>,
@@ -33,7 +35,8 @@ pub struct ExitFarmEvent<M: ManagedTypeApi> {
     farm_attributes: ManagedBuffer<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct ClaimRewardsEvent<M: ManagedTypeApi> {
     old_farm_token: EsdtTokenPayment<M>,
     new_farm_token: EsdtTokenPayment<M>,
@@ -45,7 +48,8 @@ pub struct ClaimRewardsEvent<M: ManagedTypeApi> {
     created_with_merge: bool,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct CompoundRewardsEvent<M: ManagedTypeApi> {
     old_farm_token: EsdtTokenPayment<M>,
     new_farm_token: EsdtTokenPayment<M>,
@@ -73,7 +77,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
 
         let mut farm_attributes = ManagedBuffer::new();
         let _ = output_farm_token
@@ -113,7 +117,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
 
         let mut farm_attributes = ManagedBuffer::new();
         let _ = exit_farm_context
@@ -154,7 +158,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
 
         let mut old_farm_attributes = ManagedBuffer::new();
         let _ = claim_rewards_context
@@ -201,7 +205,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
 
         let mut old_farm_attributes = ManagedBuffer::new();
         let _ = compound_rewards_context
@@ -244,7 +248,7 @@ pub trait EventsModule {
         #[indexed] caller: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] farming_token: &TokenIdentifier,
         enter_farm_event: &EnterFarmEvent<Self::Api>,
     );
@@ -255,7 +259,7 @@ pub trait EventsModule {
         #[indexed] caller: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] farm_token: &TokenIdentifier,
         exit_farm_event: &ExitFarmEvent<Self::Api>,
     );
@@ -266,7 +270,7 @@ pub trait EventsModule {
         #[indexed] caller: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] farm_token: &TokenIdentifier,
         claim_rewards_event: &ClaimRewardsEvent<Self::Api>,
     );
@@ -277,7 +281,7 @@ pub trait EventsModule {
         #[indexed] caller: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] farm_token: &TokenIdentifier,
         compound_rewards_event: &CompoundRewardsEvent<Self::Api>,
     );

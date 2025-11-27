@@ -24,14 +24,13 @@ pub trait LockedTokenMigrationModule:
         final_epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
     ) {
         let new_factory_address = self.new_factory_address().get();
-        let _: IgnoreValue = self
-            .new_factory_proxy_builder(new_factory_address)
+        self.new_factory_proxy_builder(new_factory_address)
             .update_energy_after_old_token_unlock(
                 caller,
                 initial_epoch_amount_pairs,
                 final_epoch_amount_pairs,
             )
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     #[proxy]

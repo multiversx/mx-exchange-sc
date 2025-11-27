@@ -52,7 +52,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
-        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
+        let (token_id, token_nonce, amount) = self.call_value().single_esdt().clone().into_tuple();
 
         require!(amount != 0, "Payment amount cannot be zero");
         require!(
@@ -117,11 +117,13 @@ pub trait ProxyFarmModule:
         farm_token_nonce: Nonce,
         amount: &BigUint,
     ) -> ExitFarmResultType<Self::Api> {
-        let raw_results: RawResultsType<Self::Api> = self
-            .farm_contract_proxy(farm_address.clone())
-            .exit_farm(OptionalValue::<ManagedBuffer>::None)
-            .with_esdt_transfer((farm_token_id.clone(), farm_token_nonce, amount.clone()))
-            .execute_on_dest_context();
+        let raw_results: RawResultsType<Self::Api> = MultiValueEncoded::from(
+            self.farm_contract_proxy(farm_address.clone())
+                .exit_farm(OptionalValue::<ManagedBuffer>::None)
+                .with_esdt_transfer((farm_token_id.clone(), farm_token_nonce, amount.clone()))
+                .returns(ReturnsRawResult)
+                .sync_call(),
+        );
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
         results_wrapper.trim_results_front(2);

@@ -18,7 +18,7 @@ impl<M: ManagedTypeApi> EnterFarmContext<M> {
             M::error_api_impl().signal_error(ERROR_EMPTY_PAYMENTS);
         }
 
-        let farming_token_payment = payments.get(0);
+        let farming_token_payment = payments.get(0).clone();
         if &farming_token_payment.token_identifier != farming_token_id {
             M::error_api_impl().signal_error(ERROR_BAD_PAYMENTS);
         }
@@ -31,7 +31,7 @@ impl<M: ManagedTypeApi> EnterFarmContext<M> {
         }
 
         EnterFarmContext {
-            farming_token_payment,
+            farming_token_payment: farming_token_payment.clone(),
             additional_farm_tokens: payments,
         }
     }

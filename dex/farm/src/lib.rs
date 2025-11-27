@@ -140,7 +140,7 @@ pub trait Farm:
         self.per_second_reward_amount()
             .set(&per_second_reward_amount);
         self.last_reward_timestamp()
-            .set(self.blockchain().get_block_timestamp());
+            .set(self.blockchain().get_block_timestamp_seconds());
     }
 
     #[payable("*")]
@@ -214,7 +214,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
 
         let migrated_amount = self.migrate_old_farm_positions(&orig_caller);
 

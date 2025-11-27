@@ -9,7 +9,8 @@ type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type INCORRECTReturnType<ManagedTypeApi> = ManagedBuffer<ManagedTypeApi>;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq)]
 pub enum State {
     Inactive,
     Active,

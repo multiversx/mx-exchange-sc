@@ -3,7 +3,8 @@ multiversx_sc::derive_imports!();
 
 use common_structs::LockedAssetTokenAttributesEx;
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     destination: ManagedAddress<M>,
@@ -14,10 +15,11 @@ pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
     start_epoch: u64,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct UnlockAssetsEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     input_locked_assets_token_id: TokenIdentifier<M>,
@@ -32,7 +34,7 @@ pub struct UnlockAssetsEvent<M: ManagedTypeApi> {
     output_assets_attributes: LockedAssetTokenAttributesEx<M>,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
 #[multiversx_sc::module]
@@ -62,7 +64,7 @@ pub trait EventsModule {
                 start_epoch,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                timestamp: self.blockchain().get_block_timestamp_seconds(),
             },
         )
     }
@@ -99,7 +101,7 @@ pub trait EventsModule {
                 output_assets_attributes: output_assets_attributes.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                timestamp: self.blockchain().get_block_timestamp_seconds(),
             },
         )
     }

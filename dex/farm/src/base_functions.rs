@@ -214,7 +214,7 @@ pub trait BaseFunctionsModule:
             if farm_position.token_identifier == farm_token_id
                 && self.is_old_farm_position(farm_position.token_nonce)
             {
-                migrated_amount += farm_position.amount;
+                migrated_amount += farm_position.amount.clone();
             }
         }
 

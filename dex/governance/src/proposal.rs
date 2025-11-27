@@ -4,7 +4,8 @@ multiversx_sc::derive_imports!();
 use crate::config;
 use crate::errors::*;
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq, Debug)]
 pub enum ProposalStatus {
     Pending, //Starts from 0
     Active,
@@ -13,7 +14,8 @@ pub enum ProposalStatus {
     Executed,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct Action<M: ManagedTypeApi> {
     pub gas_limit: u64,
     pub dest_address: ManagedAddress<M>,
@@ -22,13 +24,15 @@ pub struct Action<M: ManagedTypeApi> {
     pub arguments: ManagedVec<M, ManagedBuffer<M>>,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct ProposalCreationArgs<M: ManagedTypeApi> {
     pub description: ManagedBuffer<M>,
     pub actions: ManagedVec<M, Action<M>>,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct Proposal<M: ManagedTypeApi> {
     pub id: u64,
     pub creation_block: u64,
@@ -103,10 +107,11 @@ pub trait ProposalHelper: config::Config {
     }
 
     fn execute_action(&self, action: &Action<Self::Api>) -> Result<(), &'static [u8]> {
-        self.send()
-            .contract_call::<()>(action.dest_address.clone(), action.endpoint_name.clone())
-            .with_raw_arguments(ManagedArgBuffer::from(action.arguments.clone()))
-            .with_gas_limit(action.gas_limit)
+        self.tx()
+            .to(action.dest_address.clone())
+            .raw_call(action.endpoint_name.clone())
+            .arguments_raw(ManagedArgBuffer::from(action.arguments.clone()))
+            .gas(action.gas_limit)
             .transfer_execute();
         Result::Ok(())
         // ContractCallNoPayment::new()

@@ -76,7 +76,7 @@ pub trait RouterInteractionsModule:
 
         let router_address = self.router_address().get();
         let swap_payment = EsdtTokenPayment::new(token_id, 0, token_amount);
-        let mut received_tokens =
+        let received_tokens =
             self.call_swap_through_router(router_address.clone(), swap_payment, swap_operations);
 
         let base_token_id = self.get_base_token_id();
@@ -85,10 +85,10 @@ pub trait RouterInteractionsModule:
             "Invalid tokens received from router"
         );
 
-        self.burn_part_of_base_token(&mut received_tokens);
+        let received_tokens_after_burn = self.burn_part_of_base_token(received_tokens);
 
         self.accumulated_fees(current_week, &base_token_id)
-            .update(|acc_fees| *acc_fees += received_tokens.amount);
+            .update(|acc_fees| *acc_fees += received_tokens_after_burn.amount);
     }
 
     fn check_swap_through_router_args(
@@ -121,13 +121,21 @@ pub trait RouterInteractionsModule:
             .router_proxy(router_address)
             .multi_pair_swap(swap_operations)
             .esdt(payment)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         require!(
             !output_payments.is_empty(),
             "No payments received from router"
         );
 
-        unsafe { output_payments.iter().next_back().unwrap_unchecked() }
+        let last_payment = unsafe {
+            output_payments
+                .iter()
+                .next_back()
+                .unwrap_unchecked()
+                .clone()
+        };
+        last_payment
     }
 
     #[storage_mapper("routerAddress")]

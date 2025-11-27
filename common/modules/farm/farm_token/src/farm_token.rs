@@ -20,9 +20,9 @@ pub trait FarmTokenModule:
     ) {
         self.require_caller_has_owner_or_admin_permissions();
 
-        let payment_amount = self.call_value().egld_value().clone_value();
+        let payment_amount = self.call_value().egld().clone_value();
         self.farm_token().issue_and_set_all_roles(
-            EsdtTokenType::Meta,
+            EsdtTokenType::MetaFungible,
             payment_amount,
             token_display_name,
             token_ticker,

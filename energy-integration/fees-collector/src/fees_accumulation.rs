@@ -29,7 +29,7 @@ pub trait FeesAccumulationModule:
     #[endpoint(depositSwapFees)]
     fn deposit_swap_fees(&self) {
         let caller = self.blockchain().get_caller();
-        let mut payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
 
         let current_week = self.get_current_week();
         let base_token_id = self.get_base_token_id();
@@ -45,10 +45,13 @@ pub trait FeesAccumulationModule:
             self.accumulated_fees(current_week, &payment.token_identifier)
                 .update(|amt| *amt += &payment.amount);
         } else if payment.token_identifier == base_token_id {
-            self.burn_part_of_base_token(&mut payment);
+            let payment_after_burn = self.burn_part_of_base_token(payment);
 
-            self.accumulated_fees(current_week, &payment.token_identifier)
-                .update(|amt| *amt += &payment.amount);
+            self.accumulated_fees(current_week, &payment_after_burn.token_identifier)
+                .update(|amt| *amt += &payment_after_burn.amount);
+
+            self.emit_deposit_swap_fees_event(&caller, current_week, &payment_after_burn);
+            return;
         }
 
         self.emit_deposit_swap_fees_event(&caller, current_week, &payment);
@@ -68,21 +71,22 @@ pub trait FeesAccumulationModule:
         );
     }
 
-    fn burn_part_of_base_token(&self, payment: &mut EsdtTokenPayment) {
+    fn burn_part_of_base_token(&self, mut payment: EsdtTokenPayment) -> EsdtTokenPayment {
         let burn_percent = self.base_token_burn_percent().get();
         if burn_percent == 0 {
-            return;
+            return payment;
         }
 
         let burn_amount = &payment.amount * burn_percent / MAX_PENALTY_PERCENTAGE;
         if burn_amount == 0 {
-            return;
+            return payment;
         }
 
         self.send()
             .esdt_local_burn(&payment.token_identifier, 0, &burn_amount);
 
         payment.amount -= burn_amount;
+        payment
     }
 
     fn get_and_clear_accumulated_fees(

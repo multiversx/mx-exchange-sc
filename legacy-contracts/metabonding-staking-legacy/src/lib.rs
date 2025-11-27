@@ -5,7 +5,8 @@ use multiversx_sc::imports::*;
 
 pub type SnapshotEntry<M> = MultiValue2<ManagedAddress<M>, BigUint<M>>;
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, Debug, PartialEq)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, Debug, PartialEq)]
 pub struct UserEntry<M: ManagedTypeApi> {
     pub token_nonce: u64,
     pub stake_amount: BigUint<M>,

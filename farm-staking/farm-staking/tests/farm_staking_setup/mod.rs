@@ -755,7 +755,7 @@ where
             .assert_ok();
     }
 
-    pub fn set_block_timestamp(&mut self, block_timestamp: u64) {
+    pub fn set_block_timestamp(&mut self, block_timestamp: TimestampSeconds) {
         self.b_mock.set_block_timestamp(block_timestamp);
     }
 
@@ -964,7 +964,7 @@ where
         self.b_mock
             .execute_query(&self.farm_wrapper, |sc| {
                 use multiversx_sc::contract_base::ContractBase;
-                current_timestamp = sc.blockchain().get_block_timestamp();
+                current_timestamp = sc.blockchain().get_block_timestamp_seconds();
                 current_block = sc.blockchain().get_block_nonce();
             })
             .assert_ok();

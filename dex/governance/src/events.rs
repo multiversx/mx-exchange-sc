@@ -19,7 +19,7 @@ pub trait Events {
             proposal,
             payment,
             weight,
-            self.blockchain().get_block_timestamp(),
+            self.blockchain().get_block_timestamp_seconds(),
             self.blockchain().get_block_nonce(),
         );
     }
@@ -38,7 +38,7 @@ pub trait Events {
                     proposal,
                     payment,
                     weight,
-                    self.blockchain().get_block_timestamp(),
+                    self.blockchain().get_block_timestamp_seconds(),
                     self.blockchain().get_block_nonce(),
                 );
             }
@@ -48,7 +48,7 @@ pub trait Events {
                     proposal,
                     payment,
                     weight,
-                    self.blockchain().get_block_timestamp(),
+                    self.blockchain().get_block_timestamp_seconds(),
                     self.blockchain().get_block_nonce(),
                 );
             }
@@ -59,7 +59,7 @@ pub trait Events {
         self.execute_event(
             self.blockchain().get_caller(),
             proposal,
-            self.blockchain().get_block_timestamp(),
+            self.blockchain().get_block_timestamp_seconds(),
             self.blockchain().get_block_nonce(),
         );
     }
@@ -75,7 +75,7 @@ pub trait Events {
             proposal,
             payment,
             vote_attr,
-            self.blockchain().get_block_timestamp(),
+            self.blockchain().get_block_timestamp_seconds(),
             self.blockchain().get_block_nonce(),
         );
     }
@@ -87,7 +87,7 @@ pub trait Events {
         #[indexed] proposal: Proposal<Self::Api>,
         #[indexed] payment: EsdtTokenPayment<Self::Api>,
         #[indexed] weight: BigUint,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 
@@ -98,7 +98,7 @@ pub trait Events {
         #[indexed] proposal: Proposal<Self::Api>,
         #[indexed] payment: EsdtTokenPayment<Self::Api>,
         #[indexed] weight: BigUint,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 
@@ -109,7 +109,7 @@ pub trait Events {
         #[indexed] proposal: Proposal<Self::Api>,
         #[indexed] payment: EsdtTokenPayment<Self::Api>,
         #[indexed] weight: BigUint,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 
@@ -118,7 +118,7 @@ pub trait Events {
         &self,
         #[indexed] caller: ManagedAddress,
         #[indexed] proposal: Proposal<Self::Api>,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 
@@ -129,7 +129,7 @@ pub trait Events {
         #[indexed] proposal: Proposal<Self::Api>,
         #[indexed] payment: EsdtTokenPayment<Self::Api>,
         #[indexed] vote_attr: VoteNFTAttributes<Self::Api>,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 }

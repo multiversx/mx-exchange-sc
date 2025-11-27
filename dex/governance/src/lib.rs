@@ -77,7 +77,7 @@ pub trait Governance:
         self.send_back(vote_nft);
 
         let proposal_id = proposal.id;
-        self.emit_propose_event(proposal, payment, vote_weight);
+        self.emit_propose_event(proposal, payment.clone(), vote_weight);
 
         proposal_id
     }
@@ -136,7 +136,7 @@ pub trait Governance:
         self.send_back(vote_nft);
 
         self.proposal(proposal_id).set(&proposal);
-        self.emit_vote_event(proposal, vote_type, payment, vote_weight);
+        self.emit_vote_event(proposal, vote_type, payment.clone(), vote_weight);
     }
 
     #[payable("*")]
@@ -161,6 +161,6 @@ pub trait Governance:
             }
         }
 
-        self.emit_redeem_event(proposal, payment, attr);
+        self.emit_redeem_event(proposal, payment.clone(), attr);
     }
 }

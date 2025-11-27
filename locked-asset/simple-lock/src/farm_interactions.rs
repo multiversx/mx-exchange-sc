@@ -1,7 +1,7 @@
-use common_structs::{RawResultWrapper, RawResultsType};
-
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
+
+use common_structs::RawResultWrapper;
 
 type EnterFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -82,10 +82,11 @@ pub trait FarmInteractionsModule {
             ));
 
         for farm_token in &additional_farm_tokens {
-            contract_call = contract_call.with_esdt_transfer(farm_token);
+            contract_call = contract_call.with_esdt_transfer(farm_token.clone());
         }
 
-        let raw_results: RawResultsType<Self::Api> = contract_call.execute_on_dest_context();
+        let raw_results =
+            MultiValueEncoded::from(contract_call.returns(ReturnsRawResult).sync_call());
         let mut results_wrapper = RawResultWrapper::new(raw_results);
         results_wrapper.trim_results_front(ENTER_FARM_RESULTS_LEN);
 
@@ -106,15 +107,17 @@ pub trait FarmInteractionsModule {
         farm_token_amount: BigUint,
         caller: ManagedAddress,
     ) -> ExitFarmResultWrapper<Self::Api> {
-        let raw_results: RawResultsType<Self::Api> = self
-            .farm_proxy(farm_address)
-            .exit_farm(OptionalValue::Some(caller))
-            .with_esdt_transfer(EsdtTokenPayment::new(
-                farm_token,
-                farm_token_nonce,
-                farm_token_amount,
-            ))
-            .execute_on_dest_context();
+        let raw_results = MultiValueEncoded::from(
+            self.farm_proxy(farm_address)
+                .exit_farm(OptionalValue::Some(caller))
+                .with_esdt_transfer(EsdtTokenPayment::new(
+                    farm_token,
+                    farm_token_nonce,
+                    farm_token_amount,
+                ))
+                .returns(ReturnsRawResult)
+                .sync_call(),
+        );
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
         results_wrapper.trim_results_front(EXIT_FARM_RESULTS_LEN);
@@ -136,15 +139,17 @@ pub trait FarmInteractionsModule {
         farm_token_amount: BigUint,
         caller: ManagedAddress,
     ) -> FarmClaimRewardsResultWrapper<Self::Api> {
-        let raw_results: RawResultsType<Self::Api> = self
-            .farm_proxy(farm_address)
-            .claim_rewards(OptionalValue::Some(caller))
-            .with_esdt_transfer(EsdtTokenPayment::new(
-                farm_token,
-                farm_token_nonce,
-                farm_token_amount,
-            ))
-            .execute_on_dest_context();
+        let raw_results = MultiValueEncoded::from(
+            self.farm_proxy(farm_address)
+                .claim_rewards(OptionalValue::Some(caller))
+                .with_esdt_transfer(EsdtTokenPayment::new(
+                    farm_token,
+                    farm_token_nonce,
+                    farm_token_amount,
+                ))
+                .returns(ReturnsRawResult)
+                .sync_call(),
+        );
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
         results_wrapper.trim_results_front(CLAIM_REWARDS_RESULTS_LEN);

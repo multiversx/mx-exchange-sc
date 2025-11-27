@@ -1,7 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct CreatePairEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     first_token_id: TokenIdentifier<M>,
@@ -11,10 +12,11 @@ pub struct CreatePairEvent<M: ManagedTypeApi> {
     pair_address: ManagedAddress<M>,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct UserPairSwapEnabledEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     first_token_id: TokenIdentifier<M>,
@@ -22,7 +24,8 @@ pub struct UserPairSwapEnabledEvent<M: ManagedTypeApi> {
     pair_address: ManagedAddress<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct MultiPairSwapEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     token_in: TokenIdentifier<M>,
@@ -32,7 +35,7 @@ pub struct MultiPairSwapEvent<M: ManagedTypeApi> {
     payments_out: ManagedVec<M, EsdtTokenPayment<M>>,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
 #[multiversx_sc::module]
@@ -61,7 +64,7 @@ pub trait EventsModule {
                 pair_address,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                timestamp: self.blockchain().get_block_timestamp_seconds(),
             },
         )
     }
@@ -101,23 +104,25 @@ pub trait EventsModule {
 
         let block = self.blockchain().get_block_nonce();
         let epoch = self.blockchain().get_block_epoch();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
         let last_payment_index = payments_out.len() - 1;
         let token_out = payments_out.get(last_payment_index);
+        let token_out_id = token_out.token_identifier.clone();
+        let token_out_amount = token_out.amount.clone();
         self.multi_pair_swap_event(
             caller.clone(),
             token_in.clone(),
             amount_in.clone(),
-            token_out.token_identifier.clone(),
-            token_out.amount.clone(),
+            token_out_id.clone(),
+            token_out_amount.clone(),
             epoch,
             MultiPairSwapEvent {
                 caller,
                 token_in,
                 amount_in,
-                token_out: token_out.token_identifier,
-                amount_out: token_out.amount,
-                payments_out,
+                token_out: token_out_id,
+                amount_out: token_out_amount,
+                payments_out: payments_out.clone(),
                 block,
                 epoch,
                 timestamp,

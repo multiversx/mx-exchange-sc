@@ -98,7 +98,7 @@ pub trait FarmStaking:
         self.first_week_start_epoch().set_if_empty(current_epoch);
 
         // Initialize last_reward_timestamp
-        let current_timestamp = self.blockchain().get_block_timestamp();
+        let current_timestamp = self.blockchain().get_block_timestamp_seconds();
         self.last_reward_timestamp().set_if_empty(current_timestamp);
 
         // Farm position migration code
@@ -173,7 +173,7 @@ pub trait FarmStaking:
         self.per_second_reward_amount()
             .set(&per_second_reward_amount);
         self.last_reward_timestamp()
-            .set(self.blockchain().get_block_timestamp());
+            .set(self.blockchain().get_block_timestamp_seconds());
     }
 
     #[payable("*")]

@@ -6,13 +6,15 @@ use pair::read_pair_storage;
 
 const TEMPORARY_OWNER_PERIOD_SECONDS: u64 = 300;
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq)]
 pub struct PairTokens<M: ManagedTypeApi> {
     pub first_token_id: TokenIdentifier<M>,
     pub second_token_id: TokenIdentifier<M>,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, PartialEq)]
 pub struct PairContractMetadata<M: ManagedTypeApi> {
     first_token_id: TokenIdentifier<M>,
     second_token_id: TokenIdentifier<M>,
@@ -76,7 +78,9 @@ pub trait FactoryModule: config::ConfigModule + read_pair_storage::ReadPairStora
             new_address.clone(),
             (
                 self.blockchain().get_caller(),
-                self.blockchain().get_block_timestamp(),
+                self.blockchain()
+                    .get_block_timestamp_seconds()
+                    .as_u64_seconds(),
             ),
         );
         new_address
@@ -159,7 +163,12 @@ pub trait FactoryModule: config::ConfigModule + read_pair_storage::ReadPairStora
             Some((temporary_owner, creation_time)) => {
                 let expire_time = creation_time + self.temporary_owner_period().get();
 
-                if expire_time <= self.blockchain().get_block_timestamp() {
+                if expire_time
+                    <= self
+                        .blockchain()
+                        .get_block_timestamp_seconds()
+                        .as_u64_seconds()
+                {
                     self.pair_temporary_owner().remove(pair_address);
                     None
                 } else {

@@ -27,7 +27,7 @@ pub trait MultiPairSwap:
     ) -> ManagedVec<EsdtTokenPayment> {
         require!(self.is_active(), "Not active");
 
-        let (token_id, nonce, amount) = self.call_value().single_esdt().into_tuple();
+        let (token_id, nonce, amount) = self.call_value().single_esdt().clone().into_tuple();
         require!(nonce == 0, "Invalid nonce. Should be zero");
         require!(amount > 0u64, "Invalid amount. Should not be zero");
         require!(
@@ -92,7 +92,8 @@ pub trait MultiPairSwap:
         self.pair_contract_proxy(pair_address)
             .swap_tokens_fixed_input(token_out, amount_out_min)
             .with_esdt_transfer((token_in, 0, amount_in))
-            .execute_on_dest_context()
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     fn actual_swap_fixed_output(
@@ -107,7 +108,8 @@ pub trait MultiPairSwap:
             self.pair_contract_proxy(pair_address)
                 .swap_tokens_fixed_output(token_out, amount_out)
                 .with_esdt_transfer((token_in, 0, amount_in_max))
-                .execute_on_dest_context();
+                .returns(ReturnsResult)
+                .sync_call();
 
         call_result.into_tuple()
     }

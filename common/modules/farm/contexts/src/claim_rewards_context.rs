@@ -35,7 +35,7 @@ where
             }
         }
 
-        let first_payment = payments.get(0);
+        let first_payment = payments.get(0).clone();
         payments.remove(0);
 
         let own_sc_address = api_wrapper.get_sc_address();
@@ -48,7 +48,7 @@ where
 
         ClaimRewardsContext {
             first_farm_token: PaymentAttributesPair {
-                payment: first_payment,
+                payment: first_payment.clone(),
                 attributes: first_token_attributes,
             },
             additional_payments: payments,

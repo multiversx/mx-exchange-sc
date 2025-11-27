@@ -15,7 +15,7 @@ pub trait RewardsModule:
             !self.produce_rewards_enabled().get(),
             "Producing rewards is already enabled"
         );
-        let current_timestamp = self.blockchain().get_block_timestamp();
+        let current_timestamp = self.blockchain().get_block_timestamp_seconds();
         self.produce_rewards_enabled().set(true);
         self.last_reward_timestamp().set(current_timestamp);
     }

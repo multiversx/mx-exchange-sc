@@ -28,7 +28,7 @@ pub trait ProxyClaimModule:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
 
         let claim_result = self.claim_dual_yield_common(orig_caller, payment);
 
