@@ -5,8 +5,9 @@ use energy_factory::SimpleLockEnergy;
 use energy_query::EnergyQueryModule;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
-use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc::types::{
+    Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded, TimestampSeconds,
+};
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
@@ -289,7 +290,8 @@ where
             sc.produce_rewards_enabled().set(true);
             sc.per_second_reward_amount()
                 .set(&managed_biguint!(LP_FARM_PER_SECOND_REWARD_AMOUNT));
-            sc.last_reward_timestamp().set(TIMESTAMP_AFTER_PAIR_SETUP);
+            sc.last_reward_timestamp()
+                .set(TimestampSeconds::new(TIMESTAMP_AFTER_PAIR_SETUP));
             sc.lock_epochs().set(LOCK_OPTIONS[2]);
             sc.locking_sc_address()
                 .set(managed_address!(energy_factory_address));

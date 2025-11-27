@@ -10,7 +10,6 @@ use governance_v2::{
 };
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
-    imports::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, ManagedVec, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{

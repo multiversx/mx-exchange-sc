@@ -11,7 +11,6 @@ use multiversx_sc::{
         multi_types::OptionalValue,
         top_encode_to_vec_u8,
     },
-    storage::mappers::StorageTokenWrapper,
     types::{BigUint, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{

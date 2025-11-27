@@ -11,7 +11,6 @@ use energy_factory::{
 use energy_factory_setup::*;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
-    storage::mappers::StorageTokenWrapper,
     types::{
         BigInt, BigUint, EgldOrEsdtTokenIdentifier, EgldOrEsdtTokenPayment, EsdtLocalRole,
         MultiValueEncoded,

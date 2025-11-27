@@ -3,9 +3,8 @@
 
 use common_structs::FarmTokenAttributes;
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use multiversx_sc_scenario::whitebox_legacy::{TxContextStack, TxTokenTransfer};
+use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox_legacy::*, DebugApi,
 };
@@ -295,8 +294,6 @@ where
             &rust_biguint!(expected_total_out_amount),
             Some(&expected_attributes),
         );
-
-        let _ = TxContextStack::static_pop();
     }
 
     pub fn exit_farm(
@@ -412,8 +409,6 @@ where
             LP_TOKEN_ID,
             expected_user_lp_token_balance,
         );
-
-        let _ = TxContextStack::static_pop();
     }
 
     pub fn check_farm_token_supply(&mut self, expected_farm_token_supply: u64) {

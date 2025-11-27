@@ -200,7 +200,6 @@ fn test_exit_farm_after_enter_twice() {
 
 #[test]
 fn test_farm_through_simple_lock() {
-    use multiversx_sc::storage::mappers::StorageTokenWrapper;
     use simple_lock::locked_token::LockedTokenModule;
     use simple_lock::proxy_farm::ProxyFarmModule;
     use simple_lock::proxy_farm::*;

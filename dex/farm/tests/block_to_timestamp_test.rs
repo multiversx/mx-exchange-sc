@@ -5,6 +5,7 @@ mod farm_setup;
 use config::ConfigModule;
 use farm::Farm;
 use farm_setup::multi_user_farm_setup::{MultiUserFarmSetup, BOOSTED_YIELDS_PERCENTAGE};
+use multiversx_sc::types::TimestampSeconds;
 use multiversx_sc_scenario::{managed_biguint, rust_biguint, DebugApi};
 use rewards::RewardsModule;
 
@@ -186,7 +187,8 @@ fn test_migration_with_no_pending_rewards() {
 
             let last_timestamp = sc.last_reward_timestamp().get();
             assert_eq!(
-                last_timestamp, timestamp,
+                last_timestamp,
+                TimestampSeconds::new(timestamp),
                 "Last timestamp should be set to current"
             );
         })

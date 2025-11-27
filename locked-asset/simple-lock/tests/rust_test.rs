@@ -5,7 +5,6 @@ use multiversx_sc::types::EsdtLocalRole;
 use multiversx_sc_scenario::{managed_biguint, managed_token_id_wrapped, whitebox_legacy::*};
 use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use simple_lock::locked_token::*;
 use simple_lock::SimpleLock;
 

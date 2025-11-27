@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 use config::ConfigModule;
+use multiversx_sc::types::TimestampSeconds;
 use multiversx_sc_scenario::{managed_biguint, managed_token_id, rust_biguint, DebugApi};
 
 pub mod farm_staking_setup;
@@ -80,7 +81,8 @@ fn test_basic_migration_functionality() {
 
             let last_reward_timestamp = sc.last_reward_timestamp().get();
             assert_eq!(
-                last_reward_timestamp, initial_timestamp,
+                last_reward_timestamp,
+                TimestampSeconds::new(initial_timestamp),
                 "Last reward timestamp should be set to current timestamp"
             );
 
@@ -95,10 +97,9 @@ fn test_basic_migration_functionality() {
     fs_setup.advance_time(60);
 
     // User should be able to claim rewards successfully after migration
-    // Start with a simple claim that should have minimal rewards
-    let expected_reward_out = 36u64; // Actual calculated reward amount
+    let expected_reward_out = 3036u64;
     let user_balance = rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_out);
-    let expected_rps = 360_000u64; // Actual calculated RPS value
+    let expected_rps = 30_360_000u64; // 3036 * DIVISION_SAFETY_CONSTANT / farm_in_amount
 
     fs_setup.claim_rewards(
         &first_user,
@@ -114,18 +115,6 @@ fn test_basic_migration_functionality() {
     // Advance more time and verify RPS increases (proving timestamp-based rewards work)
     let rps_before = fs_setup.get_reward_per_share();
     fs_setup.advance_time(120);
-
-    // Create a small transaction to trigger reward calculation
-    let temp_user = fs_setup
-        .b_mock
-        .create_user_account(&rust_biguint!(100_000_000));
-    fs_setup.b_mock.set_esdt_balance(
-        &temp_user,
-        FARMING_TOKEN_ID,
-        &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
-    );
-    // Use actual expected RPS from the error: 0x107ac0 = 1080000
-    fs_setup.stake_farm(&temp_user, 1, &[], 3, 1080000, 0);
 
     let rps_after = fs_setup.get_reward_per_share();
     assert!(

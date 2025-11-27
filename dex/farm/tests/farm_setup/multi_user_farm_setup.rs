@@ -11,7 +11,6 @@ use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::imports::{SingleValueMapper, StorageMapper};
 use multiversx_sc::types::BigUint;
 use multiversx_sc::{
-    storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_modules::pause::PauseModule;

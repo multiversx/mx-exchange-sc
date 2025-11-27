@@ -11,7 +11,6 @@ use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 use price_discovery::redeem_token::*;
 use price_discovery::*;
 
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use simple_lock::locked_token::LockedTokenModule;
 use simple_lock::SimpleLock;
 

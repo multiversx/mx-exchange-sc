@@ -973,7 +973,6 @@ fn total_farm_position_owner_change_test() {
 
 #[test]
 fn total_farm_position_through_simple_lock_test() {
-    use multiversx_sc::storage::mappers::StorageTokenWrapper;
     use simple_lock::locked_token::LockedTokenModule;
     use simple_lock::proxy_farm::ProxyFarmModule;
     use simple_lock::proxy_farm::*;

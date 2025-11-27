@@ -5,7 +5,6 @@ use config::ConfigModule;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     imports::{SingleValueMapper, StorageMapper},
-    storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, BigUint, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
