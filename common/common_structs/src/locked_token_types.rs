@@ -92,7 +92,7 @@ impl<M: ManagedTypeApi> UnlockScheduleEx<M> {
         let leftover_percent = PERCENTAGE_TOTAL_EX - new_total;
         if leftover_percent > 0 {
             let last_milestone_index = reallocated_milestones.len() - 1;
-            let mut last_milestone = reallocated_milestones.get(last_milestone_index).clone();
+            let mut last_milestone = *reallocated_milestones.get(last_milestone_index);
             last_milestone.unlock_percent += leftover_percent;
 
             let _ = reallocated_milestones.set(last_milestone_index, last_milestone);
