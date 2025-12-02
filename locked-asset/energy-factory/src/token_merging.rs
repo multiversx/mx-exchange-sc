@@ -103,8 +103,7 @@ pub trait TokenMergingModule:
         let locked_token_mapper = self.locked_token();
         locked_token_mapper.require_all_same_token(&payments);
 
-        let first_payment = payments.get(0).clone();
-        payments.remove(0);
+        let first_payment = payments.take(0);
 
         let current_epoch = self.blockchain().get_block_epoch();
         let first_token_attributes: LockedTokenAttributes<Self::Api> =
