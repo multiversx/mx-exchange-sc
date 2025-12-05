@@ -37,7 +37,7 @@ fn test_basic_migration_functionality() {
 
     // Simulate pre-migration storage state
     let per_block_reward_amount = 1_000u64;
-    fs_setup.simulate_per_block_migration_storage(per_block_reward_amount, 0);
+    fs_setup.simulate_per_block_migration_storage(per_block_reward_amount, initial_block);
 
     // Verify pre-migration state
     fs_setup
