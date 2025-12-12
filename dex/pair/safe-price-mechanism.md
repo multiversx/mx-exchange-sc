@@ -97,6 +97,8 @@ pub struct PriceObservation {
 
 These endpoints allow querying prices based on elapsed time (in seconds) rather than rounds, making the system robust to block duration changes.
 
+**Note:** The timestamp offset endpoint (`getSafePriceByTimestampOffset`) does not have a default value. It must be provided as a parameter.
+
 #### 3. Timestamp-to-Round Conversion
 
 The mechanism includes dedicated logic to find equivalent rounds for given timestamps:
@@ -376,6 +378,8 @@ Returns the configured round save interval.
 **Returns:**
 - `Round` - Number of rounds between saves
 
+**Default Value:** `1` (immediate save on every update)
+
 #### `getCurrentPriceObservation`
 
 Returns the current intermediate observation (if any).
@@ -390,6 +394,8 @@ Returns the default round offset for safe price queries.
 **Returns:**
 - `u64` - Default offset in rounds
 
+**Default Value:** `600` rounds
+
 ## Configuration
 
 ### Owner-Only Configuration Endpoints
@@ -397,6 +403,9 @@ Returns the default round offset for safe price queries.
 #### `setSafePriceRoundSaveInterval`
 
 Set how frequently observations are saved.
+
+**Available on:**
+- **Router contract**: The Router SC now acts like a Safe Price global hub for general config. This function sets the interval for all pairs at once.
 
 **Parameters:**
 - `new_interval: Round` - Must be > 0
@@ -408,6 +417,9 @@ Set how frequently observations are saved.
 #### `setDefaultSafePriceRoundsOffset`
 
 Set the default lookback period for safe price queries.
+
+**Available on:**
+- **Router contract**: The same value applies to all existing pairs.
 
 **Parameters:**
 - `new_offset: u64` - Must be > 0
@@ -530,11 +542,11 @@ The system maintains backward compatibility:
 
 ### Gas Optimization
 
-The intermediate save functionality reduces gas costs:
+The intermediate save functionality reduces circular buffer writes:
 
-- **Without intermediate saves** (interval=1): N transactions × gas_per_save
-- **With intermediate saves** (interval=10): (N/10) transactions × gas_per_save
-- Accumulation operations are cheaper than storage writes
+- **Without intermediate saves** (interval=1): Each swap writes a new observation to the circular buffer (VecMapper)
+- **With intermediate saves** (interval=10): Swaps update an intermediate observation (SingleValueMapper), and only every ~10 rounds writes to the circular buffer
+- **Trade-off**: Both modes write to storage on each swap, but intermediate mode reduces the frequency of VecMapper operations (which involve index calculations and potentially more complex storage patterns)
 - Optimal for high-frequency trading on 0.6s blocks
 
 ### Price Manipulation Resistance
