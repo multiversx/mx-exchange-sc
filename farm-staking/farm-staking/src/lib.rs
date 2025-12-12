@@ -97,10 +97,6 @@ pub trait FarmStaking:
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
 
-        // Initialize last_reward_timestamp
-        let current_timestamp = self.blockchain().get_block_timestamp();
-        self.last_reward_timestamp().set_if_empty(current_timestamp);
-
         // Farm position migration code
         let farm_token_mapper = self.farm_token();
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
@@ -127,46 +123,44 @@ pub trait FarmStaking:
         let last_reward_nonce = last_reward_block_nonce_mapper.take();
         let per_block_reward = per_block_reward_amount_mapper.take();
 
-        require!(
-            self.produces_per_second_rewards(),
-            "Farm must produce rewards"
-        );
-
-        // CALCULATE PER BLOCK REWARDS
-        let extra_rewards_unbounded = if current_block_nonce <= last_reward_nonce {
-            BigUint::zero()
-        } else {
-            let block_nonce_diff = current_block_nonce - last_reward_nonce;
-            &per_block_reward * block_nonce_diff
-        };
-
-        let farm_token_supply = self.farm_token_supply().get();
-        let max_apr = self.max_annual_percentage_rewards().get();
-        let extra_rewards_apr_bounded_per_block =
-            farm_token_supply * &max_apr / MAX_PERCENT / (SECONDS_IN_YEAR / 6u64);
-
         let block_nonce_diff = current_block_nonce - last_reward_nonce;
-        let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
+        if self.produces_per_second_rewards() {
+            // CALCULATE PER BLOCK REWARDS
+            let extra_rewards_unbounded = if current_block_nonce <= last_reward_nonce {
+                BigUint::zero()
+            } else {
+                &per_block_reward * block_nonce_diff
+            };
 
-        let mut total_reward = core::cmp::min(extra_rewards_unbounded, extra_rewards_apr_bounded);
+            let farm_token_supply = self.farm_token_supply().get();
+            let max_apr = self.max_annual_percentage_rewards().get();
+            let extra_rewards_apr_bounded_per_block =
+                farm_token_supply * &max_apr / MAX_PERCENT / (SECONDS_IN_YEAR / 6u64);
 
-        // COMPLETE REWARDS GENERATION
-        total_reward = core::cmp::min(total_reward, remaining_rewards);
-        if total_reward > 0 {
-            storage_cache.reward_reserve += &total_reward;
-            accumulated_rewards += &total_reward;
-            accumulated_rewards_mapper.set(&accumulated_rewards);
+            let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
 
-            let split_rewards = self.take_reward_slice(total_reward);
-            if storage_cache.farm_token_supply > 0 {
-                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
-                    / &storage_cache.farm_token_supply;
-                storage_cache.reward_per_share += &increase;
+            let mut total_reward =
+                core::cmp::min(extra_rewards_unbounded, extra_rewards_apr_bounded);
+
+            // COMPLETE REWARDS GENERATION
+            total_reward = core::cmp::min(total_reward, remaining_rewards);
+            if total_reward > 0 {
+                storage_cache.reward_reserve += &total_reward;
+                accumulated_rewards += &total_reward;
+                accumulated_rewards_mapper.set(&accumulated_rewards);
+
+                let split_rewards = self.take_reward_slice(total_reward);
+                if storage_cache.farm_token_supply > 0 {
+                    let increase = (&split_rewards.base_farm
+                        * &storage_cache.division_safety_constant)
+                        / &storage_cache.farm_token_supply;
+                    storage_cache.reward_per_share += &increase;
+                }
             }
-        }
 
-        // Set farm supply for current week to ensure boosted rewards can be claimed correctly
-        self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
+            // Set farm supply for current week to ensure boosted rewards can be claimed correctly
+            self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
+        }
 
         // MIGRATE DATA
         let per_second_reward_amount = per_block_reward / 6u64; // 6 seconds per block

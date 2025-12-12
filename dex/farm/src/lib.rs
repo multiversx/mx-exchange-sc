@@ -104,36 +104,34 @@ pub trait Farm:
         let per_block_reward_amount: BigUint<Self::Api> = per_block_reward_amount_mapper.take();
         let last_reward_nonce = last_reward_block_nonce_mapper.take();
 
-        require!(
-            self.produces_per_second_rewards(),
-            "Farm must produce rewards"
-        );
+        if self.produces_per_second_rewards() {
+            let total_reward = if current_block_nonce > last_reward_nonce {
+                let block_nonce_diff = current_block_nonce - last_reward_nonce;
+                &per_block_reward_amount * block_nonce_diff
+            } else {
+                BigUint::zero()
+            };
 
-        let total_reward = if current_block_nonce > last_reward_nonce {
-            let block_nonce_diff = current_block_nonce - last_reward_nonce;
-            &per_block_reward_amount * block_nonce_diff
-        } else {
-            BigUint::zero()
-        };
-
-        if total_reward != 0 {
-            self.send()
-                .esdt_local_mint(&storage_cache.reward_token_id, 0, &total_reward);
-        }
-
-        if total_reward > 0u64 {
-            storage_cache.reward_reserve += &total_reward;
-            let split_rewards = self.take_reward_slice(total_reward);
-
-            if storage_cache.farm_token_supply != 0u64 {
-                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
-                    / &storage_cache.farm_token_supply;
-                storage_cache.reward_per_share += &increase;
+            if total_reward != 0 {
+                self.send()
+                    .esdt_local_mint(&storage_cache.reward_token_id, 0, &total_reward);
             }
-        }
 
-        // Set farm supply for current week to ensure boosted rewards can be claimed correctly
-        self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
+            if total_reward > 0u64 {
+                storage_cache.reward_reserve += &total_reward;
+                let split_rewards = self.take_reward_slice(total_reward);
+
+                if storage_cache.farm_token_supply != 0u64 {
+                    let increase = (&split_rewards.base_farm
+                        * &storage_cache.division_safety_constant)
+                        / &storage_cache.farm_token_supply;
+                    storage_cache.reward_per_share += &increase;
+                }
+            }
+
+            // Set farm supply for current week to ensure boosted rewards can be claimed correctly
+            self.set_farm_supply_for_current_week(&storage_cache.farm_token_supply);
+        }
 
         // Migrate storage
         let per_second_reward_amount = per_block_reward_amount / 6u64; // 6 seconds per block
