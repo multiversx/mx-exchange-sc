@@ -368,12 +368,16 @@ Legacy endpoint that calls `getSafePriceByDefaultOffset` on the pair itself.
 
 Returns the current index in the circular observation buffer.
 
+**Available on:** Pair contract
+
 **Returns:**
 - `usize` - Current index (1-based)
 
 #### `getSafePriceRoundSaveInterval`
 
 Returns the configured round save interval.
+
+**Available on:** Router contract (storage is in router; pair reads from router's storage)
 
 **Returns:**
 - `Round` - Number of rounds between saves
@@ -384,12 +388,16 @@ Returns the configured round save interval.
 
 Returns the current intermediate observation (if any).
 
+**Available on:** Pair contract
+
 **Returns:**
 - `PriceObservation` - The intermediate observation
 
 #### `getDefaultSafePriceRoundsOffset`
 
 Returns the default round offset for safe price queries.
+
+**Available on:** Router contract (storage is in router; pair reads from router's storage)
 
 **Returns:**
 - `u64` - Default offset in rounds
@@ -400,12 +408,15 @@ Returns the default round offset for safe price queries.
 
 ### Owner-Only Configuration Endpoints
 
+The Router SC acts as the central hub for safe price configuration. Configuration values are stored in the router's storage, and pair contracts read these values directly from the router using external storage reads.
+
 #### `setSafePriceRoundSaveInterval`
 
 Set how frequently observations are saved.
 
-**Available on:**
-- **Router contract**: The Router SC now acts like a Safe Price global hub for general config. This function sets the interval for all pairs at once.
+**Available on:** Router contract
+
+**Storage:** Router contract (pairs read from router's storage via `new_from_address`)
 
 **Parameters:**
 - `new_interval: Round` - Must be > 0
@@ -418,8 +429,9 @@ Set how frequently observations are saved.
 
 Set the default lookback period for safe price queries.
 
-**Available on:**
-- **Router contract**: The same value applies to all existing pairs.
+**Available on:** Router contract
+
+**Storage:** Router contract (pairs read from router's storage via `new_from_address`)
 
 **Parameters:**
 - `new_offset: u64` - Must be > 0
@@ -427,6 +439,8 @@ Set the default lookback period for safe price queries.
 **Default Value:**
 - 600 rounds (10 blocks/minute × 60 minutes = 1 hour at 6s blocks)
 - For 0.6s blocks: Consider 6000 rounds (100 blocks/minute × 60 minutes)
+
+**Note:** There is no default timestamp offset. When using timestamp-based endpoints (`getSafePriceByTimestampOffset`, `getLpTokensSafePriceByTimestampOffset`), the offset must always be provided as a parameter.
 
 ### Constants
 
