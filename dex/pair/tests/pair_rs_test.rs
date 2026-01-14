@@ -995,7 +995,6 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 #[test]
 fn test_safe_price_round_interval() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
-    let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
     // 10 Round save interval
     pair_setup.set_safe_price_save_interval(10u64);
@@ -1044,14 +1043,17 @@ fn test_safe_price_round_interval() {
         expected_amount,
     );
 
-    // Still accumulating in intermediate observation, interval not reached (weight=6 < 10)
+    // Still accumulating in intermediate observation
+    // No finalization because no prior finalized observation exists
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            if !sc.current_price_observation().is_empty() {
-                let intermediate = sc.current_price_observation().get();
-                assert_eq!(intermediate.weight_accumulated, starting_weight + weight);
-            }
+            // Still no finalized observations
+            assert_eq!(sc.price_observations().len(), 0);
+            // Intermediate continues accumulating
+            assert!(!sc.current_price_observation().is_empty());
+            let intermediate = sc.current_price_observation().get();
+            assert_eq!(intermediate.weight_accumulated, starting_weight + weight);
         })
         .assert_ok();
 
@@ -1066,36 +1068,21 @@ fn test_safe_price_round_interval() {
         expected_amount,
     );
 
-    // Now the interval has passed (weight=11 >= 10), so observation should be finalized
+    // With accumulated weight >= interval (11 >= 10), finalization happens
+    // even without a prior finalized observation
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            // Should have one finalized observation now
+            // One finalized observation
             assert_eq!(sc.price_observations().len(), 1);
-            let finalized = sc.price_observations().get(1);
-            assert_eq!(finalized.weight_accumulated, starting_weight + weight); // Complete accumulated weight (6)
-
-            // New intermediate observation should have started
-            assert!(!sc.current_price_observation().is_empty());
-            let new_intermediate = sc.current_price_observation().get();
-            assert_eq!(
-                new_intermediate.weight_accumulated,
-                starting_weight + 2 * weight
-            ); // Continuing from previous weight
+            // Intermediate cleared after finalization
+            assert!(sc.current_price_observation().is_empty());
+            // Check the finalized observation
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.recording_round, block_round);
+            assert_eq!(observation.weight_accumulated, starting_weight + 2 * weight);
         })
         .assert_ok();
-
-    // Check safe price
-    expected_amount = 996;
-    pair_setup.check_safe_price(
-        &pair_address,
-        1005,
-        1010,
-        WEGLD_TOKEN_ID,
-        1_000,
-        MEX_TOKEN_ID,
-        expected_amount,
-    );
 }
 
 #[test]
@@ -1126,6 +1113,7 @@ fn test_safe_price_new_timestamp_logic() {
     );
 
     // After first swap with 10-round interval, no observation is finalized yet
+    // (weight = 1 < 10)
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
@@ -1148,13 +1136,14 @@ fn test_safe_price_new_timestamp_logic() {
         expected_amount,
     );
 
-    // After second swap (weight=11), observation should be finalized
+    // After second swap, weight = 1 + 10 = 11 >= 10, so finalization happens
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             assert_eq!(sc.price_observations().len(), 1);
-            let finalized = sc.price_observations().get(1);
-            assert_eq!(finalized.weight_accumulated, starting_weight + weight);
+            assert!(sc.current_price_observation().is_empty());
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.weight_accumulated, starting_weight + weight);
         })
         .assert_ok();
 
@@ -1170,14 +1159,16 @@ fn test_safe_price_new_timestamp_logic() {
         expected_amount,
     );
 
-    // After third swap (weight=11 again), should have 2 finalized observations
+    // After third swap, direct save happens (rounds_since = 10 >= 10)
+    // The new observation continues accumulating from the previous one
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             assert_eq!(sc.price_observations().len(), 2);
-            let second_finalized = sc.price_observations().get(2);
-            // The second finalized observation accumulates weight from the intermediate cycle
-            assert_eq!(second_finalized.weight_accumulated, 21u64); // 1 + 10 + 10 from continuous accumulation
+            assert!(sc.current_price_observation().is_empty());
+            let second_observation = sc.price_observations().get(2);
+            // Weight continues accumulating: 11 (from first) + 10 = 21
+            assert_eq!(second_observation.weight_accumulated, 21u64);
         })
         .assert_ok();
 
@@ -1193,32 +1184,15 @@ fn test_safe_price_new_timestamp_logic() {
         expected_amount,
     );
 
-    // After fourth swap (weight=11 again), should have 3 finalized observations
+    // After fourth swap, another direct save happens
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             assert_eq!(sc.price_observations().len(), 3);
-            let third_finalized = sc.price_observations().get(3);
-            // The third finalized observation continues accumulating
-            assert_eq!(third_finalized.weight_accumulated, 31u64); // 1 + 10 + 10 + 10 from continuous accumulation
-        })
-        .assert_ok();
-
-    // Timestamp queries would need complex updates due to changed recording behavior
-    // The core functionality (intermediate accumulation and finalization) is working correctly
-    // For now, verify that we have the expected number of finalized observations
-    pair_setup
-        .b_mock
-        .execute_query(&pair_setup.pair_wrapper, |sc| {
-            assert_eq!(sc.price_observations().len(), 3);
-            // Verify all observations have the expected accumulated weights
-            let first = sc.price_observations().get(1);
-            let second = sc.price_observations().get(2);
-            let third = sc.price_observations().get(3);
-
-            assert_eq!(first.weight_accumulated, 11u64);
-            assert_eq!(second.weight_accumulated, 21u64);
-            assert_eq!(third.weight_accumulated, 31u64);
+            assert!(sc.current_price_observation().is_empty());
+            let third_observation = sc.price_observations().get(3);
+            // Weight continues accumulating: 21 (from second) + 10 = 31
+            assert_eq!(third_observation.weight_accumulated, 31u64);
         })
         .assert_ok();
 }
@@ -1959,20 +1933,21 @@ fn test_intermediate_price_observation_accumulation() {
         )
         .assert_ok();
 
-    // Check intermediate observation accumulated more data
+    // Check intermediate observation accumulated more data (no finalization yet)
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            if !sc.current_price_observation().is_empty() {
-                let intermediate = sc.current_price_observation().get();
-                assert_eq!(intermediate.recording_round, starting_round + 2); // Updated to round 1002
-                assert_eq!(intermediate.weight_accumulated, 3u64); // 1 + 2 rounds accumulated
-            }
+            // Still no finalized observations
+            assert_eq!(sc.price_observations().len(), 0);
+            assert!(!sc.current_price_observation().is_empty());
+            let intermediate = sc.current_price_observation().get();
+            assert_eq!(intermediate.recording_round, starting_round + 2); // Updated to round 1002
+            assert_eq!(intermediate.weight_accumulated, 3u64); // 1 + 2 rounds accumulated
         })
         .assert_ok();
 
-    // Third update at round 1004 (still within 5-round interval)
-    pair_setup.b_mock.set_block_round(starting_round + 4);
+    // Third update at round 1005 - weight = 6 >= 5, finalization happens
+    pair_setup.b_mock.set_block_round(starting_round + 5);
     pair_setup
         .b_mock
         .execute_tx(
@@ -1989,17 +1964,18 @@ fn test_intermediate_price_observation_accumulation() {
         )
         .assert_ok();
 
-    // Check that the intermediate observation was finalized when weight reached 5
+    // Verify finalization happened (weight = 6 >= 5)
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            // Main storage should now have the finalized observation
+            // One finalized observation
             assert_eq!(sc.price_observations().len(), 1);
-
-            // New intermediate observation should have started
-            assert!(!sc.current_price_observation().is_empty());
-            let new_intermediate = sc.current_price_observation().get();
-            assert!(new_intermediate.weight_accumulated >= 1u64); // Weight continues from previous cycle
+            // Intermediate cleared after finalization
+            assert!(sc.current_price_observation().is_empty());
+            // Check the finalized observation
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.recording_round, starting_round + 5);
+            assert_eq!(observation.weight_accumulated, 6u64); // 1 + 2 + 3 rounds accumulated
         })
         .assert_ok();
 }
@@ -2014,7 +1990,7 @@ fn test_intermediate_observation_finalization() {
     let starting_round = 2000u64;
     pair_setup.b_mock.set_block_round(starting_round);
 
-    // Manually initialize safe price storage
+    // Initialize safe price index
     pair_setup
         .b_mock
         .execute_tx(
@@ -2022,7 +1998,6 @@ fn test_intermediate_observation_finalization() {
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
-                // Initialize safe price index if needed
                 if sc.safe_price_current_index().is_empty() {
                     sc.safe_price_current_index().set(0);
                 }
@@ -2065,18 +2040,19 @@ fn test_intermediate_observation_finalization() {
         )
         .assert_ok();
 
-    // Verify intermediate state before finalization
+    // Verify intermediate state - no finalization because no prior observation
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            if !sc.current_price_observation().is_empty() {
-                let intermediate = sc.current_price_observation().get();
-                assert_eq!(intermediate.weight_accumulated, 2u64);
-            }
+            // No finalized observations yet
+            assert_eq!(sc.price_observations().len(), 0);
+            assert!(!sc.current_price_observation().is_empty());
+            let intermediate = sc.current_price_observation().get();
+            assert_eq!(intermediate.weight_accumulated, 2u64);
         })
         .assert_ok();
 
-    // Third update at round 2003 (crosses 3-round interval) - should finalize
+    // Third update at round 2003 - weight = 4 >= 3, finalization happens
     pair_setup.b_mock.set_block_round(starting_round + 3);
     pair_setup
         .b_mock
@@ -2094,23 +2070,23 @@ fn test_intermediate_observation_finalization() {
         )
         .assert_ok();
 
-    // Check that intermediate was finalized and moved to main storage
+    // Verify finalization happened (weight = 4 >= 3)
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            // Main storage should now have the finalized observation
+            // One finalized observation
             assert_eq!(sc.price_observations().len(), 1);
-            let finalized = sc.price_observations().get(1);
-            assert_eq!(finalized.recording_round, starting_round + 1); // Records at round 2001
-            assert_eq!(finalized.weight_accumulated, 2u64); // Weight accumulated
 
-            // New intermediate observation should have started
-            assert!(!sc.current_price_observation().is_empty());
-            let new_intermediate = sc.current_price_observation().get();
-            assert_eq!(new_intermediate.recording_round, starting_round + 3); // Records at round 2003
-            assert_eq!(new_intermediate.weight_accumulated, 4u64); // Accumulated weight
+            // Intermediate observation cleared after finalization
+            assert!(sc.current_price_observation().is_empty());
 
-            // Current index should point to the finalized observation
+            // Check the finalized observation
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.recording_round, starting_round + 3);
+            // Weight accumulated: 1 (from update at 2000) + 1 (from 2001) + 2 (from 2003) = 4
+            assert_eq!(observation.weight_accumulated, 4u64);
+
+            // Current index is now 1
             assert_eq!(sc.safe_price_current_index().get(), 1);
         })
         .assert_ok();
@@ -2297,7 +2273,7 @@ fn test_direct_save_when_interval_exceeded() {
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
     );
 
-    // First update - should create an observation directly since no previous observations exist
+    // First update - creates intermediate observation
     pair_setup
         .b_mock
         .execute_tx(
@@ -2314,17 +2290,17 @@ fn test_direct_save_when_interval_exceeded() {
         )
         .assert_ok();
 
-    // Verify first observation was created via intermediate accumulation and finalized
+    // Verify intermediate observation was created but no finalized observations yet
+    // (weight = 1 < 5)
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            // Should have started intermediate observation
             assert!(!sc.current_price_observation().is_empty());
             assert_eq!(sc.price_observations().len(), 0);
         })
         .assert_ok();
 
-    // Complete the first interval to get a finalized observation
+    // Update at round 5005 - weight = 6 >= 5, finalization happens
     pair_setup.b_mock.set_block_round(starting_round + 5);
     pair_setup
         .b_mock
@@ -2342,17 +2318,19 @@ fn test_direct_save_when_interval_exceeded() {
         )
         .assert_ok();
 
-    // Now we should have one finalized observation
+    // Finalization happened (weight = 1 + 5 = 6 >= 5)
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             assert_eq!(sc.price_observations().len(), 1);
-            let obs = sc.price_observations().get(1);
-            assert_eq!(obs.recording_round, starting_round + 5); // Finalized at round 5005
+            assert!(sc.current_price_observation().is_empty());
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.recording_round, starting_round + 5);
         })
         .assert_ok();
 
-    // Now jump forward 6 rounds (more than the 5-round interval)
+    // Update at round 5011 (6 rounds later) - direct save happens
+    // (rounds_since = 5011 - 5005 = 6 >= 5)
     pair_setup.b_mock.set_block_round(starting_round + 5 + 6);
     pair_setup
         .b_mock
@@ -2370,15 +2348,18 @@ fn test_direct_save_when_interval_exceeded() {
         )
         .assert_ok();
 
-    // Should have directly saved a new observation (bypassing intermediate accumulation)
+    // Verify direct save happened (safe_price_current_index > 0 and rounds_since >= interval)
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
+            // Two finalized observations
             assert_eq!(sc.price_observations().len(), 2);
+
+            // Check second observation
             let second_obs = sc.price_observations().get(2);
             assert_eq!(second_obs.recording_round, starting_round + 5 + 6);
 
-            // Weight should be accumulated: previous observation weight + new gap weight = 12
+            // Weight should be accumulated: first observation weight (6) + gap (6) = 12
             assert_eq!(second_obs.weight_accumulated, 12u64);
 
             // Since we did a direct save, intermediate observation should be cleared

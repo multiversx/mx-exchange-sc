@@ -235,6 +235,12 @@ pub trait SafePriceModule:
         let current_intermediate = self.current_price_observation().get();
         let round_save_interval = self.get_safe_price_round_save_interval();
 
+        if last_observation_round == 0
+            && current_intermediate.weight_accumulated < round_save_interval
+        {
+            return;
+        }
+
         if current_intermediate.recording_round - last_observation_round < round_save_interval {
             return;
         }
