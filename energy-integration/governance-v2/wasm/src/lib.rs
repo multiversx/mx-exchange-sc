@@ -28,13 +28,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         changeMinFeeForProposal => change_min_fee_for_propose
         changeQuorumPercentage => change_quorum_percentage
         changeWithdrawPercentage => change_withdraw_percentage
-        changeVotingDelayInBlocks => change_voting_delay_in_blocks
-        changeVotingPeriodInBlocks => change_voting_period_in_blocks
+        changeVotingDelayInSeconds => change_voting_delay_in_seconds
+        changeVotingPeriodInSeconds => change_voting_period_in_seconds
         getMinEnergyForPropose => min_energy_for_propose
         getMinFeeForPropose => min_fee_for_propose
         getQuorum => quorum_percentage
-        getVotingDelayInBlocks => voting_delay_in_blocks
-        getVotingPeriodInBlocks => voting_period_in_blocks
+        getVotingDelayInSeconds => voting_delay_in_seconds
+        getVotingPeriodInSeconds => voting_period_in_seconds
         getFeeTokenId => fee_token_id
         getWithdrawPercentageDefeated => withdraw_percentage_defeated
         getProposals => proposals
