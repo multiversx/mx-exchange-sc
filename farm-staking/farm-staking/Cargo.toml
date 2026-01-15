@@ -87,14 +87,14 @@ path = "../../common/common_errors"
 path = "../../dex/permissions-hub"
 
 [dependencies.multiversx-sc]
-version = "=0.63.0"
+version = "=0.64.1"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.63.0"
+version = "=0.64.1"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.63.0"
+version = "=0.64.1"
