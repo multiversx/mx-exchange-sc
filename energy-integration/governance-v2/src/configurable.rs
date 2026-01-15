@@ -11,13 +11,12 @@ multiversx_sc::imports!();
 ///
 /// Voting is done through energy.
 ///
-/// The module provides the following configurable parameters:  
+/// The module provides the following configurable parameters:
 /// - `minEnergyForPropose` - the minimum energy required for submitting a proposal
-/// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
-/// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have  
-/// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
-/// - `votingPeriodInBlocks` - Number of blocks the voting period lasts (voting delay does not count towards this)  
-/// - `lockTimeAfterVotingEndsInBlocks` - Number of blocks to wait before a successful proposal can be executed  
+/// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period
+/// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have
+/// - `votingDelayInSeconds` - Number of seconds to wait after a proposal is created before being able to vote/downvote that proposal
+/// - `votingPeriodInSeconds` - Number of seconds the voting period lasts (voting delay does not count towards this)
 ///
 /// The module also provides events for most actions that happen:
 /// - `proposalCreated` - triggers when a proposal is created. Also provoides all the relevant information, like proposer, actions etc.  
@@ -28,10 +27,10 @@ multiversx_sc::imports!();
 ///
 /// Please note that although the main contract can modify the module's storage directly, it is not recommended to do so,
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
-const MIN_VOTING_DELAY: u64 = 1;
-const MAX_VOTING_DELAY: u64 = 100_800; // 1 Week
-const MIN_VOTING_PERIOD: u64 = 14_400; // 24 Hours
-const MAX_VOTING_PERIOD: u64 = 201_600; // 2 Weeks
+const MIN_VOTING_DELAY: DurationSeconds = DurationSeconds::new(1);
+const MAX_VOTING_DELAY: DurationSeconds = DurationSeconds::new(100_800);
+const MIN_VOTING_PERIOD: DurationSeconds = DurationSeconds::new(14_400);
+const MAX_VOTING_PERIOD: DurationSeconds = DurationSeconds::new(201_600);
 const MIN_QUORUM: u64 = 1_000; // 10%
 const MAX_QUORUM: u64 = 6_000; // 60%
 const MIN_MIN_FEE_FOR_PROPOSE: u64 = 2_000_000;
@@ -72,15 +71,15 @@ pub trait ConfigurablePropertiesModule:
     }
 
     #[only_owner]
-    #[endpoint(changeVotingDelayInBlocks)]
-    fn change_voting_delay_in_blocks(&self, new_value: u64) {
-        self.try_change_voting_delay_in_blocks(new_value);
+    #[endpoint(changeVotingDelayInSeconds)]
+    fn change_voting_delay_in_seconds(&self, new_value: DurationSeconds) {
+        self.try_change_voting_delay_in_seconds(&new_value);
     }
 
     #[only_owner]
-    #[endpoint(changeVotingPeriodInBlocks)]
-    fn change_voting_period_in_blocks(&self, new_value: u64) {
-        self.try_change_voting_period_in_blocks(new_value);
+    #[endpoint(changeVotingPeriodInSeconds)]
+    fn change_voting_period_in_seconds(&self, new_value: DurationSeconds) {
+        self.try_change_voting_period_in_seconds(&new_value);
     }
 
     fn try_change_min_energy_for_propose(&self, new_value: BigUint) {
@@ -109,22 +108,22 @@ pub trait ConfigurablePropertiesModule:
         self.quorum_percentage().set(new_quorum_percentage);
     }
 
-    fn try_change_voting_delay_in_blocks(&self, new_voting_delay: u64) {
+    fn try_change_voting_delay_in_seconds(&self, new_voting_delay: &DurationSeconds) {
         require!(
-            (MIN_VOTING_DELAY..MAX_VOTING_DELAY).contains(&new_voting_delay),
+            (MIN_VOTING_DELAY..MAX_VOTING_DELAY).contains(new_voting_delay),
             "Not valid value for voting delay!"
         );
 
-        self.voting_delay_in_blocks().set(new_voting_delay);
+        self.voting_delay_in_seconds().set(new_voting_delay);
     }
 
-    fn try_change_voting_period_in_blocks(&self, new_voting_period: u64) {
+    fn try_change_voting_period_in_seconds(&self, new_voting_period: &DurationSeconds) {
         require!(
-            (MIN_VOTING_PERIOD..MAX_VOTING_PERIOD).contains(&new_voting_period),
+            (MIN_VOTING_PERIOD..MAX_VOTING_PERIOD).contains(new_voting_period),
             "Not valid value for voting period!"
         );
 
-        self.voting_period_in_blocks().set(new_voting_period);
+        self.voting_period_in_seconds().set(new_voting_period);
     }
 
     fn try_change_withdraw_percentage_defeated(&self, new_withdraw_percentage: u64) {
@@ -158,13 +157,13 @@ pub trait ConfigurablePropertiesModule:
     #[storage_mapper("quorumPercentage")]
     fn quorum_percentage(&self) -> SingleValueMapper<u64>;
 
-    #[view(getVotingDelayInBlocks)]
-    #[storage_mapper("votingDelayInBlocks")]
-    fn voting_delay_in_blocks(&self) -> SingleValueMapper<u64>;
+    #[view(getVotingDelayInSeconds)]
+    #[storage_mapper("votingDelayInSeconds")]
+    fn voting_delay_in_seconds(&self) -> SingleValueMapper<DurationSeconds>;
 
-    #[view(getVotingPeriodInBlocks)]
-    #[storage_mapper("votingPeriodInBlocks")]
-    fn voting_period_in_blocks(&self) -> SingleValueMapper<u64>;
+    #[view(getVotingPeriodInSeconds)]
+    #[storage_mapper("votingPeriodInSeconds")]
+    fn voting_period_in_seconds(&self) -> SingleValueMapper<DurationSeconds>;
 
     #[view(getFeeTokenId)]
     #[storage_mapper("feeTokenId")]

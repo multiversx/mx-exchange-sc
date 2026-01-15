@@ -63,11 +63,11 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub description: ManagedBuffer<M>,
     pub fee_payment: EsdtTokenPayment<M>,
     pub minimum_quorum: u64,
-    pub voting_delay_in_blocks: u64,
-    pub voting_period_in_blocks: u64,
+    pub voting_delay_in_seconds: DurationSeconds,
+    pub voting_period_in_seconds: DurationSeconds,
     pub withdraw_percentage_defeated: u64,
     pub total_quorum: BigUint<M>,
-    pub proposal_start_block: u64,
+    pub proposal_start_timestamp: TimestampSeconds,
     pub fee_withdrawn: bool,
 }
 
@@ -97,16 +97,16 @@ impl<M: ManagedTypeApi> GovernanceProposal<M> {
             actions: ArrayVec::default(),
             description: ManagedBuffer::default(),
             fee_payment: EsdtTokenPayment {
-                token_identifier: TokenIdentifier::from(""),
+                token_identifier: TokenIdentifier::from("EGLD-123456"),
                 token_nonce: 0,
                 amount: BigUint::zero(),
             },
             minimum_quorum: 0,
-            voting_delay_in_blocks: 0,
-            voting_period_in_blocks: 0,
+            voting_delay_in_seconds: DurationSeconds::zero(),
+            voting_period_in_seconds: DurationSeconds::zero(),
             withdraw_percentage_defeated: 0,
             total_quorum: BigUint::default(),
-            proposal_start_block: 0,
+            proposal_start_timestamp: TimestampSeconds::zero(),
             fee_withdrawn: false,
         }
     }
