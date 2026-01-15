@@ -83,7 +83,7 @@ pub trait FarmBoostedYieldsModule:
 
         let mut total = BigUint::zero();
         for rew in &rewards {
-            total += rew.amount.clone();
+            total += &rew.amount;
         }
 
         total

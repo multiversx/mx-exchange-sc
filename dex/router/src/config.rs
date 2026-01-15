@@ -50,7 +50,7 @@ pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
 
     #[only_owner]
     #[endpoint(setTemporaryOwnerPeriod)]
-    fn set_temporary_owner_period(&self, period_seconds: u64) {
+    fn set_temporary_owner_period(&self, period_seconds: DurationSeconds) {
         self.temporary_owner_period().set(period_seconds);
     }
 
@@ -69,10 +69,11 @@ pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
 
     #[view(getTemporaryOwnerPeriod)]
     #[storage_mapper("temporary_owner_period")]
-    fn temporary_owner_period(&self) -> SingleValueMapper<u64>;
+    fn temporary_owner_period(&self) -> SingleValueMapper<DurationSeconds>;
 
     #[storage_mapper("pair_temporary_owner")]
-    fn pair_temporary_owner(&self) -> MapMapper<ManagedAddress, (ManagedAddress, u64)>;
+    fn pair_temporary_owner(&self)
+        -> MapMapper<ManagedAddress, (ManagedAddress, TimestampSeconds)>;
 
     #[storage_mapper("enableSwapByUserConfig")]
     fn enable_swap_by_user_config(

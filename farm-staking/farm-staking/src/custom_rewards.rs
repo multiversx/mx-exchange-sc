@@ -8,7 +8,7 @@ use farm_base_impl::base_traits_impl::FarmContract;
 use crate::base_impl_wrapper::FarmStakingWrapper;
 
 pub const MAX_PERCENT: u64 = 10_000;
-pub const SECONDS_IN_YEAR: u64 = 31_536_000;
+pub const SECONDS_IN_YEAR: DurationSeconds = DurationSeconds::new(31_536_000);
 pub const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 pub const WITHDRAW_AMOUNT_TOO_HIGH: &str =
     "Withdraw amount is higher than the remaining uncollected rewards!";
@@ -123,7 +123,7 @@ pub trait CustomRewardsModule:
 
     fn get_amount_apr_bounded(&self, amount: &BigUint, division_safety: &BigUint) -> BigUint {
         let max_apr = self.max_annual_percentage_rewards().get();
-        division_safety * amount * &max_apr / MAX_PERCENT / SECONDS_IN_YEAR
+        division_safety * amount * &max_apr / MAX_PERCENT / SECONDS_IN_YEAR.as_u64_seconds()
     }
 
     #[endpoint(startProduceRewards)]

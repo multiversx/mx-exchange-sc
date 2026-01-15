@@ -47,7 +47,7 @@ where
 
         ClaimRewardsContext {
             first_farm_token: PaymentAttributesPair {
-                payment: first_payment.clone(),
+                payment: first_payment,
                 attributes: first_token_attributes,
             },
             additional_payments: payments,

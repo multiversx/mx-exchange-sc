@@ -17,6 +17,7 @@ use crate::proxy_common::WrappedLpTokenAttributes;
 use super::events;
 use super::proxy_common;
 
+#[allow(dead_code)]
 #[derive(ManagedVecItem, Clone)]
 pub struct WrappedLpToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,

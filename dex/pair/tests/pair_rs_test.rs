@@ -1387,7 +1387,7 @@ fn add_liquidity_through_simple_lock_proxy() {
     pair_setup.b_mock.set_block_epoch(5);
 
     // add liquidity through simple-lock SC - one locked (WEGLD) token, one unlocked (MEX)
-    let transfers = vec![
+    let transfers = [
         TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,

@@ -119,11 +119,7 @@ pub trait FeesAccumulationModule:
     }
 
     fn get_week_range(&self, current_week: Week) -> WeekRange {
-        let start_week = if current_week >= USER_MAX_CLAIM_WEEKS {
-            current_week - USER_MAX_CLAIM_WEEKS
-        } else {
-            0
-        };
+        let start_week = current_week.saturating_sub(USER_MAX_CLAIM_WEEKS);
         WeekRange {
             start_week,
             end_week: current_week,

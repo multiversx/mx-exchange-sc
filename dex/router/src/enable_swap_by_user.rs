@@ -122,11 +122,9 @@ pub trait EnableSwapByUserModule:
         );
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let locked_epochs = if current_epoch < locked_token_attributes.unlock_epoch {
-            locked_token_attributes.unlock_epoch - current_epoch
-        } else {
-            0
-        };
+        let locked_epochs = locked_token_attributes
+            .unlock_epoch
+            .saturating_sub(current_epoch);
         require!(
             locked_epochs >= config.min_lock_period_epochs,
             "Token not locked for long enough"

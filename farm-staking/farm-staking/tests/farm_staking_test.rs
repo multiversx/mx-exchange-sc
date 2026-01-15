@@ -74,7 +74,7 @@ fn test_unstake_farm() {
     let expected_rewards_unbounded = timestamp_diff * PER_SECOND_REWARD_AMOUNT;
 
     let expected_rewards_max_apr =
-        timestamp_diff * farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR;
+        timestamp_diff * farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR.as_u64_seconds();
     let expected_rewards = core::cmp::min(expected_rewards_unbounded, expected_rewards_max_apr);
     assert_eq!(expected_rewards, 7);
 
@@ -183,10 +183,8 @@ where
     let first_reward_share = 0;
     let second_reward_share = 70_000;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
-        + second_reward_share * second_farm_in_amount
-        + total_amount
-        - 1)
-        / total_amount;
+        + second_reward_share * second_farm_in_amount)
+        .div_ceil(total_amount);
 
     farm_setup.stake_farm(
         &user_address,
@@ -280,7 +278,7 @@ fn test_unbond() {
     let expected_rewards_unbounded = timestamp_diff * PER_SECOND_REWARD_AMOUNT;
 
     let expected_rewards_max_apr =
-        timestamp_diff * farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR;
+        timestamp_diff * farm_in_amount * MAX_APR / MAX_PERCENT / SECONDS_IN_YEAR.as_u64_seconds();
     let expected_rewards = core::cmp::min(expected_rewards_unbounded, expected_rewards_max_apr);
     assert_eq!(expected_rewards, 7);
 

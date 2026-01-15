@@ -80,7 +80,7 @@ pub trait UnstakeFarmModule:
         let migrated_amount = self.migrate_old_farm_positions(&original_caller);
 
         let exit_result =
-            self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment);
+            self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), &payment);
 
         self.decrease_old_farm_positions(migrated_amount, &original_caller);
 

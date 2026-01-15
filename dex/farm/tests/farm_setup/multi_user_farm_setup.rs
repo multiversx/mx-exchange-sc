@@ -10,9 +10,7 @@ use farm_boosted_yields::undistributed_rewards::UndistributedRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::imports::{SingleValueMapper, StorageMapper};
 use multiversx_sc::types::BigUint;
-use multiversx_sc::{
-    types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
-};
+use multiversx_sc::types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded};
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
@@ -286,7 +284,7 @@ where
                 &self.energy_factory_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                    sc.user_energy(&managed_address!(user)).set(Energy::new(
                         BigInt::from(managed_biguint!(energy)),
                         last_update_epoch,
                         managed_biguint!(locked_tokens),
