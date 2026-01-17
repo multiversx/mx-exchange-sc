@@ -10,6 +10,7 @@ name = "safe-price-view"
 external-view = true
 add-unlabelled = false
 add-labels = ["safe-price-view"]
+add-endpoints = ["upgrade"]
 
 [contracts.full]
 name = "pair-full"

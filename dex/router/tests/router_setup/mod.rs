@@ -77,7 +77,7 @@ where
             .execute_tx(&owner_addr, &mex_pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(MEX_TOKEN_ID);
-                let router_address = managed_address!(&owner_addr);
+                let router_address = managed_address!(router_wrapper.address_ref());
                 let router_owner_address = managed_address!(&owner_addr);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
@@ -104,7 +104,7 @@ where
             .execute_tx(&owner_addr, &usdc_pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(USDC_TOKEN_ID);
-                let router_address = managed_address!(&owner_addr);
+                let router_address = managed_address!(router_wrapper.address_ref());
                 let router_owner_address = managed_address!(&owner_addr);
                 let total_fee_percent = 300u64;
                 let special_fee_percent = 50u64;
@@ -145,6 +145,11 @@ where
                     },
                     managed_address!(usdc_pair_wrapper.address_ref()),
                 );
+
+                let safe_price_round_save_interval = 1u64;
+                let default_safe_price_rounds_offset = 600u64;
+                sc.set_safe_price_round_save_interval(safe_price_round_save_interval);
+                sc.set_default_safe_price_rounds_offset(default_safe_price_rounds_offset);
             })
             .assert_ok();
 
