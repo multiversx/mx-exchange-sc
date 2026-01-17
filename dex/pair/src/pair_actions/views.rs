@@ -12,6 +12,7 @@ pub trait ViewsModule:
     + crate::safe_price::SafePriceModule
     + crate::fee::FeeModule
     + crate::config::ConfigModule
+    + crate::read_pair_storage::ReadPairStorageModule
     + token_send::TokenSendModule
     + permissions_module::PermissionsModule
     + pausable::PausableModule

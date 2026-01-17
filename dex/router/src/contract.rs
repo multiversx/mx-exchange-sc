@@ -16,6 +16,8 @@ use pair::fee::ProxyTrait as _;
 use pair::{read_pair_storage, ProxyTrait as _};
 use pausable::ProxyTrait as _;
 
+use pair::safe_price::Round;
+
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
@@ -40,11 +42,21 @@ pub trait Router:
         self.pair_creation_enabled().set_if_empty(false);
 
         self.init_factory(pair_template_address_opt.into_option());
-        self.owner().set(&self.blockchain().get_caller());
+        self.owner().set(self.blockchain().get_caller());
     }
 
     #[upgrade]
     fn upgrade(&self) {
+        let safe_price_round_save_interval = 1u64;
+        self.safe_price_round_save_interval()
+            .set_if_empty(safe_price_round_save_interval);
+
+        let blocks_per_minute = 10;
+        let minutes_per_hour = 60;
+        let default_safe_price_rounds_offset = blocks_per_minute * minutes_per_hour;
+        self.default_safe_price_rounds_offset()
+            .set_if_empty(default_safe_price_rounds_offset);
+
         self.state().set(false);
     }
 
@@ -336,6 +348,25 @@ pub trait Router:
     }
 
     #[only_owner]
+    #[endpoint(setSafePriceRoundSaveInterval)]
+    fn set_safe_price_round_save_interval(&self, new_interval: Round) {
+        require!(
+            new_interval > 0,
+            "Round save interval must be greater than 0"
+        );
+        self.safe_price_round_save_interval().set(new_interval);
+    }
+
+    #[only_owner]
+    #[endpoint(setDefaultSafePriceRoundsOffset)]
+    fn set_default_safe_price_rounds_offset(&self, new_offset: u64) {
+        require!(
+            new_offset > 0,
+            "Default safe price rounds offset must be greater than 0"
+        );
+        self.default_safe_price_rounds_offset().set(new_offset);
+    }
+
     #[endpoint(claimDeveloperRewardsPairs)]
     fn claim_developer_rewards_pairs(&self, pairs: MultiValueEncoded<ManagedAddress>) {
         let sc_address = self.blockchain().get_sc_address();

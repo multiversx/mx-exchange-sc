@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           54
+// Endpoints:                           55
 // Async Callback (empty):               1
-// Total number of exported functions:  57
+// Total number of exported functions:  58
 
 #![no_std]
 
@@ -45,6 +45,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         getInitialLiquidtyAdder => initial_liquidity_adder
         getReserve => pair_reserve
         getSafePriceCurrentIndex => safe_price_current_index
+        getCurrentPriceObservation => current_price_observation
         updateAndGetTokensForGivenPositionWithSafePrice => update_and_get_tokens_for_given_position_with_safe_price
         updateAndGetSafePrice => update_and_get_safe_price
         setLockingDeadlineEpoch => set_locking_deadline_epoch

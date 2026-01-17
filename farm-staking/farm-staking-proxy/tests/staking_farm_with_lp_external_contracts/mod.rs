@@ -14,11 +14,13 @@ use multiversx_sc_scenario::{
 };
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::remove_liq::RemoveLiquidityModule;
+use router::config::ConfigModule;
+use router::Router;
 use simple_lock::locked_token::LockedTokenModule;
 
 use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
-use pair::safe_price_view::{SafePriceViewModule, DEFAULT_SAFE_PRICE_ROUNDS_OFFSET};
+use pair::safe_price_view::SafePriceViewModule;
 use pair::*;
 use pair_config::ConfigModule as _;
 use pausable::{PausableModule, State};
@@ -31,24 +33,34 @@ use farm_with_locked_rewards::*;
 
 use crate::constants::*;
 
-pub fn setup_pair<PairObjBuilder>(
+pub const SAFE_PRICE_ROUND_SAVE_INTERVAL: u64 = 1;
+pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
+
+pub fn setup_pair<PairObjBuilder, RouterObjBuilder>(
     owner_addr: &Address,
     user_addr: &Address,
     b_mock: &mut BlockchainStateWrapper,
     pair_builder: PairObjBuilder,
-) -> ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>
+    router_builder: RouterObjBuilder,
+) -> (
+    ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    ContractObjWrapper<router::ContractObj<DebugApi>, RouterObjBuilder>,
+)
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let pair_wrapper =
         b_mock.create_sc_account(&rust_zero, Some(owner_addr), pair_builder, PAIR_WASM_PATH);
+    let router_wrapper =
+        b_mock.create_sc_account(&rust_zero, Some(owner_addr), router_builder, "router_path");
 
     b_mock
         .execute_tx(owner_addr, &pair_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
             let second_token_id = managed_token_id!(RIDE_TOKEN_ID);
-            let router_address = managed_address!(owner_addr);
+            let router_address = managed_address!(router_wrapper.address_ref());
             let router_owner_address = managed_address!(owner_addr);
             let total_fee_percent = 300u64;
             let special_fee_percent = 50u64;
@@ -68,6 +80,16 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(pausable::State::Active);
+        })
+        .assert_ok();
+
+    b_mock
+        .execute_tx(owner_addr, &router_wrapper, &rust_zero, |sc| {
+            sc.init(OptionalValue::None);
+            sc.safe_price_round_save_interval()
+                .set(SAFE_PRICE_ROUND_SAVE_INTERVAL);
+            sc.default_safe_price_rounds_offset()
+                .set(DEFAULT_SAFE_PRICE_ROUNDS_OFFSET);
         })
         .assert_ok();
 
@@ -162,7 +184,7 @@ where
 
     b_mock.set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP);
 
-    pair_wrapper
+    (pair_wrapper, router_wrapper)
 }
 
 #[allow(clippy::too_many_arguments)]
