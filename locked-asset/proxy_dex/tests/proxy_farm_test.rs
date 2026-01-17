@@ -111,7 +111,7 @@ fn farm_proxy_actions_test() {
     );
 
     setup.b_mock.set_block_epoch(50);
-    setup.b_mock.set_block_nonce(100);
+    setup.b_mock.set_block_timestamp(100);
 
     //////////////////////////////////////////// CLAIM REWARDS /////////////////////////////////////
 
@@ -135,7 +135,7 @@ fn farm_proxy_actions_test() {
         &first_user,
         LOCKED_TOKEN_ID,
         3,
-        &(rust_biguint!(PER_BLOCK_REWARD_AMOUNT) * 100u32 / 2u32),
+        &(rust_biguint!(PER_SECOND_REWARD_AMOUNT) * 100u32 / 2u32),
         None,
     );
     setup.b_mock.check_nft_balance::<Empty>(
@@ -438,7 +438,7 @@ fn farm_with_wrapped_lp_test() {
 
     current_epoch += 1; // applies penalty on exit
     setup.b_mock.set_block_epoch(current_epoch);
-    setup.b_mock.set_block_nonce(100);
+    setup.b_mock.set_block_timestamp(100);
 
     ////////////////////////////////////////////// EXIT FARM /////////////////////////////////////
     // exit with partial amount
@@ -617,7 +617,7 @@ fn farm_proxy_claim_energy_test() {
         &rust_biguint!(USER_BALANCE),
     );
 
-    setup.b_mock.set_block_nonce(100);
+    setup.b_mock.set_block_timestamp(100);
 
     //////////////////////////////////////////// CLAIM REWARDS /////////////////////////////////////
 
@@ -641,11 +641,11 @@ fn farm_proxy_claim_energy_test() {
         &first_user,
         LOCKED_TOKEN_ID,
         1,
-        &(rust_biguint!(PER_BLOCK_REWARD_AMOUNT) * 100u32),
+        &(rust_biguint!(PER_SECOND_REWARD_AMOUNT) * 100u32),
         None,
     );
 
-    let new_user_balance = USER_BALANCE + rust_biguint!(PER_BLOCK_REWARD_AMOUNT) * 100u32;
+    let new_user_balance = USER_BALANCE + rust_biguint!(PER_SECOND_REWARD_AMOUNT) * 100u32;
     let expected_energy = rust_biguint!(LOCK_OPTIONS[0] - current_epoch) * new_user_balance;
     setup
         .b_mock
@@ -758,7 +758,7 @@ fn farm_proxy_partial_exit_test() {
 
     current_epoch += 3; // does not apply penalty on exit
     setup.b_mock.set_block_epoch(current_epoch);
-    setup.b_mock.set_block_nonce(100);
+    setup.b_mock.set_block_timestamp(100);
 
     //////////////////////////////////////////// PARTIAL EXIT /////////////////////////////////////
 
@@ -783,11 +783,11 @@ fn farm_proxy_partial_exit_test() {
         &first_user,
         LOCKED_TOKEN_ID,
         1,
-        &(rust_biguint!(PER_BLOCK_REWARD_AMOUNT * 100 / 2 + USER_BALANCE / 2)),
+        &(rust_biguint!(PER_SECOND_REWARD_AMOUNT * 100 / 2 + USER_BALANCE / 2)),
         None,
     );
 
-    let new_user_balance = USER_BALANCE + rust_biguint!(PER_BLOCK_REWARD_AMOUNT) * 100u32 / 2u32;
+    let new_user_balance = USER_BALANCE + rust_biguint!(PER_SECOND_REWARD_AMOUNT) * 100u32 / 2u32;
     let expected_energy = rust_biguint!(LOCK_OPTIONS[0] - current_epoch) * new_user_balance;
     setup
         .b_mock
@@ -937,7 +937,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
 
     current_epoch += 1; // applies penalty on exit
     setup.b_mock.set_block_epoch(current_epoch);
-    setup.b_mock.set_block_nonce(100);
+    setup.b_mock.set_block_timestamp(100);
 
     //////////////////////////////////////////// PARTIAL EXIT /////////////////////////////////////
 
@@ -958,7 +958,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
 
     // check user balance - base rewards for partial position (50%) + (remaining balance (50%) - applied penalty for early exit (1%))
     // rewards for the full position only applies for the boosted rewards
-    let tokens_received_at_exit = rust_biguint!(PER_BLOCK_REWARD_AMOUNT * 100 / 2)
+    let tokens_received_at_exit = rust_biguint!(PER_SECOND_REWARD_AMOUNT * 100 / 2)
         + rust_biguint!(USER_BALANCE / 2)
         - rust_biguint!(USER_BALANCE / 2) * DEFAULT_PENALTY_PERCENT / MAX_PERCENT;
 

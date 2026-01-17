@@ -50,8 +50,8 @@ pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
 
     #[only_owner]
     #[endpoint(setTemporaryOwnerPeriod)]
-    fn set_temporary_owner_period(&self, period_blocks: u64) {
-        self.temporary_owner_period().set(period_blocks);
+    fn set_temporary_owner_period(&self, period_seconds: u64) {
+        self.temporary_owner_period().set(period_seconds);
     }
 
     #[only_owner]

@@ -11,7 +11,7 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:farm_contract",
-                "function": "setPerBlockRewardAmount",
+                "function": "setPerSecondRewardAmount",
                 "arguments": [
                     "5000"
                 ],
@@ -46,7 +46,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "50",
+                "blockTimestamp": "50",
                 "blockEpoch": "50"
             }
         },

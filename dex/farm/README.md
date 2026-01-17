@@ -55,7 +55,7 @@ This endpoint will give back to the caller a Farm position as a result. The Farm
 
 This endpoint receives one payment, and that is the Farm Position. Based on an internal counter that the contract keeps track of, which is the __rps__ - meaning reward per share, the contract can calculate the reward that it needs to return to the caller for those specific tokens that he has sent. The output will consist of two payments: the LP tokens initially added and the accumulated rewards.
 
-This contract simulates per-block-reward-generation by keeping track of the last block that generated mex and keeps updating on every endpoint execution. Everytime an execution happens, the contract will generate the rewards for previous blocks. This is the case for the first successful TX inside a block, so only once per block this check has to be made and the action to be taken.
+This contract simulates timestamp-based reward generation by keeping track of the last timestamp that generated rewards and keeps updating on every endpoint execution. Everytime an execution happens, the contract will generate the rewards for the previous time period. This is the case for the first successful transaction within a timestamp interval, so only once per interval this check has to be made and the action to be taken.
 
 If a user decides to exit too early, they will receive a penalty. This contract will take a part of its input LP tokens and will used them to buyback-and-burn MEX. This is done via a smart contract call to the configured pair contract address, via __removeLiquidityAndBuybackAndBurnToken__ endpoint.
 

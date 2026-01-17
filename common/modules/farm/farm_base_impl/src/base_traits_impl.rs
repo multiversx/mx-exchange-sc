@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
+use common_structs::{FarmToken, FarmTokenAttributes, Timestamp};
 use config::ConfigModule;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
@@ -54,35 +54,35 @@ pub trait FarmContract {
         sc.send().esdt_local_mint(token_id, 0, amount);
     }
 
-    fn calculate_per_block_rewards(
+    fn calculate_per_second_rewards(
         sc: &Self::FarmSc,
-        current_block_nonce: Nonce,
-        last_reward_block_nonce: Nonce,
+        current_timestamp: Timestamp,
+        last_reward_timestamp: Timestamp,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        if current_block_nonce <= last_reward_block_nonce || !sc.produces_per_block_rewards() {
+        if current_timestamp <= last_reward_timestamp || !sc.produces_per_second_rewards() {
             return BigUint::zero();
         }
 
-        let per_block_reward = sc.per_block_reward_amount().get();
-        let block_nonce_diff = current_block_nonce - last_reward_block_nonce;
+        let per_second_reward = sc.per_second_reward_amount().get();
+        let timestamp_diff = current_timestamp - last_reward_timestamp;
 
-        per_block_reward * block_nonce_diff
+        per_second_reward * timestamp_diff
     }
 
-    fn mint_per_block_rewards(
+    fn mint_per_second_rewards(
         sc: &Self::FarmSc,
         token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        let current_block_nonce = sc.blockchain().get_block_nonce();
-        let last_reward_nonce = sc.last_reward_block_nonce().get();
-        if current_block_nonce > last_reward_nonce {
+        let current_timestamp = sc.blockchain().get_block_timestamp();
+        let last_reward_timestamp = sc.last_reward_timestamp().get();
+        if current_timestamp > last_reward_timestamp {
             let to_mint =
-                Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
+                Self::calculate_per_second_rewards(sc, current_timestamp, last_reward_timestamp);
             if to_mint != 0 {
                 Self::mint_rewards(sc, token_id, &to_mint);
             }
 
-            sc.last_reward_block_nonce().set(current_block_nonce);
+            sc.last_reward_timestamp().set(current_timestamp);
 
             to_mint
         } else {
@@ -94,7 +94,7 @@ pub trait FarmContract {
         sc: &Self::FarmSc,
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
-        let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
+        let total_reward = Self::mint_per_second_rewards(sc, &storage_cache.reward_token_id);
         if total_reward > 0u64 {
             storage_cache.reward_reserve += &total_reward;
 

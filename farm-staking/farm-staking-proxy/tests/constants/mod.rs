@@ -9,9 +9,9 @@ pub const USER_TOTAL_WEGLD_TOKENS: u64 = 2_000_000_000;
 pub const USER_TOTAL_RIDE_TOKENS: u64 = 2_000_000_000;
 pub const USER_TOTAL_LP_TOKENS: u64 = 1_001_000_000;
 
-pub const BLOCK_NONCE_FIRST_ADD_LIQ: u64 = 5;
-pub const BLOCK_NONCE_SECOND_ADD_LIQ: u64 = 6;
-pub const BLOCK_NONCE_AFTER_PAIR_SETUP: u64 = 100;
+pub const TIMESTAMP_FIRST_ADD_LIQ: u64 = 5;
+pub const TIMESTAMP_SECOND_ADD_LIQ: u64 = 6;
+pub const TIMESTAMP_AFTER_PAIR_SETUP: u64 = 100;
 
 pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
 
@@ -22,7 +22,7 @@ pub static LP_FARM_TOKEN_ID: &[u8] = b"LPFARM-abcdef";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 pub const MIN_FARMING_EPOCHS: u64 = 2;
 pub const PENALTY_PERCENT: u64 = 10;
-pub const LP_FARM_PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
+pub const LP_FARM_PER_SECOND_REWARD_AMOUNT: u64 = 5_000;
 
 // Staking farm constants
 
@@ -32,7 +32,7 @@ pub static STAKING_TOKEN_ID: &[u8] = RIDE_TOKEN_ID;
 pub static STAKING_FARM_TOKEN_ID: &[u8] = b"STKFARM-abcdef";
 pub const MAX_APR: u64 = 5_000; // 50%
 pub const UNBOND_EPOCHS: u64 = 10;
-pub const STAKING_FARM_PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
+pub const STAKING_FARM_PER_SECOND_REWARD_AMOUNT: u64 = 1_000;
 pub const REWARD_CAPACITY: u64 = 1_000_000_000_000;
 pub const USER_REWARDS_BASE_CONST: u64 = 10;
 pub const USER_REWARDS_ENERGY_CONST: u64 = 3;

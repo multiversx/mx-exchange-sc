@@ -4,7 +4,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "0"
+                "blockTimestamp": "0"
             }
         },
         {
@@ -62,7 +62,7 @@
                         "str:minimum_farming_epochs": "2",
                         "str:penalty_percent": "0",
                         "str:division_safety_constant": "1000000000000",
-                        "str:per_block_reward_amount": "100",
+                        "str:per_second_reward_amount": "100",
                         "str:produce_rewards_enabled": "1"
                     },
                     "code": "file:../farm/output/farm.wasm",
@@ -73,7 +73,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "3"
+                "blockTimestamp": "3"
             }
         },
         {
@@ -151,7 +151,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "6"
+                "blockTimestamp": "6"
             }
         },
         {
@@ -193,7 +193,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "10"
+                "blockTimestamp": "10"
             }
         },
         {
@@ -236,7 +236,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "13"
+                "blockTimestamp": "13"
             }
         },
         {
@@ -279,7 +279,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "16"
+                "blockTimestamp": "16"
             }
         },
         {

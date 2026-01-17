@@ -36,9 +36,9 @@ fn test_exit_farm() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 
     farm_setup.set_block_epoch(5);
-    farm_setup.set_block_nonce(10);
+    farm_setup.set_block_timestamp(10);
 
-    let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
+    let expected_mex_out = 10 * PER_SECOND_REWARD_AMOUNT;
     let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS);
     farm_setup.exit_farm(
         farm_in_amount,
@@ -61,11 +61,11 @@ fn test_exit_farm_with_penalty() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 
     farm_setup.set_block_epoch(1);
-    farm_setup.set_block_nonce(10);
+    farm_setup.set_block_timestamp(10);
 
     let expected_farm_token_amount =
         farm_in_amount - farm_in_amount * PENALTY_PERCENT / MAX_PERCENT;
-    let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
+    let expected_mex_out = 10 * PER_SECOND_REWARD_AMOUNT;
     let expected_lp_token_balance =
         rust_biguint!(USER_TOTAL_LP_TOKENS - farm_in_amount * PENALTY_PERCENT / MAX_PERCENT);
     farm_setup.exit_farm(
@@ -89,9 +89,9 @@ fn test_claim_rewards() {
     farm_setup.check_farm_token_supply(farm_in_amount);
 
     farm_setup.set_block_epoch(5);
-    farm_setup.set_block_nonce(10);
+    farm_setup.set_block_timestamp(10);
 
-    let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
+    let expected_mex_out = 10 * PER_SECOND_REWARD_AMOUNT;
     let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS - farm_in_amount);
     let expected_reward_per_share = 500_000_000;
     farm_setup.claim_rewards(
@@ -122,7 +122,7 @@ where
     farm_setup.check_farm_token_supply(farm_in_amount);
 
     farm_setup.set_block_epoch(5);
-    farm_setup.set_block_nonce(10);
+    farm_setup.set_block_timestamp(10);
 
     let second_farm_in_amount = 200_000_000;
     let prev_farm_tokens = [TxTokenTransfer {
@@ -135,7 +135,7 @@ where
     let total_amount = farm_in_amount + second_farm_in_amount;
     let first_reward_share = 0;
     let second_reward_share =
-        DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+        DIVISION_SAFETY_CONSTANT * 10 * PER_SECOND_REWARD_AMOUNT / current_farm_supply;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
         + second_reward_share * second_farm_in_amount
         + total_amount
@@ -169,20 +169,20 @@ fn test_exit_farm_after_enter_twice() {
     let expected_user_lp_balance = rust_biguint!(USER_TOTAL_LP_TOKENS);
 
     farm_setup.set_block_epoch(8);
-    farm_setup.set_block_nonce(25);
+    farm_setup.set_block_timestamp(25);
 
     let current_farm_supply = farm_in_amount;
 
     let first_reward_share = 0;
     let second_reward_share =
-        DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+        DIVISION_SAFETY_CONSTANT * 10 * PER_SECOND_REWARD_AMOUNT / current_farm_supply;
     let prev_reward_per_share = (first_reward_share * farm_in_amount
         + second_reward_share * second_farm_in_amount
         + total_farm_token
         - 1)
         / total_farm_token;
     let new_reward_per_share = prev_reward_per_share
-        + 25 * PER_BLOCK_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
+        + 25 * PER_SECOND_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
     let reward_per_share_diff = new_reward_per_share - prev_reward_per_share;
 
     let expected_reward_amount =
@@ -335,7 +335,7 @@ fn test_farm_through_simple_lock() {
     );
 
     // user claim farm rewards
-    b_mock.set_block_nonce(10);
+    b_mock.set_block_timestamp(10);
     b_mock.set_block_epoch(5);
 
     b_mock
@@ -362,7 +362,7 @@ fn test_farm_through_simple_lock() {
                 assert_eq!(reward_tokens.token_nonce, 0);
                 assert_eq!(
                     reward_tokens.amount,
-                    managed_biguint!(10 * PER_BLOCK_REWARD_AMOUNT)
+                    managed_biguint!(10 * PER_SECOND_REWARD_AMOUNT)
                 );
             },
         )
@@ -384,11 +384,11 @@ fn test_farm_through_simple_lock() {
     b_mock.check_esdt_balance(
         &user_addr,
         MEX_TOKEN_ID,
-        &rust_biguint!(10 * PER_BLOCK_REWARD_AMOUNT),
+        &rust_biguint!(10 * PER_SECOND_REWARD_AMOUNT),
     );
 
     // user exit farm
-    b_mock.set_block_nonce(25);
+    b_mock.set_block_timestamp(25);
 
     b_mock
         .execute_esdt_transfer(
@@ -415,7 +415,7 @@ fn test_farm_through_simple_lock() {
                 assert_eq!(reward_tokens.token_nonce, 0);
                 assert_eq!(
                     reward_tokens.amount,
-                    managed_biguint!(15 * PER_BLOCK_REWARD_AMOUNT)
+                    managed_biguint!(15 * PER_SECOND_REWARD_AMOUNT)
                 );
             },
         )
@@ -431,7 +431,7 @@ fn test_farm_through_simple_lock() {
     b_mock.check_esdt_balance(
         &user_addr,
         MEX_TOKEN_ID,
-        &rust_biguint!(25 * PER_BLOCK_REWARD_AMOUNT),
+        &rust_biguint!(25 * PER_SECOND_REWARD_AMOUNT),
     );
 
     // user enter farm again

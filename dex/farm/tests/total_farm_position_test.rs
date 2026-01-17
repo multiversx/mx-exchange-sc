@@ -6,7 +6,7 @@ use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use farm_setup::multi_user_farm_setup::{
     MultiUserFarmSetup, NonceAmountPair, BOOSTED_YIELDS_PERCENTAGE, MAX_PERCENTAGE,
-    PER_BLOCK_REWARD_AMOUNT,
+    PER_SECOND_REWARD_AMOUNT,
 };
 use multiversx_sc::types::EsdtLocalRole;
 use multiversx_sc_scenario::{
@@ -72,9 +72,9 @@ fn total_farm_position_claim_test() {
     // users claim rewards to get their energy registered
     let _ = farm_setup.claim_rewards(&first_user, 1, farm_in_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -147,9 +147,9 @@ fn allow_external_claim_rewards_setting_test() {
     // users claim rewards to get their energy registered
     let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -221,9 +221,9 @@ fn total_farm_position_claim_for_other_test() {
     let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
     let _ = farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -341,9 +341,9 @@ fn farm_total_position_migration_test() {
     // users claim rewards to get their energy registered
     let _ = farm_setup.claim_rewards(&first_user, 2, farm_in_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -385,9 +385,9 @@ fn farm_total_position_migration_test() {
         &rust_biguint!(first_received_reward_amt),
     );
 
-    // advance 10 more blocks - 10_000 more total rewards
+    // advance 10 more seconds - 10_000 more total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_timestamp(20);
 
     // random tx on end of week 2, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(13);
@@ -459,9 +459,9 @@ fn farm_total_position_exit_migration_test() {
     // users claim rewards to get their energy registered
     let _ = farm_setup.claim_rewards(&first_user, 2, farm_in_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -552,8 +552,8 @@ fn farm_total_position_on_claim_migration_test() {
         },
     ];
 
-    let block_nonce = 10;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    let block_timestamp = 10;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
 
     farm_setup.check_user_total_farm_position(&first_user, farm_in_amount);
     let _ = farm_setup.claim_rewards_with_multiple_payments(&first_user, payments);
@@ -570,8 +570,8 @@ fn farm_total_position_on_claim_migration_test() {
         );
 
     // User receives rewards only for the new position
-    let expected_user_rewards = block_nonce
-        * PER_BLOCK_REWARD_AMOUNT
+    let expected_user_rewards = block_timestamp
+        * PER_SECOND_REWARD_AMOUNT
         * (MAX_PERCENTAGE - BOOSTED_YIELDS_PERCENTAGE)
         * first_payment_amount
         / total_farm_amount
@@ -655,8 +655,8 @@ fn farm_total_position_on_merge_migration_test() {
         },
     ];
 
-    let block_nonce = 10;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    let block_timestamp = 10;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
 
     farm_setup.check_user_total_farm_position(&first_user, farm_in_amount * 2); // last 2 positions
     farm_setup.merge_farm_tokens(&first_user, payments);
@@ -706,9 +706,9 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
 
     // advance to week 1
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of the week, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
@@ -718,7 +718,7 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
     farm_setup.exit_farm(&temp_user, 4, 1);
 
     // advance to week 2
-    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_timestamp(20);
     farm_setup.b_mock.set_block_epoch(13);
 
     // User unlocks XMEX and has no energy
@@ -730,7 +730,7 @@ fn no_boosted_rewards_penalty_for_no_energy_test() {
     farm_setup.exit_farm(&temp_user, 5, 1);
 
     // advance to week 3
-    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_timestamp(30);
 
     // random tx on end of the week, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(20);
@@ -826,7 +826,7 @@ fn total_farm_position_owner_change_test() {
     let _ = farm_setup.claim_rewards(&second_user, 7, farm_token_amount);
 
     // random tx on end of week 1, to cummulate rewards
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
     farm_setup.b_mock.set_block_epoch(6);
     farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
@@ -873,7 +873,7 @@ fn total_farm_position_owner_change_test() {
     farm_setup.check_user_total_farm_position(&second_user, second_user_total_position);
 
     // random tx on end of week 2, to cummulate rewards
-    farm_setup.b_mock.set_block_nonce(20);
+    farm_setup.b_mock.set_block_timestamp(20);
     farm_setup.b_mock.set_block_epoch(13);
     farm_setup.set_user_energy(&first_user, 1_000, 13, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 13, 1);
@@ -900,7 +900,7 @@ fn total_farm_position_owner_change_test() {
     farm_setup.check_user_total_farm_position(&second_user, second_user_total_position);
 
     // random tx on end of week 3, to cummulate rewards
-    farm_setup.b_mock.set_block_nonce(30);
+    farm_setup.b_mock.set_block_timestamp(30);
     farm_setup.b_mock.set_block_epoch(20);
     farm_setup.set_user_energy(&first_user, 1_000, 20, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 20, 1);
@@ -1154,9 +1154,9 @@ fn total_farm_position_through_simple_lock_test() {
     // users claim rewards to get their energy registered
     let _ = farm_setup.claim_rewards(&user_addr, 2, farm_in_amount);
 
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // advance seconds - 10 seconds - 10 * 1_000 = 10_000 total rewards
     // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
+    farm_setup.b_mock.set_block_timestamp(10);
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
