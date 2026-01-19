@@ -25,6 +25,7 @@ fn setup_test() {
     let _ = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -35,6 +36,7 @@ fn add_remove_liquidity_proxy_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -232,6 +234,7 @@ fn tripple_add_liquidity_proxy_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -503,6 +506,7 @@ fn wrapped_same_nonce_lp_token_merge_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -629,6 +633,7 @@ fn wrapped_different_nonce_lp_token_merge_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -806,6 +811,7 @@ fn increase_proxy_lp_token_energy() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -962,6 +968,7 @@ fn increase_proxy_lp_token_energy_unlocked_tokens() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -1126,6 +1133,7 @@ fn increase_proxy_lp_token_energy_partially_unlocked_tokens() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -1302,6 +1310,7 @@ fn increase_proxy_lp_legacy_token_energy() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );

@@ -41,12 +41,12 @@ pub struct OldPriceObservation<M: ManagedTypeApi> {
 
 #[test]
 fn test_pair_setup() {
-    let _ = PairSetup::new(pair::contract_obj);
+    let _ = PairSetup::new(pair::contract_obj, router::contract_obj);
 }
 
 #[test]
 fn test_add_liquidity() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -55,7 +55,7 @@ fn test_add_liquidity() {
 
 #[test]
 fn test_swap_fixed_input() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -66,7 +66,7 @@ fn test_swap_fixed_input() {
 
 #[test]
 fn test_swap_fixed_output() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -77,7 +77,7 @@ fn test_swap_fixed_output() {
 
 #[test]
 fn test_perfect_swap_fixed_output() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     let token_amount = 1_001_000;
 
@@ -106,7 +106,7 @@ fn test_perfect_swap_fixed_output() {
 
 #[test]
 fn test_safe_price_observation_decoding() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let _ = pair_setup.b_mock.execute_tx(
         &pair_setup.owner_address,
         &pair_setup.pair_wrapper,
@@ -140,7 +140,7 @@ fn test_safe_price_observation_decoding() {
 
 #[test]
 fn test_safe_price_migration() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let starting_round = 1000;
     let payment_amount = 1000;
@@ -314,7 +314,7 @@ fn test_safe_price_migration() {
 
 #[test]
 fn test_safe_price() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let payment_amount = 1000;
     let starting_round = 1000;
@@ -670,7 +670,7 @@ fn test_safe_price() {
 
 #[test]
 fn test_safe_price_linear_interpolation() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
     let min_pool_reserve = 1_000;
@@ -865,7 +865,7 @@ fn test_safe_price_linear_interpolation() {
 // The purpose of this test is to see if values are returned from the correct contract
 #[test]
 fn test_both_legacy_and_new_safe_price_from_other_contract() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     let payment_amount = 1000;
     let starting_round = 1000;
@@ -991,12 +991,217 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
     );
 }
 
+#[test]
+fn test_safe_price_round_interval() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
+
+    // 10 Round save interval
+    pair_setup.set_safe_price_save_interval(10u64);
+
+    let payment_amount = 1000u64;
+    let starting_round = 1000u64;
+    let mut expected_amount = 996;
+    let starting_weight = 1;
+    let weight = 5;
+    let mut block_round = starting_round;
+    pair_setup.b_mock.set_block_round(block_round);
+
+    pair_setup.add_liquidity(
+        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+    );
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    // After first swap with 10-round interval, no observation is finalized yet
+    // The data is accumulated in the intermediate observation
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            // No finalized observations yet
+            assert_eq!(sc.price_observations().len(), 0);
+            // But intermediate observation should exist
+            assert!(!sc.current_price_observation().is_empty());
+            let intermediate = sc.current_price_observation().get();
+            assert_eq!(intermediate.weight_accumulated, starting_weight);
+        })
+        .assert_ok();
+
+    block_round += weight;
+    expected_amount -= 2; // slippage
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    // Still accumulating in intermediate observation
+    // No finalization because no prior finalized observation exists
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            // Still no finalized observations
+            assert_eq!(sc.price_observations().len(), 0);
+            // Intermediate continues accumulating
+            assert!(!sc.current_price_observation().is_empty());
+            let intermediate = sc.current_price_observation().get();
+            assert_eq!(intermediate.weight_accumulated, starting_weight + weight);
+        })
+        .assert_ok();
+
+    block_round += weight;
+    expected_amount -= 2;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    // With accumulated weight >= interval (11 >= 10), finalization happens
+    // even without a prior finalized observation
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            // One finalized observation
+            assert_eq!(sc.price_observations().len(), 1);
+            // Intermediate cleared after finalization
+            assert!(sc.current_price_observation().is_empty());
+            // Check the finalized observation
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.recording_round, block_round);
+            assert_eq!(observation.weight_accumulated, starting_weight + 2 * weight);
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_safe_price_new_timestamp_logic() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
+
+    // 10 Round save interval
+    pair_setup.set_safe_price_save_interval(10u64);
+
+    let payment_amount = 1000u64;
+    let starting_round = 1000u64;
+    let mut expected_amount = 996;
+    let starting_weight = 1;
+    let weight = 10;
+    let mut block_round = starting_round;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.b_mock.set_block_timestamp(block_round);
+
+    pair_setup.add_liquidity(
+        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+    );
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    // After first swap with 10-round interval, no observation is finalized yet
+    // (weight = 1 < 10)
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 0);
+            assert!(!sc.current_price_observation().is_empty());
+            let intermediate = sc.current_price_observation().get();
+            assert_eq!(intermediate.weight_accumulated, starting_weight);
+        })
+        .assert_ok();
+
+    block_round += weight;
+    expected_amount -= 2; // slippage
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.b_mock.set_block_timestamp(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    // After second swap, weight = 1 + 10 = 11 >= 10, so finalization happens
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 1);
+            assert!(sc.current_price_observation().is_empty());
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.weight_accumulated, starting_weight + weight);
+        })
+        .assert_ok();
+
+    block_round += weight;
+    expected_amount -= 2;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.b_mock.set_block_timestamp(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    // After third swap, direct save happens (rounds_since = 10 >= 10)
+    // The new observation continues accumulating from the previous one
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 2);
+            assert!(sc.current_price_observation().is_empty());
+            let second_observation = sc.price_observations().get(2);
+            // Weight continues accumulating: 11 (from first) + 10 = 21
+            assert_eq!(second_observation.weight_accumulated, 21u64);
+        })
+        .assert_ok();
+
+    block_round += weight;
+    expected_amount -= 2;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.b_mock.set_block_timestamp(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+
+    // After fourth swap, another direct save happens
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 3);
+            assert!(sc.current_price_observation().is_empty());
+            let third_observation = sc.price_observations().get(3);
+            // Weight continues accumulating: 21 (from second) + 10 = 31
+            assert_eq!(third_observation.weight_accumulated, 31u64);
+        })
+        .assert_ok();
+}
+
 // Test is commented as it needs a variable change in order to run succesfully
 // In order to run the test with the current setup, MAX_OBSERVATIONS const must be set to 100
 // This is necessary as using the MAINNET variable requires too many operations for a unit test
 // #[test]
 // fn test_safe_price_max_length() {
-//     let mut pair_setup = PairSetup::new(pair::contract_obj);
+//     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 //     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 //     let max_observations = MAX_OBSERVATIONS.try_into().unwrap(); // should be 100
 //     let min_pool_reserve = 1_000;
@@ -1138,7 +1343,7 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 
 #[test]
 fn test_locked_asset() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -1268,7 +1473,7 @@ fn test_locked_asset() {
 
 #[test]
 fn add_liquidity_through_simple_lock_proxy() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.add_liquidity(
         1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
@@ -1578,7 +1783,7 @@ fn add_liquidity_through_simple_lock_proxy() {
 
 #[test]
 fn fees_collector_pair_test() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let fees_collector_wrapper = pair_setup.b_mock.create_sc_account(
         &rust_biguint!(0),
         Some(&pair_setup.owner_address),
@@ -1652,4 +1857,512 @@ fn fees_collector_pair_test() {
         WEGLD_TOKEN_ID,
         &rust_biguint!(25),
     );
+}
+
+#[test]
+fn test_intermediate_price_observation_accumulation() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
+
+    // Set 5 round save interval
+    pair_setup.set_safe_price_save_interval(5u64);
+
+    let starting_round = 1000u64;
+    pair_setup.b_mock.set_block_round(starting_round);
+
+    // Add initial liquidity
+    pair_setup.add_liquidity(
+        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+    );
+
+    // Manually trigger price update by calling update_safe_price directly
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                // Simulate price update with current reserves
+                sc.update_safe_price(
+                    &managed_biguint!(1_002_000), // first_token_reserve
+                    &managed_biguint!(999_004),   // second_token_reserve
+                    &managed_biguint!(1_001_000), // lp_supply
+                );
+            },
+        )
+        .assert_ok();
+
+    // Check that main price observations storage is still empty
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 0);
+        })
+        .assert_ok();
+
+    // Check that intermediate observation exists with correct initial values
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert!(!sc.current_price_observation().is_empty());
+            let intermediate = sc.current_price_observation().get();
+            assert_eq!(intermediate.recording_round, starting_round);
+            assert_eq!(intermediate.weight_accumulated, 1u64);
+            // Should have accumulated values for round 1000
+            assert!(intermediate.first_token_reserve_accumulated > managed_biguint!(0));
+            assert!(intermediate.second_token_reserve_accumulated > managed_biguint!(0));
+        })
+        .assert_ok();
+
+    // Second update at round 1002 - should update intermediate observation
+    pair_setup.b_mock.set_block_round(starting_round + 2);
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_003_000),
+                    &managed_biguint!(998_008),
+                    &managed_biguint!(1_001_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Check intermediate observation accumulated more data (no finalization yet)
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            // Still no finalized observations
+            assert_eq!(sc.price_observations().len(), 0);
+            assert!(!sc.current_price_observation().is_empty());
+            let intermediate = sc.current_price_observation().get();
+            assert_eq!(intermediate.recording_round, starting_round + 2); // Updated to round 1002
+            assert_eq!(intermediate.weight_accumulated, 3u64); // 1 + 2 rounds accumulated
+        })
+        .assert_ok();
+
+    // Third update at round 1005 - weight = 6 >= 5, finalization happens
+    pair_setup.b_mock.set_block_round(starting_round + 5);
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_004_000),
+                    &managed_biguint!(997_012),
+                    &managed_biguint!(1_001_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Verify finalization happened (weight = 6 >= 5)
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            // One finalized observation
+            assert_eq!(sc.price_observations().len(), 1);
+            // Intermediate cleared after finalization
+            assert!(sc.current_price_observation().is_empty());
+            // Check the finalized observation
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.recording_round, starting_round + 5);
+            assert_eq!(observation.weight_accumulated, 6u64); // 1 + 2 + 3 rounds accumulated
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_intermediate_observation_finalization() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
+
+    // Set 3 round save interval
+    pair_setup.set_safe_price_save_interval(3u64);
+
+    let starting_round = 2000u64;
+    pair_setup.b_mock.set_block_round(starting_round);
+
+    // Initialize safe price index
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                if sc.safe_price_current_index().is_empty() {
+                    sc.safe_price_current_index().set(0);
+                }
+            },
+        )
+        .assert_ok();
+
+    // First update - creates intermediate observation
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Second update at round 2001 - updates intermediate
+    pair_setup.b_mock.set_block_round(starting_round + 1);
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_001_000),
+                    &managed_biguint!(999_000),
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Verify intermediate state - no finalization because no prior observation
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            // No finalized observations yet
+            assert_eq!(sc.price_observations().len(), 0);
+            assert!(!sc.current_price_observation().is_empty());
+            let intermediate = sc.current_price_observation().get();
+            assert_eq!(intermediate.weight_accumulated, 2u64);
+        })
+        .assert_ok();
+
+    // Third update at round 2003 - weight = 4 >= 3, finalization happens
+    pair_setup.b_mock.set_block_round(starting_round + 3);
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_002_000),
+                    &managed_biguint!(998_000),
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Verify finalization happened (weight = 4 >= 3)
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            // One finalized observation
+            assert_eq!(sc.price_observations().len(), 1);
+
+            // Intermediate observation cleared after finalization
+            assert!(sc.current_price_observation().is_empty());
+
+            // Check the finalized observation
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.recording_round, starting_round + 3);
+            // Weight accumulated: 1 (from update at 2000) + 1 (from 2001) + 2 (from 2003) = 4
+            assert_eq!(observation.weight_accumulated, 4u64);
+
+            // Current index is now 1
+            assert_eq!(sc.safe_price_current_index().get(), 1);
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_immediate_save_path_with_interval_one() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
+
+    // Set interval to 1 - should trigger immediate save path
+    pair_setup.set_safe_price_save_interval(1u64);
+
+    let starting_round = 3000u64;
+    pair_setup.b_mock.set_block_round(starting_round);
+
+    // Add initial liquidity
+    pair_setup.add_liquidity(
+        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+    );
+
+    // First price update should immediately save to main storage
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Check that observation was saved directly to main storage
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 1);
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.recording_round, starting_round);
+            assert_eq!(observation.weight_accumulated, 1u64);
+
+            // No intermediate observation should exist
+            assert!(sc.current_price_observation().is_empty());
+        })
+        .assert_ok();
+
+    // Second update at next round should also save immediately
+    pair_setup.b_mock.set_block_round(starting_round + 1);
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_001_000),
+                    &managed_biguint!(999_000),
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Should have 2 observations now
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 2);
+            let second_observation = sc.price_observations().get(2);
+            assert_eq!(second_observation.recording_round, starting_round + 1);
+
+            // Still no intermediate observation
+            assert!(sc.current_price_observation().is_empty());
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_intermediate_observation_with_zero_reserves() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
+
+    pair_setup.set_safe_price_save_interval(3u64);
+
+    let starting_round = 4000u64;
+    pair_setup.b_mock.set_block_round(starting_round);
+
+    // Test with zero first token reserve - should return early
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(0), // zero first reserve
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Should not create any observations
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 0);
+            assert!(sc.current_price_observation().is_empty());
+        })
+        .assert_ok();
+
+    // Test with zero second token reserve
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(0), // zero second reserve
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Still should not create any observations
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 0);
+            assert!(sc.current_price_observation().is_empty());
+        })
+        .assert_ok();
+
+    // Test with zero LP supply
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(0), // zero LP supply
+                );
+            },
+        )
+        .assert_ok();
+
+    // Still should not create any observations
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 0);
+            assert!(sc.current_price_observation().is_empty());
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_direct_save_when_interval_exceeded() {
+    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
+
+    // Set interval to 5 rounds
+    pair_setup.set_safe_price_save_interval(5u64);
+
+    let starting_round = 5000u64;
+    pair_setup.b_mock.set_block_round(starting_round);
+
+    // Add initial liquidity
+    pair_setup.add_liquidity(
+        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+    );
+
+    // First update - creates intermediate observation
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(1_000_000),
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Verify intermediate observation was created but no finalized observations yet
+    // (weight = 1 < 5)
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert!(!sc.current_price_observation().is_empty());
+            assert_eq!(sc.price_observations().len(), 0);
+        })
+        .assert_ok();
+
+    // Update at round 5005 - weight = 6 >= 5, finalization happens
+    pair_setup.b_mock.set_block_round(starting_round + 5);
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_001_000),
+                    &managed_biguint!(999_000),
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Finalization happened (weight = 1 + 5 = 6 >= 5)
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert_eq!(sc.price_observations().len(), 1);
+            assert!(sc.current_price_observation().is_empty());
+            let observation = sc.price_observations().get(1);
+            assert_eq!(observation.recording_round, starting_round + 5);
+        })
+        .assert_ok();
+
+    // Update at round 5011 (6 rounds later) - direct save happens
+    // (rounds_since = 5011 - 5005 = 6 >= 5)
+    pair_setup.b_mock.set_block_round(starting_round + 5 + 6);
+    pair_setup
+        .b_mock
+        .execute_tx(
+            pair_setup.pair_wrapper.address_ref(),
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_safe_price(
+                    &managed_biguint!(1_002_000),
+                    &managed_biguint!(998_000),
+                    &managed_biguint!(1_000_000),
+                );
+            },
+        )
+        .assert_ok();
+
+    // Verify direct save happened (safe_price_current_index > 0 and rounds_since >= interval)
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            // Two finalized observations
+            assert_eq!(sc.price_observations().len(), 2);
+
+            // Check second observation
+            let second_obs = sc.price_observations().get(2);
+            assert_eq!(second_obs.recording_round, starting_round + 5 + 6);
+
+            // Weight should be accumulated: first observation weight (6) + gap (6) = 12
+            assert_eq!(second_obs.weight_accumulated, 12u64);
+
+            // Since we did a direct save, intermediate observation should be cleared
+            assert!(sc.current_price_observation().is_empty());
+        })
+        .assert_ok();
 }
