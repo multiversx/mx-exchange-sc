@@ -268,7 +268,10 @@ pub trait SafePriceModule:
         observation.lp_supply_accumulated += BigUint::from(weight) * lp_supply;
         observation.weight_accumulated += weight;
         observation.recording_round = current_round;
-        observation.recording_timestamp = self.blockchain().get_block_timestamp();
+        observation.recording_timestamp = self
+            .blockchain()
+            .get_block_timestamp_seconds()
+            .as_u64_seconds();
     }
 
     fn compute_new_observation(

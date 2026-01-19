@@ -97,10 +97,6 @@ pub trait FarmStaking:
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
 
-        // Initialize last_reward_timestamp
-        let current_timestamp = self.blockchain().get_block_timestamp_seconds();
-        self.last_reward_timestamp().set_if_empty(current_timestamp);
-
         // Farm position migration code
         let farm_token_mapper = self.farm_token();
         self.try_set_farm_position_migration_nonce(farm_token_mapper);
@@ -128,7 +124,7 @@ pub trait FarmStaking:
         let per_block_reward = per_block_reward_amount_mapper.take();
 
         let block_nonce_diff = current_block_nonce - last_reward_nonce;
-        if per_block_reward > 0 {
+        if self.produces_per_second_rewards() {
             // CALCULATE PER BLOCK REWARDS
             let extra_rewards_unbounded = if current_block_nonce <= last_reward_nonce {
                 BigUint::zero()
@@ -138,8 +134,9 @@ pub trait FarmStaking:
 
             let farm_token_supply = self.farm_token_supply().get();
             let max_apr = self.max_annual_percentage_rewards().get();
-            let extra_rewards_apr_bounded_per_block =
-                farm_token_supply * &max_apr / MAX_PERCENT / (SECONDS_IN_YEAR.as_u64_seconds() / 6u64);
+            let extra_rewards_apr_bounded_per_block = farm_token_supply * &max_apr
+                / MAX_PERCENT
+                / (SECONDS_IN_YEAR.as_u64_seconds() / 6u64);
 
             let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
 
