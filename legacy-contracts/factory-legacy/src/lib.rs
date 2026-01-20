@@ -18,7 +18,8 @@ pub mod migration;
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct OldEsdtTokenPayment<M: ManagedTypeApi> {
     pub token_type: EsdtTokenType,
     pub payment: EsdtTokenPayment<M>,
@@ -151,7 +152,7 @@ pub trait LockedAssetFactory:
     fn unlock_assets(&self) {
         self.require_not_paused();
 
-        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
+        let (token_id, token_nonce, amount) = self.call_value().single_esdt().clone().into_tuple();
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
 
@@ -281,7 +282,7 @@ pub trait LockedAssetFactory:
             .esdt_system_sc_proxy()
             .set_special_roles(
                 &address,
-                &self.locked_asset_token_id().get(),
+                self.locked_asset_token_id().get(),
                 [EsdtLocalRole::Transfer][..].iter().cloned(),
             )
             .async_call_and_exit()
@@ -299,7 +300,7 @@ pub trait LockedAssetFactory:
             .esdt_system_sc_proxy()
             .unset_special_roles(
                 &address,
-                &self.locked_asset_token_id().get(),
+                self.locked_asset_token_id().get(),
                 [EsdtLocalRole::Transfer][..].iter().cloned(),
             )
             .async_call_and_exit()
@@ -317,7 +318,7 @@ pub trait LockedAssetFactory:
             .esdt_system_sc_proxy()
             .set_special_roles(
                 &address,
-                &self.locked_asset_token_id().get(),
+                self.locked_asset_token_id().get(),
                 [EsdtLocalRole::NftBurn][..].iter().cloned(),
             )
             .async_call_and_exit()

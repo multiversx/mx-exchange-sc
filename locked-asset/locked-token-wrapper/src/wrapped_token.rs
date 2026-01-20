@@ -24,10 +24,10 @@ pub trait WrappedTokenModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().egld_value().clone_value();
+        let payment_amount = self.call_value().egld().clone_value();
 
         self.wrapped_token().issue_and_set_all_roles(
-            EsdtTokenType::Meta,
+            EsdtTokenType::MetaFungible,
             payment_amount,
             token_display_name,
             token_ticker,
@@ -57,15 +57,12 @@ pub trait WrappedTokenModule:
     #[endpoint(unsetTransferRoleWrappedToken)]
     fn unset_transfer_role(&self, address: ManagedAddress) {
         let wrapped_token_id = self.wrapped_token().get_token_id();
-        let system_sc_proxy = ESDTSystemSmartContractProxy::new_proxy_obj();
-        system_sc_proxy
-            .unset_special_roles(
-                &address,
-                &wrapped_token_id,
-                [EsdtLocalRole::Transfer][..].iter().cloned(),
-            )
-            .async_call()
-            .call_and_exit();
+        let roles = [EsdtLocalRole::Transfer];
+
+        self.send()
+            .esdt_system_sc_proxy()
+            .unset_special_roles(&address, &wrapped_token_id, roles.iter().cloned())
+            .async_call_and_exit();
     }
 
     fn wrap_locked_token_and_send(

@@ -77,7 +77,7 @@ pub trait FeesCollector:
 
         for token_id in &all_tokens {
             known_tokens_mapper.remove(&token_id);
-            reward_tokens_mapper.insert(token_id);
+            reward_tokens_mapper.insert(token_id.clone());
         }
 
         let locked_tokens_per_block_mapper =

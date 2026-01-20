@@ -38,7 +38,7 @@ pub trait LockedTokenWrapper:
             caller.clone(),
             &ManagedVec::from_single_item(payment.clone()),
         );
-        self.wrap_locked_token_and_send(&caller, payment)
+        self.wrap_locked_token_and_send(&caller, payment.clone())
     }
 
     #[payable("*")]
@@ -47,7 +47,7 @@ pub trait LockedTokenWrapper:
         let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
         let locked_token_id = self.get_locked_token_id();
-        let original_locked_tokens = self.unwrap_locked_token(locked_token_id, payment);
+        let original_locked_tokens = self.unwrap_locked_token(locked_token_id, payment.clone());
 
         self.add_energy_to_destination(
             caller.clone(),

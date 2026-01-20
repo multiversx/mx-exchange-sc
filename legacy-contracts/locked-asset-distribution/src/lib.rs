@@ -12,13 +12,15 @@ pub struct BigUintEpochPair<M: ManagedTypeApi> {
     pub epoch: u64,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq)]
 pub struct UserLockedAssetKey<M: ManagedTypeApi> {
     pub caller: ManagedAddress<M>,
     pub spread_epoch: u64,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Clone)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Clone)]
 pub struct CommunityDistribution<M: ManagedTypeApi> {
     pub total_amount: BigUint<M>,
     pub spread_epoch: u64,

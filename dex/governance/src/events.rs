@@ -11,7 +11,7 @@ pub trait Events {
     fn emit_propose_event(
         &self,
         proposal: Proposal<Self::Api>,
-        payment: EsdtTokenPayment<Self::Api>,
+        payment: &EsdtTokenPayment<Self::Api>,
         weight: BigUint,
     ) {
         self.propose_event(
@@ -19,7 +19,7 @@ pub trait Events {
             proposal,
             payment,
             weight,
-            self.blockchain().get_block_timestamp(),
+            self.blockchain().get_block_timestamp_seconds(),
             self.blockchain().get_block_nonce(),
         );
     }
@@ -28,7 +28,7 @@ pub trait Events {
         &self,
         proposal: Proposal<Self::Api>,
         vote_type: VoteType,
-        payment: EsdtTokenPayment<Self::Api>,
+        payment: &EsdtTokenPayment<Self::Api>,
         weight: BigUint,
     ) {
         match vote_type {
@@ -38,7 +38,7 @@ pub trait Events {
                     proposal,
                     payment,
                     weight,
-                    self.blockchain().get_block_timestamp(),
+                    self.blockchain().get_block_timestamp_seconds(),
                     self.blockchain().get_block_nonce(),
                 );
             }
@@ -48,7 +48,7 @@ pub trait Events {
                     proposal,
                     payment,
                     weight,
-                    self.blockchain().get_block_timestamp(),
+                    self.blockchain().get_block_timestamp_seconds(),
                     self.blockchain().get_block_nonce(),
                 );
             }
@@ -59,7 +59,7 @@ pub trait Events {
         self.execute_event(
             self.blockchain().get_caller(),
             proposal,
-            self.blockchain().get_block_timestamp(),
+            self.blockchain().get_block_timestamp_seconds(),
             self.blockchain().get_block_nonce(),
         );
     }
@@ -67,7 +67,7 @@ pub trait Events {
     fn emit_redeem_event(
         &self,
         proposal: Proposal<Self::Api>,
-        payment: EsdtTokenPayment<Self::Api>,
+        payment: &EsdtTokenPayment<Self::Api>,
         vote_attr: VoteNFTAttributes<Self::Api>,
     ) {
         self.redeem_event(
@@ -75,7 +75,7 @@ pub trait Events {
             proposal,
             payment,
             vote_attr,
-            self.blockchain().get_block_timestamp(),
+            self.blockchain().get_block_timestamp_seconds(),
             self.blockchain().get_block_nonce(),
         );
     }
@@ -85,9 +85,9 @@ pub trait Events {
         &self,
         #[indexed] caller: ManagedAddress,
         #[indexed] proposal: Proposal<Self::Api>,
-        #[indexed] payment: EsdtTokenPayment<Self::Api>,
+        #[indexed] payment: &EsdtTokenPayment<Self::Api>,
         #[indexed] weight: BigUint,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 
@@ -96,9 +96,9 @@ pub trait Events {
         &self,
         #[indexed] caller: ManagedAddress,
         #[indexed] proposal: Proposal<Self::Api>,
-        #[indexed] payment: EsdtTokenPayment<Self::Api>,
+        #[indexed] payment: &EsdtTokenPayment<Self::Api>,
         #[indexed] weight: BigUint,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 
@@ -107,9 +107,9 @@ pub trait Events {
         &self,
         #[indexed] caller: ManagedAddress,
         #[indexed] proposal: Proposal<Self::Api>,
-        #[indexed] payment: EsdtTokenPayment<Self::Api>,
+        #[indexed] payment: &EsdtTokenPayment<Self::Api>,
         #[indexed] weight: BigUint,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 
@@ -118,7 +118,7 @@ pub trait Events {
         &self,
         #[indexed] caller: ManagedAddress,
         #[indexed] proposal: Proposal<Self::Api>,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 
@@ -127,9 +127,9 @@ pub trait Events {
         &self,
         #[indexed] caller: ManagedAddress,
         #[indexed] proposal: Proposal<Self::Api>,
-        #[indexed] payment: EsdtTokenPayment<Self::Api>,
+        #[indexed] payment: &EsdtTokenPayment<Self::Api>,
         #[indexed] vote_attr: VoteNFTAttributes<Self::Api>,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         #[indexed] epoch: u64,
     );
 }

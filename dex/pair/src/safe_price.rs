@@ -10,7 +10,8 @@ pub type Timestamp = u64;
 
 pub const MAX_OBSERVATIONS: usize = 65_536; // 2^{16} records, to optimise binary search
 
-#[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, TypeAbi, Debug)]
+#[type_abi]
+#[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, Debug)]
 pub struct PriceObservation<M: ManagedTypeApi> {
     pub first_token_reserve_accumulated: BigUint<M>,
     pub second_token_reserve_accumulated: BigUint<M>,
@@ -267,7 +268,10 @@ pub trait SafePriceModule:
         observation.lp_supply_accumulated += BigUint::from(weight) * lp_supply;
         observation.weight_accumulated += weight;
         observation.recording_round = current_round;
-        observation.recording_timestamp = self.blockchain().get_block_timestamp();
+        observation.recording_timestamp = self
+            .blockchain()
+            .get_block_timestamp_seconds()
+            .as_u64_seconds();
     }
 
     fn compute_new_observation(

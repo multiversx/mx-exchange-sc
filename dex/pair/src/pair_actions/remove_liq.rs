@@ -66,7 +66,7 @@ pub trait RemoveLiquidityModule:
         );
 
         let mut remove_liq_context = RemoveLiquidityContext::new(
-            payment.amount,
+            payment.amount.clone(),
             first_token_amount_min,
             second_token_amount_min,
         );
@@ -116,8 +116,11 @@ pub trait RemoveLiquidityModule:
             &storage_cache.lp_token_supply,
         );
 
-        let mut remove_liq_context =
-            RemoveLiquidityContext::new(payment.amount, BigUint::from(1u64), BigUint::from(1u64));
+        let mut remove_liq_context = RemoveLiquidityContext::new(
+            payment.amount.clone(),
+            BigUint::from(1u64),
+            BigUint::from(1u64),
+        );
         self.pool_remove_liquidity(&mut remove_liq_context, &mut storage_cache);
 
         self.burn(

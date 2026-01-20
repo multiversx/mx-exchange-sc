@@ -95,7 +95,7 @@ pub trait PauseAll:
     }
 
     fn call_pause(&self, sc_addr: ManagedAddress) {
-        let _: IgnoreValue = self.pause_proxy(sc_addr).pause().execute_on_dest_context();
+        self.pause_proxy(sc_addr).pause().sync_call();
     }
 
     /// Will unpause the given list of contracts.
@@ -143,7 +143,7 @@ pub trait PauseAll:
     }
 
     fn call_resume(&self, sc_addr: ManagedAddress) {
-        let _: IgnoreValue = self.pause_proxy(sc_addr).resume().execute_on_dest_context();
+        self.pause_proxy(sc_addr).resume().sync_call();
     }
 
     #[proxy]

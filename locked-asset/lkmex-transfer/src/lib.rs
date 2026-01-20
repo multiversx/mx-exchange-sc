@@ -13,15 +13,15 @@ use permissions_module::Permissions;
 
 use crate::constants::*;
 
-#[derive(
-    TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, ManagedVecItem, TypeAbi, Debug,
-)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, ManagedVecItem, Debug)]
 pub struct LockedFunds<M: ManagedTypeApi> {
     pub funds: PaymentsVec<M>,
     pub locked_epoch: Epoch,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode)]
 pub struct ScheduledTransfer<M: ManagedTypeApi> {
     pub sender: ManagedAddress<M>,
     pub locked_funds: LockedFunds<M>,

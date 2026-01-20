@@ -3,7 +3,8 @@ use crate::phase::Phase;
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct DepositEvent<M: ManagedTypeApi> {
     token_id_in: EgldOrEsdtTokenIdentifier<M>,
     token_amount_in: BigUint<M>,
@@ -16,7 +17,8 @@ pub struct DepositEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct WithdrawEvent<M: ManagedTypeApi> {
     token_id_out: EgldOrEsdtTokenIdentifier<M>,
     token_amount_out: BigUint<M>,
@@ -29,7 +31,8 @@ pub struct WithdrawEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct RedeemEvent<M: ManagedTypeApi> {
     redeem_token_id: TokenIdentifier<M>,
     redeem_token_nonce: u64,
@@ -53,7 +56,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         let caller = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
         let epoch = self.blockchain().get_block_epoch();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
 
         let launched_token_amount = self.launched_token_balance().get();
         let accepted_token_amount = self.accepted_token_balance().get();
@@ -90,7 +93,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         let caller = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
         let epoch = self.blockchain().get_block_epoch();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
 
         let launched_token_amount = self.launched_token_balance().get();
         let accepted_token_amount = self.accepted_token_balance().get();
@@ -125,7 +128,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         let caller = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
         let epoch = self.blockchain().get_block_epoch();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
 
         self.redeem_event(
             &caller,
@@ -148,7 +151,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         #[indexed] caller: &ManagedAddress,
         #[indexed] block: u64,
         #[indexed] epoch: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         deposit_event: &DepositEvent<Self::Api>,
     );
 
@@ -158,7 +161,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         #[indexed] caller: &ManagedAddress,
         #[indexed] block: u64,
         #[indexed] epoch: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         withdraw_event: &WithdrawEvent<Self::Api>,
     );
 
@@ -168,7 +171,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         #[indexed] caller: &ManagedAddress,
         #[indexed] block: u64,
         #[indexed] epoch: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         redeem_event: &RedeemEvent<Self::Api>,
     );
 }

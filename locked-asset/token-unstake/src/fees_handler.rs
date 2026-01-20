@@ -40,8 +40,8 @@ pub trait FeesHandlerModule:
             .update(|unstake_pairs| {
                 let unstake_pair = UnstakePair {
                     unlock_epoch,
-                    locked_tokens,
-                    unlocked_tokens,
+                    locked_tokens: locked_tokens.clone(),
+                    unlocked_tokens: unlocked_tokens.clone(),
                 };
                 unstake_pairs.push(unstake_pair);
             });
@@ -64,7 +64,7 @@ pub trait FeesHandlerModule:
         let locked_token_id = self.get_locked_token_id();
         require!(payment.token_identifier == locked_token_id, "Invalid token");
 
-        self.burn_penalty(payment);
+        self.burn_penalty(payment.clone());
     }
 
     #[only_owner]
@@ -101,11 +101,10 @@ pub trait FeesHandlerModule:
         }
 
         let fees_collector_addr = self.fees_collector_address().get();
-        let _: IgnoreValue = self
-            .fees_collector_proxy_builder(fees_collector_addr)
+        self.fees_collector_proxy_builder(fees_collector_addr)
             .deposit_swap_fees()
             .with_esdt_transfer(payment)
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     #[proxy]

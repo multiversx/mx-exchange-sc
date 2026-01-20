@@ -43,7 +43,7 @@ pub trait ProxyExternalInteractionsModule:
     #[payable("*")]
     #[endpoint(claimDualYieldOnBehalf)]
     fn claim_dual_yield_on_behalf(&self) -> ClaimDualYieldResult<Self::Api> {
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
 
         let caller = self.blockchain().get_caller();
         let original_owner = self.get_underlying_positions_original_owner(&payment);

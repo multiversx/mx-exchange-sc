@@ -1,7 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, PartialEq)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, PartialEq)]
 pub enum Phase<M: ManagedTypeApi> {
     Idle,
     NoPenalty,

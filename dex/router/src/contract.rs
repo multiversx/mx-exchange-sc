@@ -67,10 +67,7 @@ pub trait Router:
             self.state().set(false);
         } else {
             self.check_is_pair_sc(&address);
-            let _: IgnoreValue = self
-                .pair_contract_proxy(address)
-                .pause()
-                .execute_on_dest_context();
+            self.pair_contract_proxy(address).pause().sync_call();
         }
     }
 
@@ -81,10 +78,7 @@ pub trait Router:
             self.state().set(true);
         } else {
             self.check_is_pair_sc(&address);
-            let _: IgnoreValue = self
-                .pair_contract_proxy(address)
-                .resume()
-                .execute_on_dest_context();
+            self.pair_contract_proxy(address).resume().sync_call();
         }
     }
 
@@ -195,7 +189,7 @@ pub trait Router:
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
     ) {
-        let issue_cost = self.call_value().egld_value().clone_value();
+        let issue_cost = self.call_value().egld().clone_value();
 
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
@@ -218,7 +212,8 @@ pub trait Router:
         let result: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         require!(
             !result.is_valid_esdt_identifier(),
             "LP Token already issued"
@@ -230,7 +225,7 @@ pub trait Router:
                 issue_cost,
                 &lp_token_display_name,
                 &lp_token_ticker,
-                &BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
+                BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,
                     can_freeze: true,
@@ -259,7 +254,8 @@ pub trait Router:
         let pair_token: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         require!(pair_token.is_valid_esdt_identifier(), "LP token not issued");
 
         let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
@@ -324,10 +320,9 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        let _: IgnoreValue = self
-            .pair_contract_proxy(pair_address)
+        self.pair_contract_proxy(pair_address)
             .set_fee_on(true, fee_to_address, fee_token)
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     #[only_owner]
@@ -341,10 +336,9 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        let _: IgnoreValue = self
-            .pair_contract_proxy(pair_address)
+        self.pair_contract_proxy(pair_address)
             .set_fee_on(false, fee_to_address, fee_token)
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     #[only_owner]
@@ -375,10 +369,7 @@ pub trait Router:
         for pair in pairs {
             self.check_is_pair_sc(&pair);
 
-            let _: IgnoreValue = self
-                .send()
-                .claim_developer_rewards(pair)
-                .execute_on_dest_context();
+            self.send().claim_developer_rewards(pair).sync_call();
         }
 
         let egld_balance_after = self.blockchain().get_balance(&sc_address);
@@ -400,10 +391,9 @@ pub trait Router:
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(address);
-                let _: IgnoreValue = self
-                    .pair_contract_proxy(address.clone())
+                self.pair_contract_proxy(address.clone())
                     .set_lp_token_identifier(token_id.unwrap_esdt())
-                    .execute_on_dest_context();
+                    .sync_call();
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {

@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_structs::{FarmToken, FarmTokenAttributes, Timestamp};
+use common_structs::{FarmToken, FarmTokenAttributes};
 use config::ConfigModule;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
@@ -56,8 +56,8 @@ pub trait FarmContract {
 
     fn calculate_per_second_rewards(
         sc: &Self::FarmSc,
-        current_timestamp: Timestamp,
-        last_reward_timestamp: Timestamp,
+        current_timestamp: TimestampSeconds,
+        last_reward_timestamp: TimestampSeconds,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         if current_timestamp <= last_reward_timestamp || !sc.produces_per_second_rewards() {
             return BigUint::zero();
@@ -66,14 +66,14 @@ pub trait FarmContract {
         let per_second_reward = sc.per_second_reward_amount().get();
         let timestamp_diff = current_timestamp - last_reward_timestamp;
 
-        per_second_reward * timestamp_diff
+        per_second_reward * timestamp_diff.as_u64_seconds()
     }
 
     fn mint_per_second_rewards(
         sc: &Self::FarmSc,
         token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        let current_timestamp = sc.blockchain().get_block_timestamp();
+        let current_timestamp = sc.blockchain().get_block_timestamp_seconds();
         let last_reward_timestamp = sc.last_reward_timestamp().get();
         if current_timestamp > last_reward_timestamp {
             let to_mint =

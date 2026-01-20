@@ -35,8 +35,7 @@ where
             }
         }
 
-        let first_payment = payments.get(0);
-        payments.remove(0);
+        let first_payment = payments.take(0);
 
         let own_sc_address = api_wrapper.get_sc_address();
         let token_data = api_wrapper.get_esdt_token_data(

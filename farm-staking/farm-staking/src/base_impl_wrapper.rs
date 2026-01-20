@@ -86,7 +86,7 @@ where
         sc: &Self::FarmSc,
         _token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        let current_timestamp = sc.blockchain().get_block_timestamp();
+        let current_timestamp = sc.blockchain().get_block_timestamp_seconds();
         let last_reward_timestamp = sc.last_reward_timestamp().get();
 
         if current_timestamp <= last_reward_timestamp {
@@ -102,8 +102,9 @@ where
             sc.get_amount_apr_bounded(&farm_token_supply, &division_safety);
 
         let timestamp_diff = current_timestamp - last_reward_timestamp;
-        let extra_rewards_apr_bounded =
-            extra_rewards_apr_bounded_per_second * timestamp_diff / division_safety;
+        let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_second
+            * timestamp_diff.as_u64_seconds()
+            / division_safety;
 
         sc.last_reward_timestamp().set(current_timestamp);
 

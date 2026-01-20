@@ -5,9 +5,8 @@ use farm_staking::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRew
 use farm_staking::compound_stake_farm_rewards::CompoundStakeFarmRewardsModule;
 use multiversx_sc::codec::multi_types::OptionalValue;
 use multiversx_sc::imports::{SingleValueMapper, StorageMapper};
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{
-    Address, BigInt, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded,
+    Address, BigInt, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded, TimestampSeconds,
 };
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
@@ -776,7 +775,7 @@ where
                 &self.energy_factory_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                    sc.user_energy(&managed_address!(user)).set(Energy::new(
                         BigInt::from(managed_biguint!(energy)),
                         last_update_epoch,
                         managed_biguint!(locked_tokens),
@@ -959,17 +958,18 @@ where
     }
 
     pub fn advance_time(&mut self, seconds: u64) {
-        let mut current_timestamp = 0u64;
+        let mut current_timestamp = TimestampSeconds::new(0);
         let mut current_block = 0u64;
         self.b_mock
             .execute_query(&self.farm_wrapper, |sc| {
                 use multiversx_sc::contract_base::ContractBase;
-                current_timestamp = sc.blockchain().get_block_timestamp();
+                current_timestamp = sc.blockchain().get_block_timestamp_seconds();
                 current_block = sc.blockchain().get_block_nonce();
             })
             .assert_ok();
 
-        self.b_mock.set_block_timestamp(current_timestamp + seconds);
+        self.b_mock
+            .set_block_timestamp(current_timestamp.as_u64_seconds() + seconds);
         self.b_mock.set_block_nonce(current_block + seconds / 6); // 6 seconds per block
     }
 

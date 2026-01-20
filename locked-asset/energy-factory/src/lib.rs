@@ -129,7 +129,7 @@ pub trait SimpleLockEnergy:
         );
 
         let output_tokens =
-            self.lock_by_token_type(&dest_address, payment, unlock_epoch, current_epoch);
+            self.lock_by_token_type(&dest_address, payment.clone(), unlock_epoch, current_epoch);
 
         self.send().direct_esdt(
             &dest_address,
@@ -166,7 +166,7 @@ pub trait SimpleLockEnergy:
                 let attributes: LockedTokenAttributes<Self::Api> =
                     locked_token_mapper.get_token_attributes(payment.token_nonce);
 
-                let unlocked_tokens = self.unlock_tokens(payment);
+                let unlocked_tokens = self.unlock_tokens(payment.clone());
                 energy.refund_after_token_unlock(
                     &unlocked_tokens.amount,
                     attributes.unlock_epoch,

@@ -39,7 +39,9 @@ pub trait AddLiquidityModule:
         let mut storage_cache = StorageCache::new(self);
         let caller = self.blockchain().get_caller();
 
-        let [first_payment, second_payment] = self.call_value().multi_esdt();
+        let [first_payment_ref, second_payment_ref] = self.call_value().multi_esdt();
+        let first_payment = first_payment_ref.clone();
+        let second_payment = second_payment_ref.clone();
         require!(
             first_payment.token_identifier == storage_cache.first_token_id
                 && first_payment.amount > 0,

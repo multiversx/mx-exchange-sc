@@ -10,7 +10,8 @@ pub trait PermissionsHubModule {
         let is_whitelisted: bool = self
             .permissions_hub_proxy(permissions_hub_address)
             .is_whitelisted(user, authorized_address)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
 
         require!(
             is_whitelisted,

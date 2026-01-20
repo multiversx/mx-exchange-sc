@@ -8,7 +8,8 @@ pub const EPOCHS_PER_MONTH: Epoch = 30;
 pub const EPOCHS_PER_YEAR: Epoch = 12 * EPOCHS_PER_MONTH;
 pub const MAX_PENALTY_PERCENTAGE: Percent = 10_000; // 100%
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy, Default)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy, Default)]
 pub struct LockOption {
     pub lock_epochs: Epoch,
     pub penalty_start_percentage: Percent,

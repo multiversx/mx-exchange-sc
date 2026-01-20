@@ -33,7 +33,8 @@ pub trait LockWithEnergyModule {
 
         proxy_instance
             .lock_virtual(token_id, amount, lock_epochs, dest_address, energy_address)
-            .execute_on_dest_context()
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     fn get_locking_sc_proxy_instance(&self) -> energy_factory::ProxyTo<Self::Api> {

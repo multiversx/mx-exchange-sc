@@ -53,7 +53,7 @@ pub trait EnergyUpdateModule:
         let _: () = self
             .energy_factory_proxy(energy_factory_addr)
             .set_user_energy_after_locked_token_transfer(user, energy)
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     fn get_legacy_locked_token_id(&self, energy_factory_addr: &ManagedAddress) -> TokenIdentifier {

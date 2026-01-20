@@ -61,7 +61,8 @@ pub trait LockingWrapperModule:
         let payment: EgldOrEsdtTokenPayment<Self::Api> = proxy_instance
             .lock_tokens_endpoint(unlock_epoch, opt_dest)
             .with_esdt_transfer((token_id, 0, amount))
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (token_id, token_nonce, amount) = payment.into_tuple();
 
         EsdtTokenPayment::new(token_id.unwrap_esdt(), token_nonce, amount)

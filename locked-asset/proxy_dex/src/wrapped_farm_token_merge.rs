@@ -74,7 +74,11 @@ pub trait WrappedFarmTokenMerge:
         farm_address: ManagedAddress,
         wrapped_farm_tokens: ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> WrappedFarmToken<Self::Api> {
-        let proxy_farming_token = wrapped_farm_tokens.get(0).attributes.proxy_farming_token;
+        let proxy_farming_token = wrapped_farm_tokens
+            .get(0)
+            .attributes
+            .proxy_farming_token
+            .clone();
         let locked_token_id = self.get_underlying_locked_token(
             proxy_farming_token.token_identifier,
             proxy_farming_token.token_nonce,

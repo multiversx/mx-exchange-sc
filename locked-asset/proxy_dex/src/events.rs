@@ -6,7 +6,8 @@ use crate::{
     wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct AddLiquidityProxyEvent<M: ManagedTypeApi> {
     first_token: EsdtTokenPayment<M>,
     second_token: EsdtTokenPayment<M>,
@@ -15,7 +16,8 @@ pub struct AddLiquidityProxyEvent<M: ManagedTypeApi> {
     created_with_merge: bool,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
     wrapped_lp_token: EsdtTokenPayment<M>,
     wrapped_lp_attributes: WrappedLpTokenAttributes<M>,
@@ -23,7 +25,8 @@ pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
     second_token: EsdtTokenPayment<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct EnterFarmProxyEvent<M: ManagedTypeApi> {
     farming_token: EsdtTokenPayment<M>,
     wrapped_farm_token: EsdtTokenPayment<M>,
@@ -31,14 +34,16 @@ pub struct EnterFarmProxyEvent<M: ManagedTypeApi> {
     created_with_merge: bool,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct ExitFarmProxyEvent<M: ManagedTypeApi> {
     wrapped_farm_token: EsdtTokenPayment<M>,
     wrapped_farm_attributes: WrappedFarmTokenAttributes<M>,
     reward_tokens: EsdtTokenPayment<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct ClaimRewardsProxyEvent<M: ManagedTypeApi> {
     old_wrapped_farm_token: EsdtTokenPayment<M>,
     old_wrapped_farm_attributes: WrappedFarmTokenAttributes<M>,
@@ -47,7 +52,8 @@ pub struct ClaimRewardsProxyEvent<M: ManagedTypeApi> {
     reward_tokens: EsdtTokenPayment<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct CompoundRewardsProxyEvent<M: ManagedTypeApi> {
     old_wrapped_farm_token: EsdtTokenPayment<M>,
     old_wrapped_farm_attributes: WrappedFarmTokenAttributes<M>,
@@ -69,7 +75,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
         self.add_liquidity_proxy_event(
             caller,
             pair_address,
@@ -97,7 +103,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
         self.remove_liquidity_proxy_event(
             caller,
             pair_address,
@@ -124,7 +130,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
         self.enter_farm_proxy_event(
             caller,
             farm_address,
@@ -150,7 +156,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
         self.exit_farm_proxy_event(
             caller,
             farm_address,
@@ -177,7 +183,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
         self.claim_rewards_farm_proxy_event(
             caller,
             farm_address,
@@ -205,7 +211,7 @@ pub trait EventsModule {
     ) {
         let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
-        let timestamp = self.blockchain().get_block_timestamp();
+        let timestamp = self.blockchain().get_block_timestamp_seconds();
         self.compound_rewards_farm_proxy_event(
             caller,
             farm_address,
@@ -228,7 +234,7 @@ pub trait EventsModule {
         #[indexed] pair_address: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         add_liquidity_proxy_event: &AddLiquidityProxyEvent<Self::Api>,
     );
 
@@ -239,7 +245,7 @@ pub trait EventsModule {
         #[indexed] pair_address: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         remove_liquidity_proxy_event: &RemoveLiquidityProxyEvent<Self::Api>,
     );
 
@@ -250,7 +256,7 @@ pub trait EventsModule {
         #[indexed] farm_address: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         enter_farm_proxy_event: &EnterFarmProxyEvent<Self::Api>,
     );
 
@@ -261,7 +267,7 @@ pub trait EventsModule {
         #[indexed] farm_address: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         exit_farm_proxy_event: &ExitFarmProxyEvent<Self::Api>,
     );
 
@@ -272,7 +278,7 @@ pub trait EventsModule {
         #[indexed] farm_address: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         claim_rewards_farm_proxy_event: &ClaimRewardsProxyEvent<Self::Api>,
     );
 
@@ -283,7 +289,7 @@ pub trait EventsModule {
         #[indexed] farm_address: &ManagedAddress,
         #[indexed] epoch: u64,
         #[indexed] block: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         compound_rewards_farm_proxy_event: &CompoundRewardsProxyEvent<Self::Api>,
     );
 }

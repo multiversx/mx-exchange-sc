@@ -19,11 +19,13 @@ pub trait ExternalContractsInteractionsModule:
     ) -> LpFarmExitResult<Self::Api> {
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_address = self.lp_farm_address().get();
-        let raw_results: RawResultsType<Self::Api> = self
-            .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm(OptionalValue::<ManagedBuffer>::None)
-            .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
-            .execute_on_dest_context();
+        let raw_results: RawResultsType<Self::Api> = MultiValueEncoded::from(
+            self.lp_farm_proxy_obj(lp_farm_address)
+                .exit_farm(OptionalValue::<ManagedBuffer>::None)
+                .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
+                .returns(ReturnsRawResult)
+                .sync_call(),
+        );
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
         results_wrapper.trim_results_front(2);
@@ -48,7 +50,8 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
             .farming_token_id()
-            .execute_on_dest_context()
+            .returns(ReturnsResultUnmanaged)
+            .sync_call()
     }
 
     // staking farm
@@ -69,11 +72,13 @@ pub trait ExternalContractsInteractionsModule:
         ));
 
         let staking_farm_address = self.staking_farm_address().get();
-        let raw_results: RawResultsType<Self::Api> = self
-            .staking_farm_proxy_obj(staking_farm_address)
-            .unstake_farm_through_proxy(orig_caller)
-            .with_multi_token_transfer(payments)
-            .execute_on_dest_context();
+        let raw_results: RawResultsType<Self::Api> = MultiValueEncoded::from(
+            self.staking_farm_proxy_obj(staking_farm_address)
+                .unstake_farm_through_proxy(orig_caller)
+                .with_multi_token_transfer(payments)
+                .returns(ReturnsRawResult)
+                .sync_call(),
+        );
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
         results_wrapper.trim_results_front(2);
@@ -96,15 +101,17 @@ pub trait ExternalContractsInteractionsModule:
         pair_second_token_min_amount: BigUint,
     ) -> PairRemoveLiquidityResult<Self::Api> {
         let pair_address = self.pair_address().get();
-        let raw_results: RawResultsType<Self::Api> = self
-            .pair_proxy_obj(pair_address)
-            .remove_liquidity(pair_first_token_min_amount, pair_second_token_min_amount)
-            .with_esdt_transfer((
-                lp_tokens.token_identifier,
-                lp_tokens.token_nonce,
-                lp_tokens.amount,
-            ))
-            .execute_on_dest_context();
+        let raw_results: RawResultsType<Self::Api> = MultiValueEncoded::from(
+            self.pair_proxy_obj(pair_address)
+                .remove_liquidity(pair_first_token_min_amount, pair_second_token_min_amount)
+                .with_esdt_transfer((
+                    lp_tokens.token_identifier,
+                    lp_tokens.token_nonce,
+                    lp_tokens.amount,
+                ))
+                .returns(ReturnsRawResult)
+                .sync_call(),
+        );
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
         results_wrapper.trim_results_front(2);

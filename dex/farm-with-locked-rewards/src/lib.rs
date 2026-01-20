@@ -132,7 +132,7 @@ pub trait Farm:
         self.per_second_reward_amount()
             .set(&per_second_reward_amount);
         self.last_reward_timestamp()
-            .set(self.blockchain().get_block_timestamp());
+            .set(self.blockchain().get_block_timestamp_seconds());
     }
 
     #[payable("*")]
@@ -200,8 +200,7 @@ pub trait Farm:
 
         let migrated_amount = self.migrate_old_farm_positions(&orig_caller);
 
-        let exit_farm_result = self.exit_farm::<NoMintWrapper<Self>>(orig_caller.clone(), payment);
-
+        let exit_farm_result = self.exit_farm::<NoMintWrapper<Self>>(orig_caller.clone(), &payment);
         self.decrease_old_farm_positions(migrated_amount, &orig_caller);
 
         let rewards = exit_farm_result.rewards;

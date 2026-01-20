@@ -51,15 +51,17 @@ pub trait FarmDeployModule {
         args: MultiValueEncoded<ManagedBuffer>,
     ) {
         let gas_left = self.blockchain().get_gas_left();
-        let mut contract_call = self
-            .send()
-            .contract_call::<()>(farm_address, function_name)
-            .with_gas_limit(gas_left);
-
+        let mut arg_buffer = ManagedArgBuffer::new();
         for arg in args {
-            contract_call.push_raw_argument(arg);
+            arg_buffer.push_arg_raw(arg);
         }
-        let _: IgnoreValue = contract_call.execute_on_dest_context();
+
+        self.tx()
+            .to(farm_address)
+            .raw_call(function_name)
+            .arguments_raw(arg_buffer)
+            .gas(gas_left)
+            .sync_call();
     }
 
     #[view(getAllDeployedFarms)]

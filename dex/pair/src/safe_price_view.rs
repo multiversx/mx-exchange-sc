@@ -205,7 +205,10 @@ pub trait SafePriceViewModule:
         timestamp_offset: Timestamp,
         pair_address: ManagedAddress,
     ) -> PriceObservation<Self::Api> {
-        let current_timestamp = self.blockchain().get_block_timestamp();
+        let current_timestamp = self
+            .blockchain()
+            .get_block_timestamp_seconds()
+            .as_u64_seconds();
         require!(
             timestamp_offset > 0 && timestamp_offset < current_timestamp,
             ERROR_PARAMETERS

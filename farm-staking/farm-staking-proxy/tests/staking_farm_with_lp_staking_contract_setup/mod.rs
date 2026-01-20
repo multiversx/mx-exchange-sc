@@ -2,8 +2,9 @@
 
 use energy_query::EnergyQueryModule;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
-use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc::types::{
+    Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded, TimestampSeconds,
+};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     whitebox_legacy::{BlockchainStateWrapper, ContractObjWrapper},
@@ -61,7 +62,8 @@ where
             sc.produce_rewards_enabled().set(true);
             sc.per_second_reward_amount()
                 .set(&managed_biguint!(STAKING_FARM_PER_SECOND_REWARD_AMOUNT));
-            sc.last_reward_timestamp().set(TIMESTAMP_AFTER_PAIR_SETUP);
+            sc.last_reward_timestamp()
+                .set(TimestampSeconds::new(TIMESTAMP_AFTER_PAIR_SETUP));
             sc.reward_capacity().set(&managed_biguint!(REWARD_CAPACITY));
         })
         .assert_ok();

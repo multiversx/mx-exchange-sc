@@ -142,7 +142,7 @@ pub trait ProxyPairModule:
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
 
         let output_payments = self.remove_liquidity_proxy_common(
             payment,
@@ -245,7 +245,7 @@ pub trait ProxyPairModule:
     fn increase_proxy_pair_token_energy_endpoint(&self, lock_epochs: Epoch) -> EsdtTokenPayment {
         self.require_wrapped_lp_token_id_not_empty();
 
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
         let wrapped_lp_mapper = self.wrapped_lp_token();
         wrapped_lp_mapper.require_same_token(&payment.token_identifier);
 

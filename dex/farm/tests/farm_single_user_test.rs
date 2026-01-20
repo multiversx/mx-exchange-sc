@@ -137,10 +137,8 @@ where
     let second_reward_share =
         DIVISION_SAFETY_CONSTANT * 10 * PER_SECOND_REWARD_AMOUNT / current_farm_supply;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
-        + second_reward_share * second_farm_in_amount
-        + total_amount
-        - 1)
-        / total_amount;
+        + second_reward_share * second_farm_in_amount)
+        .div_ceil(total_amount);
 
     farm_setup.enter_farm(
         second_farm_in_amount,
@@ -177,10 +175,8 @@ fn test_exit_farm_after_enter_twice() {
     let second_reward_share =
         DIVISION_SAFETY_CONSTANT * 10 * PER_SECOND_REWARD_AMOUNT / current_farm_supply;
     let prev_reward_per_share = (first_reward_share * farm_in_amount
-        + second_reward_share * second_farm_in_amount
-        + total_farm_token
-        - 1)
-        / total_farm_token;
+        + second_reward_share * second_farm_in_amount)
+        .div_ceil(total_farm_token);
     let new_reward_per_share = prev_reward_per_share
         + 25 * PER_SECOND_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
     let reward_per_share_diff = new_reward_per_share - prev_reward_per_share;
@@ -200,7 +196,6 @@ fn test_exit_farm_after_enter_twice() {
 
 #[test]
 fn test_farm_through_simple_lock() {
-    use multiversx_sc::storage::mappers::StorageTokenWrapper;
     use simple_lock::locked_token::LockedTokenModule;
     use simple_lock::proxy_farm::ProxyFarmModule;
     use simple_lock::proxy_farm::*;

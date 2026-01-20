@@ -3,7 +3,8 @@ multiversx_sc::derive_imports!();
 
 use crate::proxy_common::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     pair_address: ManagedAddress<M>,
@@ -19,10 +20,11 @@ pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
     second_token_amount: BigUint<M>,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct ExitFarmProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     farm_address: ManagedAddress<M>,
@@ -38,7 +40,7 @@ pub struct ExitFarmProxyEvent<M: ManagedTypeApi> {
     reward_token_amount: BigUint<M>,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
 #[multiversx_sc::module]
@@ -80,7 +82,7 @@ pub trait EventsModule {
                 wrapped_lp_attributes: wrapped_lp_attributes.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                timestamp: self.blockchain().get_block_timestamp_seconds(),
             },
         )
     }
@@ -121,7 +123,7 @@ pub trait EventsModule {
                 reward_token_amount: reward_token_amount.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                timestamp: self.blockchain().get_block_timestamp_seconds(),
             },
         )
     }

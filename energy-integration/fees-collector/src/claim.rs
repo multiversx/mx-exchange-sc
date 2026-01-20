@@ -79,7 +79,7 @@ pub trait ClaimModule:
         let mut len = rewards.len();
         let mut total_locked_token_rewards_amount = BigUint::zero();
         while i < len {
-            let rew = rewards.get(i);
+            let rew = rewards.get(i).clone();
             if rew.token_identifier != locked_token_id {
                 i += 1;
                 continue;
@@ -148,7 +148,7 @@ where
         let locked_token_id = sc.get_locked_token_id();
         let total_rewards = self.collect_and_get_rewards_for_week(sc, week);
         for weekly_reward in &total_rewards {
-            let reward_amount = weekly_reward.amount * energy_amount / total_energy;
+            let reward_amount = &weekly_reward.amount * energy_amount / total_energy;
             if reward_amount == 0 {
                 continue;
             }
@@ -159,7 +159,7 @@ where
             }
 
             user_rewards.push(EsdtTokenPayment::new(
-                weekly_reward.token_identifier,
+                weekly_reward.token_identifier.clone(),
                 0,
                 reward_amount,
             ));

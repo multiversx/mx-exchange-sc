@@ -41,7 +41,7 @@ impl<'a, C: FarmContracTraitBounds> StorageCache<'a, C> {
     }
 }
 
-impl<'a, C: FarmContracTraitBounds> Drop for StorageCache<'a, C> {
+impl<C: FarmContracTraitBounds> Drop for StorageCache<'_, C> {
     fn drop(&mut self) {
         // commit changes to storage for the mutable fields
         self.sc_ref.reward_reserve().set(&self.reward_reserve);

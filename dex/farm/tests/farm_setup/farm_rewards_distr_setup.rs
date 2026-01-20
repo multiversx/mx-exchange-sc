@@ -2,7 +2,6 @@
 #![allow(deprecated)]
 
 use multiversx_sc::codec::multi_types::OptionalValue;
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use multiversx_sc::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,

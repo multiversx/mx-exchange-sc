@@ -3,7 +3,7 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-use common_structs::{Nonce, Timestamp};
+use common_structs::Nonce;
 use pausable::State;
 
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
@@ -61,7 +61,7 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
 
     #[view(getLastRewardTimestamp)]
     #[storage_mapper("last_reward_timestamp")]
-    fn last_reward_timestamp(&self) -> SingleValueMapper<Timestamp>;
+    fn last_reward_timestamp(&self) -> SingleValueMapper<TimestampSeconds>;
 
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]

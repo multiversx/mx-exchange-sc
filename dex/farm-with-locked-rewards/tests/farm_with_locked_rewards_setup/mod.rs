@@ -5,7 +5,6 @@ use config::ConfigModule;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     imports::{SingleValueMapper, StorageMapper},
-    storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, BigUint, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
@@ -274,7 +273,7 @@ where
                 &self.energy_factory_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                    sc.user_energy(&managed_address!(user)).set(Energy::new(
                         BigInt::from(managed_biguint!(energy)),
                         last_update_epoch,
                         managed_biguint!(locked_tokens),
