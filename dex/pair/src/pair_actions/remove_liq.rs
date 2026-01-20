@@ -1,7 +1,7 @@
 use crate::{
     contexts::remove_liquidity::RemoveLiquidityContext, StorageCache, SwapTokensOrder,
     ERROR_BAD_PAYMENT_TOKENS, ERROR_INVALID_ARGS, ERROR_K_INVARIANT_FAILED,
-    ERROR_LP_TOKEN_NOT_ISSUED, ERROR_NOT_ACTIVE, ERROR_NOT_WHITELISTED, ERROR_SLIPPAGE_ON_REMOVE,
+    ERROR_LP_TOKEN_NOT_ISSUED, ERROR_NOT_ACTIVE, ERROR_NOT_WHITELISTED,
 };
 
 use super::common_result_types::RemoveLiquidityResultType;
@@ -18,6 +18,7 @@ pub trait RemoveLiquidityModule:
     + crate::safe_price::SafePriceModule
     + crate::fee::FeeModule
     + crate::config::ConfigModule
+    + crate::read_pair_storage::ReadPairStorageModule
     + token_send::TokenSendModule
     + permissions_module::PermissionsModule
     + pausable::PausableModule
@@ -84,15 +85,6 @@ pub trait RemoveLiquidityModule:
 
         let output_payments =
             self.build_remove_liq_output_payments(&storage_cache, &remove_liq_context);
-
-        require!(
-            output_payments.get(0).amount >= remove_liq_context.first_token_amount_min,
-            ERROR_SLIPPAGE_ON_REMOVE
-        );
-        require!(
-            output_payments.get(1).amount >= remove_liq_context.second_token_amount_min,
-            ERROR_SLIPPAGE_ON_REMOVE
-        );
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 

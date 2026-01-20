@@ -38,7 +38,7 @@ fn test_basic_migration_functionality() {
 
     // Simulate pre-migration storage state
     let per_block_reward_amount = 1_000u64;
-    fs_setup.simulate_per_block_migration_storage(per_block_reward_amount, 0);
+    fs_setup.simulate_per_block_migration_storage(per_block_reward_amount, initial_block);
 
     // Verify pre-migration state
     fs_setup
@@ -97,9 +97,12 @@ fn test_basic_migration_functionality() {
     fs_setup.advance_time(60);
 
     // User should be able to claim rewards successfully after migration
-    let expected_reward_out = 3036u64;
+    // With last_reward_block_nonce = initial_block (1000), no block rewards are pending during upgrade
+    // Rewards come from per-second system: 166 * 60 = 9960 unbounded, APR bounded to ~47
+    // After 25% boosted split: base rewards = ~36
+    let expected_reward_out = 36u64;
     let user_balance = rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_out);
-    let expected_rps = 30_360_000u64; // 3036 * DIVISION_SAFETY_CONSTANT / farm_in_amount
+    let expected_rps = 360_000u64; // 36 * DIVISION_SAFETY_CONSTANT / farm_in_amount
 
     fs_setup.claim_rewards(
         &first_user,

@@ -31,6 +31,7 @@ fn farm_proxy_setup_test() {
     let _ = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -41,6 +42,7 @@ fn farm_proxy_actions_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -268,6 +270,7 @@ fn farm_with_wrapped_lp_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -520,6 +523,7 @@ fn farm_proxy_claim_energy_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -658,6 +662,7 @@ fn farm_proxy_partial_exit_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -836,6 +841,7 @@ fn farm_proxy_partial_exit_with_penalty_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -1018,6 +1024,7 @@ fn different_farm_locked_token_nonce_merging_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -1187,6 +1194,7 @@ fn total_farm_mechanism_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -1418,6 +1426,7 @@ fn increase_proxy_farm_lkmex_energy() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -1499,6 +1508,7 @@ fn increase_proxy_farm_proxy_lp_energy() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -1739,6 +1749,7 @@ fn increase_proxy_farm_proxy_lp_energy_unlocked_tokens() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -1984,6 +1995,7 @@ fn increase_proxy_farm_proxy_lp_energy_partially_unlocked_tokens() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -2226,6 +2238,7 @@ fn original_caller_negative_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -2330,6 +2343,7 @@ fn total_farm_position_migration_through_proxy_dex_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -2465,6 +2479,7 @@ fn increase_proxy_farm_legacy_token_energy_negative_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -2508,6 +2523,7 @@ fn total_farm_position_migration_mechanism_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );

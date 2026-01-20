@@ -50,6 +50,7 @@ pub struct NonceAmountPair {
 
 pub struct FarmStakingSetup<
     PairObjBuilder,
+    RouterObjBuilder,
     FarmObjBuilder,
     EnergyFactoryBuilder,
     PermissionsHubObjBuilder,
@@ -57,6 +58,7 @@ pub struct FarmStakingSetup<
     ProxyContractObjBuilder,
 > where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
@@ -67,6 +69,7 @@ pub struct FarmStakingSetup<
     pub user_addr: Address,
     pub b_mock: BlockchainStateWrapper,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    pub router_wrapper: ContractObjWrapper<router::ContractObj<DebugApi>, RouterObjBuilder>,
     pub lp_farm_wrapper:
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>,
     pub energy_factory_wrapper:
@@ -81,6 +84,7 @@ pub struct FarmStakingSetup<
 
 impl<
         PairObjBuilder,
+        RouterObjBuilder,
         FarmObjBuilder,
         EnergyFactoryBuilder,
         PermissionsHubObjBuilder,
@@ -89,6 +93,7 @@ impl<
     >
     FarmStakingSetup<
         PairObjBuilder,
+        RouterObjBuilder,
         FarmObjBuilder,
         EnergyFactoryBuilder,
         PermissionsHubObjBuilder,
@@ -97,6 +102,7 @@ impl<
     >
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
     PermissionsHubObjBuilder: 'static + Copy + Fn() -> permissions_hub::ContractObj<DebugApi>,
@@ -105,6 +111,7 @@ where
 {
     pub fn new(
         pair_builder: PairObjBuilder,
+        router_builder: RouterObjBuilder,
         lp_farm_builder: FarmObjBuilder,
         energy_factory_builder: EnergyFactoryBuilder,
         permissions_hub_builder: PermissionsHubObjBuilder,
@@ -118,7 +125,13 @@ where
 
         let energy_factory_wrapper =
             setup_energy_factory(&owner_addr, &mut b_mock, energy_factory_builder);
-        let pair_wrapper = setup_pair(&owner_addr, &user_addr, &mut b_mock, pair_builder);
+        let (pair_wrapper, router_wrapper) = setup_pair(
+            &owner_addr,
+            &user_addr,
+            &mut b_mock,
+            pair_builder,
+            router_builder,
+        );
         let lp_farm_wrapper = setup_lp_farm(
             &owner_addr,
             &user_addr,
@@ -186,6 +199,7 @@ where
             user_addr,
             b_mock,
             pair_wrapper,
+            router_wrapper,
             lp_farm_wrapper,
             energy_factory_wrapper,
             permissions_hub_wrapper,
