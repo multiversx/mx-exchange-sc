@@ -97,7 +97,7 @@ impl<M: ManagedTypeApi> GovernanceProposal<M> {
             actions: ArrayVec::default(),
             description: ManagedBuffer::default(),
             fee_payment: EsdtTokenPayment {
-                token_identifier: TokenIdentifier::from(""),
+                token_identifier: TokenIdentifier::from("EMPTY-000000"),
                 token_nonce: 0,
                 amount: BigUint::zero(),
             },

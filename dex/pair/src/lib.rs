@@ -68,10 +68,6 @@ pub trait Pair<ContractReader>:
         );
         require!(first_token_id != second_token_id, ERROR_SAME_TOKENS);
 
-        let lp_token_id = self.lp_token_identifier().get();
-        require!(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-        require!(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-
         self.set_fee_percents(total_fee_percent, special_fee_percent);
         self.state().set(State::Inactive);
 

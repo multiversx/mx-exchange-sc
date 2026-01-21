@@ -17,6 +17,7 @@ pub type RustBigUint = num_bigint::BigUint;
 
 use config::*;
 use energy_factory::energy::EnergyModule;
+use energy_factory::token_whitelist::TokenWhitelistModule;
 use energy_query::{Energy, EnergyQueryModule};
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_staking::claim_stake_farm_rewards::ClaimStakeFarmRewardsModule;
@@ -99,6 +100,13 @@ where
             energy_factory_builder,
             "energy_factory.wasm",
         );
+
+        b_mock
+            .execute_tx(&owner_addr, &energy_factory_wrapper, &rust_zero, |sc| {
+                sc.base_asset_token_id()
+                    .set(managed_token_id!(b"MEX-abcdef"));
+            })
+            .assert_ok();
 
         let permissions_hub_wrapper = b_mock.create_sc_account(
             &rust_zero,
