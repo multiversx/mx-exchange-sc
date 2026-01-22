@@ -121,6 +121,7 @@ pub fn add_proxy_to_whitelist<StakingContractObjBuilder>(
 
 pub fn setup_proxy<ProxyContractObjBuilder>(
     owner_addr: &Address,
+    energy_factory_address: &Address,
     lp_farm_address: &Address,
     staking_farm_address: &Address,
     pair_address: &Address,
@@ -137,7 +138,7 @@ where
     b_mock
         .execute_tx(owner_addr, &proxy_wrapper, &rust_zero, |sc| {
             sc.init(
-                managed_address!(staking_farm_address), // TODO - replace with energy factory address when needed
+                managed_address!(energy_factory_address),
                 managed_address!(lp_farm_address),
                 managed_address!(staking_farm_address),
                 managed_address!(pair_address),

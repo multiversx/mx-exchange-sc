@@ -148,6 +148,7 @@ where
         );
         let proxy_wrapper = setup_proxy(
             &owner_addr,
+            energy_factory_wrapper.address_ref(),
             lp_farm_wrapper.address_ref(),
             staking_farm_wrapper.address_ref(),
             pair_wrapper.address_ref(),

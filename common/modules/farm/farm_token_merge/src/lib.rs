@@ -7,14 +7,53 @@ use common_errors::{
     ERROR_NOT_A_FARM_TOKEN, ERROR_NO_TOKEN_TO_MERGE, ERROR_TOO_MANY_ADDITIONAL_PAYMENTS,
     ERROR_ZERO_AMOUNT,
 };
-use common_structs::{
-    mergeable_token_traits::*, DefaultFarmPaymentAttributesPair, FarmTokenAttributes,
-    PaymentAttributesPair,
-};
+use common_structs::{FarmTokenAttributes, PaymentAttributesPair};
 use token_merge_helper::{ValueWeight, WeightedAverageType};
 
 pub const MAX_ADDITIONAL_TOKENS: usize = 10;
 pub const MAX_TOTAL_TOKENS: usize = MAX_ADDITIONAL_TOKENS + 1;
+
+pub type DefaultFarmPaymentAttributesPair<M> = PaymentAttributesPair<M, FarmTokenAttributes<M>>;
+
+pub trait PaymentAmountGetter<M: ManagedTypeApi> {
+    fn get_payment_amount(&self) -> &BigUint<M>;
+}
+
+pub trait RewardPerShareGetter<M: ManagedTypeApi> {
+    fn get_reward_per_share(&self) -> &BigUint<M>;
+}
+
+pub trait CurrentFarmAmountGetter<M: ManagedTypeApi> {
+    fn get_current_farm_amount(&self) -> &BigUint<M>;
+}
+
+pub trait CompoundedRewardAmountGetter<M: ManagedTypeApi> {
+    fn get_compounded_reward_amount(&self) -> &BigUint<M>;
+}
+
+impl<M: ManagedTypeApi> PaymentAmountGetter<M> for DefaultFarmPaymentAttributesPair<M> {
+    fn get_payment_amount(&self) -> &BigUint<M> {
+        &self.payment.amount
+    }
+}
+
+impl<M: ManagedTypeApi> RewardPerShareGetter<M> for DefaultFarmPaymentAttributesPair<M> {
+    fn get_reward_per_share(&self) -> &BigUint<M> {
+        &self.attributes.reward_per_share
+    }
+}
+
+impl<M: ManagedTypeApi> CurrentFarmAmountGetter<M> for DefaultFarmPaymentAttributesPair<M> {
+    fn get_current_farm_amount(&self) -> &BigUint<M> {
+        &self.attributes.current_farm_amount
+    }
+}
+
+impl<M: ManagedTypeApi> CompoundedRewardAmountGetter<M> for DefaultFarmPaymentAttributesPair<M> {
+    fn get_compounded_reward_amount(&self) -> &BigUint<M> {
+        &self.attributes.compounded_reward
+    }
+}
 
 #[multiversx_sc::module]
 pub trait FarmTokenMergeModule:
@@ -61,6 +100,7 @@ pub trait FarmTokenMergeModule:
         &self,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         virtual_position: Option<DefaultFarmPaymentAttributesPair<Self::Api>>,
+        original_owner: ManagedAddress<Self::Api>,
     ) -> FarmTokenAttributes<Self::Api> {
         require!(
             !payments.is_empty() || virtual_position.is_some(),
@@ -86,7 +126,7 @@ pub trait FarmTokenMergeModule:
                 self.get_farm_token_attributes(&payment.token_identifier, payment.token_nonce);
             unsafe {
                 tokens.push_unchecked(PaymentAttributesPair {
-                    payment,
+                    payment: payment.clone(),
                     attributes,
                 });
             }
@@ -108,6 +148,7 @@ pub trait FarmTokenMergeModule:
             entering_epoch: current_epoch,
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
+            original_owner,
         }
     }
 
