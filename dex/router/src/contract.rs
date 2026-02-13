@@ -62,23 +62,27 @@ pub trait Router:
 
     #[only_owner]
     #[endpoint]
-    fn pause(&self, address: ManagedAddress) {
-        if address == self.blockchain().get_sc_address() {
-            self.state().set(false);
-        } else {
-            self.check_is_pair_sc(&address);
-            self.pair_contract_proxy(address).pause().sync_call();
+    fn pause(&self, addresses: MultiValueEncoded<ManagedAddress>) {
+        for address in addresses {
+            if address == self.blockchain().get_sc_address() {
+                self.state().set(false);
+            } else {
+                self.check_is_pair_sc(&address);
+                self.pair_contract_proxy(address).pause().sync_call();
+            }
         }
     }
 
     #[only_owner]
     #[endpoint]
-    fn resume(&self, address: ManagedAddress) {
-        if address == self.blockchain().get_sc_address() {
-            self.state().set(true);
-        } else {
-            self.check_is_pair_sc(&address);
-            self.pair_contract_proxy(address).resume().sync_call();
+    fn resume(&self, addresses: MultiValueEncoded<ManagedAddress>) {
+        for address in addresses {
+            if address == self.blockchain().get_sc_address() {
+                self.state().set(true);
+            } else {
+                self.check_is_pair_sc(&address);
+                self.pair_contract_proxy(address).resume().sync_call();
+            }
         }
     }
 
