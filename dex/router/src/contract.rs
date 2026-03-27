@@ -365,6 +365,7 @@ pub trait Router:
         self.default_safe_price_rounds_offset().set(new_offset);
     }
 
+    #[only_owner]
     #[endpoint(claimDeveloperRewardsPairs)]
     fn claim_developer_rewards_pairs(&self, pairs: MultiValueEncoded<ManagedAddress>) {
         let sc_address = self.blockchain().get_sc_address();
@@ -380,7 +381,7 @@ pub trait Router:
         require!(egld_balance_after > egld_balance_before, "No EGLD received");
         let total_egld_received = egld_balance_after - egld_balance_before;
 
-        let owner = self.blockchain().get_caller();
+        let owner = self.blockchain().get_owner_address();
         self.send().direct_egld(&owner, &total_egld_received);
     }
 

@@ -622,6 +622,10 @@ pub trait SafePriceViewModule:
         let left_weight = right_observation.recording_timestamp - target_timestamp;
         let right_weight = target_timestamp - left_observation.recording_timestamp;
 
+        if left_weight == 0 && right_weight == 0 {
+            return left_observation.recording_round;
+        }
+
         weighted_average(
             left_observation.recording_round,
             left_weight,
