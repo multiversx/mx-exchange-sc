@@ -5,6 +5,7 @@ use crate::safe_price::PriceObservation;
 multiversx_sc::imports!();
 
 pub static LP_TOKEN_SUPPLY_STORAGE_KEY: &[u8] = b"lp_token_supply";
+pub static LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 pub static FIRST_TOKEN_ID_STORAGE_KEY: &[u8] = b"first_token_id";
 pub static SECOND_TOKEN_ID_STORAGE_KEY: &[u8] = b"second_token_id";
 pub static SAFE_PRICE_CURRENT_INDEX_STORAGE_KEY: &[u8] = b"safe_price_current_index";
@@ -26,6 +27,16 @@ pub trait ReadPairStorageModule {
         SingleValueMapper::<_, _, ManagedAddress>::new_from_address(
             pair_address,
             StorageKey::new(LP_TOKEN_SUPPLY_STORAGE_KEY),
+        )
+    }
+
+    fn get_pair_lp_token_id_mapper(
+        &self,
+        pair_address: ManagedAddress,
+    ) -> SingleValueMapper<TokenIdentifier, ManagedAddress> {
+        SingleValueMapper::<_, _, ManagedAddress>::new_from_address(
+            pair_address,
+            StorageKey::new(LP_TOKEN_ID_STORAGE_KEY),
         )
     }
 

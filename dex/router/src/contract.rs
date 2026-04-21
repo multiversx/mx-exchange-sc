@@ -213,15 +213,8 @@ pub trait Router:
             }
         };
 
-        let result: TokenIdentifier = self
-            .pair_contract_proxy(pair_address.clone())
-            .get_lp_token_identifier()
-            .returns(ReturnsResult)
-            .sync_call();
-        require!(
-            !result.is_valid_esdt_identifier(),
-            "LP Token already issued"
-        );
+        let pair_lp_token_mapper = self.get_pair_lp_token_id_mapper(pair_address.clone());
+        require!(pair_lp_token_mapper.is_empty(), "LP Token already issued");
 
         self.send()
             .esdt_system_sc_proxy()
