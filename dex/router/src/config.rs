@@ -2,25 +2,12 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use crate::{enable_swap_by_user::EnableSwapByUserConfig, factory::PairTokens};
-use multiversx_sc::storage::StorageKey;
 use pair::{read_pair_storage, safe_price::Round};
-
-pub static LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 
 #[multiversx_sc::module]
 pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
     fn is_active(&self) -> bool {
         self.state().get()
-    }
-
-    fn get_pair_lp_token_id_mapper(
-        &self,
-        pair_address: ManagedAddress,
-    ) -> SingleValueMapper<TokenIdentifier, ManagedAddress> {
-        SingleValueMapper::<_, _, ManagedAddress>::new_from_address(
-            pair_address,
-            StorageKey::new(LP_TOKEN_ID_STORAGE_KEY),
-        )
     }
 
     fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
