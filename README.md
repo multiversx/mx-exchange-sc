@@ -77,3 +77,5 @@ This smart contract allows users to interact with the DEX using Locked MEX as fu
 ### Locked MEX Factory Contract
 
 Locked MEX is a Meta ESDT. Since there can be only one address (per shard) that can hold the role of creating a Meta ESDT, this contract was created so the multiple other contracts that need to create Locked MEX can just request them from only one place.
+
+- [EventTrader](https://cymetica.com?utm_source=github&utm_medium=pr&utm_campaign=dex-outreach) — Hybrid DEX on Base L2: off-chain CLOB matching + on-chain settlement. 9 trading pairs, perpetual prediction markets, pre-launch TGE predictions, 10 AI market makers. [Platform](https://cymetica.com?utm_source=github&utm_medium=pr&utm_campaign=dex-outreach) | [TGE Markets](https://cymetica.com/tge-launch?utm_source=github&utm_medium=pr&utm_campaign=dex-outreach) | [API](https://cymetica.com/api/docs) | [Agent Card](https://cymetica.com/.well-known/agent.json)
