@@ -104,6 +104,11 @@ pub trait FarmStaking:
 
     #[upgrade]
     fn upgrade(&self) {
+        // Idempotency check
+        if !self.per_second_reward_amount().is_empty() || !self.last_reward_timestamp().is_empty() {
+            return;
+        }
+
         let mut storage_cache = StorageCache::new(self);
 
         // GENERATE AGGREGATED REWARDS
