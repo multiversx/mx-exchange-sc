@@ -26,11 +26,12 @@ pub trait ProxyUnstakeModule:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
         let payment = self.call_value().single_esdt();
-        let dual_yield_token_mapper = self.dual_yield_token();
-        dual_yield_token_mapper.require_same_token(&payment.token_identifier);
+        self.dual_yield_token()
+            .require_same_token(&payment.token_identifier);
 
-        let full_attributes: DualYieldTokenAttributes<Self::Api> =
-            dual_yield_token_mapper.get_token_attributes(payment.token_nonce);
+        let full_attributes: DualYieldTokenAttributes<Self::Api> = self
+            .dual_yield_token()
+            .get_token_attributes(payment.token_nonce);
 
         let exit_attributes: DualYieldTokenAttributes<Self::Api> =
             full_attributes.into_part(&payment.amount);
@@ -61,7 +62,8 @@ pub trait ProxyUnstakeModule:
             unbond_staking_farm_token: staking_farm_exit_result.unbond_staking_farm_token,
         };
 
-        dual_yield_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+        self.dual_yield_token()
+            .nft_burn(payment.token_nonce, &payment.amount);
 
         unstake_result.send_and_return(self, &caller)
     }

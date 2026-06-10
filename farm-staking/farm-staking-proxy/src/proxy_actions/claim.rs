@@ -40,11 +40,11 @@ pub trait ProxyClaimModule:
         orig_caller: ManagedAddress,
         payment: EsdtTokenPayment,
     ) -> ClaimDualYieldResult<Self::Api> {
-        let dual_yield_token_mapper = self.dual_yield_token();
-        dual_yield_token_mapper.require_same_token(&payment.token_identifier);
+        self.dual_yield_token()
+            .require_same_token(&payment.token_identifier);
 
         let attributes: DualYieldTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(&payment, &dual_yield_token_mapper);
+            self.get_attributes_as_part_of_fixed_supply(&payment, &self.dual_yield_token());
 
         let lp_tokens_in_position = self.get_lp_tokens_in_farm_position(
             attributes.lp_farm_token_nonce,
@@ -78,12 +78,13 @@ pub trait ProxyClaimModule:
         };
 
         let new_dual_yield_tokens =
-            self.create_dual_yield_tokens(&dual_yield_token_mapper, &new_dual_yield_attributes);
+            self.create_dual_yield_tokens(&self.dual_yield_token(), &new_dual_yield_attributes);
 
         let lp_farm_rewards = lp_farm_claim_rewards_result.lp_farm_rewards;
         let staking_farm_rewards = staking_farm_claim_rewards_result.staking_farm_rewards;
 
-        dual_yield_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+        self.dual_yield_token()
+            .nft_burn(payment.token_nonce, &payment.amount);
 
         ClaimDualYieldResult {
             lp_farm_rewards,
