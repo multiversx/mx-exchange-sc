@@ -34,8 +34,9 @@ use farm_with_locked_rewards::*;
 
 use crate::constants::*;
 
-pub const SAFE_PRICE_ROUND_SAVE_INTERVAL: u64 = 1;
-pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
+pub const SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL: u64 = 6_000;
+pub const DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET: u64 = 3_600;
+pub const SAFE_PRICE_TEST_ROUNDS_OFFSET: u64 = 10 * 60;
 
 pub fn setup_pair<PairObjBuilder, RouterObjBuilder>(
     owner_addr: &Address,
@@ -87,10 +88,10 @@ where
     b_mock
         .execute_tx(owner_addr, &router_wrapper, &rust_zero, |sc| {
             sc.init(OptionalValue::None);
-            sc.safe_price_round_save_interval()
-                .set(SAFE_PRICE_ROUND_SAVE_INTERVAL);
-            sc.default_safe_price_rounds_offset()
-                .set(DEFAULT_SAFE_PRICE_ROUNDS_OFFSET);
+            sc.safe_price_timestamp_save_interval()
+                .set(SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL);
+            sc.default_safe_price_timestamp_offset()
+                .set(DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET);
         })
         .assert_ok();
 
@@ -156,8 +157,9 @@ where
     );
 
     // Extra operations to record the new reserves
-    block_round += DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+    block_round += SAFE_PRICE_TEST_ROUNDS_OFFSET;
     b_mock.set_block_round(block_round);
+    b_mock.set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP);
     add_liquidity(
         &temp_user_addr,
         b_mock,
@@ -182,8 +184,6 @@ where
             );
         })
         .assert_ok();
-
-    b_mock.set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP);
 
     (pair_wrapper, router_wrapper)
 }

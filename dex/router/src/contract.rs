@@ -16,8 +16,6 @@ use pair::fee::ProxyTrait as _;
 use pair::{read_pair_storage, ProxyTrait as _};
 use pausable::ProxyTrait as _;
 
-use pair::safe_price::Round;
-
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
@@ -25,6 +23,8 @@ const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
 const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
+const DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL: u64 = 6_000;
+const DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET: u64 = 3_600;
 
 #[multiversx_sc::contract]
 pub trait Router:
@@ -40,6 +40,7 @@ pub trait Router:
     fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
         self.state().set_if_empty(true);
         self.pair_creation_enabled().set_if_empty(false);
+        self.init_safe_price_config();
 
         self.init_factory(pair_template_address_opt.into_option());
         self.owner().set(self.blockchain().get_caller());
@@ -47,17 +48,17 @@ pub trait Router:
 
     #[upgrade]
     fn upgrade(&self) {
-        let safe_price_round_save_interval = 1u64;
-        self.safe_price_round_save_interval()
-            .set_if_empty(safe_price_round_save_interval);
-
-        let blocks_per_minute = 10;
-        let minutes_per_hour = 60;
-        let default_safe_price_rounds_offset = blocks_per_minute * minutes_per_hour;
-        self.default_safe_price_rounds_offset()
-            .set_if_empty(default_safe_price_rounds_offset);
+        self.init_safe_price_config();
 
         self.state().set(false);
+    }
+
+    fn init_safe_price_config(&self) {
+        self.safe_price_timestamp_save_interval()
+            .set_if_empty(DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL);
+
+        self.default_safe_price_timestamp_offset()
+            .set_if_empty(DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET);
     }
 
     #[only_owner]
@@ -338,24 +339,26 @@ pub trait Router:
             .sync_call();
     }
 
+    /// Warning: changing this affects the maximum safe-price history observed by integrators.
     #[only_owner]
-    #[endpoint(setSafePriceRoundSaveInterval)]
-    fn set_safe_price_round_save_interval(&self, new_interval: Round) {
+    #[endpoint(setSafePriceTimestampSaveInterval)]
+    fn set_safe_price_timestamp_save_interval(&self, new_interval: u64) {
         require!(
             new_interval > 0,
-            "Round save interval must be greater than 0"
+            "Timestamp save interval must be greater than 0"
         );
-        self.safe_price_round_save_interval().set(new_interval);
+        self.safe_price_timestamp_save_interval().set(new_interval);
     }
 
+    /// Warning: changing this affects the default safe-price averaging window observed by integrators.
     #[only_owner]
-    #[endpoint(setDefaultSafePriceRoundsOffset)]
-    fn set_default_safe_price_rounds_offset(&self, new_offset: u64) {
+    #[endpoint(setDefaultSafePriceTimestampOffset)]
+    fn set_default_safe_price_timestamp_offset(&self, new_offset: u64) {
         require!(
             new_offset > 0,
-            "Default safe price rounds offset must be greater than 0"
+            "Default safe price timestamp offset must be greater than 0"
         );
-        self.default_safe_price_rounds_offset().set(new_offset);
+        self.default_safe_price_timestamp_offset().set(new_offset);
     }
 
     #[only_owner]

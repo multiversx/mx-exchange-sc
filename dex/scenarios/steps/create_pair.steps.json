@@ -40,13 +40,34 @@
         },
         {
             "step": "scCall",
-            "txId": "set-safe-price-round-save-interval",
+            "txId": "set-safe-price-timestamp-save-interval",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:router_contract",
-                "function": "setSafePriceRoundSaveInterval",
+                "function": "setSafePriceTimestampSaveInterval",
                 "arguments": [
-                    "1"
+                    "6,000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "set-default-safe-price-timestamp-offset",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "setDefaultSafePriceTimestampOffset",
+                "arguments": [
+                    "3,600"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"

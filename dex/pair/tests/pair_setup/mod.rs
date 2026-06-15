@@ -63,11 +63,11 @@ where
             .execute_tx(&owner_addr, &router_wrapper, &rust_zero, |sc| {
                 sc.init(OptionalValue::None);
 
-                let safe_price_round_save_interval = 1u64;
-                let safe_price_rounds_offset = 600u64;
+                let safe_price_timestamp_save_interval = 6_000u64;
+                let safe_price_timestamp_offset = 3_600u64;
 
-                sc.set_safe_price_round_save_interval(safe_price_round_save_interval);
-                sc.set_default_safe_price_rounds_offset(safe_price_rounds_offset);
+                sc.set_safe_price_timestamp_save_interval(safe_price_timestamp_save_interval);
+                sc.set_default_safe_price_timestamp_offset(safe_price_timestamp_offset);
             })
             .assert_ok();
 
@@ -303,6 +303,11 @@ where
             .assert_ok();
     }
 
+    pub fn set_block_round(&mut self, block_round: u64) {
+        self.b_mock.set_block_round(block_round);
+        self.b_mock.set_block_timestamp_ms(block_round * 6_000);
+    }
+
     pub fn check_price_observation(
         &mut self,
         pair_address: &Address,
@@ -311,18 +316,26 @@ where
         first_token_reserve_accumulated: u64,
         second_token_reserve_accumulated: u64,
     ) {
+        let legacy_round_duration_milliseconds = 6_000u64;
         self.b_mock
             .execute_query(&self.pair_wrapper, |sc| {
                 let price_observation =
                     sc.get_price_observation_view(managed_address!(pair_address), search_round);
-                assert_eq!(price_observation.weight_accumulated, weight_accumulated);
+                assert_eq!(
+                    price_observation.weight_accumulated,
+                    weight_accumulated * legacy_round_duration_milliseconds
+                );
                 assert_eq!(
                     price_observation.first_token_reserve_accumulated,
-                    managed_biguint!(first_token_reserve_accumulated)
+                    managed_biguint!(
+                        first_token_reserve_accumulated * legacy_round_duration_milliseconds
+                    )
                 );
                 assert_eq!(
                     price_observation.second_token_reserve_accumulated,
-                    managed_biguint!(second_token_reserve_accumulated)
+                    managed_biguint!(
+                        second_token_reserve_accumulated * legacy_round_duration_milliseconds
+                    )
                 );
             })
             .assert_ok();
@@ -336,18 +349,26 @@ where
         first_token_reserve_accumulated: u64,
         second_token_reserve_accumulated: u64,
     ) {
+        let legacy_round_duration_milliseconds = 6_000u64;
         self.b_mock
             .execute_query(&self.second_pair_wrapper, |sc| {
                 let price_observation =
                     sc.get_price_observation_view(managed_address!(pair_address), search_round);
-                assert_eq!(price_observation.weight_accumulated, weight_accumulated);
+                assert_eq!(
+                    price_observation.weight_accumulated,
+                    weight_accumulated * legacy_round_duration_milliseconds
+                );
                 assert_eq!(
                     price_observation.first_token_reserve_accumulated,
-                    managed_biguint!(first_token_reserve_accumulated)
+                    managed_biguint!(
+                        first_token_reserve_accumulated * legacy_round_duration_milliseconds
+                    )
                 );
                 assert_eq!(
                     price_observation.second_token_reserve_accumulated,
-                    managed_biguint!(second_token_reserve_accumulated)
+                    managed_biguint!(
+                        second_token_reserve_accumulated * legacy_round_duration_milliseconds
+                    )
                 );
             })
             .assert_ok();
@@ -432,6 +453,7 @@ where
 
             let mut price_observation = price_observations.get(observation_index);
             price_observation.lp_supply_accumulated = BigUint::zero();
+            price_observation.recording_timestamp = 0;
             price_observations.set(observation_index, &price_observation);
         });
     }
@@ -495,13 +517,13 @@ where
         });
     }
 
-    pub fn set_safe_price_save_interval(&mut self, save_interval: u64) {
+    pub fn set_safe_price_timestamp_save_interval(&mut self, save_interval: u64) {
         let _ = self.b_mock.execute_tx(
             &self.owner_address,
             &self.router_wrapper,
             &rust_biguint!(0u64),
             |sc| {
-                sc.set_safe_price_round_save_interval(save_interval);
+                sc.set_safe_price_timestamp_save_interval(save_interval);
             },
         );
     }

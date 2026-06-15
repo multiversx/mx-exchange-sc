@@ -146,10 +146,10 @@ where
                     managed_address!(usdc_pair_wrapper.address_ref()),
                 );
 
-                let safe_price_round_save_interval = 1u64;
-                let default_safe_price_rounds_offset = 600u64;
-                sc.set_safe_price_round_save_interval(safe_price_round_save_interval);
-                sc.set_default_safe_price_rounds_offset(default_safe_price_rounds_offset);
+                let safe_price_timestamp_save_interval = 6_000u64;
+                let default_safe_price_timestamp_offset = 3_600u64;
+                sc.set_safe_price_timestamp_save_interval(safe_price_timestamp_save_interval);
+                sc.set_default_safe_price_timestamp_offset(default_safe_price_timestamp_offset);
             })
             .assert_ok();
 

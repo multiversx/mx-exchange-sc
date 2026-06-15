@@ -35,6 +35,35 @@ fn test_router_setup() {
 }
 
 #[test]
+fn test_safe_price_config_defaults_and_upgrade_preserves_custom_values() {
+    let rust_zero = rust_biguint!(0u64);
+    let mut b_mock = BlockchainStateWrapper::new();
+    let owner = b_mock.create_user_account(&rust_zero);
+    let router_wrapper = b_mock.create_sc_account(
+        &rust_zero,
+        Some(&owner),
+        router::contract_obj,
+        ROUTER_WASM_PATH,
+    );
+
+    b_mock
+        .execute_tx(&owner, &router_wrapper, &rust_zero, |sc| {
+            sc.init(OptionalValue::None);
+
+            assert_eq!(sc.safe_price_timestamp_save_interval().get(), 6_000u64);
+            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 3_600u64);
+
+            sc.set_safe_price_timestamp_save_interval(12_000u64);
+            sc.set_default_safe_price_timestamp_offset(1_800u64);
+            sc.upgrade();
+
+            assert_eq!(sc.safe_price_timestamp_save_interval().get(), 12_000u64);
+            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 1_800u64);
+        })
+        .assert_ok();
+}
+
+#[test]
 fn test_router_upgrade_pair() {
     let rust_zero = rust_biguint!(0u64);
     let mut b_mock = BlockchainStateWrapper::new();

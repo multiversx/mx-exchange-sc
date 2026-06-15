@@ -172,36 +172,36 @@ Each price observation records:
 
 The weight of a `PriceObservation` represents the time duration it covers. Specifically:
 
-**Weight = Current Round - Last Saved Round**
+**Weight = Current Timestamp - Last Saved Timestamp**
 
-This weight is used to properly time-weight the reserves when calculating safe prices. For example, if the last observation was saved at round 1000 and the current round is 1010, the weight for the new observation would be 10 rounds.
+This weight is used to properly time-weight the reserves when calculating safe prices. The interval is expressed in milliseconds.
 
 This weighting ensures that longer time periods have proportionally greater influence on the final TWAP calculation, preventing manipulation through rapid price changes.
 
 ## Recording Mechanisms
 
-### Immediate Save Mode (Interval = 1)
+### Immediate Save Mode (Interval = 6000)
 
 Default behavior where every update creates a new observation:
 
 ```rust
-safe_price_round_save_interval = 1 (default)
+safe_price_timestamp_save_interval = 6000 (default)
 ```
 
 - Observation saved on every swap/liquidity change
 - Most accurate but higher gas costs
 - Suitable for lower-frequency trading
 
-### Intermediate Save Mode (Interval > 1)
+### Intermediate Save Mode (Interval > 6000)
 
 Accumulates data over multiple rounds before saving:
 
 ```rust
-safe_price_round_save_interval = 10
+safe_price_timestamp_save_interval = 60000
 ```
 
 - Accumulates weighted data in `current_price_observation`
-- Finalizes observation when interval rounds have passed
+- Finalizes observation when the configured duration has passed
 - Lower gas costs but slightly delayed observations
 - Optimal for high-frequency trading (0.6s blocks)
 
@@ -226,9 +226,9 @@ Get safe price using the default configured offset.
 let output = getSafePriceByDefaultOffset(pair_addr, EsdtTokenPayment(WEGLD, 0, 1000));
 ```
 
-#### `getSafePriceByRoundOffset`
+#### Legacy: `getSafePriceByRoundOffset`
 
-Get safe price using a specific round offset.
+Get safe price using a specific round offset. Prefer timestamp-offset views for new integrations.
 
 **Parameters:**
 - `pair_address: ManagedAddress` - The pair contract address
@@ -296,9 +296,9 @@ Get LP token value using the default offset.
 let (first_token, second_token) = getLpTokensSafePriceByDefaultOffset(pair_addr, 1000);
 ```
 
-#### `getLpTokensSafePriceByRoundOffset`
+#### Legacy: `getLpTokensSafePriceByRoundOffset`
 
-Get LP token value using a specific round offset.
+Get LP token value using a specific round offset. Prefer timestamp-offset views for new integrations.
 
 **Parameters:**
 - `pair_address: ManagedAddress` - The pair contract address
@@ -373,16 +373,16 @@ Returns the current index in the circular observation buffer.
 **Returns:**
 - `usize` - Current index (1-based)
 
-#### `getSafePriceRoundSaveInterval`
+#### `getSafePriceTimestampSaveInterval`
 
-Returns the configured round save interval.
+Returns the configured timestamp save interval.
 
 **Available on:** Router contract (storage is in router; pair reads from router's storage)
 
 **Returns:**
-- `Round` - Number of rounds between saves
+- `u64` - Number of milliseconds between saves
 
-**Default Value:** `1` (immediate save on every update)
+**Default Value:** `6000` ms
 
 #### `getCurrentPriceObservation`
 
@@ -393,16 +393,16 @@ Returns the current intermediate observation (if any).
 **Returns:**
 - `PriceObservation` - The intermediate observation
 
-#### `getDefaultSafePriceRoundsOffset`
+#### `getDefaultSafePriceTimestampOffset`
 
-Returns the default round offset for safe price queries.
+Returns the default timestamp offset for safe price queries.
 
 **Available on:** Router contract (storage is in router; pair reads from router's storage)
 
 **Returns:**
-- `u64` - Default offset in rounds
+- `u64` - Default offset in seconds
 
-**Default Value:** `600` rounds
+**Default Value:** `3600` seconds
 
 ## Configuration
 
@@ -410,7 +410,7 @@ Returns the default round offset for safe price queries.
 
 The Router SC acts as the central hub for safe price configuration. Configuration values are stored in the router's storage, and pair contracts read these values directly from the router using external storage reads.
 
-#### `setSafePriceRoundSaveInterval`
+#### `setSafePriceTimestampSaveInterval`
 
 Set how frequently observations are saved.
 
@@ -419,13 +419,13 @@ Set how frequently observations are saved.
 **Storage:** Router contract (pairs read from router's storage via `new_from_address`)
 
 **Parameters:**
-- `new_interval: Round` - Must be > 0
+- `new_interval: u64` - Milliseconds, must be > 0
 
 **Example:**
-- For 6s blocks: `interval = 1` (save every round)
-- For 0.6s blocks: `interval = 10` (save every 6 seconds)
+- For legacy 6s behavior: `interval = 6000`
+- For 0.6s blocks: `interval = 6000` (save every 6 seconds)
 
-#### `setDefaultSafePriceRoundsOffset`
+#### `setDefaultSafePriceTimestampOffset`
 
 Set the default lookback period for safe price queries.
 
@@ -434,13 +434,11 @@ Set the default lookback period for safe price queries.
 **Storage:** Router contract (pairs read from router's storage via `new_from_address`)
 
 **Parameters:**
-- `new_offset: u64` - Must be > 0
+- `new_offset: u64` - Seconds, must be > 0
 
-**Default Value:**
-- 600 rounds (10 blocks/minute × 60 minutes = 1 hour at 6s blocks)
-- For 0.6s blocks: Consider 6000 rounds (100 blocks/minute × 60 minutes)
+**Default Value:** `3600` seconds
 
-**Note:** There is no default timestamp offset. When using timestamp-based endpoints (`getSafePriceByTimestampOffset`, `getLpTokensSafePriceByTimestampOffset`), the offset must always be provided as a parameter.
+Default-offset views read this router value. Timestamp-offset views still accept an explicit offset in seconds.
 
 ### Constants
 
