@@ -35,7 +35,7 @@ use farm_with_locked_rewards::*;
 use crate::constants::*;
 
 pub const SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL: u64 = 6_000;
-pub const DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET: u64 = 3_600;
+pub const DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET: u64 = 3_600_000;
 pub const SAFE_PRICE_TEST_ROUNDS_OFFSET: u64 = 10 * 60;
 
 pub fn setup_pair<PairObjBuilder, RouterObjBuilder>(

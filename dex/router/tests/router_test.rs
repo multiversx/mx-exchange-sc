@@ -51,14 +51,14 @@ fn test_safe_price_config_defaults_and_upgrade_preserves_custom_values() {
             sc.init(OptionalValue::None);
 
             assert_eq!(sc.safe_price_timestamp_save_interval().get(), 6_000u64);
-            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 3_600u64);
+            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 3_600_000u64);
 
             sc.set_safe_price_timestamp_save_interval(12_000u64);
-            sc.set_default_safe_price_timestamp_offset(1_800u64);
+            sc.set_default_safe_price_timestamp_offset(1_800_000u64);
             sc.upgrade();
 
             assert_eq!(sc.safe_price_timestamp_save_interval().get(), 12_000u64);
-            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 1_800u64);
+            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 1_800_000u64);
         })
         .assert_ok();
 }

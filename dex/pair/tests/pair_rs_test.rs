@@ -1403,7 +1403,7 @@ fn test_timestamp_offset_ignores_duplicate_current_observation_after_save() {
             );
 
             let target_round =
-                sc.get_round_by_timestamp_offset(6u64, managed_address!(&pair_address));
+                sc.get_round_by_timestamp_offset(6_000u64, managed_address!(&pair_address));
             let target_observation =
                 sc.get_price_observation_view(managed_address!(&pair_address), target_round);
             assert_eq!(
@@ -1580,7 +1580,7 @@ fn test_safe_price_timestamp_offset_uses_current_price_observation() {
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             let target_round =
-                sc.get_round_by_timestamp_offset(3u64, managed_address!(&pair_address));
+                sc.get_round_by_timestamp_offset(3_000u64, managed_address!(&pair_address));
             let target_observation =
                 sc.get_price_observation_view(managed_address!(&pair_address), target_round);
             assert_eq!(target_observation.recording_round, 105u64);
@@ -1661,7 +1661,7 @@ fn test_safe_price_wrapped_observations_use_ring_order() {
             assert_eq!(new_segment_observation.recording_round, new_segment_round);
 
             let target_round =
-                sc.get_round_by_timestamp_offset(6u64, managed_address!(&pair_address));
+                sc.get_round_by_timestamp_offset(6_000u64, managed_address!(&pair_address));
             assert_eq!(target_round, max_observations + 2);
         })
         .assert_ok();

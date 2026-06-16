@@ -315,7 +315,7 @@ where
             sc.init(OptionalValue::None);
 
             let safe_price_timestamp_save_interval = 6_000u64;
-            let default_safe_price_timestamp_offset = 3_600u64;
+            let default_safe_price_timestamp_offset = 3_600_000u64;
             sc.set_safe_price_timestamp_save_interval(safe_price_timestamp_save_interval);
             sc.set_default_safe_price_timestamp_offset(default_safe_price_timestamp_offset);
         })

@@ -157,7 +157,7 @@ where
                 );
 
                 let safe_price_timestamp_save_interval = 6_000u64;
-                let default_safe_price_timestamp_offset = 3_600u64;
+                let default_safe_price_timestamp_offset = 3_600_000u64;
                 sc.safe_price_timestamp_save_interval()
                     .set(safe_price_timestamp_save_interval);
                 sc.default_safe_price_timestamp_offset()

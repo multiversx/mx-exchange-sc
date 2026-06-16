@@ -13,7 +13,6 @@ use crate::{
 
 const LEGACY_ROUND_DURATION_MILLISECONDS: u64 =
     safe_price::DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS;
-const MILLISECONDS_PER_SECOND: u64 = 1_000;
 
 struct PriceObservationWeightedAmounts<M: ManagedTypeApi> {
     weighted_first_token_reserve: BigUint<M>,
@@ -202,17 +201,12 @@ pub trait SafePriceViewModule:
         pair_address: ManagedAddress,
     ) -> Round {
         let current_timestamp = self.get_current_timestamp_milliseconds();
-        let timestamp_offset_milliseconds =
-            match timestamp_offset.checked_mul(MILLISECONDS_PER_SECOND) {
-                Some(value) => value,
-                None => sc_panic!("Safe price timestamp overflow"),
-            };
         require!(
-            timestamp_offset_milliseconds > 0 && timestamp_offset_milliseconds < current_timestamp,
+            timestamp_offset > 0 && timestamp_offset < current_timestamp,
             ERROR_PARAMETERS
         );
 
-        let target_timestamp = current_timestamp - timestamp_offset_milliseconds;
+        let target_timestamp = current_timestamp - timestamp_offset;
 
         let safe_price_current_index = self
             .get_safe_price_current_index_mapper(pair_address.clone())
@@ -957,19 +951,14 @@ pub trait SafePriceViewModule:
             &price_observations,
         );
 
-        if current_timestamp <= oldest_observation.recording_timestamp {
-            return default_safe_price_timestamp_offset;
-        }
+        let available_offset =
+            current_timestamp.saturating_sub(oldest_observation.recording_timestamp);
 
-        let available_offset_seconds =
-            (current_timestamp - oldest_observation.recording_timestamp) / MILLISECONDS_PER_SECOND;
-        if available_offset_seconds > 0
-            && available_offset_seconds < default_safe_price_timestamp_offset
-        {
-            return available_offset_seconds;
+        if available_offset == 0 {
+            default_safe_price_timestamp_offset
+        } else {
+            core::cmp::min(default_safe_price_timestamp_offset, available_offset)
         }
-
-        default_safe_price_timestamp_offset
     }
 
     // legacy endpoints

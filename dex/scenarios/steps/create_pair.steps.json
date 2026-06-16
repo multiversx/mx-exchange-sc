@@ -67,7 +67,7 @@
                 "to": "sc:router_contract",
                 "function": "setDefaultSafePriceTimestampOffset",
                 "arguments": [
-                    "3,600"
+                    "3,600,000"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"

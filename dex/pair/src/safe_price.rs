@@ -133,11 +133,12 @@ pub trait SafePriceModule:
             &latest_observation,
         );
 
+        self.current_price_observation().set(&new_price_observation);
+
         let should_save_observation = new_price_observation.weight_accumulated
             - last_recorded_observation.weight_accumulated
             >= timestamp_save_interval;
 
-        self.current_price_observation().set(&new_price_observation);
         if should_save_observation {
             self.save_observation_to_storage(&new_price_observation);
         }
