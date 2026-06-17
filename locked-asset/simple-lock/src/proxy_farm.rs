@@ -116,11 +116,13 @@ pub trait ProxyFarmModule:
         &self,
         farm_type: FarmType,
     ) -> EnterFarmThroughProxyResultType<Self::Api> {
-        let payments: ManagedVec<EsdtTokenPayment<Self::Api>> =
+        let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> =
             self.call_value().all_esdt_transfers().clone_value();
         require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
 
-        let proxy_lp_payment: EsdtTokenPayment<Self::Api> = payments.get(0).clone();
+        let proxy_lp_payment: EsdtTokenPayment<Self::Api> = payments.take(0);
+        let additional_proxy_farm_tokens = payments;
+
         let lp_proxy_token_mapper = self.lp_proxy_token();
         lp_proxy_token_mapper.require_same_token(&proxy_lp_payment.token_identifier);
 
@@ -128,7 +130,6 @@ pub trait ProxyFarmModule:
             lp_proxy_token_mapper.get_token_attributes(proxy_lp_payment.token_nonce);
 
         let farm_proxy_token_mapper = self.farm_proxy_token();
-        let additional_proxy_farm_tokens = payments.slice(1, payments.len()).unwrap_or_default();
         let mut additional_farm_payments = ManagedVec::new();
         for p in &additional_proxy_farm_tokens {
             let proxy_farm_attributes: FarmProxyTokenAttributes<Self::Api> =

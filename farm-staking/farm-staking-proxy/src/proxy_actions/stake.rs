@@ -31,10 +31,10 @@ pub trait ProxyStakeModule:
     fn stake_farm_tokens_common(
         &self,
         original_caller: ManagedAddress,
-        payments: ManagedVec<EsdtTokenPayment>,
+        mut payments: ManagedVec<EsdtTokenPayment>,
     ) -> StakeProxyResult<Self::Api> {
-        let lp_farm_token_payment = payments.get(0);
-        let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
+        let lp_farm_token_payment = payments.take(0);
+        let additional_payments = payments;
 
         let lp_farm_token_id = self.lp_farm_token_id().get();
         require!(
