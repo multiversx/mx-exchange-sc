@@ -63,10 +63,8 @@ pub trait ProxyExternalInteractionsModule:
         original_owner: &ManagedAddress,
         payments: &ManagedVec<EsdtTokenPayment>,
     ) {
-        let mut payment_iter = payments.iter();
-        let lp_farm_token_payment = payment_iter
-            .next()
-            .unwrap_or_else(|| sc_panic!("missing LP farm token payment"));
+        let lp_farm_token_payment = payments.get(0);
+        let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
 
         let lp_farm_token_id = self.lp_farm_token_id().get();
         require!(
@@ -86,7 +84,7 @@ pub trait ProxyExternalInteractionsModule:
             "Provided address is not the same as the original owner"
         );
 
-        for payment in payment_iter {
+        for payment in additional_payments.into_iter() {
             require!(
                 &self.get_underlying_positions_original_owner(&payment) == original_owner,
                 "Provided address is not the same as the original owner"
