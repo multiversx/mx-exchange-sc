@@ -84,17 +84,17 @@ path = "../../energy-integration/common-modules/energy-query"
 path = "../permissions-hub"
 
 [dependencies.multiversx-sc]
-version = "=0.66.1"
+version = "=0.66.2"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.66.1"
+version = "=0.66.2"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.66.1"
+version = "=0.66.2"
 
 [dev-dependencies.simple-lock]
 path = "../../locked-asset/simple-lock"
