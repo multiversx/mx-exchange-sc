@@ -91,6 +91,11 @@ pub trait Farm:
 
     #[upgrade]
     fn upgrade(&self) {
+        // Idempotency check
+        if !self.per_second_reward_amount().is_empty() || !self.last_reward_timestamp().is_empty() {
+            return;
+        }
+
         // Aggregate rewards before migration
         let mut storage_cache = StorageCache::new(self);
         let current_block_nonce = self.blockchain().get_block_nonce();
