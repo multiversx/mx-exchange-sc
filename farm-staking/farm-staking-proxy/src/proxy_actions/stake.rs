@@ -42,15 +42,15 @@ pub trait ProxyStakeModule:
             "Invalid first payment"
         );
 
-        self.dual_yield_token()
-            .require_all_same_token(&additional_payments);
+        let dual_yield_token_mapper = self.dual_yield_token();
+        dual_yield_token_mapper.require_all_same_token(&additional_payments);
 
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let mut additional_staking_farm_tokens = ManagedVec::new();
         let mut additional_lp_farm_tokens = ManagedVec::new();
         for p in &additional_payments {
             let attributes: DualYieldTokenAttributes<Self::Api> =
-                self.get_attributes_as_part_of_fixed_supply(&p, &self.dual_yield_token());
+                self.get_attributes_as_part_of_fixed_supply(&p, &dual_yield_token_mapper);
 
             additional_staking_farm_tokens.push(EsdtTokenPayment::new(
                 staking_farm_token_id.clone(),
@@ -64,7 +64,7 @@ pub trait ProxyStakeModule:
                 attributes.lp_farm_token_amount,
             ));
 
-            self.dual_yield_token().nft_burn(p.token_nonce, &p.amount);
+            dual_yield_token_mapper.nft_burn(p.token_nonce, &p.amount);
         }
 
         let lp_tokens_in_farm = self.get_lp_tokens_in_farm_position(
@@ -94,7 +94,7 @@ pub trait ProxyStakeModule:
             staking_farm_token_amount: received_staking_farm_token.amount,
         };
         let new_dual_yield_tokens =
-            self.create_dual_yield_tokens(&self.dual_yield_token(), &new_attributes);
+            self.create_dual_yield_tokens(&dual_yield_token_mapper, &new_attributes);
         StakeProxyResult {
             dual_yield_tokens: new_dual_yield_tokens,
             staking_boosted_rewards: staking_farm_enter_result.boosted_rewards,

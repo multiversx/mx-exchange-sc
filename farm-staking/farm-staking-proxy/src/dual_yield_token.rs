@@ -59,7 +59,7 @@ pub trait DualYieldTokenModule:
         );
     }
 
-     fn create_dual_yield_tokens(
+    fn create_dual_yield_tokens(
         &self,
         mapper: &NonFungibleTokenMapper,
         attributes: &DualYieldTokenAttributes<Self::Api>,
