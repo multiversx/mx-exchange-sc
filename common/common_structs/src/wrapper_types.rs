@@ -74,7 +74,7 @@ impl<M: ManagedTypeApi> RawResultWrapper<M> {
         }
 
         let new_start_index = current_len - size_after_trim;
-        let opt_new_raw_results = self.raw_results.slice(new_start_index, current_len);
+        let opt_new_raw_results = self.raw_results.clone_range(new_start_index, current_len);
         self.raw_results = opt_new_raw_results.unwrap_or_panic::<M>();
     }
 

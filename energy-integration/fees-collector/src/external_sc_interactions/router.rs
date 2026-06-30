@@ -120,7 +120,7 @@ pub trait RouterInteractionsModule:
         let output_payments: PaymentsVec<Self::Api> = self
             .router_proxy(router_address)
             .multi_pair_swap(swap_operations)
-            .esdt(payment)
+            .payment(payment)
             .returns(ReturnsResult)
             .sync_call();
         require!(

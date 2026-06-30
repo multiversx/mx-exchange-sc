@@ -11,5 +11,5 @@ path = "src/permissions_hub_module.rs"
 path = "../../../dex/permissions-hub"
 
 [dependencies.multiversx-sc]
-version = "=0.64.1"
+version = "=0.66.2"
 features = ["esdt-token-payment-legacy-decode"]

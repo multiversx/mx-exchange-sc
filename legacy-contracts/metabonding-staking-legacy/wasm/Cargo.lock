@@ -10,15 +10,15 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "autocfg"
-version = "1.3.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
+checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "bitflags"
-version = "2.10.0"
+version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "812e12b5285cc515a9c72a5c1d3b6d46a19dac5acfef5265968c166106e31dd3"
+checksum = "b4388bee8683e3d04af747c73422af53102d2bd24d9eadb6cbc100baef4b43f8"
 
 [[package]]
 name = "endian-type"
@@ -28,9 +28,9 @@ checksum = "869b0adbda23651a9c5c0c3d270aac9fcb52e8622a8f2b17e57802d7791962f2"
 
 [[package]]
 name = "generic-array"
-version = "1.3.5"
+version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eaf57c49a95fd1fe24b90b3033bee6dc7e8f1288d51494cb44e627c295e38542"
+checksum = "c2e55f16dcf0e9c00efbe2e655ffe45fc98e7066b52bc92f8a79e64060a79351"
 dependencies = [
  "rustversion",
  "typenum",
@@ -41,12 +41,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "hex-literal"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e712f64ec3850b98572bffac52e2c6f282b29fe6c5fa6d42334b30be438d95c1"
 
 [[package]]
 name = "metabonding-staking-legacy"
@@ -65,9 +59,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-chain-core"
-version = "0.21.1"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd14719813498e4ed75bb914489df6b24f66e3763599928b48c16ebaf110fc7a"
+checksum = "449a668bd4c4098c1ffdff2101b1947ecb42a54ce6179be97b4fe240a2f9c312"
 dependencies = [
  "bitflags",
  "multiversx-sc-codec",
@@ -75,13 +69,12 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc"
-version = "0.64.1"
+version = "0.66.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bf5635adb2d7915b8eb985749e3ca1b6d7cd34fc8d7e2c22efe7de267292ce6"
+checksum = "7c78b4f01650390d122799e5bb7e1895f6f51fc93a3f0ff557b7af5db0c947fc"
 dependencies = [
  "bitflags",
  "generic-array",
- "hex-literal",
  "multiversx-chain-core",
  "multiversx-sc-codec",
  "multiversx-sc-derive",
@@ -91,21 +84,22 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-codec"
-version = "0.24.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5b6a54e2b34bd53622071141b1617dbc457f1f9f3c257f952b2d228655b7985"
+checksum = "6f003e72dcc896b49fbbfcb410fd3c4984062a85ca0f588b3b6924bda6c09546"
 dependencies = [
  "arrayvec",
  "bitflags",
  "multiversx-sc-codec-derive",
+ "num-traits",
  "unwrap-infallible",
 ]
 
 [[package]]
 name = "multiversx-sc-codec-derive"
-version = "0.24.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9b879f4807d00afdcde3ab9235817a730eb6e9d5f7bf4520f5dfe1f37c06382"
+checksum = "19e0fe66b0ed58deb3d1689ad0b1ad2ae6c303a9b8ca437b7ecd2269bb34ebe8"
 dependencies = [
  "hex",
  "proc-macro2",
@@ -115,9 +109,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-derive"
-version = "0.64.1"
+version = "0.66.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "725bb0f8614d5262eefc70f8f985eb2d494dd9fa645c160302fca3bb056dfb07"
+checksum = "ee5568ebb61aa5d9a6c709ac469c55fb7ecef8b0310a8d8d6db5fa7452935d7b"
 dependencies = [
  "hex",
  "proc-macro2",
@@ -128,9 +122,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-wasm-adapter"
-version = "0.64.1"
+version = "0.66.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84148e8175a4193233b066076ed0ba1f1c53845911cda1b978945e92cc6e6879"
+checksum = "7ba7c0d69ee2980f9e1ee09865d5238fbe3d35c45f24cfc610ccf036a6e55902"
 dependencies = [
  "multiversx-sc",
 ]
@@ -155,18 +149,18 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.86"
+version = "1.0.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
+checksum = "8fd00f0bb2e90d81d1044c2b32617f68fcb9fa3bb7640c23e9c748e53fb30934"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.37"
+version = "1.0.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
+checksum = "41f2619966050689382d2b44f664f4bc593e129785a36d6ee376ddf37259b924"
 dependencies = [
  "proc-macro2",
 ]
@@ -189,15 +183,15 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "smallvec"
-version = "1.13.2"
+version = "1.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 
 [[package]]
 name = "syn"
-version = "2.0.77"
+version = "2.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f35bcdf61fd8e7be6caf75f429fdca8beb3ed76584befb503b1569faee373ed"
+checksum = "1b9ae57f904213ebb649ce6895b8a66c66f0203b9319718f69a5612a065b1422"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -206,15 +200,15 @@ dependencies = [
 
 [[package]]
 name = "typenum"
-version = "1.19.0"
+version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "562d481066bde0658276a35467c4af00bdc6ee726305698a55b86e61d7ad82bb"
+checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.12"
+version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 
 [[package]]
 name = "unwrap-infallible"

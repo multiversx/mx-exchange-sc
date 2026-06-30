@@ -64,7 +64,7 @@ pub trait ProxyExternalInteractionsModule:
         payments: &ManagedVec<EsdtTokenPayment>,
     ) {
         let lp_farm_token_payment = payments.get(0);
-        let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
+        let additional_payments = payments.clone_range(1, payments.len()).unwrap_or_default();
 
         let lp_farm_token_id = self.lp_farm_token_id().get();
         require!(
