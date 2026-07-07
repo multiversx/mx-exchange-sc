@@ -471,7 +471,6 @@ dependencies = [
 name = "energy-factory-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "energy-factory",
  "multiversx-sc-meta-lib",
 ]
@@ -489,7 +488,6 @@ dependencies = [
 name = "energy-factory-mock-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "energy-factory-mock",
  "multiversx-sc-meta-lib",
 ]
@@ -518,7 +516,6 @@ dependencies = [
 name = "energy-update-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "energy-update",
  "multiversx-sc-meta-lib",
 ]
@@ -555,7 +552,6 @@ dependencies = [
 name = "factory-legacy-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "factory-legacy",
  "multiversx-sc-meta-lib",
 ]
@@ -600,7 +596,6 @@ dependencies = [
 name = "farm-abi"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "farm",
  "multiversx-sc-meta-lib",
 ]
@@ -660,7 +655,6 @@ dependencies = [
 name = "farm-staking-abi"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "farm-staking",
  "multiversx-sc-meta-lib",
 ]
@@ -703,7 +697,6 @@ dependencies = [
 name = "farm-staking-proxy-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "farm-staking-proxy",
  "multiversx-sc-meta-lib",
 ]
@@ -736,7 +729,6 @@ dependencies = [
 name = "farm-staking-proxy-v13-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "farm-staking-proxy-v13",
  "multiversx-sc-meta-lib",
 ]
@@ -754,7 +746,6 @@ dependencies = [
 name = "farm-v12-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "farm-v12",
  "multiversx-sc-meta-lib",
 ]
@@ -781,7 +772,6 @@ dependencies = [
 name = "farm-v13-custom-rewards-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "farm-v13-custom-rewards",
  "multiversx-sc-meta-lib",
 ]
@@ -799,7 +789,6 @@ dependencies = [
 name = "farm-v13-locked-rewards-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "farm-v13-locked-rewards",
  "multiversx-sc-meta-lib",
 ]
@@ -808,7 +797,6 @@ dependencies = [
 name = "farm-v13-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "farm-v13",
  "multiversx-sc-meta-lib",
 ]
@@ -853,7 +841,6 @@ dependencies = [
 name = "farm-with-locked-rewards-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "farm-with-locked-rewards",
  "multiversx-sc-meta-lib",
 ]
@@ -923,7 +910,6 @@ dependencies = [
 name = "fees-collector-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "fees-collector",
  "multiversx-sc-meta-lib",
 ]
@@ -1026,7 +1012,6 @@ dependencies = [
 name = "governance-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "governance",
  "multiversx-sc-meta-lib",
 ]
@@ -1049,7 +1034,6 @@ dependencies = [
 name = "governance-v2-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "governance-v2",
  "multiversx-sc-meta-lib",
 ]
@@ -1198,7 +1182,6 @@ dependencies = [
 name = "lkmex-transfer-abi"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "lkmex-transfer",
  "multiversx-sc-meta-lib",
 ]
@@ -1216,7 +1199,6 @@ dependencies = [
 name = "locked-asset-distribution-abi"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "locked-asset-distribution",
  "multiversx-sc-meta-lib",
 ]
@@ -1245,7 +1227,6 @@ dependencies = [
 name = "locked-token-wrapper-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "locked-token-wrapper",
  "multiversx-sc-meta-lib",
 ]
@@ -1298,7 +1279,6 @@ dependencies = [
 name = "metabonding-staking-legacy-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "metabonding-staking-legacy",
  "multiversx-sc-meta-lib",
 ]
@@ -1553,7 +1533,6 @@ dependencies = [
 name = "pair-abi"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "pair",
 ]
@@ -1572,7 +1551,6 @@ dependencies = [
 name = "pair-mock-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "pair-mock",
 ]
@@ -1607,7 +1585,6 @@ dependencies = [
 name = "pause-all-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "pause-all",
 ]
@@ -1625,7 +1602,6 @@ dependencies = [
 name = "permissions-hub-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "permissions-hub",
 ]
@@ -1685,7 +1661,6 @@ dependencies = [
 name = "price-discovery-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "price-discovery",
 ]
@@ -1703,7 +1678,6 @@ dependencies = [
 name = "price-discovery-v1-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "price-discovery-v1",
 ]
@@ -1721,7 +1695,6 @@ dependencies = [
 name = "price-discovery-v2-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "price-discovery-v2",
 ]
@@ -1752,7 +1725,6 @@ dependencies = [
 name = "proxy-deployer-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "proxy-deployer",
 ]
@@ -1776,7 +1748,6 @@ dependencies = [
 name = "proxy-dex-legacy-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "proxy-dex-legacy",
 ]
@@ -1820,7 +1791,6 @@ dependencies = [
 name = "proxy_dex-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "proxy_dex",
 ]
@@ -1938,7 +1908,6 @@ dependencies = [
 name = "router-abi"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "router",
 ]
@@ -2102,7 +2071,6 @@ dependencies = [
 name = "simple-lock-legacy-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "simple-lock-legacy",
 ]
@@ -2111,7 +2079,6 @@ dependencies = [
 name = "simple-lock-meta"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "simple-lock",
 ]
@@ -2193,7 +2160,6 @@ dependencies = [
 name = "token-unstake-abi"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "multiversx-sc-meta-lib",
  "token-unstake",
 ]

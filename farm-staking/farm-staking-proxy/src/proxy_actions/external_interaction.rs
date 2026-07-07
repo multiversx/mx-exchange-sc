@@ -96,11 +96,11 @@ pub trait ProxyExternalInteractionsModule:
         &self,
         payment: &EsdtTokenPayment,
     ) -> ManagedAddress {
-        self.dual_yield_token()
-            .require_same_token(&payment.token_identifier);
+        let dual_yield_token_mapper = self.dual_yield_token();
+        dual_yield_token_mapper.require_same_token(&payment.token_identifier);
 
         let dual_yield_attributes: DualYieldTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(payment, &self.dual_yield_token());
+            self.get_attributes_as_part_of_fixed_supply(payment, &dual_yield_token_mapper);
 
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_attributes = self
