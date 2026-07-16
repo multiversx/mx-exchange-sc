@@ -575,7 +575,9 @@ fn test_farm_stake_proxy_merging_boosted_rewards() {
     // advance blocks - 10 blocks - 10 * 5_000 = 50_000 total rewards
     // 37_500 base farm, 12_500 boosted yields
     let boosted_rewards = 12_500u64;
-    setup.b_mock.set_block_timestamp(110);
+    setup
+        .b_mock
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 10);
 
     // random tx on end of week 1, to cummulate rewards
     setup.b_mock.set_block_epoch(6);
@@ -778,7 +780,9 @@ fn claim_for_others_positive_test() {
     // advance blocks - 10 blocks - 10 * 5_000 = 50_000 total rewards
     // 37_500 base farm, 12_500 boosted yields
     let boosted_rewards = 12_500u64;
-    setup.b_mock.set_block_timestamp(110);
+    setup
+        .b_mock
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 10);
 
     // farm staking boosted rewards
     let farm_staking_boosted_rewards = 1u64;
@@ -1106,8 +1110,12 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         .b_mock
         .set_esdt_balance(&temp_user, WEGLD_TOKEN_ID, &rust_biguint!(300_000_000u64));
 
-    setup.b_mock.set_block_timestamp(700);
-    setup.b_mock.set_block_round(700);
+    setup
+        .b_mock
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 600);
+    setup
+        .b_mock
+        .set_block_round(TIMESTAMP_AFTER_PAIR_SETUP + 600);
     setup
         .b_mock
         .execute_esdt_transfer(
@@ -1122,8 +1130,12 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         )
         .assert_ok();
 
-    setup.b_mock.set_block_timestamp(800);
-    setup.b_mock.set_block_round(800);
+    setup
+        .b_mock
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 700);
+    setup
+        .b_mock
+        .set_block_round(TIMESTAMP_AFTER_PAIR_SETUP + 700);
     setup
         .b_mock
         .execute_esdt_transfer(
@@ -1138,8 +1150,12 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         )
         .assert_ok();
 
-    setup.b_mock.set_block_timestamp(1250);
-    setup.b_mock.set_block_round(1250);
+    setup
+        .b_mock
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 1_150);
+    setup
+        .b_mock
+        .set_block_round(TIMESTAMP_AFTER_PAIR_SETUP + 1_150);
     setup
         .b_mock
         .execute_esdt_transfer(
@@ -1295,7 +1311,7 @@ fn test_multiple_positions_on_behalf() {
         .b_mock
         .set_esdt_balance(&temp_user, LP_TOKEN_ID, &rust_biguint!(1));
 
-    let mut block_nonce = 2u64;
+    let block_nonce = 2u64;
     setup.b_mock.set_block_epoch(2u64);
 
     setup.set_user_energy(&user_address, 1_000, 2, 1);
@@ -1340,9 +1356,9 @@ fn test_multiple_positions_on_behalf() {
     setup.check_user_total_staking_farm_position(&user_address, farm_amount);
 
     let block_nonce_diff = 100;
-    block_nonce += block_nonce_diff;
+    let mut reward_timestamp = TIMESTAMP_AFTER_PAIR_SETUP + block_nonce;
 
-    setup.b_mock.set_block_timestamp(block_nonce);
+    setup.b_mock.set_block_timestamp(reward_timestamp);
 
     // Only base rewards are given
     setup
@@ -1364,8 +1380,8 @@ fn test_multiple_positions_on_behalf() {
     setup.exit_lp_farm(&temp_user, temp_user_farm_token_nonce, 1);
 
     // advance 1 week
-    block_nonce += block_nonce_diff;
-    setup.b_mock.set_block_timestamp(block_nonce);
+    reward_timestamp += block_nonce_diff;
+    setup.b_mock.set_block_timestamp(reward_timestamp);
     setup.b_mock.set_block_epoch(10);
     setup.set_user_energy(&user_address, 1_000, 10, 1);
 

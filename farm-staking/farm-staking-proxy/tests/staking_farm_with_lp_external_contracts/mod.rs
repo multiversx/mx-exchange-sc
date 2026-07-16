@@ -15,6 +15,7 @@ use multiversx_sc_scenario::{
 };
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::remove_liq::RemoveLiquidityModule;
+use pair::safe_price::SafePriceModule;
 use router::config::ConfigModule;
 use router::Router;
 use simple_lock::locked_token::LockedTokenModule;
@@ -34,8 +35,11 @@ use farm_with_locked_rewards::*;
 
 use crate::constants::*;
 
-pub const SAFE_PRICE_ROUND_SAVE_INTERVAL: u64 = 1;
-pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60;
+const SAFE_PRICE_HISTORY_ROUNDS: u64 = 10 * 60;
+const MILLISECONDS_PER_SIMULATED_ROUND: u64 = 1_000;
+const SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS: u64 = MILLISECONDS_PER_SIMULATED_ROUND;
+const DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET_MILLISECONDS: u64 =
+    SAFE_PRICE_HISTORY_ROUNDS * MILLISECONDS_PER_SIMULATED_ROUND;
 
 pub fn setup_pair<PairObjBuilder, RouterObjBuilder>(
     owner_addr: &Address,
@@ -87,10 +91,10 @@ where
     b_mock
         .execute_tx(owner_addr, &router_wrapper, &rust_zero, |sc| {
             sc.init(OptionalValue::None);
-            sc.safe_price_round_save_interval()
-                .set(SAFE_PRICE_ROUND_SAVE_INTERVAL);
-            sc.default_safe_price_rounds_offset()
-                .set(DEFAULT_SAFE_PRICE_ROUNDS_OFFSET);
+            sc.safe_price_timestamp_save_interval()
+                .set(SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS);
+            sc.default_safe_price_timestamp_offset()
+                .set(DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET_MILLISECONDS);
         })
         .assert_ok();
 
@@ -156,8 +160,9 @@ where
     );
 
     // Extra operations to record the new reserves
-    block_round += DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+    block_round += SAFE_PRICE_HISTORY_ROUNDS;
     b_mock.set_block_round(block_round);
+    b_mock.set_block_timestamp(block_round);
     add_liquidity(
         &temp_user_addr,
         b_mock,
@@ -174,6 +179,16 @@ where
     remove_liquidity(&temp_user_addr, b_mock, &pair_wrapper, USER_TOTAL_LP_TOKENS);
 
     b_mock
+        .execute_query(&pair_wrapper, |sc| {
+            assert!(sc.current_price_observation().is_empty());
+            let latest_observation = sc
+                .price_observations()
+                .get(sc.safe_price_current_index().get());
+            assert_eq!(latest_observation.recording_timestamp, block_round * 1_000);
+        })
+        .assert_ok();
+
+    b_mock
         .execute_tx(user_addr, &pair_wrapper, &rust_biguint!(0), |sc| {
             sc.get_lp_tokens_safe_price_by_round_offset(
                 managed_address!(pair_wrapper.address_ref()),
@@ -183,6 +198,7 @@ where
         })
         .assert_ok();
 
+    // Farm reward time starts strictly after the completed safe-price history.
     b_mock.set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP);
 
     (pair_wrapper, router_wrapper)

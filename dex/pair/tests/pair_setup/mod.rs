@@ -23,7 +23,7 @@ pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 use pair::config::ConfigModule as PairConfigModule;
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::swap::SwapModule;
-use pair::safe_price::SafePriceModule;
+use pair::safe_price::{SafePriceModule, DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS};
 use pair::safe_price_view::*;
 use pair::*;
 use pausable::{PausableModule, State};
@@ -63,11 +63,11 @@ where
             .execute_tx(&owner_addr, &router_wrapper, &rust_zero, |sc| {
                 sc.init(OptionalValue::None);
 
-                let safe_price_round_save_interval = 1u64;
-                let safe_price_rounds_offset = 600u64;
+                let safe_price_timestamp_save_interval = 6_000u64;
+                let safe_price_timestamp_offset = 3_600_000u64;
 
-                sc.set_safe_price_round_save_interval(safe_price_round_save_interval);
-                sc.set_default_safe_price_rounds_offset(safe_price_rounds_offset);
+                sc.set_safe_price_timestamp_save_interval(safe_price_timestamp_save_interval);
+                sc.set_default_safe_price_timestamp_offset(safe_price_timestamp_offset);
             })
             .assert_ok();
 
@@ -303,6 +303,11 @@ where
             .assert_ok();
     }
 
+    pub fn set_block_round(&mut self, block_round: u64) {
+        self.b_mock.set_block_round(block_round);
+        self.b_mock.set_block_timestamp_ms(block_round * 6_000);
+    }
+
     pub fn check_price_observation(
         &mut self,
         pair_address: &Address,
@@ -311,18 +316,25 @@ where
         first_token_reserve_accumulated: u64,
         second_token_reserve_accumulated: u64,
     ) {
+        let expected_weight_accumulated = weight_accumulated * 6_000;
+        let expected_first_token_reserve_accumulated = first_token_reserve_accumulated * 6_000;
+        let expected_second_token_reserve_accumulated = second_token_reserve_accumulated * 6_000;
+
         self.b_mock
             .execute_query(&self.pair_wrapper, |sc| {
                 let price_observation =
                     sc.get_price_observation_view(managed_address!(pair_address), search_round);
-                assert_eq!(price_observation.weight_accumulated, weight_accumulated);
+                assert_eq!(
+                    price_observation.weight_accumulated,
+                    expected_weight_accumulated
+                );
                 assert_eq!(
                     price_observation.first_token_reserve_accumulated,
-                    managed_biguint!(first_token_reserve_accumulated)
+                    managed_biguint!(expected_first_token_reserve_accumulated)
                 );
                 assert_eq!(
                     price_observation.second_token_reserve_accumulated,
-                    managed_biguint!(second_token_reserve_accumulated)
+                    managed_biguint!(expected_second_token_reserve_accumulated)
                 );
             })
             .assert_ok();
@@ -336,18 +348,25 @@ where
         first_token_reserve_accumulated: u64,
         second_token_reserve_accumulated: u64,
     ) {
+        let expected_weight_accumulated = weight_accumulated * 6_000;
+        let expected_first_token_reserve_accumulated = first_token_reserve_accumulated * 6_000;
+        let expected_second_token_reserve_accumulated = second_token_reserve_accumulated * 6_000;
+
         self.b_mock
             .execute_query(&self.second_pair_wrapper, |sc| {
                 let price_observation =
                     sc.get_price_observation_view(managed_address!(pair_address), search_round);
-                assert_eq!(price_observation.weight_accumulated, weight_accumulated);
+                assert_eq!(
+                    price_observation.weight_accumulated,
+                    expected_weight_accumulated
+                );
                 assert_eq!(
                     price_observation.first_token_reserve_accumulated,
-                    managed_biguint!(first_token_reserve_accumulated)
+                    managed_biguint!(expected_first_token_reserve_accumulated)
                 );
                 assert_eq!(
                     price_observation.second_token_reserve_accumulated,
-                    managed_biguint!(second_token_reserve_accumulated)
+                    managed_biguint!(expected_second_token_reserve_accumulated)
                 );
             })
             .assert_ok();
@@ -364,27 +383,29 @@ where
         expected_token_id: &[u8],
         expected_token_amount: u64,
     ) {
-        let _ = self.b_mock.execute_query(&self.pair_wrapper, |sc| {
-            let input_payment = EsdtTokenPayment::new(
-                managed_token_id!(payment_token_id),
-                0,
-                managed_biguint!(payment_token_amount),
-            );
-            let expected_payment = sc.get_safe_price(
-                managed_address!(pair_address),
-                start_round,
-                end_round,
-                input_payment,
-            );
-            assert_eq!(
-                expected_payment.token_identifier,
-                managed_token_id!(expected_token_id)
-            );
-            assert_eq!(
-                expected_payment.amount,
-                managed_biguint!(expected_token_amount)
-            );
-        });
+        self.b_mock
+            .execute_query(&self.pair_wrapper, |sc| {
+                let input_payment = EsdtTokenPayment::new(
+                    managed_token_id!(payment_token_id),
+                    0,
+                    managed_biguint!(payment_token_amount),
+                );
+                let expected_payment = sc.get_safe_price(
+                    managed_address!(pair_address),
+                    start_round,
+                    end_round,
+                    input_payment,
+                );
+                assert_eq!(
+                    expected_payment.token_identifier,
+                    managed_token_id!(expected_token_id)
+                );
+                assert_eq!(
+                    expected_payment.amount,
+                    managed_biguint!(expected_token_amount)
+                );
+            })
+            .assert_ok();
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -399,41 +420,59 @@ where
         expected_second_token_id: &[u8],
         expected_second_token_amount: u64,
     ) {
-        let _ = self.b_mock.execute_query(&self.pair_wrapper, |sc| {
-            let lp_tokens_safe_price = sc.get_lp_tokens_safe_price(
-                managed_address!(pair_address),
-                start_round,
-                end_round,
-                managed_biguint!(lp_token_amount),
-            );
-            let (first_payment, second_payment) = lp_tokens_safe_price.into_tuple();
-            assert_eq!(
-                first_payment.token_identifier,
-                managed_token_id!(expected_first_token_id)
-            );
-            assert_eq!(
-                first_payment.amount,
-                managed_biguint!(expected_first_token_amount)
-            );
-            assert_eq!(
-                second_payment.token_identifier,
-                managed_token_id!(expected_second_token_id)
-            );
-            assert_eq!(
-                second_payment.amount,
-                managed_biguint!(expected_second_token_amount)
-            );
-        });
+        self.b_mock
+            .execute_query(&self.pair_wrapper, |sc| {
+                let lp_tokens_safe_price = sc.get_lp_tokens_safe_price(
+                    managed_address!(pair_address),
+                    start_round,
+                    end_round,
+                    managed_biguint!(lp_token_amount),
+                );
+                let (first_payment, second_payment) = lp_tokens_safe_price.into_tuple();
+                assert_eq!(
+                    first_payment.token_identifier,
+                    managed_token_id!(expected_first_token_id)
+                );
+                assert_eq!(
+                    first_payment.amount,
+                    managed_biguint!(expected_first_token_amount)
+                );
+                assert_eq!(
+                    second_payment.token_identifier,
+                    managed_token_id!(expected_second_token_id)
+                );
+                assert_eq!(
+                    second_payment.amount,
+                    managed_biguint!(expected_second_token_amount)
+                );
+            })
+            .assert_ok();
     }
 
     pub fn set_price_observation_as_old(&mut self, observation_index: usize) {
-        let _ = self.b_mock.execute_query(&self.pair_wrapper, |sc| {
-            let mut price_observations = sc.price_observations();
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.pair_wrapper,
+                &rust_biguint!(0u64),
+                |sc| {
+                    let mut price_observations = sc.price_observations();
 
-            let mut price_observation = price_observations.get(observation_index);
-            price_observation.lp_supply_accumulated = BigUint::zero();
-            price_observations.set(observation_index, &price_observation);
-        });
+                    let mut price_observation = price_observations.get(observation_index);
+                    if price_observation.recording_timestamp > 0 {
+                        let legacy_divisor =
+                            BigUint::from(DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS);
+                        price_observation.first_token_reserve_accumulated /= &legacy_divisor;
+                        price_observation.second_token_reserve_accumulated /= &legacy_divisor;
+                        price_observation.weight_accumulated /=
+                            DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS;
+                    }
+                    price_observation.recording_timestamp = 0u64;
+                    price_observation.lp_supply_accumulated = BigUint::zero();
+                    price_observations.set(observation_index, &price_observation);
+                },
+            )
+            .assert_ok();
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -447,27 +486,29 @@ where
         expected_token_id: &[u8],
         expected_token_amount: u64,
     ) {
-        let _ = self.b_mock.execute_query(&self.second_pair_wrapper, |sc| {
-            let input_payment = EsdtTokenPayment::new(
-                managed_token_id!(payment_token_id),
-                0,
-                managed_biguint!(payment_token_amount),
-            );
-            let expected_payment = sc.get_safe_price(
-                managed_address!(pair_address),
-                start_round,
-                end_round,
-                input_payment,
-            );
-            assert_eq!(
-                expected_payment.token_identifier,
-                managed_token_id!(expected_token_id)
-            );
-            assert_eq!(
-                expected_payment.amount,
-                managed_biguint!(expected_token_amount)
-            );
-        });
+        self.b_mock
+            .execute_query(&self.second_pair_wrapper, |sc| {
+                let input_payment = EsdtTokenPayment::new(
+                    managed_token_id!(payment_token_id),
+                    0,
+                    managed_biguint!(payment_token_amount),
+                );
+                let expected_payment = sc.get_safe_price(
+                    managed_address!(pair_address),
+                    start_round,
+                    end_round,
+                    input_payment,
+                );
+                assert_eq!(
+                    expected_payment.token_identifier,
+                    managed_token_id!(expected_token_id)
+                );
+                assert_eq!(
+                    expected_payment.amount,
+                    managed_biguint!(expected_token_amount)
+                );
+            })
+            .assert_ok();
     }
 
     pub fn check_safe_price_from_legacy_endpoint(
@@ -477,32 +518,36 @@ where
         expected_token_id: &[u8],
         expected_token_amount: u64,
     ) {
-        let _ = self.b_mock.execute_query(&self.pair_wrapper, |sc| {
-            let input_payment = EsdtTokenPayment::new(
-                managed_token_id!(payment_token_id),
-                0,
-                managed_biguint!(payment_token_amount),
-            );
-            let expected_payment = sc.update_and_get_safe_price(input_payment);
-            assert_eq!(
-                expected_payment.token_identifier,
-                managed_token_id!(expected_token_id)
-            );
-            assert_eq!(
-                expected_payment.amount,
-                managed_biguint!(expected_token_amount)
-            );
-        });
+        self.b_mock
+            .execute_query(&self.pair_wrapper, |sc| {
+                let input_payment = EsdtTokenPayment::new(
+                    managed_token_id!(payment_token_id),
+                    0,
+                    managed_biguint!(payment_token_amount),
+                );
+                let expected_payment = sc.update_and_get_safe_price(input_payment);
+                assert_eq!(
+                    expected_payment.token_identifier,
+                    managed_token_id!(expected_token_id)
+                );
+                assert_eq!(
+                    expected_payment.amount,
+                    managed_biguint!(expected_token_amount)
+                );
+            })
+            .assert_ok();
     }
 
-    pub fn set_safe_price_save_interval(&mut self, save_interval: u64) {
-        let _ = self.b_mock.execute_tx(
-            &self.owner_address,
-            &self.router_wrapper,
-            &rust_biguint!(0u64),
-            |sc| {
-                sc.set_safe_price_round_save_interval(save_interval);
-            },
-        );
+    pub fn set_safe_price_timestamp_save_interval(&mut self, save_interval: u64) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.router_wrapper,
+                &rust_biguint!(0u64),
+                |sc| {
+                    sc.set_safe_price_timestamp_save_interval(save_interval);
+                },
+            )
+            .assert_ok();
     }
 }

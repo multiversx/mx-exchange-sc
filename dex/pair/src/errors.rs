@@ -52,3 +52,5 @@ pub static ERROR_SAFE_PRICE_CURRENT_INDEX: &[u8] =
     b"The current safe price index is greater than the maximum number of observations";
 pub static ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST: &[u8] =
     b"The price observation does not exist";
+pub static ERROR_SAFE_PRICE_LEGACY_NORMALIZATION: &[u8] =
+    b"Cannot normalize legacy safe price observation";

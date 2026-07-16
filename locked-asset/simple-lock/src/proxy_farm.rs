@@ -128,7 +128,8 @@ pub trait ProxyFarmModule:
             lp_proxy_token_mapper.get_token_attributes(proxy_lp_payment.token_nonce);
 
         let farm_proxy_token_mapper = self.farm_proxy_token();
-        let additional_proxy_farm_tokens = payments.clone_range(1, payments.len()).unwrap_or_default();
+        let additional_proxy_farm_tokens =
+            payments.clone_range(1, payments.len()).unwrap_or_default();
         let mut additional_farm_payments = ManagedVec::new();
         for p in &additional_proxy_farm_tokens {
             let proxy_farm_attributes: FarmProxyTokenAttributes<Self::Api> =

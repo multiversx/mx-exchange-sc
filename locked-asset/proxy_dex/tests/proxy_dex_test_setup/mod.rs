@@ -314,10 +314,12 @@ where
         .execute_tx(owner, &router_wrapper, &rust_zero, |sc| {
             sc.init(OptionalValue::None);
 
-            let safe_price_save_interval = 1u64;
-            let default_safe_price_rounds_offset = 10 * 60u64;
-            sc.set_safe_price_round_save_interval(safe_price_save_interval);
-            sc.set_default_safe_price_rounds_offset(default_safe_price_rounds_offset);
+            let safe_price_save_interval_milliseconds = 6_000u64;
+            let default_safe_price_timestamp_offset_milliseconds = 10 * 60 * 6_000u64;
+            sc.set_safe_price_timestamp_save_interval(safe_price_save_interval_milliseconds);
+            sc.set_default_safe_price_timestamp_offset(
+                default_safe_price_timestamp_offset_milliseconds,
+            );
         })
         .assert_ok();
 

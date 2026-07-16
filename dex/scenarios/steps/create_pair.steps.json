@@ -40,13 +40,13 @@
         },
         {
             "step": "scCall",
-            "txId": "set-safe-price-round-save-interval",
+            "txId": "set-safe-price-timestamp-save-interval",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:router_contract",
-                "function": "setSafePriceRoundSaveInterval",
+                "function": "setSafePriceTimestampSaveInterval",
                 "arguments": [
-                    "1"
+                    "6000"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"

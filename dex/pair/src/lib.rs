@@ -98,7 +98,15 @@ pub trait Pair<ContractReader>:
     }
 
     #[upgrade]
-    fn upgrade(&self) {}
+    fn upgrade(&self) {
+        let safe_price_legacy_cutover_mapper = self.safe_price_legacy_cutover();
+        if safe_price_legacy_cutover_mapper.is_empty() {
+            let cutover_timestamp = self.get_current_timestamp_milliseconds();
+            require!(cutover_timestamp > 0, ERROR_SAFE_PRICE_LEGACY_NORMALIZATION);
+            let cutover = (self.blockchain().get_block_round(), cutover_timestamp);
+            safe_price_legacy_cutover_mapper.set_if_empty(cutover);
+        }
+    }
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) {
