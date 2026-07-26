@@ -99,13 +99,11 @@ These endpoints allow querying prices based on elapsed time in **milliseconds** 
 
 **Note:** The timestamp offset endpoint (`getSafePriceByTimestampOffset`) does not have a default value. It must be provided as a parameter.
 
-#### 3. Timestamp-to-Round Conversion
+#### 3. Round-to-Timestamp Compatibility
 
-The mechanism includes dedicated logic to find equivalent rounds for given timestamps:
+Round-based endpoints remain available for compatibility, but round numbers are no longer a separate lookup axis. Under the protocol's deterministic round schedule, the view normalizes the oldest retained observation to a positive millisecond timestamp and combines that anchor with the current round, current timestamp, and runtime round duration. Assuming the single protocol transition from the legacy `6,000` millisecond cadence to the current cadence, it solves the exact number of legacy-duration rounds and infers the requested round's timestamp.
 
-- **Binary Search**: Efficiently locates observations by timestamp
-- **Linear Interpolation**: Calculates intermediate rounds when exact matches aren't found
-- **Weighted Averaging**: Combines neighboring observations for precise calculations
+The inferred timestamp is then resolved through the same timestamp binary-search and interpolation path used by timestamp-based endpoints. Inconsistent timelines, unsupported cadence histories, and rounds outside the normalized anchor-to-current range are rejected instead of being approximated.
 
 #### 4. Intermediate Save Functionality
 
@@ -117,11 +115,14 @@ To optimize gas costs with faster block times, the system now supports:
 
 #### 5. Legacy Cutover and Normalization
 
-Pair upgrade stores an immutable `(round, timestamp_ms)` cutover tuple. Legacy observations are identified only by `recording_timestamp == 0`; every positive timestamp is already milliseconds and is never interpreted as seconds.
+Every pair with legacy history must be upgraded before protocol activation. Pair upgrade stores an immutable `(round, timestamp_ms)` normalization anchor while the legacy cadence is still active. This pair-upgrade anchor is not the protocol activation round or timestamp.
 
-- In an all-legacy history, timestamps are derived from the immutable cutover and the historical six-second round duration.
-- In a mixed history, timestamps are derived from cumulative weights relative to a positive timestamped observation. Appending newer observations therefore cannot move an older observation in time.
-- Legacy accumulators and weights are multiplied by `6,000` only after a valid positive timestamp is inferred. An all-legacy round query can still expose an unnormalized row when no migration origin exists, but once a cutover or positive reference exists, an invalid origin is rejected instead of mixing round- and millisecond-weighted data. The writer always rejects nonempty legacy history without a valid origin. A truly empty oracle at chain timestamp zero is the separate no-write bootstrap case.
+Legacy observations are identified only by `recording_timestamp == 0`; every positive timestamp is already milliseconds and is never interpreted as seconds.
+
+- A legacy observation timestamp is inferred only from the immutable cutover: `cutover_timestamp_ms - (cutover_round - observation_round) * 6,000`.
+- A pair with legacy history and a missing or invalid cutover fails closed.
+- Pending observations are created only by the upgraded binary, always contain a positive millisecond timestamp, and never participate in legacy normalization.
+- Legacy accumulators and weights are multiplied by `6,000` only after a valid positive timestamp is inferred. A truly empty oracle at chain timestamp zero is the separate no-write bootstrap case.
 
 ## How It Works
 
@@ -519,11 +520,7 @@ let output = self.get_safe_price(
 
 ### Binary Search Algorithm
 
-The mechanism uses binary search to efficiently find observations:
-
-1. **Round-based search**: O(log n) complexity for finding observations by round
-2. **Timestamp-based search**: O(log n) complexity for finding observations by timestamp
-3. **Circular buffer handling**: Properly handles wraparound when buffer is full
+The mechanism uses one timestamp-based binary search with `O(log n)` observation lookup. Timestamp endpoints use it directly; round endpoints first perform the exact round-to-millisecond conversion described above and then use the same search. Circular-buffer indexing handles wraparound when the buffer is full.
 
 ### Linear Interpolation
 
@@ -542,16 +539,21 @@ This ensures smooth price curves and accurate intermediate values.
 
 ### Timestamp Search
 
-Timestamp queries binary-search observations by their millisecond timestamps. When no exact timestamp exists, they interpolate an observation between the neighboring timestamped observations. Round-based and timestamp-based searches remain separate so legacy round queries keep their established behavior.
+All Safeprice quote and observation lookups are resolved on the millisecond timeline. When no exact timestamp exists, the view interpolates an observation between neighboring timestamped observations. For `getPriceObservation`, the returned observation's `recording_round` and `recording_timestamp` metadata are set to the requested round and its exactly inferred timestamp.
 
 ### Migration Compatibility
 
 The system supports exactly two semantic timestamp cases across the historical and current structural layouts:
 
-- `recording_timestamp == 0` identifies a pre-upgrade observation. Its reserve accumulators and weight are round-weighted, so reads normalize them once with the legacy 6,000 millisecond round duration and infer a timestamp from a positive reference when possible.
+- `recording_timestamp == 0` identifies a pre-upgrade observation. Its reserve accumulators and weight are round-weighted, so reads normalize them once with the legacy 6,000 millisecond round duration and infer its timestamp from the immutable pair-upgrade cutover.
 - `recording_timestamp > 0` identifies the current binary format. Its timestamp and every cumulative field are already millisecond-weighted and are returned unchanged; positive values are never treated as seconds.
 
-The custom decoder supports the two deployed layouts. Legacy observations contain the reserve accumulators, weight, and recording round; both timestamp and LP-supply accumulation default to zero. New six-field observations append the positive millisecond timestamp followed by the LP-supply accumulator.
+The custom decoder accepts exactly two deployed layouts, in this field order:
+
+1. Legacy four-field observation: first-token reserve accumulator, second-token reserve accumulator, weight, `recording_round`.
+2. Current six-field observation: the same four fields, then positive millisecond `recording_timestamp`, then `lp_supply_accumulated`.
+
+There is no deployed five-field observation and no seconds-based timestamp migration format. A five-field encoding is incomplete because a timestamp must be followed by the LP-supply accumulator; unexpected trailing fields are also rejected. For a decoded four-field observation, `recording_timestamp` and `lp_supply_accumulated` default to zero until normalization.
 
 ### Gas Optimization
 

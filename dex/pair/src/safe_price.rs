@@ -5,7 +5,10 @@ use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 
 use crate::{
     amm, config,
-    errors::{ERROR_SAFE_PRICE_CURRENT_INDEX, ERROR_SAFE_PRICE_LEGACY_NORMALIZATION},
+    errors::{
+        ERROR_SAFE_PRICE_CURRENT_INDEX, ERROR_SAFE_PRICE_DURATION_OVERFLOW,
+        ERROR_SAFE_PRICE_LEGACY_NORMALIZATION,
+    },
     read_pair_storage,
 };
 
@@ -13,7 +16,7 @@ pub type Round = u64;
 pub type Timestamp = u64;
 
 pub const MAX_OBSERVATIONS: usize = 65_536; // 2^{16} records, to optimise binary search
-pub const DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS: u64 = 6_000;
+pub const LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS: u64 = 6_000;
 
 #[type_abi]
 #[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, Debug)]
@@ -102,7 +105,6 @@ pub trait SafePriceModule:
             return;
         }
 
-        let timestamp_save_interval = self.get_safe_price_timestamp_save_interval();
         let safe_price_current_index = self.safe_price_current_index().get();
         require!(
             safe_price_current_index <= MAX_OBSERVATIONS,
@@ -114,62 +116,31 @@ pub trait SafePriceModule:
         } else {
             PriceObservation::default()
         };
-        let mut current_price_observation = if self.current_price_observation().is_empty() {
-            None
-        } else {
-            Some(self.current_price_observation().get())
-        };
-        let timestamp_reference = if let Some(current_observation) = current_price_observation
-            .as_ref()
-            .filter(|observation| observation.recording_timestamp > 0)
+        if last_recorded_observation.recording_round > 0
+            && last_recorded_observation.recording_timestamp == 0
         {
-            current_observation.clone()
-        } else if last_recorded_observation.recording_timestamp > 0 {
-            last_recorded_observation.clone()
-        } else {
-            PriceObservation::default()
-        };
-        let last_observation_prepared = self.prepare_observation_for_timestamp_weights(
-            &mut last_recorded_observation,
-            &timestamp_reference,
-            None,
-        );
-        let current_observation_prepared = match current_price_observation.as_mut() {
-            Some(observation) => self.prepare_observation_for_timestamp_weights(
-                observation,
-                &timestamp_reference,
-                None,
-            ),
-            None => true,
-        };
-
-        if !last_observation_prepared || !current_observation_prepared {
-            let legacy_cutover = self.get_safe_price_legacy_cutover();
-            let last_observation_prepared = last_observation_prepared
-                || self.prepare_observation_for_timestamp_weights(
-                    &mut last_recorded_observation,
-                    &timestamp_reference,
-                    legacy_cutover,
-                );
-            let current_observation_prepared = current_observation_prepared
-                || match current_price_observation.as_mut() {
-                    Some(observation) => self.prepare_observation_for_timestamp_weights(
-                        observation,
-                        &timestamp_reference,
-                        legacy_cutover,
-                    ),
-                    None => true,
-                };
+            let legacy_cutover_mapper = self.safe_price_legacy_cutover();
             require!(
-                last_observation_prepared && current_observation_prepared,
+                !legacy_cutover_mapper.is_empty(),
+                ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+            );
+            let legacy_cutover = legacy_cutover_mapper.get();
+            require!(
+                self.normalize_legacy_observation(
+                    &mut last_recorded_observation,
+                    legacy_cutover,
+                ),
                 ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
             );
         }
 
-        let latest_observation = self.get_latest_price_observation(
-            &last_recorded_observation,
-            current_price_observation.as_ref(),
-        );
+        let last_recorded_weight = last_recorded_observation.weight_accumulated;
+        let current_price_observation_mapper = self.current_price_observation();
+        let mut latest_observation = if current_price_observation_mapper.is_empty() {
+            last_recorded_observation
+        } else {
+            current_price_observation_mapper.get()
+        };
 
         if latest_observation.weight_accumulated > 0
             && latest_observation.recording_timestamp >= current_timestamp
@@ -177,33 +148,29 @@ pub trait SafePriceModule:
             return;
         }
 
-        let new_price_observation = self.compute_new_observation(
+        self.accumulate_into_observation(
+            &mut latest_observation,
             current_round,
             current_timestamp,
             first_token_reserve,
             second_token_reserve,
             lp_supply,
-            latest_observation,
         );
 
-        let should_save_observation = new_price_observation.weight_accumulated
-            - last_recorded_observation.weight_accumulated
-            >= timestamp_save_interval;
-
-        if should_save_observation {
-            self.save_observation_to_storage(&new_price_observation);
+        let timestamp_save_interval = self.get_safe_price_timestamp_save_interval();
+        if latest_observation.weight_accumulated - last_recorded_weight >= timestamp_save_interval
+        {
+            self.save_observation_to_storage(&latest_observation, safe_price_current_index);
         } else {
-            self.current_price_observation().set(&new_price_observation);
+            current_price_observation_mapper.set(&latest_observation);
         }
     }
 
-    fn save_observation_to_storage(&self, price_observation: &PriceObservation<Self::Api>) {
-        let safe_price_current_index = self.safe_price_current_index().get();
-        require!(
-            safe_price_current_index <= MAX_OBSERVATIONS,
-            ERROR_SAFE_PRICE_CURRENT_INDEX
-        );
-
+    fn save_observation_to_storage(
+        &self,
+        price_observation: &PriceObservation<Self::Api>,
+        safe_price_current_index: usize,
+    ) {
         let mut price_observations = self.price_observations();
 
         let new_index = if price_observations.is_empty() {
@@ -222,87 +189,30 @@ pub trait SafePriceModule:
         self.current_price_observation().clear();
     }
 
-    fn get_latest_price_observation<'a>(
-        &self,
-        last_recorded_observation: &'a PriceObservation<Self::Api>,
-        current_price_observation: Option<&'a PriceObservation<Self::Api>>,
-    ) -> &'a PriceObservation<Self::Api> {
-        match current_price_observation {
-            Some(current_price_observation)
-                if current_price_observation.recording_timestamp
-                    > last_recorded_observation.recording_timestamp
-                    || (current_price_observation.recording_timestamp
-                        == last_recorded_observation.recording_timestamp
-                        && current_price_observation.recording_round
-                            > last_recorded_observation.recording_round) =>
-            {
-                current_price_observation
-            }
-            _ => last_recorded_observation,
-        }
-    }
-
-    fn prepare_observation_for_timestamp_weights(
+    fn normalize_legacy_observation(
         &self,
         observation: &mut PriceObservation<Self::Api>,
-        timestamp_reference: &PriceObservation<Self::Api>,
-        legacy_cutover: Option<(Round, Timestamp)>,
+        legacy_cutover: (Round, Timestamp),
     ) -> bool {
-        if observation.recording_round == 0 || observation.recording_timestamp > 0 {
-            return true;
+        let (cutover_round, cutover_timestamp) = legacy_cutover;
+        if observation.recording_round > cutover_round {
+            return false;
         }
 
-        let Some(recording_timestamp) = self.infer_legacy_observation_timestamp(
-            observation,
-            timestamp_reference,
-            legacy_cutover,
-        ) else {
+        let elapsed_rounds = cutover_round - observation.recording_round;
+        if elapsed_rounds > u64::MAX / LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS {
             return false;
-        };
-        observation.recording_timestamp = recording_timestamp;
+        }
+
+        let elapsed_milliseconds =
+            elapsed_rounds * LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
+        if elapsed_milliseconds >= cutover_timestamp {
+            return false;
+        }
+
+        observation.recording_timestamp = cutover_timestamp - elapsed_milliseconds;
         self.scale_legacy_observation_to_milliseconds(observation);
         true
-    }
-
-    fn infer_legacy_observation_timestamp(
-        &self,
-        observation: &PriceObservation<Self::Api>,
-        timestamp_reference: &PriceObservation<Self::Api>,
-        legacy_cutover: Option<(Round, Timestamp)>,
-    ) -> Option<Timestamp> {
-        let legacy_weight_milliseconds =
-            self.checked_legacy_weight_to_milliseconds(observation.weight_accumulated)?;
-
-        if timestamp_reference.recording_timestamp > 0
-            && timestamp_reference.recording_round >= observation.recording_round
-            && timestamp_reference.weight_accumulated >= legacy_weight_milliseconds
-        {
-            let elapsed_milliseconds = timestamp_reference
-                .weight_accumulated
-                .checked_sub(legacy_weight_milliseconds)?;
-            if let Some(timestamp) = timestamp_reference
-                .recording_timestamp
-                .checked_sub(elapsed_milliseconds)
-                .filter(|timestamp| *timestamp > 0)
-            {
-                return Some(timestamp);
-            }
-        }
-
-        let (cutover_round, cutover_timestamp) = legacy_cutover?;
-        let elapsed_rounds = cutover_round.checked_sub(observation.recording_round)?;
-        let elapsed_milliseconds = self.checked_legacy_weight_to_milliseconds(elapsed_rounds)?;
-        cutover_timestamp
-            .checked_sub(elapsed_milliseconds)
-            .filter(|timestamp| *timestamp > 0)
-    }
-
-    fn get_safe_price_legacy_cutover(&self) -> Option<(Round, Timestamp)> {
-        if self.safe_price_legacy_cutover().is_empty() {
-            None
-        } else {
-            Some(self.safe_price_legacy_cutover().get())
-        }
     }
 
     fn accumulate_into_observation(
@@ -317,13 +227,13 @@ pub trait SafePriceModule:
         let weight = if observation.recording_timestamp > 0 {
             current_timestamp - observation.recording_timestamp
         } else {
-            DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS
+            LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS
         };
+        let weight_biguint = BigUint::from(weight);
 
-        observation.first_token_reserve_accumulated += BigUint::from(weight) * first_token_reserve;
-        observation.second_token_reserve_accumulated +=
-            BigUint::from(weight) * second_token_reserve;
-        observation.lp_supply_accumulated += BigUint::from(weight) * lp_supply;
+        observation.first_token_reserve_accumulated += &weight_biguint * first_token_reserve;
+        observation.second_token_reserve_accumulated += &weight_biguint * second_token_reserve;
+        observation.lp_supply_accumulated += weight_biguint * lp_supply;
         observation.weight_accumulated += weight;
         observation.recording_round = current_round;
         observation.recording_timestamp = current_timestamp;
@@ -356,33 +266,26 @@ pub trait SafePriceModule:
             .as_u64_millis()
     }
 
-    fn checked_legacy_weight_to_milliseconds(&self, legacy_weight: u64) -> Option<u64> {
-        legacy_weight.checked_mul(DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS)
-    }
-
-    fn legacy_weight_to_milliseconds(&self, legacy_weight: u64) -> u64 {
-        match self.checked_legacy_weight_to_milliseconds(legacy_weight) {
-            Some(value) => value,
-            None => sc_panic!("Safe price duration overflow"),
-        }
-    }
-
     fn scale_legacy_observation_to_milliseconds(
         &self,
         observation: &mut PriceObservation<Self::Api>,
     ) {
-        let multiplier = BigUint::from(DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS);
+        require!(
+            observation.weight_accumulated
+                <= u64::MAX / LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS,
+            ERROR_SAFE_PRICE_DURATION_OVERFLOW
+        );
+
+        let multiplier = BigUint::from(LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS);
         observation.first_token_reserve_accumulated *= &multiplier;
         observation.second_token_reserve_accumulated *= &multiplier;
         observation.lp_supply_accumulated *= &multiplier;
-        observation.weight_accumulated =
-            self.legacy_weight_to_milliseconds(observation.weight_accumulated);
+        observation.weight_accumulated *= LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
     }
 
     fn get_safe_price_timestamp_save_interval(&self) -> Timestamp {
-        let router_address = self.router_address().get();
         let safe_price_timestamp_save_interval = self
-            .get_safe_price_timestamp_save_interval_mapper(router_address)
+            .get_safe_price_timestamp_save_interval_mapper(self.router_address().get())
             .get();
         require!(
             safe_price_timestamp_save_interval > 0,

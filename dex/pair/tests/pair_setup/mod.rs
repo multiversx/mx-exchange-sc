@@ -23,7 +23,7 @@ pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 use pair::config::ConfigModule as PairConfigModule;
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::swap::SwapModule;
-use pair::safe_price::{SafePriceModule, DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS};
+use pair::safe_price::{SafePriceModule, LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS};
 use pair::safe_price_view::*;
 use pair::*;
 use pausable::{PausableModule, State};
@@ -461,11 +461,11 @@ where
                     let mut price_observation = price_observations.get(observation_index);
                     if price_observation.recording_timestamp > 0 {
                         let legacy_divisor =
-                            BigUint::from(DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS);
+                            BigUint::from(LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS);
                         price_observation.first_token_reserve_accumulated /= &legacy_divisor;
                         price_observation.second_token_reserve_accumulated /= &legacy_divisor;
                         price_observation.weight_accumulated /=
-                            DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS;
+                            LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
                     }
                     price_observation.recording_timestamp = 0u64;
                     price_observation.lp_supply_accumulated = BigUint::zero();

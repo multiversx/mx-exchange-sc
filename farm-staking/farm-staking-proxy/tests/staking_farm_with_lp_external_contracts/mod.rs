@@ -36,7 +36,7 @@ use farm_with_locked_rewards::*;
 use crate::constants::*;
 
 const SAFE_PRICE_HISTORY_ROUNDS: u64 = 10 * 60;
-const MILLISECONDS_PER_SIMULATED_ROUND: u64 = 1_000;
+const MILLISECONDS_PER_SIMULATED_ROUND: u64 = SAFE_PRICE_ROUND_DURATION_SECONDS * 1_000;
 const SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS: u64 = MILLISECONDS_PER_SIMULATED_ROUND;
 const DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET_MILLISECONDS: u64 =
     SAFE_PRICE_HISTORY_ROUNDS * MILLISECONDS_PER_SIMULATED_ROUND;
@@ -162,7 +162,7 @@ where
     // Extra operations to record the new reserves
     block_round += SAFE_PRICE_HISTORY_ROUNDS;
     b_mock.set_block_round(block_round);
-    b_mock.set_block_timestamp(block_round);
+    b_mock.set_block_timestamp(block_round * MILLISECONDS_PER_SIMULATED_ROUND / 1_000);
     add_liquidity(
         &temp_user_addr,
         b_mock,
@@ -184,7 +184,10 @@ where
             let latest_observation = sc
                 .price_observations()
                 .get(sc.safe_price_current_index().get());
-            assert_eq!(latest_observation.recording_timestamp, block_round * 1_000);
+            assert_eq!(
+                latest_observation.recording_timestamp,
+                block_round * MILLISECONDS_PER_SIMULATED_ROUND
+            );
         })
         .assert_ok();
 
@@ -198,7 +201,10 @@ where
         })
         .assert_ok();
 
-    // Farm reward time starts strictly after the completed safe-price history.
+    // Farm reward time starts in the first round after the completed safe-price history.
+    block_round += 1;
+    assert_eq!(block_round, ROUND_AFTER_PAIR_SETUP);
+    b_mock.set_block_round(block_round);
     b_mock.set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP);
 
     (pair_wrapper, router_wrapper)

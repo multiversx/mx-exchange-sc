@@ -54,3 +54,4 @@ pub static ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST: &[u8] =
     b"The price observation does not exist";
 pub static ERROR_SAFE_PRICE_LEGACY_NORMALIZATION: &[u8] =
     b"Cannot normalize legacy safe price observation";
+pub static ERROR_SAFE_PRICE_DURATION_OVERFLOW: &[u8] = b"Safe price duration overflow";

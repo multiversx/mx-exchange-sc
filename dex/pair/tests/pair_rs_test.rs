@@ -44,6 +44,15 @@ pub struct OldPriceObservation<M: ManagedTypeApi> {
 }
 
 #[derive(TopEncode, NestedEncode, Clone, Debug)]
+pub struct FiveFieldPriceObservation<M: ManagedTypeApi> {
+    pub first_token_reserve_accumulated: BigUint<M>,
+    pub second_token_reserve_accumulated: BigUint<M>,
+    pub weight_accumulated: u64,
+    pub recording_round: Round,
+    pub recording_timestamp: u64,
+}
+
+#[derive(TopEncode, NestedEncode, Clone, Debug)]
 pub struct TimestampPriceObservation<M: ManagedTypeApi> {
     pub first_token_reserve_accumulated: BigUint<M>,
     pub second_token_reserve_accumulated: BigUint<M>,
@@ -154,6 +163,16 @@ fn test_safe_price_observation_decoding() {
                     new_observation.lp_supply_accumulated,
                     managed_biguint!(0u64)
                 );
+
+                let five_field_observation = FiveFieldPriceObservation::<DebugApi> {
+                    first_token_reserve_accumulated: managed_biguint!(6u64),
+                    second_token_reserve_accumulated: managed_biguint!(7u64),
+                    weight_accumulated: 8u64,
+                    recording_round: 9u64,
+                    recording_timestamp: 11_000u64,
+                };
+                let five_field_buffer = top_encode_to_vec_u8(&five_field_observation).unwrap();
+                assert!(PriceObservation::<DebugApi>::top_decode(five_field_buffer).is_err());
 
                 let timestamp_observation = TimestampPriceObservation::<DebugApi> {
                     first_token_reserve_accumulated: managed_biguint!(6u64),
@@ -320,6 +339,15 @@ fn test_safe_price_migration() {
     // Simulate old price observations
     pair_setup.set_price_observation_as_old(1);
     pair_setup.set_price_observation_as_old(2);
+    pair_setup
+        .b_mock
+        .execute_tx(
+            &pair_setup.owner_address,
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| sc.upgrade(),
+        )
+        .assert_ok();
 
     // Check migration safe price
     // Both observations are old
@@ -1042,7 +1070,7 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 }
 
 #[test]
-fn test_external_view_extrapolates_no_origin_legacy_observation_by_round() {
+fn test_external_view_extrapolates_legacy_observation_by_round() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     pair_setup.set_block_round(25u64);
@@ -1075,6 +1103,7 @@ fn test_external_view_extrapolates_no_origin_legacy_observation_by_round() {
                     sc.price_observations().push(&observation);
                 }
                 sc.safe_price_current_index().set(2usize);
+                sc.safe_price_legacy_cutover().set((25u64, 150_000u64));
 
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(MEX_TOKEN_ID);
@@ -1093,19 +1122,19 @@ fn test_external_view_extrapolates_no_origin_legacy_observation_by_round() {
             let extrapolated =
                 sc.get_price_observation_view(managed_address!(&pair_address), 25u64);
             assert_eq!(extrapolated.recording_round, 25u64);
-            assert_eq!(extrapolated.recording_timestamp, 0u64);
-            assert_eq!(extrapolated.weight_accumulated, 16u64);
+            assert_eq!(extrapolated.recording_timestamp, 150_000u64);
+            assert_eq!(extrapolated.weight_accumulated, 96_000u64);
             assert_eq!(
                 extrapolated.first_token_reserve_accumulated,
-                managed_biguint!(260u64)
+                managed_biguint!(1_560_000u64)
             );
             assert_eq!(
                 extrapolated.second_token_reserve_accumulated,
-                managed_biguint!(260u64)
+                managed_biguint!(1_560_000u64)
             );
             assert_eq!(
                 extrapolated.lp_supply_accumulated,
-                managed_biguint!(2_100u64)
+                managed_biguint!(12_600_000u64)
             );
 
             let quote = sc.get_safe_price(
@@ -1455,7 +1484,7 @@ fn test_safe_price_uses_millisecond_weights_for_save_interval() {
 }
 
 #[test]
-fn test_update_safe_price_same_round_uses_timestamp_progress() {
+fn test_update_safe_price_same_round_and_timestamp_is_noop() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.set_safe_price_timestamp_save_interval(12_000u64);
@@ -1495,13 +1524,20 @@ fn test_update_safe_price_same_round_uses_timestamp_progress() {
                 starting_timestamp_ms
             );
             assert_eq!(current_observation.weight_accumulated, 6_000u64);
+            assert_eq!(
+                current_observation.first_token_reserve_accumulated,
+                managed_biguint!(6_000_000_000u64)
+            );
+            assert_eq!(
+                current_observation.second_token_reserve_accumulated,
+                managed_biguint!(6_000_000_000u64)
+            );
+            assert_eq!(
+                current_observation.lp_supply_accumulated,
+                managed_biguint!(6_000_000_000u64)
+            );
         })
         .assert_ok();
-
-    pair_setup.b_mock.set_block_round(block_round);
-    pair_setup
-        .b_mock
-        .set_block_timestamp_ms(starting_timestamp_ms + 6_000);
 
     pair_setup
         .b_mock
@@ -1522,21 +1558,30 @@ fn test_update_safe_price_same_round_uses_timestamp_progress() {
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            assert_eq!(sc.price_observations().len(), 1);
-            assert!(sc.current_price_observation().is_empty());
-            let observation = sc.price_observations().get(1);
+            assert!(sc.price_observations().is_empty());
+            assert!(!sc.current_price_observation().is_empty());
+            let observation = sc.current_price_observation().get();
             assert_eq!(observation.recording_round, block_round);
+            assert_eq!(observation.recording_timestamp, starting_timestamp_ms);
+            assert_eq!(observation.weight_accumulated, 6_000u64);
             assert_eq!(
-                observation.recording_timestamp,
-                starting_timestamp_ms + 6_000
+                observation.first_token_reserve_accumulated,
+                managed_biguint!(6_000_000_000u64)
             );
-            assert_eq!(observation.weight_accumulated, 12_000u64);
+            assert_eq!(
+                observation.second_token_reserve_accumulated,
+                managed_biguint!(6_000_000_000u64)
+            );
+            assert_eq!(
+                observation.lp_supply_accumulated,
+                managed_biguint!(6_000_000_000u64)
+            );
         })
         .assert_ok();
 }
 
 #[test]
-fn test_update_safe_price_converts_legacy_observation_before_save() {
+fn test_update_safe_price_converts_legacy_finalized_before_save() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
 
     pair_setup.set_safe_price_timestamp_save_interval(6_000u64);
@@ -1612,6 +1657,10 @@ fn test_update_safe_price_converts_legacy_observation_before_save() {
                 observation.lp_supply_accumulated,
                 managed_biguint!(60_600_000u64)
             );
+            assert!(sc.current_price_observation().is_empty());
+
+            let legacy_observation = sc.price_observations().get(1);
+            assert_eq!(legacy_observation.recording_timestamp, 0u64);
         })
         .assert_ok();
 }
@@ -1796,7 +1845,7 @@ fn test_all_legacy_timestamp_is_invariant_after_cutover() {
         )
         .assert_ok();
 
-    for (current_round, current_timestamp) in [(101u64, 1_000_600u64), (102u64, 1_001_200u64)] {
+    for (current_round, current_timestamp) in [(101u64, 1_006_000u64), (102u64, 1_012_000u64)] {
         pair_setup.set_block_round(current_round);
         pair_setup.b_mock.set_block_timestamp_ms(current_timestamp);
         pair_setup
@@ -1812,9 +1861,11 @@ fn test_all_legacy_timestamp_is_invariant_after_cutover() {
 }
 
 #[test]
-fn test_mixed_legacy_timestamp_is_invariant_with_pending_and_finalized_reference() {
+fn test_mixed_legacy_timestamp_is_invariant_with_pending_and_finalized_observations() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
+    pair_setup.set_block_round(100u64);
+    pair_setup.b_mock.set_block_timestamp_ms(1_000_000u64);
 
     pair_setup
         .b_mock
@@ -1840,6 +1891,7 @@ fn test_mixed_legacy_timestamp_is_invariant_with_pending_and_finalized_reference
                     lp_supply_accumulated: managed_biguint!(60_000_000u64),
                 });
                 sc.safe_price_current_index().set(2usize);
+                sc.safe_price_legacy_cutover().set((100u64, 1_000_000u64));
             },
         )
         .assert_ok();
@@ -1860,16 +1912,18 @@ fn test_mixed_legacy_timestamp_is_invariant_with_pending_and_finalized_reference
             &rust_biguint!(0),
             |sc| {
                 sc.current_price_observation().set(&PriceObservation {
-                    first_token_reserve_accumulated: managed_biguint!(6_006_000u64),
-                    second_token_reserve_accumulated: managed_biguint!(7_806_000u64),
-                    weight_accumulated: 600_600u64,
+                    first_token_reserve_accumulated: managed_biguint!(6_060_000u64),
+                    second_token_reserve_accumulated: managed_biguint!(7_860_000u64),
+                    weight_accumulated: 606_000u64,
                     recording_round: 101u64,
-                    recording_timestamp: 1_000_600u64,
-                    lp_supply_accumulated: managed_biguint!(60_060_000u64),
+                    recording_timestamp: 1_006_000u64,
+                    lp_supply_accumulated: managed_biguint!(60_600_000u64),
                 });
             },
         )
         .assert_ok();
+    pair_setup.set_block_round(101u64);
+    pair_setup.b_mock.set_block_timestamp_ms(1_006_000u64);
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
@@ -1886,12 +1940,12 @@ fn test_mixed_legacy_timestamp_is_invariant_with_pending_and_finalized_reference
             &rust_biguint!(0),
             |sc| {
                 sc.price_observations().push(&PriceObservation {
-                    first_token_reserve_accumulated: managed_biguint!(6_006_000u64),
-                    second_token_reserve_accumulated: managed_biguint!(7_806_000u64),
-                    weight_accumulated: 600_600u64,
+                    first_token_reserve_accumulated: managed_biguint!(6_060_000u64),
+                    second_token_reserve_accumulated: managed_biguint!(7_860_000u64),
+                    weight_accumulated: 606_000u64,
                     recording_round: 101u64,
-                    recording_timestamp: 1_000_600u64,
-                    lp_supply_accumulated: managed_biguint!(60_060_000u64),
+                    recording_timestamp: 1_006_000u64,
+                    lp_supply_accumulated: managed_biguint!(60_600_000u64),
                 });
                 sc.safe_price_current_index().set(3usize);
                 sc.current_price_observation().clear();
@@ -1908,7 +1962,7 @@ fn test_mixed_legacy_timestamp_is_invariant_with_pending_and_finalized_reference
 }
 
 #[test]
-fn test_mixed_legacy_timestamp_quote_does_not_drift_when_reference_advances() {
+fn test_mixed_legacy_timestamp_quote_does_not_drift_when_new_observations_are_added() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
@@ -1948,6 +2002,7 @@ fn test_mixed_legacy_timestamp_quote_does_not_drift_when_reference_advances() {
                     sc.price_observations().push(&observation);
                 }
                 sc.safe_price_current_index().set(3usize);
+                sc.safe_price_legacy_cutover().set((100u64, 1_000_000u64));
             },
         )
         .assert_ok();
@@ -2131,87 +2186,10 @@ fn test_safe_price_writer_rejects_legacy_observation_without_valid_origin() {
 }
 
 #[test]
-fn test_safe_price_writer_uses_timestamped_pending_reference_without_valid_cutover() {
-    for legacy_cutover in [None, Some((80u64, 1_000_000u64))] {
-        let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
-        pair_setup.set_safe_price_timestamp_save_interval(120_000u64);
-
-        pair_setup
-            .b_mock
-            .execute_tx(
-                &pair_setup.owner_address,
-                &pair_setup.pair_wrapper,
-                &rust_biguint!(0),
-                |sc| {
-                    sc.price_observations().push(&PriceObservation {
-                        first_token_reserve_accumulated: managed_biguint!(10u64),
-                        second_token_reserve_accumulated: managed_biguint!(20u64),
-                        weight_accumulated: 2u64,
-                        recording_round: 90u64,
-                        recording_timestamp: 0u64,
-                        lp_supply_accumulated: managed_biguint!(0u64),
-                    });
-                    sc.safe_price_current_index().set(1usize);
-                    sc.current_price_observation().set(&PriceObservation {
-                        first_token_reserve_accumulated: managed_biguint!(120_000u64),
-                        second_token_reserve_accumulated: managed_biguint!(240_000u64),
-                        weight_accumulated: 72_000u64,
-                        recording_round: 100u64,
-                        recording_timestamp: 1_000_000u64,
-                        lp_supply_accumulated: managed_biguint!(1_200_000u64),
-                    });
-                    if let Some(cutover) = legacy_cutover {
-                        sc.safe_price_legacy_cutover().set(cutover);
-                    }
-                },
-            )
-            .assert_ok();
-
-        pair_setup.set_block_round(101u64);
-        pair_setup.b_mock.set_block_timestamp_ms(1_000_600u64);
-        pair_setup
-            .b_mock
-            .execute_tx(
-                pair_setup.pair_wrapper.address_ref(),
-                &pair_setup.pair_wrapper,
-                &rust_biguint!(0),
-                |sc| {
-                    sc.update_safe_price(
-                        &managed_biguint!(100u64),
-                        &managed_biguint!(200u64),
-                        &managed_biguint!(1_000u64),
-                    );
-                },
-            )
-            .assert_ok();
-
-        pair_setup
-            .b_mock
-            .execute_query(&pair_setup.pair_wrapper, |sc| {
-                let pending = sc.current_price_observation().get();
-                assert_eq!(pending.recording_timestamp, 1_000_600u64);
-                assert_eq!(pending.weight_accumulated, 72_600u64);
-                assert_eq!(
-                    pending.first_token_reserve_accumulated,
-                    managed_biguint!(180_000u64)
-                );
-                assert_eq!(
-                    pending.second_token_reserve_accumulated,
-                    managed_biguint!(360_000u64)
-                );
-                assert_eq!(
-                    pending.lp_supply_accumulated,
-                    managed_biguint!(1_800_000u64)
-                );
-            })
-            .assert_ok();
-    }
-}
-
-#[test]
-fn test_safe_price_view_rejects_invalid_present_legacy_origin() {
+fn test_safe_price_view_rejects_legacy_observation_without_valid_cutover() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
+    pair_setup.set_block_round(100u64);
 
     pair_setup
         .b_mock
@@ -2236,11 +2214,9 @@ fn test_safe_price_view_rejects_invalid_present_legacy_origin() {
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            let observation = sc.get_price_observation_view(managed_address!(&pair_address), 90u64);
-            assert_eq!(observation.recording_timestamp, 0u64);
-            assert_eq!(observation.weight_accumulated, 2u64);
+            sc.get_price_observation_view(managed_address!(&pair_address), 90u64);
         })
-        .assert_ok();
+        .assert_user_error("Cannot normalize legacy safe price observation");
 
     pair_setup
         .b_mock
@@ -2262,70 +2238,6 @@ fn test_safe_price_view_rejects_invalid_present_legacy_origin() {
             sc.get_price_observation_view(managed_address!(&pair_address), 90u64);
         })
         .assert_user_error("Cannot normalize legacy safe price observation");
-
-    pair_setup
-        .b_mock
-        .execute_tx(
-            &pair_setup.owner_address,
-            &pair_setup.pair_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                sc.safe_price_legacy_cutover().clear();
-                sc.current_price_observation().set(&PriceObservation {
-                    first_token_reserve_accumulated: managed_biguint!(12_000u64),
-                    second_token_reserve_accumulated: managed_biguint!(24_000u64),
-                    weight_accumulated: 12_000u64,
-                    recording_round: 80u64,
-                    recording_timestamp: 1_000_000u64,
-                    lp_supply_accumulated: managed_biguint!(0u64),
-                });
-            },
-        )
-        .assert_ok();
-    pair_setup
-        .b_mock
-        .execute_query(&pair_setup.pair_wrapper, |sc| {
-            sc.get_price_observation_view(managed_address!(&pair_address), 90u64);
-        })
-        .assert_user_error("Cannot normalize legacy safe price observation");
-}
-
-#[test]
-fn test_positive_safe_price_timestamp_is_already_milliseconds() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
-
-    pair_setup
-        .b_mock
-        .execute_query(&pair_setup.pair_wrapper, |sc| {
-            let mut observation = PriceObservation {
-                first_token_reserve_accumulated: managed_biguint!(10u64),
-                second_token_reserve_accumulated: managed_biguint!(20u64),
-                weight_accumulated: 2u64,
-                recording_round: 90u64,
-                recording_timestamp: 540u64,
-                lp_supply_accumulated: managed_biguint!(5u64),
-            };
-
-            assert!(sc.prepare_observation_for_timestamp_weights(
-                &mut observation,
-                &PriceObservation::default(),
-                None,
-            ));
-
-            assert_eq!(observation.recording_timestamp, 540u64);
-            assert_eq!(observation.recording_round, 90u64);
-            assert_eq!(observation.weight_accumulated, 2u64);
-            assert_eq!(
-                observation.first_token_reserve_accumulated,
-                managed_biguint!(10u64)
-            );
-            assert_eq!(
-                observation.second_token_reserve_accumulated,
-                managed_biguint!(20u64)
-            );
-            assert_eq!(observation.lp_supply_accumulated, managed_biguint!(5u64));
-        })
-        .assert_ok();
 }
 
 #[test]
@@ -2333,8 +2245,8 @@ fn test_price_observation_view_keeps_positive_timestamp_in_milliseconds() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
-    pair_setup.b_mock.set_block_round(200u64);
-    pair_setup.b_mock.set_block_timestamp_ms(1_000_000u64);
+    pair_setup.b_mock.set_block_round(100u64);
+    pair_setup.b_mock.set_block_timestamp_ms(60_540u64);
 
     pair_setup
         .b_mock
@@ -2434,11 +2346,11 @@ fn test_finalized_observation_is_available_without_pending_duplicate() {
 }
 
 #[test]
-fn test_safe_price_zero_timestamp_observation_uses_cumulative_weight_reference() {
+fn test_safe_price_zero_timestamp_observation_uses_legacy_cutover() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
-    pair_setup.set_block_round(200u64);
+    pair_setup.set_block_round(110u64);
     pair_setup
         .b_mock
         .set_block_timestamp_ms(1_700_000_060_000u64);
@@ -2461,7 +2373,7 @@ fn test_safe_price_zero_timestamp_observation_uses_cumulative_weight_reference()
                 let timestamped_reference_observation = PriceObservation {
                     first_token_reserve_accumulated: managed_biguint!(60_000u64),
                     second_token_reserve_accumulated: managed_biguint!(120_000u64),
-                    weight_accumulated: 12_000u64,
+                    weight_accumulated: 72_000u64,
                     recording_round: 100u64,
                     recording_timestamp: 1_700_000_000_000u64,
                     lp_supply_accumulated: managed_biguint!(30_000u64),
@@ -2471,6 +2383,8 @@ fn test_safe_price_zero_timestamp_observation_uses_cumulative_weight_reference()
                 sc.price_observations()
                     .push(&timestamped_reference_observation);
                 sc.safe_price_current_index().set(2usize);
+                sc.safe_price_legacy_cutover()
+                    .set((110u64, 1_700_000_060_000u64));
             },
         )
         .assert_ok();
@@ -2479,7 +2393,7 @@ fn test_safe_price_zero_timestamp_observation_uses_cumulative_weight_reference()
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             let normalized = sc.get_price_observation_view(managed_address!(&pair_address), 90u64);
-            assert_eq!(normalized.recording_timestamp, 1_700_000_000_000u64);
+            assert_eq!(normalized.recording_timestamp, 1_699_999_940_000u64);
             assert_eq!(normalized.weight_accumulated, 12_000u64);
             assert_eq!(
                 normalized.first_token_reserve_accumulated,
@@ -2498,7 +2412,7 @@ fn test_safe_price_zero_timestamp_observation_uses_cumulative_weight_reference()
 }
 
 #[test]
-fn test_price_observation_after_latest_does_not_accumulate_without_new_timestamp() {
+fn test_price_observation_view_rejects_round_progress_without_timestamp_progress() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
@@ -2530,26 +2444,9 @@ fn test_price_observation_after_latest_does_not_accumulate_without_new_timestamp
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            let observation =
-                sc.get_price_observation_view(managed_address!(&pair_address), 101u64);
-
-            assert_eq!(observation.recording_round, 101u64);
-            assert_eq!(observation.recording_timestamp, 1_000_000u64);
-            assert_eq!(observation.weight_accumulated, 6_000u64);
-            assert_eq!(
-                observation.first_token_reserve_accumulated,
-                managed_biguint!(60_000u64)
-            );
-            assert_eq!(
-                observation.second_token_reserve_accumulated,
-                managed_biguint!(120_000u64)
-            );
-            assert_eq!(
-                observation.lp_supply_accumulated,
-                managed_biguint!(300_000u64)
-            );
+            sc.get_price_observation_view(managed_address!(&pair_address), 101u64);
         })
-        .assert_ok();
+        .assert_user_error("The price observation does not exist");
 }
 
 #[test]
@@ -2558,7 +2455,7 @@ fn test_safe_price_timestamp_offset_uses_current_price_observation() {
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
     pair_setup.set_block_round(110u64);
-    pair_setup.b_mock.set_block_timestamp_ms(606_000u64);
+    pair_setup.b_mock.set_block_timestamp_ms(660_000u64);
 
     pair_setup
         .b_mock
@@ -2576,11 +2473,11 @@ fn test_safe_price_timestamp_offset_uses_current_price_observation() {
                     lp_supply_accumulated: managed_biguint!(0u64),
                 };
                 let current_observation = PriceObservation {
-                    first_token_reserve_accumulated: managed_biguint!(606_000u64),
-                    second_token_reserve_accumulated: managed_biguint!(1_212_000u64),
-                    weight_accumulated: 606_000u64,
+                    first_token_reserve_accumulated: managed_biguint!(660_000u64),
+                    second_token_reserve_accumulated: managed_biguint!(1_320_000u64),
+                    weight_accumulated: 660_000u64,
                     recording_round: 110u64,
-                    recording_timestamp: 606_000u64,
+                    recording_timestamp: 660_000u64,
                     lp_supply_accumulated: managed_biguint!(0u64),
                 };
 
@@ -2597,125 +2494,16 @@ fn test_safe_price_timestamp_offset_uses_current_price_observation() {
             let target_observation =
                 sc.get_price_observation_view(managed_address!(&pair_address), 105u64);
             assert_eq!(target_observation.recording_round, 105u64);
-            assert_eq!(target_observation.recording_timestamp, 603_000u64);
-            assert_eq!(target_observation.weight_accumulated, 603_000u64);
+            assert_eq!(target_observation.recording_timestamp, 630_000u64);
+            assert_eq!(target_observation.weight_accumulated, 630_000u64);
             assert_eq!(
                 target_observation.first_token_reserve_accumulated,
-                managed_biguint!(603_000u64)
+                managed_biguint!(630_000u64)
             );
             assert_eq!(
                 target_observation.second_token_reserve_accumulated,
-                managed_biguint!(1_206_000u64)
+                managed_biguint!(1_260_000u64)
             );
-        })
-        .assert_ok();
-}
-
-#[test]
-fn test_safe_price_timestamp_offset_uses_exact_millisecond_window() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
-    let pair_address = pair_setup.pair_wrapper.address_ref().clone();
-
-    pair_setup.b_mock.set_block_round(111u64);
-    pair_setup.b_mock.set_block_timestamp_ms(607_000u64);
-
-    pair_setup
-        .b_mock
-        .execute_tx(
-            &pair_setup.owner_address,
-            &pair_setup.pair_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                let oldest_observation = PriceObservation {
-                    first_token_reserve_accumulated: managed_biguint!(600_000u64),
-                    second_token_reserve_accumulated: managed_biguint!(1_200_000u64),
-                    weight_accumulated: 600_000u64,
-                    recording_round: 100u64,
-                    recording_timestamp: 600_000u64,
-                    lp_supply_accumulated: managed_biguint!(6_000_000u64),
-                };
-                let latest_observation = PriceObservation {
-                    first_token_reserve_accumulated: managed_biguint!(606_000u64),
-                    second_token_reserve_accumulated: managed_biguint!(1_230_000u64),
-                    weight_accumulated: 606_000u64,
-                    recording_round: 110u64,
-                    recording_timestamp: 606_000u64,
-                    lp_supply_accumulated: managed_biguint!(6_060_000u64),
-                };
-
-                sc.price_observations().push(&oldest_observation);
-                sc.price_observations().push(&latest_observation);
-                sc.safe_price_current_index().set(2usize);
-
-                let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
-                let second_token_id = managed_token_id!(MEX_TOKEN_ID);
-                sc.pair_reserve(&first_token_id)
-                    .set(managed_biguint!(10u64));
-                sc.pair_reserve(&second_token_id)
-                    .set(managed_biguint!(20u64));
-                sc.lp_token_supply().set(managed_biguint!(100u64));
-            },
-        )
-        .assert_ok();
-
-    pair_setup
-        .b_mock
-        .execute_query(&pair_setup.pair_wrapper, |sc| {
-            let target_round = 106u64;
-            assert_eq!(target_round, 106u64);
-
-            let input_payment = EsdtTokenPayment::new(
-                managed_token_id!(WEGLD_TOKEN_ID),
-                0,
-                managed_biguint!(100u64),
-            );
-            let timestamp_price = sc.get_safe_price_by_timestamp_offset(
-                managed_address!(&pair_address),
-                3_000u64,
-                input_payment.clone(),
-            );
-            assert_eq!(
-                timestamp_price.token_identifier,
-                managed_token_id!(MEX_TOKEN_ID)
-            );
-            assert_eq!(timestamp_price.amount, managed_biguint!(250u64));
-
-            let round_price = sc.get_safe_price(
-                managed_address!(&pair_address),
-                target_round,
-                111u64,
-                input_payment,
-            );
-            assert_eq!(round_price.amount, managed_biguint!(300u64));
-
-            let timestamp_lp_price = sc
-                .get_lp_tokens_safe_price_by_timestamp_offset(
-                    managed_address!(&pair_address),
-                    3_000u64,
-                    managed_biguint!(100u64),
-                )
-                .into_tuple();
-            assert_eq!(
-                timestamp_lp_price.0.token_identifier,
-                managed_token_id!(WEGLD_TOKEN_ID)
-            );
-            assert_eq!(timestamp_lp_price.0.amount, managed_biguint!(10u64));
-            assert_eq!(
-                timestamp_lp_price.1.token_identifier,
-                managed_token_id!(MEX_TOKEN_ID)
-            );
-            assert_eq!(timestamp_lp_price.1.amount, managed_biguint!(25u64));
-
-            let round_lp_price = sc
-                .get_lp_tokens_safe_price(
-                    managed_address!(&pair_address),
-                    target_round,
-                    111u64,
-                    managed_biguint!(100u64),
-                )
-                .into_tuple();
-            assert_eq!(round_lp_price.0.amount, managed_biguint!(8u64));
-            assert_eq!(round_lp_price.1.amount, managed_biguint!(25u64));
         })
         .assert_ok();
 }

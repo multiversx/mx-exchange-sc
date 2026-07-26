@@ -58,7 +58,7 @@ fn test_router_upgrade_migrates_custom_safe_price_round_config() {
                 sc.safe_price_timestamp_save_interval().clear();
                 sc.default_safe_price_timestamp_offset().clear();
                 legacy_safe_price_round_save_interval().set(10u64);
-                legacy_default_safe_price_rounds_offset().set(600u64);
+                legacy_default_safe_price_rounds_offset().set(123u64);
                 sc.state().set(true);
                 sc.upgrade();
             },
@@ -69,7 +69,7 @@ fn test_router_upgrade_migrates_custom_safe_price_round_config() {
         .b_mock
         .execute_query(&setup.router_wrapper, |sc| {
             assert_eq!(sc.safe_price_timestamp_save_interval().get(), 60_000u64);
-            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 3_600_000u64);
+            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 738_000u64);
             assert!(legacy_safe_price_round_save_interval().is_empty());
             assert!(legacy_default_safe_price_rounds_offset().is_empty());
             assert!(!sc.state().get());
@@ -180,6 +180,48 @@ fn test_router_upgrade_safe_price_config_overflow_reverts_atomically() {
         .execute_query(&setup.router_wrapper, |sc| {
             assert_eq!(legacy_safe_price_round_save_interval().get(), u64::MAX);
             assert_eq!(legacy_default_safe_price_rounds_offset().get(), 600u64);
+            assert!(sc.safe_price_timestamp_save_interval().is_empty());
+            assert!(sc.default_safe_price_timestamp_offset().is_empty());
+            assert!(sc.state().get());
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_router_upgrade_safe_price_offset_overflow_reverts_atomically() {
+    let mut setup = RouterSetup::new(router::contract_obj, pair::contract_obj);
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_address,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.safe_price_timestamp_save_interval().clear();
+                sc.default_safe_price_timestamp_offset().clear();
+                legacy_safe_price_round_save_interval().set(10u64);
+                legacy_default_safe_price_rounds_offset().set(u64::MAX);
+                sc.state().set(true);
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_address,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| sc.upgrade(),
+        )
+        .assert_user_error("Safe price duration overflow");
+
+    setup
+        .b_mock
+        .execute_query(&setup.router_wrapper, |sc| {
+            assert_eq!(legacy_safe_price_round_save_interval().get(), 10u64);
+            assert_eq!(legacy_default_safe_price_rounds_offset().get(), u64::MAX);
             assert!(sc.safe_price_timestamp_save_interval().is_empty());
             assert!(sc.default_safe_price_timestamp_offset().is_empty());
             assert!(sc.state().get());
