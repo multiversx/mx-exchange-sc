@@ -6,8 +6,8 @@ use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 use crate::{
     amm, config,
     errors::{
-        ERROR_SAFE_PRICE_CURRENT_INDEX, ERROR_SAFE_PRICE_DURATION_OVERFLOW,
-        ERROR_SAFE_PRICE_LEGACY_NORMALIZATION,
+        ERROR_SAFE_PRICE_CURRENT_INDEX, ERROR_SAFE_PRICE_LEGACY_NORMALIZATION,
+        ERROR_SAFE_PRICE_TIMESTAMP_ORDER,
     },
     read_pair_storage,
 };
@@ -101,7 +101,7 @@ pub trait SafePriceModule:
 
         let current_round = self.blockchain().get_block_round();
         let current_timestamp = self.get_current_timestamp_milliseconds();
-        if current_timestamp == 0 {
+        if current_round == 0 || current_timestamp == 0 {
             return;
         }
 
@@ -116,35 +116,31 @@ pub trait SafePriceModule:
         } else {
             PriceObservation::default()
         };
-        if last_recorded_observation.recording_round > 0
-            && last_recorded_observation.recording_timestamp == 0
-        {
-            let legacy_cutover_mapper = self.safe_price_legacy_cutover();
-            require!(
-                !legacy_cutover_mapper.is_empty(),
-                ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
-            );
-            let legacy_cutover = legacy_cutover_mapper.get();
-            require!(
-                self.normalize_legacy_observation(
-                    &mut last_recorded_observation,
-                    legacy_cutover,
-                ),
-                ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
-            );
+        if safe_price_current_index > 0 {
+            self.normalize_observation_if_legacy(&mut last_recorded_observation);
         }
 
-        let last_recorded_weight = last_recorded_observation.weight_accumulated;
+        let last_recorded_timestamp = last_recorded_observation.recording_timestamp;
         let current_price_observation_mapper = self.current_price_observation();
-        let mut latest_observation = if current_price_observation_mapper.is_empty() {
-            last_recorded_observation
-        } else {
-            current_price_observation_mapper.get()
-        };
+        let mut latest_observation =
+            if safe_price_current_index == 0 && current_price_observation_mapper.is_empty() {
+                PriceObservation::default()
+            } else {
+                current_price_observation_mapper.get()
+            };
 
-        if latest_observation.weight_accumulated > 0
-            && latest_observation.recording_timestamp >= current_timestamp
+        if safe_price_current_index > 0 {
+            require!(
+                latest_observation.recording_timestamp >= last_recorded_timestamp,
+                ERROR_SAFE_PRICE_TIMESTAMP_ORDER
+            );
+        }
+        if latest_observation.recording_timestamp == 0
+            && self.get_current_round_duration_milliseconds() == 0
         {
+            return;
+        }
+        if latest_observation.recording_timestamp >= current_timestamp {
             return;
         }
 
@@ -157,9 +153,13 @@ pub trait SafePriceModule:
             lp_supply,
         );
 
-        let timestamp_save_interval = self.get_safe_price_timestamp_save_interval();
-        if latest_observation.weight_accumulated - last_recorded_weight >= timestamp_save_interval
-        {
+        let elapsed_since_last_saved_observation = if safe_price_current_index == 0 {
+            latest_observation.weight_accumulated
+        } else {
+            latest_observation.recording_timestamp - last_recorded_timestamp
+        };
+
+        if elapsed_since_last_saved_observation >= self.get_safe_price_timestamp_save_interval() {
             self.save_observation_to_storage(&latest_observation, safe_price_current_index);
         } else {
             current_price_observation_mapper.set(&latest_observation);
@@ -186,33 +186,74 @@ pub trait SafePriceModule:
         }
 
         self.safe_price_current_index().set(new_index);
-        self.current_price_observation().clear();
+        self.current_price_observation().set(price_observation);
+    }
+
+    fn initialize_current_price_observation(&self) {
+        let current_price_observation_mapper = self.current_price_observation();
+        if !current_price_observation_mapper.is_empty() {
+            return;
+        }
+
+        let safe_price_current_index = self.safe_price_current_index().get();
+        let price_observations = self.price_observations();
+        if safe_price_current_index == 0 {
+            require!(
+                price_observations.is_empty(),
+                ERROR_SAFE_PRICE_CURRENT_INDEX
+            );
+            return;
+        }
+        require!(
+            safe_price_current_index <= MAX_OBSERVATIONS
+                && safe_price_current_index <= price_observations.len(),
+            ERROR_SAFE_PRICE_CURRENT_INDEX
+        );
+
+        let mut current_price_observation = price_observations.get(safe_price_current_index);
+        self.normalize_observation_if_legacy(&mut current_price_observation);
+
+        current_price_observation_mapper.set(&current_price_observation);
+    }
+
+    fn normalize_observation_if_legacy(&self, observation: &mut PriceObservation<Self::Api>) {
+        if observation.recording_timestamp > 0 {
+            return;
+        }
+
+        let legacy_cutover_mapper = self.safe_price_legacy_cutover();
+        require!(
+            !legacy_cutover_mapper.is_empty(),
+            ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+        );
+        self.normalize_legacy_observation(observation, legacy_cutover_mapper.get());
     }
 
     fn normalize_legacy_observation(
         &self,
         observation: &mut PriceObservation<Self::Api>,
         legacy_cutover: (Round, Timestamp),
-    ) -> bool {
+    ) {
+        require!(
+            observation.lp_supply_accumulated == 0u64,
+            ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+        );
+
         let (cutover_round, cutover_timestamp) = legacy_cutover;
-        if observation.recording_round > cutover_round {
-            return false;
-        }
+        require!(
+            observation.recording_round <= cutover_round,
+            ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+        );
 
         let elapsed_rounds = cutover_round - observation.recording_round;
-        if elapsed_rounds > u64::MAX / LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS {
-            return false;
-        }
-
-        let elapsed_milliseconds =
-            elapsed_rounds * LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
-        if elapsed_milliseconds >= cutover_timestamp {
-            return false;
-        }
+        let elapsed_milliseconds = elapsed_rounds * LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
+        require!(
+            elapsed_milliseconds < cutover_timestamp,
+            ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+        );
 
         observation.recording_timestamp = cutover_timestamp - elapsed_milliseconds;
         self.scale_legacy_observation_to_milliseconds(observation);
-        true
     }
 
     fn accumulate_into_observation(
@@ -227,7 +268,7 @@ pub trait SafePriceModule:
         let weight = if observation.recording_timestamp > 0 {
             current_timestamp - observation.recording_timestamp
         } else {
-            LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS
+            self.get_current_round_duration_milliseconds()
         };
         let weight_biguint = BigUint::from(weight);
 
@@ -266,20 +307,19 @@ pub trait SafePriceModule:
             .as_u64_millis()
     }
 
+    fn get_current_round_duration_milliseconds(&self) -> Timestamp {
+        self.blockchain()
+            .get_block_round_time_millis()
+            .as_u64_millis()
+    }
+
     fn scale_legacy_observation_to_milliseconds(
         &self,
         observation: &mut PriceObservation<Self::Api>,
     ) {
-        require!(
-            observation.weight_accumulated
-                <= u64::MAX / LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS,
-            ERROR_SAFE_PRICE_DURATION_OVERFLOW
-        );
-
         let multiplier = BigUint::from(LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS);
         observation.first_token_reserve_accumulated *= &multiplier;
         observation.second_token_reserve_accumulated *= &multiplier;
-        observation.lp_supply_accumulated *= &multiplier;
         observation.weight_accumulated *= LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
     }
 

@@ -7,8 +7,8 @@ use math::weighted_average;
 use crate::{
     amm, config,
     errors::{
-        ERROR_SAFE_PRICE_LEGACY_NORMALIZATION, ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST,
-        ERROR_SAFE_PRICE_SAME_ROUNDS,
+        ERROR_SAFE_PRICE_CURRENT_INDEX, ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST,
+        ERROR_SAFE_PRICE_TIMESTAMP_ORDER, ERROR_SAFE_PRICE_WEIGHT_ORDER,
     },
     read_pair_storage,
     safe_price::{
@@ -598,9 +598,16 @@ pub trait SafePriceViewModule:
             .get_safe_price_current_index_mapper(pair_address.clone())
             .get();
         let price_observations = self.get_price_observation_mapper(pair_address.clone());
+        let observation_count = price_observations.len();
         require!(
-            !price_observations.is_empty(),
+            observation_count > 0,
             ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
+        require!(
+            current_index > 0
+                && current_index <= observation_count
+                && current_index <= MAX_OBSERVATIONS,
+            ERROR_SAFE_PRICE_CURRENT_INDEX
         );
 
         let cutover_mapper = self.get_safe_price_legacy_cutover_mapper(pair_address.clone());
@@ -613,18 +620,22 @@ pub trait SafePriceViewModule:
             .infer_legacy_price_observation(price_observations.get(current_index), legacy_cutover);
         let current_price_observation_mapper =
             self.get_current_price_observation_mapper(pair_address.clone());
-        let latest_observation = if current_price_observation_mapper.is_empty() {
-            last_recorded_observation.clone()
-        } else {
-            current_price_observation_mapper.get()
-        };
+        require!(
+            !current_price_observation_mapper.is_empty(),
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
+        let latest_observation = current_price_observation_mapper.get();
+        require!(
+            latest_observation.recording_timestamp >= last_recorded_observation.recording_timestamp,
+            ERROR_SAFE_PRICE_TIMESTAMP_ORDER
+        );
         let read_context = PriceObservationReadContext {
             current_index,
             last_recorded_observation,
             latest_observation,
             legacy_cutover,
         };
-        let oldest_observation_index = if price_observations.len() == MAX_OBSERVATIONS {
+        let oldest_observation_index = if observation_count == MAX_OBSERVATIONS {
             (current_index % MAX_OBSERVATIONS) + 1
         } else {
             1
@@ -643,13 +654,11 @@ pub trait SafePriceViewModule:
         mut observation: PriceObservation<Self::Api>,
         legacy_cutover: (Round, Timestamp),
     ) -> PriceObservation<Self::Api> {
-        if observation.recording_round == 0 || observation.recording_timestamp > 0 {
+        if observation.recording_timestamp > 0 {
             return observation;
         }
 
-        if !self.normalize_legacy_observation(&mut observation, legacy_cutover) {
-            sc_panic!(ERROR_SAFE_PRICE_LEGACY_NORMALIZATION);
-        }
+        self.normalize_legacy_observation(&mut observation, legacy_cutover);
         observation
     }
 
@@ -793,7 +802,7 @@ pub trait SafePriceViewModule:
     ) -> PriceObservationWeightedAmounts<Self::Api> {
         require!(
             last_price_observation.weight_accumulated > first_price_observation.weight_accumulated,
-            ERROR_SAFE_PRICE_SAME_ROUNDS
+            ERROR_SAFE_PRICE_WEIGHT_ORDER
         );
         let weight_diff =
             last_price_observation.weight_accumulated - first_price_observation.weight_accumulated;

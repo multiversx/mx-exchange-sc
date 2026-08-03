@@ -13,10 +13,7 @@ pub mod multi_pair_swap;
 use factory::PairTokens;
 use pair::config::ProxyTrait as _;
 use pair::fee::ProxyTrait as _;
-use pair::{
-    errors::ERROR_SAFE_PRICE_DURATION_OVERFLOW, read_pair_storage,
-    safe_price::LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS, ProxyTrait as _,
-};
+use pair::{read_pair_storage, ProxyTrait as _};
 use pausable::ProxyTrait as _;
 
 const LP_TOKEN_DECIMALS: usize = 18;
@@ -51,7 +48,7 @@ pub trait Router:
 
     #[upgrade]
     fn upgrade(&self) {
-        self.migrate_safe_price_config();
+        self.init_safe_price_config();
 
         self.state().set(false);
     }
@@ -62,42 +59,6 @@ pub trait Router:
 
         self.default_safe_price_timestamp_offset()
             .set_if_empty(DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET_MILLISECONDS);
-    }
-
-    fn migrate_safe_price_config(&self) {
-        let legacy_save_interval_mapper = self.legacy_safe_price_round_save_interval();
-        let timestamp_save_interval_mapper = self.safe_price_timestamp_save_interval();
-        if timestamp_save_interval_mapper.is_empty() {
-            let save_interval_milliseconds = if legacy_save_interval_mapper.is_empty() {
-                DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS
-            } else {
-                self.legacy_safe_price_rounds_to_milliseconds(legacy_save_interval_mapper.take())
-            };
-            timestamp_save_interval_mapper.set(save_interval_milliseconds);
-        } else {
-            legacy_save_interval_mapper.clear();
-        }
-
-        let legacy_default_offset_mapper = self.legacy_default_safe_price_rounds_offset();
-        let timestamp_default_offset_mapper = self.default_safe_price_timestamp_offset();
-        if timestamp_default_offset_mapper.is_empty() {
-            let default_offset_milliseconds = if legacy_default_offset_mapper.is_empty() {
-                DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET_MILLISECONDS
-            } else {
-                self.legacy_safe_price_rounds_to_milliseconds(legacy_default_offset_mapper.take())
-            };
-            timestamp_default_offset_mapper.set(default_offset_milliseconds);
-        } else {
-            legacy_default_offset_mapper.clear();
-        }
-    }
-
-    fn legacy_safe_price_rounds_to_milliseconds(&self, legacy_rounds: u64) -> u64 {
-        require!(
-            legacy_rounds <= u64::MAX / LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS,
-            ERROR_SAFE_PRICE_DURATION_OVERFLOW
-        );
-        legacy_rounds * LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS
     }
 
     #[only_owner]

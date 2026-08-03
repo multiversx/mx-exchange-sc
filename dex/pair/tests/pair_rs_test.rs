@@ -7,12 +7,15 @@ use multiversx_sc::codec::{self, TopDecode};
 use multiversx_sc::{
     api::ManagedTypeApi,
     codec::{
-        derive::{NestedEncode, TopEncode},
+        derive::{NestedDecode, NestedEncode, TopDecode, TopEncode},
         multi_types::OptionalValue,
         top_encode_to_vec_u8,
     },
     imports::StorageMapper,
-    storage::{mappers::SingleValueMapper, StorageKey},
+    storage::{
+        mappers::{SingleValueMapper, VecMapper},
+        StorageKey,
+    },
     types::{BigUint, EsdtLocalRole, EsdtTokenPayment, MultiValueEncoded},
 };
 use multiversx_sc_scenario::{
@@ -35,21 +38,12 @@ use simple_lock::{
     SimpleLock,
 };
 
-#[derive(TopEncode, NestedEncode, Clone, Debug)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Debug)]
 pub struct OldPriceObservation<M: ManagedTypeApi> {
     pub first_token_reserve_accumulated: BigUint<M>,
     pub second_token_reserve_accumulated: BigUint<M>,
     pub weight_accumulated: u64,
     pub recording_round: Round,
-}
-
-#[derive(TopEncode, NestedEncode, Clone, Debug)]
-pub struct FiveFieldPriceObservation<M: ManagedTypeApi> {
-    pub first_token_reserve_accumulated: BigUint<M>,
-    pub second_token_reserve_accumulated: BigUint<M>,
-    pub weight_accumulated: u64,
-    pub recording_round: Round,
-    pub recording_timestamp: u64,
 }
 
 #[derive(TopEncode, NestedEncode, Clone, Debug)]
@@ -164,16 +158,6 @@ fn test_safe_price_observation_decoding() {
                     managed_biguint!(0u64)
                 );
 
-                let five_field_observation = FiveFieldPriceObservation::<DebugApi> {
-                    first_token_reserve_accumulated: managed_biguint!(6u64),
-                    second_token_reserve_accumulated: managed_biguint!(7u64),
-                    weight_accumulated: 8u64,
-                    recording_round: 9u64,
-                    recording_timestamp: 11_000u64,
-                };
-                let five_field_buffer = top_encode_to_vec_u8(&five_field_observation).unwrap();
-                assert!(PriceObservation::<DebugApi>::top_decode(five_field_buffer).is_err());
-
                 let timestamp_observation = TimestampPriceObservation::<DebugApi> {
                     first_token_reserve_accumulated: managed_biguint!(6u64),
                     second_token_reserve_accumulated: managed_biguint!(7u64),
@@ -195,9 +179,11 @@ fn test_safe_price_observation_decoding() {
                 malformed.push(0u8);
                 assert!(PriceObservation::<DebugApi>::top_decode(malformed).is_err());
 
+                new_observation.recording_timestamp = 1_000u64;
                 new_observation.lp_supply_accumulated = managed_biguint!(2u64);
                 sc.price_observations().push(&new_observation.clone());
                 let final_observation = sc.price_observations().get(1);
+                assert_eq!(final_observation.recording_timestamp, 1_000u64);
                 assert_eq!(
                     new_observation.lp_supply_accumulated,
                     final_observation.lp_supply_accumulated
@@ -1089,7 +1075,7 @@ fn test_external_view_extrapolates_legacy_observation_by_round() {
                         weight_accumulated: 1u64,
                         recording_round: 10u64,
                         recording_timestamp: 0u64,
-                        lp_supply_accumulated: managed_biguint!(100u64),
+                        lp_supply_accumulated: managed_biguint!(0u64),
                     },
                     PriceObservation {
                         first_token_reserve_accumulated: managed_biguint!(110u64),
@@ -1097,13 +1083,14 @@ fn test_external_view_extrapolates_legacy_observation_by_round() {
                         weight_accumulated: 11u64,
                         recording_round: 20u64,
                         recording_timestamp: 0u64,
-                        lp_supply_accumulated: managed_biguint!(1_100u64),
+                        lp_supply_accumulated: managed_biguint!(0u64),
                     },
                 ] {
                     sc.price_observations().push(&observation);
                 }
                 sc.safe_price_current_index().set(2usize);
                 sc.safe_price_legacy_cutover().set((25u64, 150_000u64));
+                sc.initialize_current_price_observation();
 
                 let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
                 let second_token_id = managed_token_id!(MEX_TOKEN_ID);
@@ -1134,7 +1121,7 @@ fn test_external_view_extrapolates_legacy_observation_by_round() {
             );
             assert_eq!(
                 extrapolated.lp_supply_accumulated,
-                managed_biguint!(12_600_000u64)
+                managed_biguint!(6_000_000u64)
             );
 
             let quote = sc.get_safe_price(
@@ -1158,8 +1145,8 @@ fn test_external_view_extrapolates_legacy_observation_by_round() {
                     managed_biguint!(150u64),
                 )
                 .into_tuple();
-            assert_eq!(lp_quote.0.amount, managed_biguint!(20u64));
-            assert_eq!(lp_quote.1.amount, managed_biguint!(15u64));
+            assert_eq!(lp_quote.0.amount, managed_biguint!(15u64));
+            assert_eq!(lp_quote.1.amount, managed_biguint!(11u64));
         })
         .assert_ok();
 
@@ -1439,10 +1426,18 @@ fn test_safe_price_uses_millisecond_weights_for_save_interval() {
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             assert_eq!(sc.price_observations().len(), 1);
-            assert!(sc.current_price_observation().is_empty());
             let observation = sc.price_observations().get(1);
+            let current_observation = sc.current_price_observation().get();
             assert_eq!(observation.weight_accumulated, 6_000u64);
             assert_eq!(observation.recording_timestamp, starting_timestamp_ms);
+            assert_eq!(
+                current_observation.weight_accumulated,
+                observation.weight_accumulated
+            );
+            assert_eq!(
+                current_observation.recording_timestamp,
+                observation.recording_timestamp
+            );
         })
         .assert_ok();
 
@@ -1592,13 +1587,15 @@ fn test_update_safe_price_converts_legacy_finalized_before_save() {
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.price_observations().push(&PriceObservation {
+                let mut legacy_price_observations =
+                    VecMapper::<DebugApi, OldPriceObservation<DebugApi>>::new(StorageKey::new(
+                        b"price_observations",
+                    ));
+                legacy_price_observations.push(&OldPriceObservation {
                     first_token_reserve_accumulated: managed_biguint!(10u64),
                     second_token_reserve_accumulated: managed_biguint!(20u64),
                     weight_accumulated: 2u64,
                     recording_round: 90u64,
-                    recording_timestamp: 0u64,
-                    lp_supply_accumulated: managed_biguint!(0u64),
                 });
                 sc.safe_price_current_index().set(1usize);
             },
@@ -1615,6 +1612,24 @@ fn test_update_safe_price_converts_legacy_finalized_before_save() {
             &rust_biguint!(0),
             |sc| sc.upgrade(),
         )
+        .assert_ok();
+
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            let current_observation = sc.current_price_observation().get();
+            assert_eq!(current_observation.recording_round, 90u64);
+            assert_eq!(current_observation.recording_timestamp, 940_000u64);
+            assert_eq!(current_observation.weight_accumulated, 12_000u64);
+            assert_eq!(
+                current_observation.first_token_reserve_accumulated,
+                managed_biguint!(60_000u64)
+            );
+            assert_eq!(
+                current_observation.second_token_reserve_accumulated,
+                managed_biguint!(120_000u64)
+            );
+        })
         .assert_ok();
 
     pair_setup.set_block_round(101u64);
@@ -1657,7 +1672,15 @@ fn test_update_safe_price_converts_legacy_finalized_before_save() {
                 observation.lp_supply_accumulated,
                 managed_biguint!(60_600_000u64)
             );
-            assert!(sc.current_price_observation().is_empty());
+            let current_observation = sc.current_price_observation().get();
+            assert_eq!(
+                current_observation.recording_timestamp,
+                observation.recording_timestamp
+            );
+            assert_eq!(
+                current_observation.weight_accumulated,
+                observation.weight_accumulated
+            );
 
             let legacy_observation = sc.price_observations().get(1);
             assert_eq!(legacy_observation.recording_timestamp, 0u64);
@@ -1708,7 +1731,7 @@ fn test_pair_upgrade_safe_price_cutover_is_set_if_empty() {
 }
 
 #[test]
-fn test_pair_upgrade_retries_safe_price_cutover_after_zero_timestamp() {
+fn test_pair_upgrade_retries_safe_price_cutover_after_zero_round_or_timestamp() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
     pair_setup.set_safe_price_timestamp_save_interval(6_000u64);
@@ -1731,6 +1754,25 @@ fn test_pair_upgrade_retries_safe_price_cutover_after_zero_timestamp() {
                 sc.safe_price_current_index().set(1usize);
             },
         )
+        .assert_ok();
+
+    pair_setup.set_block_round(0u64);
+    pair_setup.b_mock.set_block_timestamp_ms(1_000_000u64);
+    pair_setup
+        .b_mock
+        .execute_tx(
+            &pair_setup.owner_address,
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| sc.upgrade(),
+        )
+        .assert_user_error("Cannot normalize legacy safe price observation");
+    pair_setup
+        .b_mock
+        .execute_query(&pair_setup.pair_wrapper, |sc| {
+            assert!(sc.safe_price_legacy_cutover().is_empty());
+            assert!(sc.current_price_observation().is_empty());
+        })
         .assert_ok();
 
     pair_setup.set_block_round(100u64);
@@ -1765,6 +1807,10 @@ fn test_pair_upgrade_retries_safe_price_cutover_after_zero_timestamp() {
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             assert_eq!(sc.safe_price_legacy_cutover().get(), (100u64, 1_000_000u64));
+            let current_observation = sc.current_price_observation().get();
+            assert_eq!(current_observation.recording_round, 90u64);
+            assert_eq!(current_observation.recording_timestamp, 940_000u64);
+            assert_eq!(current_observation.weight_accumulated, 12_000u64);
             let normalized = sc.get_price_observation_view(managed_address!(&pair_address), 90u64);
             assert_eq!(normalized.recording_timestamp, 940_000u64);
             assert_eq!(normalized.weight_accumulated, 12_000u64);
@@ -1892,6 +1938,7 @@ fn test_mixed_legacy_timestamp_is_invariant_with_pending_and_finalized_observati
                 });
                 sc.safe_price_current_index().set(2usize);
                 sc.safe_price_legacy_cutover().set((100u64, 1_000_000u64));
+                sc.initialize_current_price_observation();
             },
         )
         .assert_ok();
@@ -1948,7 +1995,6 @@ fn test_mixed_legacy_timestamp_is_invariant_with_pending_and_finalized_observati
                     lp_supply_accumulated: managed_biguint!(60_600_000u64),
                 });
                 sc.safe_price_current_index().set(3usize);
-                sc.current_price_observation().clear();
             },
         )
         .assert_ok();
@@ -2003,6 +2049,7 @@ fn test_mixed_legacy_timestamp_quote_does_not_drift_when_new_observations_are_ad
                 }
                 sc.safe_price_current_index().set(3usize);
                 sc.safe_price_legacy_cutover().set((100u64, 1_000_000u64));
+                sc.initialize_current_price_observation();
             },
         )
         .assert_ok();
@@ -2113,8 +2160,17 @@ fn test_safe_price_does_not_write_new_observation_at_timestamp_zero() {
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             let observation = sc.price_observations().get(1usize);
+            let current_observation = sc.current_price_observation().get();
             assert_eq!(observation.recording_timestamp, 600u64);
             assert_eq!(observation.weight_accumulated, 6_000u64);
+            assert_eq!(
+                current_observation.recording_timestamp,
+                observation.recording_timestamp
+            );
+            assert_eq!(
+                current_observation.weight_accumulated,
+                observation.weight_accumulated
+            );
             assert_eq!(
                 observation.first_token_reserve_accumulated,
                 managed_biguint!(60_000u64)
@@ -2266,6 +2322,7 @@ fn test_price_observation_view_keeps_positive_timestamp_in_milliseconds() {
 
                 sc.price_observations().push(&observation);
                 sc.safe_price_current_index().set(1usize);
+                sc.initialize_current_price_observation();
             },
         )
         .assert_ok();
@@ -2292,7 +2349,7 @@ fn test_price_observation_view_keeps_positive_timestamp_in_milliseconds() {
 }
 
 #[test]
-fn test_finalized_observation_is_available_without_pending_duplicate() {
+fn test_finalized_observation_remains_the_current_observation() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 
@@ -2329,8 +2386,16 @@ fn test_finalized_observation_is_available_without_pending_duplicate() {
     pair_setup
         .b_mock
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            assert!(sc.current_price_observation().is_empty());
             let saved_observation = sc.price_observations().get(1);
+            let current_observation = sc.current_price_observation().get();
+            assert_eq!(
+                current_observation.recording_round,
+                saved_observation.recording_round
+            );
+            assert_eq!(
+                current_observation.recording_timestamp,
+                saved_observation.recording_timestamp
+            );
             let target_observation =
                 sc.get_price_observation_view(managed_address!(&pair_address), starting_round);
             assert_eq!(
@@ -2368,7 +2433,7 @@ fn test_safe_price_zero_timestamp_observation_uses_legacy_cutover() {
                     weight_accumulated: 2u64,
                     recording_round: 90u64,
                     recording_timestamp: 0u64,
-                    lp_supply_accumulated: managed_biguint!(5u64),
+                    lp_supply_accumulated: managed_biguint!(0u64),
                 };
                 let timestamped_reference_observation = PriceObservation {
                     first_token_reserve_accumulated: managed_biguint!(60_000u64),
@@ -2385,6 +2450,7 @@ fn test_safe_price_zero_timestamp_observation_uses_legacy_cutover() {
                 sc.safe_price_current_index().set(2usize);
                 sc.safe_price_legacy_cutover()
                     .set((110u64, 1_700_000_060_000u64));
+                sc.initialize_current_price_observation();
             },
         )
         .assert_ok();
@@ -2403,10 +2469,7 @@ fn test_safe_price_zero_timestamp_observation_uses_legacy_cutover() {
                 normalized.second_token_reserve_accumulated,
                 managed_biguint!(120_000u64)
             );
-            assert_eq!(
-                normalized.lp_supply_accumulated,
-                managed_biguint!(30_000u64)
-            );
+            assert_eq!(normalized.lp_supply_accumulated, managed_biguint!(0u64));
         })
         .assert_ok();
 }
@@ -2437,6 +2500,7 @@ fn test_price_observation_view_rejects_round_progress_without_timestamp_progress
 
                 sc.price_observations().push(&latest_observation);
                 sc.safe_price_current_index().set(1usize);
+                sc.initialize_current_price_observation();
             },
         )
         .assert_ok();
@@ -2548,6 +2612,7 @@ fn test_safe_price_wrapped_observations_use_ring_order() {
                 }
 
                 sc.safe_price_current_index().set(current_index);
+                sc.initialize_current_price_observation();
             },
         )
         .assert_ok();
@@ -2650,6 +2715,15 @@ fn test_safe_price_full_legacy_ring_wraps_into_timestamped_observations() {
                 first_new_round * 6_000
             );
             assert!(first_replacement.weight_accumulated > max_observations);
+            let current_observation = sc.current_price_observation().get();
+            assert_eq!(
+                current_observation.recording_timestamp,
+                first_replacement.recording_timestamp
+            );
+            assert_eq!(
+                current_observation.weight_accumulated,
+                first_replacement.weight_accumulated
+            );
 
             let still_legacy = sc.price_observations().get(2);
             assert_eq!(still_legacy.recording_timestamp, 0u64);
@@ -3504,8 +3578,15 @@ fn test_one_legacy_round_timestamp_interval_saves_immediately() {
             let observation = sc.price_observations().get(1);
             assert_eq!(observation.recording_round, starting_round);
             assert_eq!(observation.weight_accumulated, 6_000u64);
-
-            assert!(sc.current_price_observation().is_empty());
+            let current_observation = sc.current_price_observation().get();
+            assert_eq!(
+                current_observation.recording_timestamp,
+                observation.recording_timestamp
+            );
+            assert_eq!(
+                current_observation.weight_accumulated,
+                observation.weight_accumulated
+            );
         })
         .assert_ok();
 
@@ -3736,8 +3817,15 @@ fn test_direct_save_when_interval_exceeded() {
 
             // Weight should be accumulated: first observation plus the elapsed duration.
             assert_eq!(second_obs.weight_accumulated, 72_000u64);
-
-            assert!(sc.current_price_observation().is_empty());
+            let current_observation = sc.current_price_observation().get();
+            assert_eq!(
+                current_observation.recording_timestamp,
+                second_obs.recording_timestamp
+            );
+            assert_eq!(
+                current_observation.weight_accumulated,
+                second_obs.weight_accumulated
+            );
         })
         .assert_ok();
 }

@@ -94,10 +94,4 @@ pub trait ConfigModule: read_pair_storage::ReadPairStorageModule {
     #[view(getDefaultSafePriceTimestampOffset)]
     #[storage_mapper("default_safe_price_timestamp_offset")]
     fn default_safe_price_timestamp_offset(&self) -> SingleValueMapper<u64>;
-
-    #[storage_mapper("safe_price_round_save_interval")]
-    fn legacy_safe_price_round_save_interval(&self) -> SingleValueMapper<u64>;
-
-    #[storage_mapper("default_safe_price_rounds_offset")]
-    fn legacy_default_safe_price_rounds_offset(&self) -> SingleValueMapper<u64>;
 }
