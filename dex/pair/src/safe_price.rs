@@ -253,7 +253,11 @@ pub trait SafePriceModule:
         );
 
         observation.recording_timestamp = cutover_timestamp - elapsed_milliseconds;
-        self.scale_legacy_observation_to_milliseconds(observation);
+
+        let multiplier = BigUint::from(LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS);
+        observation.first_token_reserve_accumulated *= &multiplier;
+        observation.second_token_reserve_accumulated *= &multiplier;
+        observation.weight_accumulated *= LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
     }
 
     fn accumulate_into_observation(
@@ -311,16 +315,6 @@ pub trait SafePriceModule:
         self.blockchain()
             .get_block_round_time_millis()
             .as_u64_millis()
-    }
-
-    fn scale_legacy_observation_to_milliseconds(
-        &self,
-        observation: &mut PriceObservation<Self::Api>,
-    ) {
-        let multiplier = BigUint::from(LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS);
-        observation.first_token_reserve_accumulated *= &multiplier;
-        observation.second_token_reserve_accumulated *= &multiplier;
-        observation.weight_accumulated *= LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
     }
 
     fn get_safe_price_timestamp_save_interval(&self) -> Timestamp {

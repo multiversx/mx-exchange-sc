@@ -180,10 +180,34 @@ where
 
     b_mock
         .execute_query(&pair_wrapper, |sc| {
-            assert!(sc.current_price_observation().is_empty());
+            let current_observation = sc.current_price_observation().get();
             let latest_observation = sc
                 .price_observations()
                 .get(sc.safe_price_current_index().get());
+            assert_eq!(
+                current_observation.first_token_reserve_accumulated,
+                latest_observation.first_token_reserve_accumulated
+            );
+            assert_eq!(
+                current_observation.second_token_reserve_accumulated,
+                latest_observation.second_token_reserve_accumulated
+            );
+            assert_eq!(
+                current_observation.weight_accumulated,
+                latest_observation.weight_accumulated
+            );
+            assert_eq!(
+                current_observation.recording_round,
+                latest_observation.recording_round
+            );
+            assert_eq!(
+                current_observation.recording_timestamp,
+                latest_observation.recording_timestamp
+            );
+            assert_eq!(
+                current_observation.lp_supply_accumulated,
+                latest_observation.lp_supply_accumulated
+            );
             assert_eq!(
                 latest_observation.recording_timestamp,
                 block_round * MILLISECONDS_PER_SIMULATED_ROUND

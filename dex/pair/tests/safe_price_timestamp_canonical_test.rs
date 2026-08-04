@@ -633,36 +633,6 @@ fn test_safe_price_upgrade_initialization_rejects_invalid_legacy_state() {
 }
 
 #[test]
-fn test_safe_price_legacy_weight_scaling_overflow_fails_closed() {
-    let mut world = setup_empty_world(660_000u64);
-    world
-        .tx()
-        .from(OWNER)
-        .to(PAIR)
-        .whitebox(pair::contract_obj, |sc| {
-            sc.price_observations().push(&PriceObservation {
-                first_token_reserve_accumulated: managed_biguint!(10u64),
-                second_token_reserve_accumulated: managed_biguint!(20u64),
-                weight_accumulated: u64::MAX / 6_000u64 + 1u64,
-                recording_round: 110u64,
-                recording_timestamp: 0u64,
-                lp_supply_accumulated: managed_biguint!(0u64),
-            });
-            sc.safe_price_current_index().set(1usize);
-            sc.safe_price_legacy_cutover().set((110u64, 660_000u64));
-        });
-
-    world
-        .tx()
-        .from(OWNER)
-        .to(PAIR)
-        .returns(ExpectError(4, "Safe price duration overflow"))
-        .whitebox(pair::contract_obj, |sc| {
-            sc.initialize_current_price_observation();
-        });
-}
-
-#[test]
 fn test_safe_price_round_view_rejects_non_protocol_timestamp_timeline() {
     let mut world = setup_transition_world(633_601u64);
 

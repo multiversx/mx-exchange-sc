@@ -34,6 +34,7 @@ struct RoundTimestampContext {
 
 struct PriceObservationReadContext<M: ManagedTypeApi> {
     current_index: usize,
+    oldest_observation: PriceObservation<M>,
     last_recorded_observation: PriceObservation<M>,
     latest_observation: PriceObservation<M>,
     legacy_cutover: (Round, Timestamp),
@@ -250,22 +251,17 @@ pub trait SafePriceViewModule:
         pair_address: ManagedAddress,
         search_round: Round,
     ) -> PriceObservation<Self::Api> {
-        let (price_observations, read_context, oldest_observation) =
+        let (price_observations, read_context) =
             self.load_price_observation_search_context(&pair_address);
+        let timestamp_context = self.get_round_timestamp_context(&read_context.oldest_observation);
 
-        let timestamp_context = self.get_round_timestamp_context(&oldest_observation);
-        let search_timestamp = self.infer_timestamp_for_round(&timestamp_context, search_round);
-        let mut observation = self.get_price_observation_by_timestamp(
+        self.get_price_observation_by_round(
             &pair_address,
-            read_context.current_index,
             &price_observations,
-            &oldest_observation,
-            search_timestamp,
+            search_round,
+            &timestamp_context,
             &read_context,
-        );
-        observation.recording_round = search_round;
-        observation.recording_timestamp = search_timestamp;
-        observation
+        )
     }
 
     fn compute_weighted_price(
@@ -332,23 +328,19 @@ pub trait SafePriceViewModule:
     ) -> (PriceObservation<Self::Api>, PriceObservation<Self::Api>) {
         require!(end_timestamp > start_timestamp, ERROR_PARAMETERS);
 
-        let (price_observations, read_context, oldest_observation) =
+        let (price_observations, read_context) =
             self.load_price_observation_search_context(pair_address);
 
         (
             self.get_price_observation_by_timestamp(
                 pair_address,
-                read_context.current_index,
                 &price_observations,
-                &oldest_observation,
                 start_timestamp,
                 &read_context,
             ),
             self.get_price_observation_by_timestamp(
                 pair_address,
-                read_context.current_index,
                 &price_observations,
-                &oldest_observation,
                 end_timestamp,
                 &read_context,
             ),
@@ -363,31 +355,45 @@ pub trait SafePriceViewModule:
     ) -> (PriceObservation<Self::Api>, PriceObservation<Self::Api>) {
         require!(end_round > start_round, ERROR_PARAMETERS);
 
-        let (price_observations, read_context, oldest_observation) =
+        let (price_observations, read_context) =
             self.load_price_observation_search_context(pair_address);
-
-        let timestamp_context = self.get_round_timestamp_context(&oldest_observation);
-        let start_timestamp = self.infer_timestamp_for_round(&timestamp_context, start_round);
-        let end_timestamp = self.infer_timestamp_for_round(&timestamp_context, end_round);
+        let timestamp_context = self.get_round_timestamp_context(&read_context.oldest_observation);
 
         (
-            self.get_price_observation_by_timestamp(
+            self.get_price_observation_by_round(
                 pair_address,
-                read_context.current_index,
                 &price_observations,
-                &oldest_observation,
-                start_timestamp,
+                start_round,
+                &timestamp_context,
                 &read_context,
             ),
-            self.get_price_observation_by_timestamp(
+            self.get_price_observation_by_round(
                 pair_address,
-                read_context.current_index,
                 &price_observations,
-                &oldest_observation,
-                end_timestamp,
+                end_round,
+                &timestamp_context,
                 &read_context,
             ),
         )
+    }
+
+    fn get_price_observation_by_round(
+        &self,
+        pair_address: &ManagedAddress,
+        price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
+        target_round: Round,
+        timestamp_context: &RoundTimestampContext,
+        read_context: &PriceObservationReadContext<Self::Api>,
+    ) -> PriceObservation<Self::Api> {
+        let target_timestamp = self.infer_timestamp_for_round(timestamp_context, target_round);
+        let mut observation = self.get_price_observation_by_timestamp(
+            pair_address,
+            price_observations,
+            target_timestamp,
+            read_context,
+        );
+        observation.recording_round = target_round;
+        observation
     }
 
     fn get_round_timestamp_context(
@@ -491,15 +497,13 @@ pub trait SafePriceViewModule:
     fn get_price_observation_by_timestamp(
         &self,
         pair_address: &ManagedAddress,
-        current_index: usize,
         price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
-        oldest_observation: &PriceObservation<Self::Api>,
         target_timestamp: Timestamp,
         read_context: &PriceObservationReadContext<Self::Api>,
     ) -> PriceObservation<Self::Api> {
         require!(
-            oldest_observation.recording_timestamp > 0
-                && target_timestamp >= oldest_observation.recording_timestamp,
+            read_context.oldest_observation.recording_timestamp > 0
+                && target_timestamp >= read_context.oldest_observation.recording_timestamp,
             ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
         );
 
@@ -552,7 +556,7 @@ pub trait SafePriceViewModule:
 
         let (price_observation, last_search_index) = self
             .price_observation_by_timestamp_binary_search(
-                current_index,
+                read_context.current_index,
                 price_observations,
                 target_timestamp,
                 read_context,
@@ -570,7 +574,7 @@ pub trait SafePriceViewModule:
         )
     }
 
-    fn get_price_observation_from_storage(
+    fn get_price_observation_at_index(
         &self,
         price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
         index: usize,
@@ -592,7 +596,6 @@ pub trait SafePriceViewModule:
     ) -> (
         VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
         PriceObservationReadContext<Self::Api>,
-        PriceObservation<Self::Api>,
     ) {
         let current_index = self
             .get_safe_price_current_index_mapper(pair_address.clone())
@@ -629,24 +632,28 @@ pub trait SafePriceViewModule:
             latest_observation.recording_timestamp >= last_recorded_observation.recording_timestamp,
             ERROR_SAFE_PRICE_TIMESTAMP_ORDER
         );
-        let read_context = PriceObservationReadContext {
-            current_index,
-            last_recorded_observation,
-            latest_observation,
-            legacy_cutover,
-        };
         let oldest_observation_index = if observation_count == MAX_OBSERVATIONS {
             (current_index % MAX_OBSERVATIONS) + 1
         } else {
             1
         };
-        let oldest_observation = self.get_price_observation_from_storage(
-            &price_observations,
-            oldest_observation_index,
-            &read_context,
-        );
+        let oldest_observation = if oldest_observation_index == current_index {
+            last_recorded_observation.clone()
+        } else {
+            self.infer_legacy_price_observation(
+                price_observations.get(oldest_observation_index),
+                legacy_cutover,
+            )
+        };
+        let read_context = PriceObservationReadContext {
+            current_index,
+            oldest_observation,
+            last_recorded_observation,
+            latest_observation,
+            legacy_cutover,
+        };
 
-        (price_observations, read_context, oldest_observation)
+        (price_observations, read_context)
     }
 
     fn infer_legacy_price_observation(
@@ -670,7 +677,7 @@ pub trait SafePriceViewModule:
         read_context: &PriceObservationReadContext<Self::Api>,
     ) -> (PriceObservation<Self::Api>, usize) {
         let observation_at_index_1 =
-            self.get_price_observation_from_storage(price_observations, 1, read_context);
+            self.get_price_observation_at_index(price_observations, 1, read_context);
         require!(
             observation_at_index_1.recording_timestamp > 0,
             ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
@@ -686,11 +693,8 @@ pub trait SafePriceViewModule:
 
         while left_index <= right_index {
             search_index = (left_index + right_index) / 2;
-            let price_observation = self.get_price_observation_from_storage(
-                price_observations,
-                search_index,
-                read_context,
-            );
+            let price_observation =
+                self.get_price_observation_at_index(price_observations, search_index, read_context);
             match price_observation.recording_timestamp.cmp(&target_timestamp) {
                 Ordering::Equal => return (price_observation, search_index),
                 Ordering::Less => left_index = search_index + 1,
@@ -709,14 +713,14 @@ pub trait SafePriceViewModule:
         read_context: &PriceObservationReadContext<Self::Api>,
     ) -> PriceObservation<Self::Api> {
         let last_found_observation =
-            self.get_price_observation_from_storage(price_observations, search_index, read_context);
+            self.get_price_observation_at_index(price_observations, search_index, read_context);
 
         let (left_observation, right_observation) =
             if last_found_observation.recording_timestamp < target_timestamp {
                 let right_observation_index = (search_index % MAX_OBSERVATIONS) + 1;
                 (
                     last_found_observation,
-                    self.get_price_observation_from_storage(
+                    self.get_price_observation_at_index(
                         price_observations,
                         right_observation_index,
                         read_context,
@@ -729,7 +733,7 @@ pub trait SafePriceViewModule:
                     search_index - 1
                 };
                 (
-                    self.get_price_observation_from_storage(
+                    self.get_price_observation_at_index(
                         price_observations,
                         left_observation_index,
                         read_context,
@@ -842,14 +846,14 @@ pub trait SafePriceViewModule:
         );
 
         let current_timestamp = self.get_current_timestamp_milliseconds();
-        let (_, _, oldest_observation) = self.load_price_observation_search_context(pair_address);
+        let (_, read_context) = self.load_price_observation_search_context(pair_address);
         require!(
-            oldest_observation.recording_timestamp > 0,
+            read_context.oldest_observation.recording_timestamp > 0,
             ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
         );
 
         let available_offset =
-            current_timestamp.saturating_sub(oldest_observation.recording_timestamp);
+            current_timestamp.saturating_sub(read_context.oldest_observation.recording_timestamp);
 
         if available_offset > 0 && available_offset < default_safe_price_timestamp_offset {
             return available_offset;
