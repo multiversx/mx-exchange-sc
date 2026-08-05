@@ -472,7 +472,6 @@ pub trait SafePriceViewModule:
         );
 
         let target_offset = target_round - timestamp_context.anchor_round;
-        let target_legacy_rounds = core::cmp::min(target_offset, timestamp_context.legacy_rounds);
         let available_elapsed =
             timestamp_context.current_timestamp - timestamp_context.anchor_timestamp;
         require!(
@@ -480,15 +479,19 @@ pub trait SafePriceViewModule:
             ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
         );
         let current_duration_elapsed = target_offset * timestamp_context.current_round_duration;
+        if timestamp_context.current_round_duration == LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS
+        {
+            return timestamp_context.anchor_timestamp + current_duration_elapsed;
+        }
+
+        let target_legacy_rounds = core::cmp::min(target_offset, timestamp_context.legacy_rounds);
         let duration_difference = LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS
             - timestamp_context.current_round_duration;
         let remaining_elapsed = available_elapsed - current_duration_elapsed;
-        if duration_difference > 0 {
-            require!(
-                target_legacy_rounds <= remaining_elapsed / duration_difference,
-                ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
-            );
-        }
+        require!(
+            target_legacy_rounds <= remaining_elapsed / duration_difference,
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
         let legacy_duration_elapsed = target_legacy_rounds * duration_difference;
 
         timestamp_context.anchor_timestamp + current_duration_elapsed + legacy_duration_elapsed
