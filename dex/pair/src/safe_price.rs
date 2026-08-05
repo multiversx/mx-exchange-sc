@@ -172,14 +172,15 @@ pub trait SafePriceModule:
         safe_price_current_index: usize,
     ) {
         let mut price_observations = self.price_observations();
+        let observation_count = price_observations.len();
 
-        let new_index = if price_observations.is_empty() {
+        let new_index = if observation_count == 0 {
             1
         } else {
             (safe_price_current_index % MAX_OBSERVATIONS) + 1
         };
 
-        if price_observations.len() == MAX_OBSERVATIONS {
+        if observation_count == MAX_OBSERVATIONS {
             price_observations.set(new_index, price_observation);
         } else {
             price_observations.push(price_observation);
@@ -282,27 +283,6 @@ pub trait SafePriceModule:
         observation.weight_accumulated += weight;
         observation.recording_round = current_round;
         observation.recording_timestamp = current_timestamp;
-    }
-
-    fn compute_new_observation(
-        &self,
-        new_round: Round,
-        new_timestamp: Timestamp,
-        new_first_reserve: &BigUint,
-        new_second_reserve: &BigUint,
-        new_lp_supply: &BigUint,
-        current_price_observation: &PriceObservation<Self::Api>,
-    ) -> PriceObservation<Self::Api> {
-        let mut new_price_observation = current_price_observation.clone();
-        self.accumulate_into_observation(
-            &mut new_price_observation,
-            new_round,
-            new_timestamp,
-            new_first_reserve,
-            new_second_reserve,
-            new_lp_supply,
-        );
-        new_price_observation
     }
 
     fn get_current_timestamp_milliseconds(&self) -> Timestamp {

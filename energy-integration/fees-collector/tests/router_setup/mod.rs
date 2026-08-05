@@ -155,13 +155,6 @@ where
                     },
                     managed_address!(wegld_usdc_pair_wrapper.address_ref()),
                 );
-
-                let safe_price_save_interval_milliseconds = 6_000u64;
-                let default_safe_price_timestamp_offset_milliseconds = 10 * 60 * 6_000u64;
-                sc.safe_price_timestamp_save_interval()
-                    .set(safe_price_save_interval_milliseconds);
-                sc.default_safe_price_timestamp_offset()
-                    .set(default_safe_price_timestamp_offset_milliseconds);
             })
             .assert_ok();
 

@@ -16,8 +16,6 @@ pub const TIMESTAMP_SECOND_ADD_LIQ: u64 = 2 * SAFE_PRICE_ROUND_DURATION_SECONDS;
 pub const TIMESTAMP_AFTER_PAIR_SETUP: u64 =
     ROUND_AFTER_PAIR_SETUP * SAFE_PRICE_ROUND_DURATION_SECONDS;
 
-pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
-
 // LP farm constants
 
 pub static FARM_WASM_PATH: &str = "farm/output/farm.wasm";

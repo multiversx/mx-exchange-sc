@@ -100,27 +100,25 @@ fn test_router_upgrade_preserves_preseeded_safe_price_config() {
 fn test_safe_price_timestamp_setters_reject_zero() {
     let mut setup = RouterSetup::new(router::contract_obj, pair::contract_obj);
 
-    for set_zero in [true, false] {
-        setup
-            .b_mock
-            .execute_tx(
-                &setup.owner_address,
-                &setup.router_wrapper,
-                &rust_biguint!(0),
-                |sc| {
-                    if set_zero {
-                        sc.set_safe_price_timestamp_save_interval(0u64);
-                    } else {
-                        sc.set_default_safe_price_timestamp_offset(0u64);
-                    }
-                },
-            )
-            .assert_user_error(if set_zero {
-                "Timestamp save interval must be greater than 0"
-            } else {
-                "Default safe price timestamp offset must be greater than 0"
-            });
-    }
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_address,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| sc.set_safe_price_timestamp_save_interval(0u64),
+        )
+        .assert_user_error("Timestamp save interval must be greater than 0");
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_address,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| sc.set_default_safe_price_timestamp_offset(0u64),
+        )
+        .assert_user_error("Default safe price timestamp offset must be greater than 0");
 }
 
 #[test]
@@ -198,8 +196,6 @@ fn test_router_upgrade_pair() {
         })
         .assert_ok();
 
-    b_mock.set_block_round(100u64);
-    b_mock.set_block_timestamp_ms(600_000u64);
     b_mock
         .execute_tx(&owner, &router_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(CUSTOM_TOKEN_ID);
@@ -210,9 +206,9 @@ fn test_router_upgrade_pair() {
 
     b_mock
         .execute_query(&pair_wrapper, |sc| {
-            let inital_liquidity_adder = sc.initial_liquidity_adder().get().unwrap();
-            assert_eq!(inital_liquidity_adder, managed_address!(&user));
-            assert_eq!(sc.safe_price_legacy_cutover().get(), (100u64, 600_000u64));
+            let initial_liquidity_adder = sc.initial_liquidity_adder().get().unwrap();
+            assert_eq!(initial_liquidity_adder, managed_address!(&user));
+            assert!(sc.safe_price_legacy_cutover().is_empty());
             assert!(sc.current_price_observation().is_empty());
         })
         .assert_ok();

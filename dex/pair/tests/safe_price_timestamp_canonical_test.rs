@@ -88,6 +88,30 @@ fn setup_transition_world(current_timestamp: u64) -> ScenarioWorld {
     world
 }
 
+fn setup_legacy_initialization_world(
+    current_index: usize,
+    lp_supply_accumulated: u64,
+) -> ScenarioWorld {
+    let mut world = setup_empty_world(660_000u64);
+    world
+        .tx()
+        .from(OWNER)
+        .to(PAIR)
+        .whitebox(pair::contract_obj, |sc| {
+            sc.price_observations().push(&PriceObservation {
+                first_token_reserve_accumulated: managed_biguint!(10u64),
+                second_token_reserve_accumulated: managed_biguint!(20u64),
+                weight_accumulated: 1u64,
+                recording_round: 100u64,
+                recording_timestamp: 0u64,
+                lp_supply_accumulated: managed_biguint!(lp_supply_accumulated),
+            });
+            sc.safe_price_current_index().set(current_index);
+            sc.safe_price_legacy_cutover().set((110u64, 660_000u64));
+        });
+    world
+}
+
 #[test]
 fn test_fresh_post_supernova_oracle_uses_runtime_round_duration() {
     let mut world = setup_empty_world(606_600u64);
@@ -466,34 +490,43 @@ fn test_every_public_safe_price_view_and_legacy_compatibility_endpoint() {
 }
 
 #[test]
-fn test_safe_price_views_reject_invalid_index_and_missing_current_observation() {
-    for missing_current in [false, true] {
-        let mut world = setup_transition_world(633_600u64);
-        world
-            .tx()
-            .from(OWNER)
-            .to(PAIR)
-            .whitebox(pair::contract_obj, |sc| {
-                if missing_current {
-                    sc.current_price_observation().clear();
-                } else {
-                    sc.safe_price_current_index().set(3usize);
-                }
-            });
+fn test_safe_price_view_rejects_invalid_current_index() {
+    let mut world = setup_transition_world(633_600u64);
+    world
+        .tx()
+        .from(OWNER)
+        .to(PAIR)
+        .whitebox(pair::contract_obj, |sc| {
+            sc.safe_price_current_index().set(3usize);
+        });
 
-        let expected = if missing_current {
-            "The price observation does not exist"
-        } else {
-            "Invalid safe price current index"
-        };
-        world
-            .query()
-            .to(PAIR)
-            .returns(ExpectError(4, expected))
-            .whitebox(pair::contract_obj, |sc| {
-                sc.get_price_observation_view(PAIR.to_managed_address(), 107u64);
-            });
-    }
+    world
+        .query()
+        .to(PAIR)
+        .returns(ExpectError(4, "Invalid safe price current index"))
+        .whitebox(pair::contract_obj, |sc| {
+            sc.get_price_observation_view(PAIR.to_managed_address(), 107u64);
+        });
+}
+
+#[test]
+fn test_safe_price_view_rejects_missing_current_observation() {
+    let mut world = setup_transition_world(633_600u64);
+    world
+        .tx()
+        .from(OWNER)
+        .to(PAIR)
+        .whitebox(pair::contract_obj, |sc| {
+            sc.current_price_observation().clear();
+        });
+
+    world
+        .query()
+        .to(PAIR)
+        .returns(ExpectError(4, "The price observation does not exist"))
+        .whitebox(pair::contract_obj, |sc| {
+            sc.get_price_observation_view(PAIR.to_managed_address(), 107u64);
+        });
 }
 
 #[test]
@@ -587,49 +620,32 @@ fn test_safe_price_writer_rejects_timestamp_regression() {
 }
 
 #[test]
-fn test_safe_price_upgrade_initialization_rejects_invalid_legacy_state() {
-    for invalid_lp_accumulator in [false, true] {
-        let mut world = setup_empty_world(660_000u64);
-        world
-            .tx()
-            .from(OWNER)
-            .to(PAIR)
-            .whitebox(pair::contract_obj, |sc| {
-                sc.price_observations().push(&PriceObservation {
-                    first_token_reserve_accumulated: managed_biguint!(10u64),
-                    second_token_reserve_accumulated: managed_biguint!(20u64),
-                    weight_accumulated: 1u64,
-                    recording_round: 100u64,
-                    recording_timestamp: 0u64,
-                    lp_supply_accumulated: if invalid_lp_accumulator {
-                        managed_biguint!(1u64)
-                    } else {
-                        managed_biguint!(0u64)
-                    },
-                });
-                sc.safe_price_current_index()
-                    .set(if invalid_lp_accumulator {
-                        1usize
-                    } else {
-                        2usize
-                    });
-                sc.safe_price_legacy_cutover().set((110u64, 660_000u64));
-            });
+fn test_safe_price_upgrade_initialization_rejects_invalid_current_index() {
+    let mut world = setup_legacy_initialization_world(2usize, 0u64);
+    world
+        .tx()
+        .from(OWNER)
+        .to(PAIR)
+        .returns(ExpectError(4, "Invalid safe price current index"))
+        .whitebox(pair::contract_obj, |sc| {
+            sc.initialize_current_price_observation();
+        });
+}
 
-        let expected = if invalid_lp_accumulator {
-            "Cannot normalize legacy safe price observation"
-        } else {
-            "Invalid safe price current index"
-        };
-        world
-            .tx()
-            .from(OWNER)
-            .to(PAIR)
-            .returns(ExpectError(4, expected))
-            .whitebox(pair::contract_obj, |sc| {
-                sc.initialize_current_price_observation();
-            });
-    }
+#[test]
+fn test_safe_price_upgrade_initialization_rejects_legacy_lp_accumulator() {
+    let mut world = setup_legacy_initialization_world(1usize, 1u64);
+    world
+        .tx()
+        .from(OWNER)
+        .to(PAIR)
+        .returns(ExpectError(
+            4,
+            "Cannot normalize legacy safe price observation",
+        ))
+        .whitebox(pair::contract_obj, |sc| {
+            sc.initialize_current_price_observation();
+        });
 }
 
 #[test]

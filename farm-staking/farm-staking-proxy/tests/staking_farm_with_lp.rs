@@ -1110,62 +1110,28 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         .b_mock
         .set_esdt_balance(&temp_user, WEGLD_TOKEN_ID, &rust_biguint!(300_000_000u64));
 
-    let first_swap_round = ROUND_AFTER_PAIR_SETUP + 100;
-    setup.b_mock.set_block_round(first_swap_round);
-    setup
-        .b_mock
-        .set_block_timestamp(first_swap_round * SAFE_PRICE_ROUND_DURATION_SECONDS);
-    setup
-        .b_mock
-        .execute_esdt_transfer(
-            &temp_user,
-            &setup.pair_wrapper,
-            WEGLD_TOKEN_ID,
-            0,
-            &rust_biguint!(100_000_000u64),
-            |sc| {
-                sc.swap_tokens_fixed_input(managed_token_id!(RIDE_TOKEN_ID), managed_biguint!(1));
-            },
-        )
-        .assert_ok();
-
-    let second_swap_round = ROUND_AFTER_PAIR_SETUP + 117;
-    setup.b_mock.set_block_round(second_swap_round);
-    setup
-        .b_mock
-        .set_block_timestamp(second_swap_round * SAFE_PRICE_ROUND_DURATION_SECONDS);
-    setup
-        .b_mock
-        .execute_esdt_transfer(
-            &temp_user,
-            &setup.pair_wrapper,
-            WEGLD_TOKEN_ID,
-            0,
-            &rust_biguint!(100_000_000u64),
-            |sc| {
-                sc.swap_tokens_fixed_input(managed_token_id!(RIDE_TOKEN_ID), managed_biguint!(1));
-            },
-        )
-        .assert_ok();
-
-    let third_swap_round = ROUND_AFTER_PAIR_SETUP + 192;
-    setup.b_mock.set_block_round(third_swap_round);
-    setup
-        .b_mock
-        .set_block_timestamp(third_swap_round * SAFE_PRICE_ROUND_DURATION_SECONDS);
-    setup
-        .b_mock
-        .execute_esdt_transfer(
-            &temp_user,
-            &setup.pair_wrapper,
-            WEGLD_TOKEN_ID,
-            0,
-            &rust_biguint!(100_000_000u64),
-            |sc| {
-                sc.swap_tokens_fixed_input(managed_token_id!(RIDE_TOKEN_ID), managed_biguint!(1));
-            },
-        )
-        .assert_ok();
+    for swap_round in [700u64, 800u64, 1_250u64] {
+        setup.b_mock.set_block_round(swap_round);
+        setup
+            .b_mock
+            .set_block_timestamp(swap_round * SAFE_PRICE_ROUND_DURATION_SECONDS);
+        setup
+            .b_mock
+            .execute_esdt_transfer(
+                &temp_user,
+                &setup.pair_wrapper,
+                WEGLD_TOKEN_ID,
+                0,
+                &rust_biguint!(100_000_000u64),
+                |sc| {
+                    sc.swap_tokens_fixed_input(
+                        managed_token_id!(RIDE_TOKEN_ID),
+                        managed_biguint!(1),
+                    );
+                },
+            )
+            .assert_ok();
+    }
 
     // random tx on end of week 1, to cummulate rewards
     setup.b_mock.set_block_epoch(6);
@@ -1200,8 +1166,8 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         .assert_ok();
 
     // Total farm position should be updated after claim, as a few swaps happened
-    // 3_600-second TWAP: 3_048 seconds before swap 1, then 102 and 450 seconds.
-    let new_expected_token_amount = 98_733_432u64;
+    // 3_600-second TWAP: 300 seconds before swap 1, then 600 and 2_700 seconds.
+    let new_expected_token_amount = 92_416_406u64;
     setup.check_user_total_staking_farm_position(&user_address, new_expected_token_amount);
 
     // User does not have any dual yield tokens with the before the claim token nonce

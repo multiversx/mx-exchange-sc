@@ -154,13 +154,13 @@ pub trait SafePriceViewModule:
         if weighted_amounts.weighted_lp_supply == 0 {
             weighted_amounts.weighted_lp_supply =
                 self.get_lp_token_supply_mapper(pair_address.clone()).get();
-            if weighted_amounts.weighted_lp_supply == 0 {
-                return (
-                    EsdtTokenPayment::new(first_token_id, 0, BigUint::zero()),
-                    EsdtTokenPayment::new(second_token_id, 0, BigUint::zero()),
-                )
-                    .into();
-            }
+        }
+        if weighted_amounts.weighted_lp_supply == 0 {
+            return (
+                EsdtTokenPayment::new(first_token_id, 0, BigUint::zero()),
+                EsdtTokenPayment::new(second_token_id, 0, BigUint::zero()),
+            )
+                .into();
         }
 
         let first_token_worth = &liquidity * &weighted_amounts.weighted_first_token_reserve
@@ -421,7 +421,7 @@ pub trait SafePriceViewModule:
         // Solving it yields the exact cadence-transition round without another stored anchor.
         let legacy_rounds = if current_round_duration == legacy_round_duration {
             require!(
-                elapsed_milliseconds % legacy_round_duration == 0
+                elapsed_milliseconds.is_multiple_of(legacy_round_duration)
                     && elapsed_milliseconds / legacy_round_duration == elapsed_rounds,
                 ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
             );
@@ -439,7 +439,7 @@ pub trait SafePriceViewModule:
             let legacy_duration_elapsed = elapsed_milliseconds - current_duration_elapsed;
             let duration_difference = legacy_round_duration - current_round_duration;
             require!(
-                legacy_duration_elapsed % duration_difference == 0,
+                legacy_duration_elapsed.is_multiple_of(duration_difference),
                 ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
             );
             let legacy_rounds = legacy_duration_elapsed / duration_difference;
@@ -536,14 +536,16 @@ pub trait SafePriceViewModule:
                 .get_pair_reserve_mapper(pair_address.clone(), &second_token_id)
                 .get();
             let current_lp_supply = self.get_lp_token_supply_mapper(pair_address.clone()).get();
-            return self.compute_new_observation(
+            let mut observation = latest_observation.clone();
+            self.accumulate_into_observation(
+                &mut observation,
                 latest_observation.recording_round,
                 target_timestamp,
                 &first_token_reserve,
                 &second_token_reserve,
                 &current_lp_supply,
-                latest_observation,
             );
+            return observation;
         }
 
         if last_observation.recording_timestamp < target_timestamp {
@@ -556,7 +558,6 @@ pub trait SafePriceViewModule:
 
         let (price_observation, last_search_index) = self
             .price_observation_by_timestamp_binary_search(
-                read_context.current_index,
                 price_observations,
                 target_timestamp,
                 read_context,
@@ -671,7 +672,6 @@ pub trait SafePriceViewModule:
 
     fn price_observation_by_timestamp_binary_search(
         &self,
-        current_index: usize,
         price_observations: &VecMapper<PriceObservation<Self::Api>, ManagedAddress>,
         target_timestamp: Timestamp,
         read_context: &PriceObservationReadContext<Self::Api>,
@@ -685,9 +685,9 @@ pub trait SafePriceViewModule:
 
         let (mut left_index, mut right_index) =
             if observation_at_index_1.recording_timestamp <= target_timestamp {
-                (1, current_index - 1)
+                (1, read_context.current_index - 1)
             } else {
-                (current_index + 1, price_observations.len())
+                (read_context.current_index + 1, price_observations.len())
             };
         let mut search_index = 1;
 

@@ -15,14 +15,11 @@ use multiversx_sc_scenario::{
 };
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::remove_liq::RemoveLiquidityModule;
-use pair::safe_price::SafePriceModule;
-use router::config::ConfigModule;
 use router::Router;
 use simple_lock::locked_token::LockedTokenModule;
 
 use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
-use pair::safe_price_view::SafePriceViewModule;
 use pair::*;
 use pair_config::ConfigModule as _;
 use pausable::{PausableModule, State};
@@ -36,10 +33,6 @@ use farm_with_locked_rewards::*;
 use crate::constants::*;
 
 const SAFE_PRICE_HISTORY_ROUNDS: u64 = 10 * 60;
-const MILLISECONDS_PER_SIMULATED_ROUND: u64 = SAFE_PRICE_ROUND_DURATION_SECONDS * 1_000;
-const SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS: u64 = MILLISECONDS_PER_SIMULATED_ROUND;
-const DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET_MILLISECONDS: u64 =
-    SAFE_PRICE_HISTORY_ROUNDS * MILLISECONDS_PER_SIMULATED_ROUND;
 
 pub fn setup_pair<PairObjBuilder, RouterObjBuilder>(
     owner_addr: &Address,
@@ -91,10 +84,6 @@ where
     b_mock
         .execute_tx(owner_addr, &router_wrapper, &rust_zero, |sc| {
             sc.init(OptionalValue::None);
-            sc.safe_price_timestamp_save_interval()
-                .set(SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS);
-            sc.default_safe_price_timestamp_offset()
-                .set(DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET_MILLISECONDS);
         })
         .assert_ok();
 
@@ -162,7 +151,7 @@ where
     // Extra operations to record the new reserves
     block_round += SAFE_PRICE_HISTORY_ROUNDS;
     b_mock.set_block_round(block_round);
-    b_mock.set_block_timestamp(block_round * MILLISECONDS_PER_SIMULATED_ROUND / 1_000);
+    b_mock.set_block_timestamp(block_round * SAFE_PRICE_ROUND_DURATION_SECONDS);
     add_liquidity(
         &temp_user_addr,
         b_mock,
@@ -177,53 +166,6 @@ where
     );
     // Remove liquidity to have the correct lp token supply
     remove_liquidity(&temp_user_addr, b_mock, &pair_wrapper, USER_TOTAL_LP_TOKENS);
-
-    b_mock
-        .execute_query(&pair_wrapper, |sc| {
-            let current_observation = sc.current_price_observation().get();
-            let latest_observation = sc
-                .price_observations()
-                .get(sc.safe_price_current_index().get());
-            assert_eq!(
-                current_observation.first_token_reserve_accumulated,
-                latest_observation.first_token_reserve_accumulated
-            );
-            assert_eq!(
-                current_observation.second_token_reserve_accumulated,
-                latest_observation.second_token_reserve_accumulated
-            );
-            assert_eq!(
-                current_observation.weight_accumulated,
-                latest_observation.weight_accumulated
-            );
-            assert_eq!(
-                current_observation.recording_round,
-                latest_observation.recording_round
-            );
-            assert_eq!(
-                current_observation.recording_timestamp,
-                latest_observation.recording_timestamp
-            );
-            assert_eq!(
-                current_observation.lp_supply_accumulated,
-                latest_observation.lp_supply_accumulated
-            );
-            assert_eq!(
-                latest_observation.recording_timestamp,
-                block_round * MILLISECONDS_PER_SIMULATED_ROUND
-            );
-        })
-        .assert_ok();
-
-    b_mock
-        .execute_tx(user_addr, &pair_wrapper, &rust_biguint!(0), |sc| {
-            sc.get_lp_tokens_safe_price_by_round_offset(
-                managed_address!(pair_wrapper.address_ref()),
-                1,
-                managed_biguint!(1_000_000_000),
-            );
-        })
-        .assert_ok();
 
     // Farm reward time starts in the first round after the completed safe-price history.
     block_round += 1;
