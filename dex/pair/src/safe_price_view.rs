@@ -27,7 +27,6 @@ struct RoundTimestampContext {
     anchor_round: Round,
     anchor_timestamp: Timestamp,
     current_round: Round,
-    current_timestamp: Timestamp,
     current_round_duration: u64,
     legacy_rounds: u64,
 }
@@ -219,11 +218,6 @@ pub trait SafePriceViewModule:
         )
     }
 
-    fn get_range_by_offset(&self, current: u64, offset: u64) -> (u64, u64) {
-        require!(offset > 0 && offset < current, ERROR_PARAMETERS);
-        (current - offset, current)
-    }
-
     #[label("safe-price-view")]
     #[view(getSafePrice)]
     fn get_safe_price(
@@ -264,6 +258,33 @@ pub trait SafePriceViewModule:
         )
     }
 
+    fn get_range_by_offset(&self, current: u64, offset: u64) -> (u64, u64) {
+        require!(offset > 0 && offset < current, ERROR_PARAMETERS);
+        (current - offset, current)
+    }
+
+    fn get_safe_price_by_timestamp_range(
+        &self,
+        pair_address: ManagedAddress,
+        start_timestamp: Timestamp,
+        end_timestamp: Timestamp,
+        input_payment: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
+        let (first_price_observation, last_price_observation) = self
+            .load_price_observations_by_timestamp_range(
+                &pair_address,
+                start_timestamp,
+                end_timestamp,
+            );
+
+        self.compute_weighted_price(
+            &pair_address,
+            input_payment,
+            &first_price_observation,
+            &last_price_observation,
+        )
+    }
+
     fn compute_weighted_price(
         &self,
         pair_address: &ManagedAddress,
@@ -296,28 +317,6 @@ pub trait SafePriceViewModule:
         let output_amount = input_payment.amount * output_reserve / input_reserve;
 
         EsdtTokenPayment::new(output_token_id, 0, output_amount)
-    }
-
-    fn get_safe_price_by_timestamp_range(
-        &self,
-        pair_address: ManagedAddress,
-        start_timestamp: Timestamp,
-        end_timestamp: Timestamp,
-        input_payment: EsdtTokenPayment,
-    ) -> EsdtTokenPayment {
-        let (first_price_observation, last_price_observation) = self
-            .load_price_observations_by_timestamp_range(
-                &pair_address,
-                start_timestamp,
-                end_timestamp,
-            );
-
-        self.compute_weighted_price(
-            &pair_address,
-            input_payment,
-            &first_price_observation,
-            &last_price_observation,
-        )
     }
 
     fn load_price_observations_by_timestamp_range(
@@ -402,10 +401,7 @@ pub trait SafePriceViewModule:
     ) -> RoundTimestampContext {
         let current_round = self.blockchain().get_block_round();
         let current_timestamp = self.get_current_timestamp_milliseconds();
-        let current_round_duration = self
-            .blockchain()
-            .get_block_round_time_millis()
-            .as_u64_millis();
+        let current_round_duration = self.get_current_round_duration_milliseconds();
         require!(
             oldest_observation.recording_timestamp > 0
                 && oldest_observation.recording_round <= current_round
@@ -454,7 +450,6 @@ pub trait SafePriceViewModule:
             anchor_round: oldest_observation.recording_round,
             anchor_timestamp: oldest_observation.recording_timestamp,
             current_round,
-            current_timestamp,
             current_round_duration,
             legacy_rounds,
         }
@@ -471,30 +466,13 @@ pub trait SafePriceViewModule:
             ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
         );
 
-        let target_offset = target_round - timestamp_context.anchor_round;
-        let available_elapsed =
-            timestamp_context.current_timestamp - timestamp_context.anchor_timestamp;
-        require!(
-            target_offset <= available_elapsed / timestamp_context.current_round_duration,
-            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
-        );
-        let current_duration_elapsed = target_offset * timestamp_context.current_round_duration;
-        if timestamp_context.current_round_duration == LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS
-        {
-            return timestamp_context.anchor_timestamp + current_duration_elapsed;
-        }
+        let round_offset = target_round - timestamp_context.anchor_round;
+        let legacy_rounds = core::cmp::min(round_offset, timestamp_context.legacy_rounds);
+        let current_rounds = round_offset - legacy_rounds;
 
-        let target_legacy_rounds = core::cmp::min(target_offset, timestamp_context.legacy_rounds);
-        let duration_difference = LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS
-            - timestamp_context.current_round_duration;
-        let remaining_elapsed = available_elapsed - current_duration_elapsed;
-        require!(
-            target_legacy_rounds <= remaining_elapsed / duration_difference,
-            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
-        );
-        let legacy_duration_elapsed = target_legacy_rounds * duration_difference;
-
-        timestamp_context.anchor_timestamp + current_duration_elapsed + legacy_duration_elapsed
+        timestamp_context.anchor_timestamp
+            + legacy_rounds * LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS
+            + current_rounds * timestamp_context.current_round_duration
     }
 
     fn get_price_observation_by_timestamp(
@@ -588,7 +566,7 @@ pub trait SafePriceViewModule:
             return read_context.last_recorded_observation.clone();
         }
 
-        self.infer_legacy_price_observation(
+        self.normalize_legacy_observation(
             price_observations.get(index),
             read_context.legacy_cutover,
         )
@@ -624,7 +602,7 @@ pub trait SafePriceViewModule:
             cutover_mapper.get()
         };
         let last_recorded_observation = self
-            .infer_legacy_price_observation(price_observations.get(current_index), legacy_cutover);
+            .normalize_legacy_observation(price_observations.get(current_index), legacy_cutover);
         let current_price_observation_mapper =
             self.get_current_price_observation_mapper(pair_address.clone());
         require!(
@@ -644,7 +622,7 @@ pub trait SafePriceViewModule:
         let oldest_observation = if oldest_observation_index == current_index {
             last_recorded_observation.clone()
         } else {
-            self.infer_legacy_price_observation(
+            self.normalize_legacy_observation(
                 price_observations.get(oldest_observation_index),
                 legacy_cutover,
             )
@@ -658,19 +636,6 @@ pub trait SafePriceViewModule:
         };
 
         (price_observations, read_context)
-    }
-
-    fn infer_legacy_price_observation(
-        &self,
-        mut observation: PriceObservation<Self::Api>,
-        legacy_cutover: (Round, Timestamp),
-    ) -> PriceObservation<Self::Api> {
-        if observation.recording_timestamp > 0 {
-            return observation;
-        }
-
-        self.normalize_legacy_observation(&mut observation, legacy_cutover);
-        observation
     }
 
     fn price_observation_by_timestamp_binary_search(

@@ -111,14 +111,13 @@ pub trait SafePriceModule:
             ERROR_SAFE_PRICE_CURRENT_INDEX
         );
 
-        let mut last_recorded_observation = if safe_price_current_index > 0 {
-            self.price_observations().get(safe_price_current_index)
+        let last_recorded_observation = if safe_price_current_index > 0 {
+            self.normalize_local_observation(
+                self.price_observations().get(safe_price_current_index),
+            )
         } else {
             PriceObservation::default()
         };
-        if safe_price_current_index > 0 {
-            self.normalize_observation_if_legacy(&mut last_recorded_observation);
-        }
 
         let last_recorded_timestamp = last_recorded_observation.recording_timestamp;
         let current_price_observation_mapper = self.current_price_observation();
@@ -134,11 +133,6 @@ pub trait SafePriceModule:
                 latest_observation.recording_timestamp >= last_recorded_timestamp,
                 ERROR_SAFE_PRICE_TIMESTAMP_ORDER
             );
-        }
-        if latest_observation.recording_timestamp == 0
-            && self.get_current_round_duration_milliseconds() == 0
-        {
-            return;
         }
         if latest_observation.recording_timestamp >= current_timestamp {
             return;
@@ -161,9 +155,8 @@ pub trait SafePriceModule:
 
         if elapsed_since_last_saved_observation >= self.get_safe_price_timestamp_save_interval() {
             self.save_observation_to_storage(&latest_observation, safe_price_current_index);
-        } else {
-            current_price_observation_mapper.set(&latest_observation);
         }
+        current_price_observation_mapper.set(&latest_observation);
     }
 
     fn save_observation_to_storage(
@@ -187,7 +180,6 @@ pub trait SafePriceModule:
         }
 
         self.safe_price_current_index().set(new_index);
-        self.current_price_observation().set(price_observation);
     }
 
     fn initialize_current_price_observation(&self) {
@@ -211,15 +203,18 @@ pub trait SafePriceModule:
             ERROR_SAFE_PRICE_CURRENT_INDEX
         );
 
-        let mut current_price_observation = price_observations.get(safe_price_current_index);
-        self.normalize_observation_if_legacy(&mut current_price_observation);
+        let current_price_observation =
+            self.normalize_local_observation(price_observations.get(safe_price_current_index));
 
         current_price_observation_mapper.set(&current_price_observation);
     }
 
-    fn normalize_observation_if_legacy(&self, observation: &mut PriceObservation<Self::Api>) {
+    fn normalize_local_observation(
+        &self,
+        observation: PriceObservation<Self::Api>,
+    ) -> PriceObservation<Self::Api> {
         if observation.recording_timestamp > 0 {
-            return;
+            return observation;
         }
 
         let legacy_cutover_mapper = self.safe_price_legacy_cutover();
@@ -227,14 +222,18 @@ pub trait SafePriceModule:
             !legacy_cutover_mapper.is_empty(),
             ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
         );
-        self.normalize_legacy_observation(observation, legacy_cutover_mapper.get());
+        self.normalize_legacy_observation(observation, legacy_cutover_mapper.get())
     }
 
     fn normalize_legacy_observation(
         &self,
-        observation: &mut PriceObservation<Self::Api>,
+        mut observation: PriceObservation<Self::Api>,
         legacy_cutover: (Round, Timestamp),
-    ) {
+    ) -> PriceObservation<Self::Api> {
+        if observation.recording_timestamp > 0 {
+            return observation;
+        }
+
         require!(
             observation.lp_supply_accumulated == 0u64,
             ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
@@ -259,6 +258,8 @@ pub trait SafePriceModule:
         observation.first_token_reserve_accumulated *= &multiplier;
         observation.second_token_reserve_accumulated *= &multiplier;
         observation.weight_accumulated *= LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
+
+        observation
     }
 
     fn accumulate_into_observation(

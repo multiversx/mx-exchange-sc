@@ -328,102 +328,6 @@ where
             .assert_ok();
     }
 
-    pub fn check_price_observation(
-        &mut self,
-        pair_address: &Address,
-        search_round: u64,
-        weight_accumulated: u64,
-        first_token_reserve_accumulated: u64,
-        second_token_reserve_accumulated: u64,
-    ) {
-        Self::check_price_observation_from(
-            &mut self.b_mock,
-            &self.pair_wrapper,
-            pair_address,
-            search_round,
-            weight_accumulated,
-            first_token_reserve_accumulated,
-            second_token_reserve_accumulated,
-        );
-    }
-
-    pub fn check_price_observation_from_second_pair(
-        &mut self,
-        pair_address: &Address,
-        search_round: u64,
-        weight_accumulated: u64,
-        first_token_reserve_accumulated: u64,
-        second_token_reserve_accumulated: u64,
-    ) {
-        Self::check_price_observation_from(
-            &mut self.b_mock,
-            &self.second_pair_wrapper,
-            pair_address,
-            search_round,
-            weight_accumulated,
-            first_token_reserve_accumulated,
-            second_token_reserve_accumulated,
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn check_price_observation_from(
-        b_mock: &mut BlockchainStateWrapper,
-        pair_wrapper: &ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
-        pair_address: &Address,
-        search_round: u64,
-        weight_accumulated: u64,
-        first_token_reserve_accumulated: u64,
-        second_token_reserve_accumulated: u64,
-    ) {
-        let expected_weight_accumulated = weight_accumulated * 6_000;
-        let expected_first_token_reserve_accumulated = first_token_reserve_accumulated * 6_000;
-        let expected_second_token_reserve_accumulated = second_token_reserve_accumulated * 6_000;
-
-        b_mock
-            .execute_query(pair_wrapper, |sc| {
-                let price_observation =
-                    sc.get_price_observation_view(managed_address!(pair_address), search_round);
-                assert_eq!(
-                    price_observation.weight_accumulated,
-                    expected_weight_accumulated
-                );
-                assert_eq!(
-                    price_observation.first_token_reserve_accumulated,
-                    managed_biguint!(expected_first_token_reserve_accumulated)
-                );
-                assert_eq!(
-                    price_observation.second_token_reserve_accumulated,
-                    managed_biguint!(expected_second_token_reserve_accumulated)
-                );
-            })
-            .assert_ok();
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn check_safe_price(
-        &mut self,
-        pair_address: &Address,
-        start_round: u64,
-        end_round: u64,
-        payment_token_id: &[u8],
-        payment_token_amount: u64,
-        expected_token_id: &[u8],
-        expected_token_amount: u64,
-    ) {
-        Self::check_safe_price_from(
-            &mut self.b_mock,
-            &self.pair_wrapper,
-            pair_address,
-            start_round,
-            end_round,
-            payment_token_id,
-            payment_token_amount,
-            expected_token_id,
-            expected_token_amount,
-        );
-    }
-
     #[allow(clippy::too_many_arguments)]
     pub fn check_lp_tokens_safe_price(
         &mut self,
@@ -491,67 +395,6 @@ where
             .assert_ok();
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn check_safe_price_from_second_pair(
-        &mut self,
-        pair_address: &Address,
-        start_round: u64,
-        end_round: u64,
-        payment_token_id: &[u8],
-        payment_token_amount: u64,
-        expected_token_id: &[u8],
-        expected_token_amount: u64,
-    ) {
-        Self::check_safe_price_from(
-            &mut self.b_mock,
-            &self.second_pair_wrapper,
-            pair_address,
-            start_round,
-            end_round,
-            payment_token_id,
-            payment_token_amount,
-            expected_token_id,
-            expected_token_amount,
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn check_safe_price_from(
-        b_mock: &mut BlockchainStateWrapper,
-        pair_wrapper: &ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
-        pair_address: &Address,
-        start_round: u64,
-        end_round: u64,
-        payment_token_id: &[u8],
-        payment_token_amount: u64,
-        expected_token_id: &[u8],
-        expected_token_amount: u64,
-    ) {
-        b_mock
-            .execute_query(pair_wrapper, |sc| {
-                let input_payment = EsdtTokenPayment::new(
-                    managed_token_id!(payment_token_id),
-                    0,
-                    managed_biguint!(payment_token_amount),
-                );
-                let expected_payment = sc.get_safe_price(
-                    managed_address!(pair_address),
-                    start_round,
-                    end_round,
-                    input_payment,
-                );
-                assert_eq!(
-                    expected_payment.token_identifier,
-                    managed_token_id!(expected_token_id)
-                );
-                assert_eq!(
-                    expected_payment.amount,
-                    managed_biguint!(expected_token_amount)
-                );
-            })
-            .assert_ok();
-    }
-
     pub fn check_safe_price_from_legacy_endpoint(
         &mut self,
         payment_token_id: &[u8],
@@ -591,4 +434,79 @@ where
             )
             .assert_ok();
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn check_price_observation_from<PairObjBuilder>(
+    b_mock: &mut BlockchainStateWrapper,
+    pair_wrapper: &ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    pair_address: &Address,
+    search_round: u64,
+    weight_accumulated: u64,
+    first_token_reserve_accumulated: u64,
+    second_token_reserve_accumulated: u64,
+) where
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+{
+    let expected_weight_accumulated = weight_accumulated * 6_000;
+    let expected_first_token_reserve_accumulated = first_token_reserve_accumulated * 6_000;
+    let expected_second_token_reserve_accumulated = second_token_reserve_accumulated * 6_000;
+
+    b_mock
+        .execute_query(pair_wrapper, |sc| {
+            let price_observation =
+                sc.get_price_observation_view(managed_address!(pair_address), search_round);
+            assert_eq!(
+                price_observation.weight_accumulated,
+                expected_weight_accumulated
+            );
+            assert_eq!(
+                price_observation.first_token_reserve_accumulated,
+                managed_biguint!(expected_first_token_reserve_accumulated)
+            );
+            assert_eq!(
+                price_observation.second_token_reserve_accumulated,
+                managed_biguint!(expected_second_token_reserve_accumulated)
+            );
+        })
+        .assert_ok();
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn check_safe_price_from<PairObjBuilder>(
+    b_mock: &mut BlockchainStateWrapper,
+    pair_wrapper: &ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    pair_address: &Address,
+    start_round: u64,
+    end_round: u64,
+    payment_token_id: &[u8],
+    payment_token_amount: u64,
+    expected_token_id: &[u8],
+    expected_token_amount: u64,
+) where
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+{
+    b_mock
+        .execute_query(pair_wrapper, |sc| {
+            let input_payment = EsdtTokenPayment::new(
+                managed_token_id!(payment_token_id),
+                0,
+                managed_biguint!(payment_token_amount),
+            );
+            let expected_payment = sc.get_safe_price(
+                managed_address!(pair_address),
+                start_round,
+                end_round,
+                input_payment,
+            );
+            assert_eq!(
+                expected_payment.token_identifier,
+                managed_token_id!(expected_token_id)
+            );
+            assert_eq!(
+                expected_payment.amount,
+                managed_biguint!(expected_token_amount)
+            );
+        })
+        .assert_ok();
 }

@@ -365,7 +365,9 @@ fn test_safe_price() {
         expected_amount,
     );
 
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         1, // The accumulated weight should be 1, as it is the first element from the list
@@ -387,7 +389,9 @@ fn test_safe_price() {
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
 
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         block_round - starting_round,
@@ -411,7 +415,9 @@ fn test_safe_price() {
             900,
             expected_amount,
         );
-        pair_setup.check_price_observation(
+        check_price_observation_from(
+            &mut pair_setup.b_mock,
+            &pair_setup.pair_wrapper,
             &pair_address,
             block_round,
             block_round - starting_round,
@@ -436,7 +442,9 @@ fn test_safe_price() {
         900,
         expected_amount,
     );
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         block_round - starting_round,
@@ -459,7 +467,9 @@ fn test_safe_price() {
         900,
         expected_amount,
     );
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         block_round - starting_round,
@@ -481,7 +491,9 @@ fn test_safe_price() {
         900,
         expected_amount,
     );
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         block_round - starting_round,
@@ -495,7 +507,9 @@ fn test_safe_price() {
         (1004, 1015, 983),
         (1011, 1014, 979),
     ] {
-        pair_setup.check_safe_price(
+        check_safe_price_from(
+            &mut pair_setup.b_mock,
+            &pair_setup.pair_wrapper,
             &pair_address,
             start_round,
             end_round,
@@ -544,7 +558,9 @@ fn test_safe_price_linear_interpolation() {
         second_token_expected_amount,
     );
 
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         block_round,
@@ -568,7 +584,9 @@ fn test_safe_price_linear_interpolation() {
         second_token_expected_amount,
     );
 
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         block_round,
@@ -597,7 +615,9 @@ fn test_safe_price_linear_interpolation() {
         first_token_expected_amount,
     );
 
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         block_round,
@@ -625,7 +645,9 @@ fn test_safe_price_linear_interpolation() {
         second_token_expected_amount,
     );
 
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         block_round,
@@ -644,7 +666,9 @@ fn test_safe_price_linear_interpolation() {
         (990, 37_012),
         (1000, 39_955),
     ] {
-        pair_setup.check_safe_price(
+        check_safe_price_from(
+            &mut pair_setup.b_mock,
+            &pair_setup.pair_wrapper,
             &pair_address,
             interpolation_round,
             interpolation_round + interpolation_check_round_offset,
@@ -690,7 +714,9 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
         expected_amount,
     );
 
-    pair_setup.check_price_observation(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.pair_wrapper,
         &pair_address,
         block_round,
         1, // The accumulated weight should be 1, as it is the first element from the list
@@ -712,7 +738,9 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
 
-    pair_setup.check_price_observation_from_second_pair(
+    check_price_observation_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.second_pair_wrapper,
         &pair_address,
         block_round,
         block_round - starting_round,
@@ -736,7 +764,9 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
             900,
             expected_amount,
         );
-        pair_setup.check_price_observation_from_second_pair(
+        check_price_observation_from(
+            &mut pair_setup.b_mock,
+            &pair_setup.second_pair_wrapper,
             &pair_address,
             block_round,
             block_round - starting_round,
@@ -747,7 +777,9 @@ fn test_both_legacy_and_new_safe_price_from_other_contract() {
 
     let first_token_payment_amount = 100;
     let expected_token_payment_amount = 99;
-    pair_setup.check_safe_price_from_second_pair(
+    check_safe_price_from(
+        &mut pair_setup.b_mock,
+        &pair_setup.second_pair_wrapper,
         &pair_address,
         starting_round + 1,
         block_round,
