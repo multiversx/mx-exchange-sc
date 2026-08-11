@@ -112,8 +112,9 @@ pub trait SafePriceModule:
         );
 
         let last_recorded_observation = if safe_price_current_index > 0 {
-            self.normalize_local_observation(
+            self.normalize_observation(
                 self.price_observations().get(safe_price_current_index),
+                OptionalValue::None,
             )
         } else {
             PriceObservation::default()
@@ -203,32 +204,18 @@ pub trait SafePriceModule:
             ERROR_SAFE_PRICE_CURRENT_INDEX
         );
 
-        let current_price_observation =
-            self.normalize_local_observation(price_observations.get(safe_price_current_index));
+        let current_price_observation = self.normalize_observation(
+            price_observations.get(safe_price_current_index),
+            OptionalValue::None,
+        );
 
         current_price_observation_mapper.set(&current_price_observation);
     }
 
-    fn normalize_local_observation(
-        &self,
-        observation: PriceObservation<Self::Api>,
-    ) -> PriceObservation<Self::Api> {
-        if observation.recording_timestamp > 0 {
-            return observation;
-        }
-
-        let legacy_cutover_mapper = self.safe_price_legacy_cutover();
-        require!(
-            !legacy_cutover_mapper.is_empty(),
-            ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
-        );
-        self.normalize_legacy_observation(observation, legacy_cutover_mapper.get())
-    }
-
-    fn normalize_legacy_observation(
+    fn normalize_observation(
         &self,
         mut observation: PriceObservation<Self::Api>,
-        legacy_cutover: (Round, Timestamp),
+        legacy_cutover_opt: OptionalValue<(Round, Timestamp)>,
     ) -> PriceObservation<Self::Api> {
         if observation.recording_timestamp > 0 {
             return observation;
@@ -239,7 +226,17 @@ pub trait SafePriceModule:
             ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
         );
 
-        let (cutover_round, cutover_timestamp) = legacy_cutover;
+        let (cutover_round, cutover_timestamp) = match legacy_cutover_opt {
+            OptionalValue::Some(legacy_cutover) => legacy_cutover,
+            OptionalValue::None => {
+                let legacy_cutover_mapper = self.safe_price_legacy_cutover();
+                require!(
+                    !legacy_cutover_mapper.is_empty(),
+                    ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+                );
+                legacy_cutover_mapper.get()
+            }
+        };
         require!(
             observation.recording_round <= cutover_round,
             ERROR_SAFE_PRICE_LEGACY_NORMALIZATION

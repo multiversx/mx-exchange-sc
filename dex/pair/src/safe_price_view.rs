@@ -566,9 +566,9 @@ pub trait SafePriceViewModule:
             return read_context.last_recorded_observation.clone();
         }
 
-        self.normalize_legacy_observation(
+        self.normalize_observation(
             price_observations.get(index),
-            read_context.legacy_cutover,
+            OptionalValue::Some(read_context.legacy_cutover),
         )
     }
 
@@ -601,8 +601,10 @@ pub trait SafePriceViewModule:
         } else {
             cutover_mapper.get()
         };
-        let last_recorded_observation = self
-            .normalize_legacy_observation(price_observations.get(current_index), legacy_cutover);
+        let last_recorded_observation = self.normalize_observation(
+            price_observations.get(current_index),
+            OptionalValue::Some(legacy_cutover),
+        );
         let current_price_observation_mapper =
             self.get_current_price_observation_mapper(pair_address.clone());
         require!(
@@ -622,9 +624,9 @@ pub trait SafePriceViewModule:
         let oldest_observation = if oldest_observation_index == current_index {
             last_recorded_observation.clone()
         } else {
-            self.normalize_legacy_observation(
+            self.normalize_observation(
                 price_observations.get(oldest_observation_index),
-                legacy_cutover,
+                OptionalValue::Some(legacy_cutover),
             )
         };
         let read_context = PriceObservationReadContext {
