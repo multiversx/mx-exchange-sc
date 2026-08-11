@@ -313,11 +313,6 @@ where
     b_mock
         .execute_tx(owner, &router_wrapper, &rust_zero, |sc| {
             sc.init(OptionalValue::None);
-
-            let safe_price_save_interval = 1u64;
-            let default_safe_price_rounds_offset = 10 * 60u64;
-            sc.set_safe_price_round_save_interval(safe_price_save_interval);
-            sc.set_default_safe_price_rounds_offset(default_safe_price_rounds_offset);
         })
         .assert_ok();
 

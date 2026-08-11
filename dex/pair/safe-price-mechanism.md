@@ -95,17 +95,15 @@ pub struct PriceObservation {
 - `getSafePriceByTimestampOffset`: Get safe price using a timestamp offset
 - `getLpTokensSafePriceByTimestampOffset`: Get LP token value using timestamp offset
 
-These endpoints allow querying prices based on elapsed time (in seconds) rather than rounds, making the system robust to block duration changes.
+These endpoints allow querying prices based on elapsed time in **milliseconds** rather than rounds, making the system robust to block duration changes. Every positive `recording_timestamp`, timestamp offset, save interval, and default offset is expressed in milliseconds.
 
 **Note:** The timestamp offset endpoint (`getSafePriceByTimestampOffset`) does not have a default value. It must be provided as a parameter.
 
-#### 3. Timestamp-to-Round Conversion
+#### 3. Round-to-Timestamp Compatibility
 
-The mechanism includes dedicated logic to find equivalent rounds for given timestamps:
+Round-based endpoints remain available for compatibility, but round numbers are no longer a separate lookup axis. Under the protocol's deterministic round schedule, the view normalizes the oldest retained observation to a positive millisecond timestamp and combines that anchor with the current round, current timestamp, and runtime round duration. Assuming the single protocol transition from the legacy `6,000` millisecond cadence to the current cadence, it solves the exact number of legacy-duration rounds and infers the requested round's timestamp.
 
-- **Binary Search**: Efficiently locates observations by timestamp
-- **Linear Interpolation**: Calculates intermediate rounds when exact matches aren't found
-- **Weighted Averaging**: Combines neighboring observations for precise calculations
+The inferred timestamp is then resolved through the same timestamp binary-search and interpolation path used by timestamp-based endpoints. Inconsistent timelines, unsupported cadence histories, and rounds outside the normalized anchor-to-current range are rejected instead of being approximated.
 
 #### 4. Intermediate Save Functionality
 
@@ -114,6 +112,17 @@ To optimize gas costs with faster block times, the system now supports:
 - **Configurable Save Intervals**: Set how often observations are finalized
 - **Intermediate Accumulation**: Accumulates price data between saves
 - **Automatic Finalization**: Saves averaged observations when intervals are reached
+
+#### 5. Legacy Cutover and Normalization
+
+Every pair with legacy history must be upgraded before protocol activation. Pair upgrade stores an immutable `(round, timestamp_ms)` normalization anchor while the legacy cadence is still active. This pair-upgrade anchor is not the protocol activation round or timestamp.
+
+Legacy observations are identified only by `recording_timestamp == 0`; every positive timestamp is already milliseconds and is never interpreted as seconds.
+
+- A legacy observation timestamp is inferred only from the immutable cutover: `cutover_timestamp_ms - (cutover_round - observation_round) * 6,000`.
+- A pair with legacy history and a missing or invalid cutover fails closed.
+- Pending observations are created only by the upgraded binary, always contain a positive millisecond timestamp, and never participate in legacy normalization.
+- Legacy accumulators and weights are multiplied by `6,000` only after a valid positive timestamp is inferred. A truly empty oracle at chain timestamp zero is the separate no-write bootstrap case.
 
 ## How It Works
 
@@ -163,47 +172,47 @@ Each price observation records:
 
 - **first_token_reserve_accumulated**: Cumulative weighted first token reserve
 - **second_token_reserve_accumulated**: Cumulative weighted second token reserve
-- **weight_accumulated**: Total time weight (rounds elapsed)
+- **weight_accumulated**: Total time weight in milliseconds
 - **recording_round**: Blockchain round when recorded
-- **recording_timestamp**: Unix timestamp when recorded
+- **recording_timestamp**: Block timestamp in milliseconds when recorded
 - **lp_supply_accumulated**: Cumulative weighted LP token supply
 
 ### Weight Calculation
 
 The weight of a `PriceObservation` represents the time duration it covers. Specifically:
 
-**Weight = Current Round - Last Saved Round**
+**Weight = Current Timestamp Milliseconds - Last Observation Timestamp Milliseconds**
 
-This weight is used to properly time-weight the reserves when calculating safe prices. For example, if the last observation was saved at round 1000 and the current round is 1010, the weight for the new observation would be 10 rounds.
+This weight is used to properly time-weight the reserves when calculating safe prices. For example, if 600 milliseconds elapsed since the previous observation, the new contribution has a weight of 600.
 
 This weighting ensures that longer time periods have proportionally greater influence on the final TWAP calculation, preventing manipulation through rapid price changes.
 
 ## Recording Mechanisms
 
-### Immediate Save Mode (Interval = 1)
+### Default Finalization Interval (6,000 Milliseconds)
 
-Default behavior where every update creates a new observation:
-
-```rust
-safe_price_round_save_interval = 1 (default)
-```
-
-- Observation saved on every swap/liquidity change
-- Most accurate but higher gas costs
-- Suitable for lower-frequency trading
-
-### Intermediate Save Mode (Interval > 1)
-
-Accumulates data over multiple rounds before saving:
+The default interval retains the historical six-second observation cadence:
 
 ```rust
-safe_price_round_save_interval = 10
+safe_price_timestamp_save_interval = 6_000 // milliseconds (default)
 ```
 
-- Accumulates weighted data in `current_price_observation`
-- Finalizes observation when interval rounds have passed
-- Lower gas costs but slightly delayed observations
-- Optimal for high-frequency trading (0.6s blocks)
+- The first positive-timestamp contribution can finalize immediately using the legacy-duration bootstrap weight.
+- Later updates within the same 6,000-millisecond window replace the single pending observation.
+- Once cumulative elapsed time since the last finalized observation reaches 6,000 milliseconds, that pending state is finalized into the circular buffer and cleared.
+
+### Configurable Intermediate Save Mode
+
+Any positive configured interval controls how long millisecond-weighted data accumulates before finalization. For example:
+
+```rust
+safe_price_timestamp_save_interval = 60_000 // milliseconds
+```
+
+- Keeps at most one pending value in `current_price_observation`
+- Finalizes the observation when the interval in milliseconds has passed
+- Clears `current_price_observation` after finalization, so an observation is pending or finalized, never both
+- Longer intervals lower storage-write frequency but delay finalized history
 
 ## Available Endpoints
 
@@ -250,7 +259,7 @@ Get safe price using a timestamp offset.
 
 **Parameters:**
 - `pair_address: ManagedAddress` - The pair contract address
-- `timestamp_offset: Timestamp` - Number of seconds to look back
+- `timestamp_offset: Timestamp` - Number of milliseconds to look back
 - `input_payment: EsdtTokenPayment` - Input token and amount
 
 **Returns:**
@@ -258,8 +267,8 @@ Get safe price using a timestamp offset.
 
 **Example:**
 ```rust
-// Get price from 1 hour ago (3600 seconds)
-let output = getSafePriceByTimestampOffset(pair_addr, 3600, input);
+// Get price from 1 hour ago (3,600,000 milliseconds)
+let output = getSafePriceByTimestampOffset(pair_addr, 3_600_000, input);
 ```
 
 **Note:** This endpoint is time-independent and works across block duration changes.
@@ -314,7 +323,7 @@ Get LP token value using a timestamp offset.
 
 **Parameters:**
 - `pair_address: ManagedAddress` - The pair contract address
-- `timestamp_offset: Timestamp` - Number of seconds to look back
+- `timestamp_offset: Timestamp` - Number of milliseconds to look back
 - `liquidity: BigUint` - Amount of LP tokens
 
 **Returns:**
@@ -322,8 +331,8 @@ Get LP token value using a timestamp offset.
 
 **Example:**
 ```rust
-// Get LP value from 30 minutes ago (1800 seconds)
-let (token1, token2) = getLpTokensSafePriceByTimestampOffset(pair_addr, 1800, lp_amount);
+// Get LP value from 30 minutes ago (1,800,000 milliseconds)
+let (token1, token2) = getLpTokensSafePriceByTimestampOffset(pair_addr, 1_800_000, lp_amount);
 ```
 
 #### `getLpTokensSafePrice`
@@ -373,16 +382,16 @@ Returns the current index in the circular observation buffer.
 **Returns:**
 - `usize` - Current index (1-based)
 
-#### `getSafePriceRoundSaveInterval`
+#### `getSafePriceTimestampSaveInterval`
 
-Returns the configured round save interval.
+Returns the configured finalized-observation interval in milliseconds.
 
 **Available on:** Router contract (storage is in router; pair reads from router's storage)
 
 **Returns:**
-- `Round` - Number of rounds between saves
+- `u64` - Number of milliseconds between finalized saves
 
-**Default Value:** `1` (immediate save on every update)
+**Default Value:** `6,000` milliseconds
 
 #### `getCurrentPriceObservation`
 
@@ -393,16 +402,16 @@ Returns the current intermediate observation (if any).
 **Returns:**
 - `PriceObservation` - The intermediate observation
 
-#### `getDefaultSafePriceRoundsOffset`
+#### `getDefaultSafePriceTimestampOffset`
 
-Returns the default round offset for safe price queries.
+Returns the default timestamp offset for safe price queries.
 
 **Available on:** Router contract (storage is in router; pair reads from router's storage)
 
 **Returns:**
-- `u64` - Default offset in rounds
+- `u64` - Default offset in milliseconds
 
-**Default Value:** `600` rounds
+**Default Value:** `3,600,000` milliseconds (1 hour)
 
 ## Configuration
 
@@ -410,7 +419,7 @@ Returns the default round offset for safe price queries.
 
 The Router SC acts as the central hub for safe price configuration. Configuration values are stored in the router's storage, and pair contracts read these values directly from the router using external storage reads.
 
-#### `setSafePriceRoundSaveInterval`
+#### `setSafePriceTimestampSaveInterval`
 
 Set how frequently observations are saved.
 
@@ -419,13 +428,12 @@ Set how frequently observations are saved.
 **Storage:** Router contract (pairs read from router's storage via `new_from_address`)
 
 **Parameters:**
-- `new_interval: Round` - Must be > 0
+- `new_interval: u64` - Milliseconds; must be > 0
 
 **Example:**
-- For 6s blocks: `interval = 1` (save every round)
-- For 0.6s blocks: `interval = 10` (save every 6 seconds)
+- `interval = 6_000` finalizes after six seconds regardless of block duration
 
-#### `setDefaultSafePriceRoundsOffset`
+#### `setDefaultSafePriceTimestampOffset`
 
 Set the default lookback period for safe price queries.
 
@@ -434,19 +442,17 @@ Set the default lookback period for safe price queries.
 **Storage:** Router contract (pairs read from router's storage via `new_from_address`)
 
 **Parameters:**
-- `new_offset: u64` - Must be > 0
+- `new_offset: u64` - Milliseconds; must be > 0
 
 **Default Value:**
-- 600 rounds (10 blocks/minute × 60 minutes = 1 hour at 6s blocks)
-- For 0.6s blocks: Consider 6000 rounds (100 blocks/minute × 60 minutes)
+- `3,600,000` milliseconds (1 hour)
 
-**Note:** There is no default timestamp offset. When using timestamp-based endpoints (`getSafePriceByTimestampOffset`, `getLpTokensSafePriceByTimestampOffset`), the offset must always be provided as a parameter.
+**Note:** Explicit timestamp-offset endpoints (`getSafePriceByTimestampOffset`, `getLpTokensSafePriceByTimestampOffset`) still require an offset parameter. The `ByDefaultOffset` endpoints read this router-owned default.
 
 ### Constants
 
 - **MAX_OBSERVATIONS**: 65,536 (2^16 records for optimized binary search)
-- **DEFAULT_ROUND_SAVE_INTERVAL**: 1
-- **OFFSET_PRECISION_FACTOR**: 1,000,000 (for internal calculations)
+- **DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS**: 6,000
 
 ## Usage Examples
 
@@ -471,11 +477,11 @@ let output = self.get_safe_price_by_default_offset(
 ### Example 2: Get Price from Specific Time Ago (Timestamp)
 
 ```rust
-// Get price from 30 minutes ago using timestamp
-let thirty_minutes_seconds = 30 * 60; // 1800 seconds
+// Get price from 30 minutes ago using a millisecond timestamp offset
+let thirty_minutes_milliseconds = 30 * 60 * 1_000;
 let output = self.get_safe_price_by_timestamp_offset(
     pair_address,
-    thirty_minutes_seconds,
+    thirty_minutes_milliseconds,
     input
 );
 ```
@@ -484,12 +490,12 @@ let output = self.get_safe_price_by_timestamp_offset(
 
 ```rust
 // Calculate value of LP tokens from 1 hour ago
-let one_hour_seconds = 3600;
+let one_hour_milliseconds = 60 * 60 * 1_000;
 let lp_amount = BigUint::from(1000000u64);
 
 let (first_token, second_token) = self.get_lp_tokens_safe_price_by_timestamp_offset(
     pair_address,
-    one_hour_seconds,
+    one_hour_milliseconds,
     lp_amount
 );
 // Returns: (WEGLD payment, MEX payment)
@@ -514,11 +520,7 @@ let output = self.get_safe_price(
 
 ### Binary Search Algorithm
 
-The mechanism uses binary search to efficiently find observations:
-
-1. **Round-based search**: O(log n) complexity for finding observations by round
-2. **Timestamp-based search**: O(log n) complexity for finding observations by timestamp
-3. **Circular buffer handling**: Properly handles wraparound when buffer is full
+The mechanism uses one timestamp-based binary search with `O(log n)` observation lookup. Timestamp endpoints use it directly; round endpoints first perform the exact round-to-millisecond conversion described above and then use the same search. Circular-buffer indexing handles wraparound when the buffer is full.
 
 ### Linear Interpolation
 
@@ -535,31 +537,30 @@ weighted_value = (left_value × left_weight + right_value × right_weight) / tot
 
 This ensures smooth price curves and accurate intermediate values.
 
-### Timestamp-to-Round Conversion
+### Timestamp Search
 
-The `find_equivalent_round_for_timestamp` function:
-
-1. Binary searches for closest observation by timestamp
-2. If exact match: returns that observation's round
-3. If no exact match: finds neighboring observations
-4. Interpolates the round number based on timestamp position
-5. Returns interpolated round for use in price calculations
+All Safeprice quote and observation lookups are resolved on the millisecond timeline. When no exact timestamp exists, the view interpolates an observation between neighboring timestamped observations. For `getPriceObservation`, the returned observation's `recording_round` and `recording_timestamp` metadata are set to the requested round and its exactly inferred timestamp.
 
 ### Migration Compatibility
 
-The system maintains backward compatibility:
+The system supports exactly two semantic timestamp cases across the historical and current structural layouts:
 
-- Old observations without timestamps are handled using a custom decoding logic
-- `NestedDecode` implementation fills missing fields with defaults
-- Timestamp = 0 for legacy observations
-- Existing functionality preserved while adding new features
+- `recording_timestamp == 0` identifies a pre-upgrade observation. Its reserve accumulators and weight are round-weighted, so reads normalize them once with the legacy 6,000 millisecond round duration and infer its timestamp from the immutable pair-upgrade cutover.
+- `recording_timestamp > 0` identifies the current binary format. Its timestamp and every cumulative field are already millisecond-weighted and are returned unchanged; positive values are never treated as seconds.
+
+The custom decoder accepts exactly two deployed layouts, in this field order:
+
+1. Legacy four-field observation: first-token reserve accumulator, second-token reserve accumulator, weight, `recording_round`.
+2. Current six-field observation: the same four fields, then positive millisecond `recording_timestamp`, then `lp_supply_accumulated`.
+
+There is no deployed five-field observation and no seconds-based timestamp migration format. A five-field encoding is incomplete because a timestamp must be followed by the LP-supply accumulator; unexpected trailing fields are also rejected. For a decoded four-field observation, `recording_timestamp` and `lp_supply_accumulated` default to zero until normalization.
 
 ### Gas Optimization
 
 The intermediate save functionality reduces circular buffer writes:
 
-- **Without intermediate saves** (interval=1): Each swap writes a new observation to the circular buffer (VecMapper)
-- **With intermediate saves** (interval=10): Swaps update an intermediate observation (SingleValueMapper), and only every ~10 rounds writes to the circular buffer
+- **At the finalize interval**: The observation is written to the circular buffer (`VecMapper`) and the pending mapper is cleared.
+- **Below the finalize interval**: The observation exists only in `current_price_observation` (`SingleValueMapper`). A finalized value is never duplicated in both locations.
 - **Trade-off**: Both modes write to storage on each swap, but intermediate mode reduces the frequency of VecMapper operations (which involve index calculations and potentially more complex storage patterns)
 - Optimal for high-frequency trading on 0.6s blocks
 

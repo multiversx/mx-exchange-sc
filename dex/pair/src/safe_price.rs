@@ -3,12 +3,20 @@ multiversx_sc::derive_imports!();
 
 use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 
-use crate::{amm, config, errors::ERROR_SAFE_PRICE_CURRENT_INDEX, read_pair_storage};
+use crate::{
+    amm, config,
+    errors::{
+        ERROR_SAFE_PRICE_CURRENT_INDEX, ERROR_SAFE_PRICE_LEGACY_NORMALIZATION,
+        ERROR_SAFE_PRICE_TIMESTAMP_ORDER,
+    },
+    read_pair_storage,
+};
 
 pub type Round = u64;
 pub type Timestamp = u64;
 
 pub const MAX_OBSERVATIONS: usize = 65_536; // 2^{16} records, to optimise binary search
+pub const LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS: u64 = 6_000;
 
 #[type_abi]
 #[derive(ManagedVecItem, Clone, TopEncode, NestedEncode, Debug)]
@@ -51,10 +59,10 @@ impl<M: ManagedTypeApi> NestedDecode for PriceObservation<M> {
         let weight_accumulated = u64::dep_decode(input)?;
         let recording_round = u64::dep_decode(input)?;
 
-        let (recording_timestamp, lp_supply_accumulated) = if !input.is_depleted() {
-            (u64::dep_decode(input)?, BigUint::dep_decode(input)?)
-        } else {
+        let (recording_timestamp, lp_supply_accumulated) = if input.is_depleted() {
             (0u64, BigUint::zero())
+        } else {
+            (u64::dep_decode(input)?, BigUint::dep_decode(input)?)
         };
 
         if !input.is_depleted() {
@@ -92,217 +100,210 @@ pub trait SafePriceModule:
         }
 
         let current_round = self.blockchain().get_block_round();
-        let round_save_interval = self.get_safe_price_round_save_interval();
-
-        // Handle the case where offset is 1 (immediate save)
-        if round_save_interval <= 1 {
-            self.handle_immediate_save(
-                current_round,
-                first_token_reserve,
-                second_token_reserve,
-                lp_supply,
-            );
+        let current_timestamp = self.get_current_timestamp_milliseconds();
+        if current_round == 0 || current_timestamp == 0 {
             return;
         }
 
-        // Check if enough rounds have passed since last finalized observation for direct save
-        let safe_price_current_index = self.safe_price_current_index().get();
-        let last_observation = if safe_price_current_index > 0 {
-            self.price_observations().get(safe_price_current_index)
-        } else {
-            PriceObservation::default()
-        };
-
-        let rounds_since_last = current_round - last_observation.recording_round;
-
-        if safe_price_current_index > 0 && rounds_since_last >= round_save_interval {
-            self.handle_immediate_save(
-                current_round,
-                first_token_reserve,
-                second_token_reserve,
-                lp_supply,
-            );
-            return;
-        }
-
-        // If no current intermediate observation exists, start a new one
-        if self.current_price_observation().is_empty() {
-            let new_intermediate = self.compute_new_observation(
-                current_round,
-                first_token_reserve,
-                second_token_reserve,
-                lp_supply,
-                &last_observation,
-            );
-            self.current_price_observation().set(&new_intermediate);
-            return;
-        }
-
-        self.update_intermediate_observation(
-            current_round,
-            first_token_reserve,
-            second_token_reserve,
-            lp_supply,
-        );
-
-        self.save_averaged_observation_if_needed(last_observation.recording_round);
-    }
-
-    fn handle_immediate_save(
-        &self,
-        current_round: Round,
-        first_token_reserve: &BigUint,
-        second_token_reserve: &BigUint,
-        lp_supply: &BigUint,
-    ) {
-        let safe_price_current_index = self.safe_price_current_index().get();
-        let price_observations = self.price_observations();
-
-        let mut last_price_observation = if price_observations.is_empty() {
-            PriceObservation::default()
-        } else {
-            price_observations.get(safe_price_current_index)
-        };
-
-        let rounds_since_last_observation = current_round - last_price_observation.recording_round;
-        let round_save_interval = self.get_safe_price_round_save_interval();
-
-        if rounds_since_last_observation < round_save_interval {
-            return;
-        }
-
-        if !self.current_price_observation().is_empty() {
-            let current_intermediate = self.current_price_observation().get();
-            if current_intermediate.recording_round > last_price_observation.recording_round {
-                last_price_observation = current_intermediate;
-            }
-        }
-
-        let new_price_observation = self.compute_new_observation(
-            current_round,
-            first_token_reserve,
-            second_token_reserve,
-            lp_supply,
-            &last_price_observation,
-        );
-
-        self.save_observation_to_storage(&new_price_observation);
-    }
-
-    fn update_intermediate_observation(
-        &self,
-        current_round: Round,
-        first_token_reserve: &BigUint,
-        second_token_reserve: &BigUint,
-        lp_supply: &BigUint,
-    ) {
-        let mut current_intermediate = self.current_price_observation().get();
-        self.accumulate_into_observation(
-            &mut current_intermediate,
-            current_round,
-            first_token_reserve,
-            second_token_reserve,
-            lp_supply,
-        );
-        self.current_price_observation().set(&current_intermediate);
-    }
-
-    fn save_observation_to_storage(&self, price_observation: &PriceObservation<Self::Api>) {
         let safe_price_current_index = self.safe_price_current_index().get();
         require!(
             safe_price_current_index <= MAX_OBSERVATIONS,
             ERROR_SAFE_PRICE_CURRENT_INDEX
         );
 
-        let mut price_observations = self.price_observations();
+        let last_recorded_observation = if safe_price_current_index > 0 {
+            self.normalize_observation(
+                self.price_observations().get(safe_price_current_index),
+                OptionalValue::None,
+            )
+        } else {
+            PriceObservation::default()
+        };
 
-        let new_index = if price_observations.is_empty() {
+        let last_recorded_timestamp = last_recorded_observation.recording_timestamp;
+        let current_price_observation_mapper = self.current_price_observation();
+        let mut latest_observation =
+            if safe_price_current_index == 0 && current_price_observation_mapper.is_empty() {
+                PriceObservation::default()
+            } else {
+                current_price_observation_mapper.get()
+            };
+
+        if safe_price_current_index > 0 {
+            require!(
+                latest_observation.recording_timestamp >= last_recorded_timestamp,
+                ERROR_SAFE_PRICE_TIMESTAMP_ORDER
+            );
+        }
+        if latest_observation.recording_timestamp >= current_timestamp {
+            return;
+        }
+
+        self.accumulate_into_observation(
+            &mut latest_observation,
+            current_round,
+            current_timestamp,
+            first_token_reserve,
+            second_token_reserve,
+            lp_supply,
+        );
+
+        let elapsed_since_last_saved_observation = if safe_price_current_index == 0 {
+            latest_observation.weight_accumulated
+        } else {
+            latest_observation.recording_timestamp - last_recorded_timestamp
+        };
+
+        if elapsed_since_last_saved_observation >= self.get_safe_price_timestamp_save_interval() {
+            self.save_observation_to_storage(&latest_observation, safe_price_current_index);
+        }
+        current_price_observation_mapper.set(&latest_observation);
+    }
+
+    fn save_observation_to_storage(
+        &self,
+        price_observation: &PriceObservation<Self::Api>,
+        safe_price_current_index: usize,
+    ) {
+        let mut price_observations = self.price_observations();
+        let observation_count = price_observations.len();
+
+        let new_index = if observation_count == 0 {
             1
         } else {
             (safe_price_current_index % MAX_OBSERVATIONS) + 1
         };
 
-        if price_observations.len() == MAX_OBSERVATIONS {
+        if observation_count == MAX_OBSERVATIONS {
             price_observations.set(new_index, price_observation);
         } else {
             price_observations.push(price_observation);
         }
 
         self.safe_price_current_index().set(new_index);
-        self.current_price_observation().clear();
     }
 
-    fn save_averaged_observation_if_needed(&self, last_observation_round: Round) {
-        let current_intermediate = self.current_price_observation().get();
-        let round_save_interval = self.get_safe_price_round_save_interval();
-
-        if last_observation_round == 0
-            && current_intermediate.weight_accumulated < round_save_interval
-        {
+    fn initialize_current_price_observation(&self) {
+        let current_price_observation_mapper = self.current_price_observation();
+        if !current_price_observation_mapper.is_empty() {
             return;
         }
 
-        if current_intermediate.recording_round - last_observation_round < round_save_interval {
+        let safe_price_current_index = self.safe_price_current_index().get();
+        let price_observations = self.price_observations();
+        if safe_price_current_index == 0 {
+            require!(
+                price_observations.is_empty(),
+                ERROR_SAFE_PRICE_CURRENT_INDEX
+            );
             return;
         }
+        require!(
+            safe_price_current_index <= MAX_OBSERVATIONS
+                && safe_price_current_index <= price_observations.len(),
+            ERROR_SAFE_PRICE_CURRENT_INDEX
+        );
 
-        self.save_observation_to_storage(&current_intermediate);
+        let current_price_observation = self.normalize_observation(
+            price_observations.get(safe_price_current_index),
+            OptionalValue::None,
+        );
+
+        current_price_observation_mapper.set(&current_price_observation);
+    }
+
+    fn normalize_observation(
+        &self,
+        mut observation: PriceObservation<Self::Api>,
+        legacy_cutover_opt: OptionalValue<(Round, Timestamp)>,
+    ) -> PriceObservation<Self::Api> {
+        if observation.recording_timestamp > 0 {
+            return observation;
+        }
+
+        require!(
+            observation.lp_supply_accumulated == 0u64,
+            ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+        );
+
+        let (cutover_round, cutover_timestamp) = match legacy_cutover_opt {
+            OptionalValue::Some(legacy_cutover) => legacy_cutover,
+            OptionalValue::None => {
+                let legacy_cutover_mapper = self.safe_price_legacy_cutover();
+                require!(
+                    !legacy_cutover_mapper.is_empty(),
+                    ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+                );
+                legacy_cutover_mapper.get()
+            }
+        };
+        require!(
+            observation.recording_round <= cutover_round,
+            ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+        );
+
+        let elapsed_rounds = cutover_round - observation.recording_round;
+        let elapsed_milliseconds = elapsed_rounds * LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
+        require!(
+            elapsed_milliseconds < cutover_timestamp,
+            ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+        );
+
+        observation.recording_timestamp = cutover_timestamp - elapsed_milliseconds;
+
+        let multiplier = BigUint::from(LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS);
+        observation.first_token_reserve_accumulated *= &multiplier;
+        observation.second_token_reserve_accumulated *= &multiplier;
+        observation.weight_accumulated *= LEGACY_SAFE_PRICE_ROUND_DURATION_MILLISECONDS;
+
+        observation
     }
 
     fn accumulate_into_observation(
         &self,
         observation: &mut PriceObservation<Self::Api>,
         current_round: Round,
+        current_timestamp: Timestamp,
         first_token_reserve: &BigUint,
         second_token_reserve: &BigUint,
         lp_supply: &BigUint,
     ) {
-        let mut weight = 1;
-        if observation.recording_round > 0 {
-            weight = current_round - observation.recording_round;
-        }
+        let weight = if observation.recording_timestamp > 0 {
+            current_timestamp - observation.recording_timestamp
+        } else {
+            self.get_current_round_duration_milliseconds()
+        };
+        let weight_biguint = BigUint::from(weight);
 
-        observation.first_token_reserve_accumulated += BigUint::from(weight) * first_token_reserve;
-        observation.second_token_reserve_accumulated +=
-            BigUint::from(weight) * second_token_reserve;
-        observation.lp_supply_accumulated += BigUint::from(weight) * lp_supply;
+        observation.first_token_reserve_accumulated += &weight_biguint * first_token_reserve;
+        observation.second_token_reserve_accumulated += &weight_biguint * second_token_reserve;
+        observation.lp_supply_accumulated += weight_biguint * lp_supply;
         observation.weight_accumulated += weight;
         observation.recording_round = current_round;
-        observation.recording_timestamp = self
-            .blockchain()
-            .get_block_timestamp_seconds()
-            .as_u64_seconds();
+        observation.recording_timestamp = current_timestamp;
     }
 
-    fn compute_new_observation(
-        &self,
-        new_round: Round,
-        new_first_reserve: &BigUint,
-        new_second_reserve: &BigUint,
-        new_lp_supply: &BigUint,
-        current_price_observation: &PriceObservation<Self::Api>,
-    ) -> PriceObservation<Self::Api> {
-        let mut new_price_observation = current_price_observation.clone();
-        self.accumulate_into_observation(
-            &mut new_price_observation,
-            new_round,
-            new_first_reserve,
-            new_second_reserve,
-            new_lp_supply,
-        );
-        new_price_observation
+    fn get_current_timestamp_milliseconds(&self) -> Timestamp {
+        self.blockchain()
+            .get_block_timestamp_millis()
+            .as_u64_millis()
     }
 
-    fn get_safe_price_round_save_interval(&self) -> Round {
-        let router_address = self.router_address().get();
-        let safe_price_round_save_interval = self
-            .get_safe_price_round_save_interval_mapper(router_address)
+    fn get_current_round_duration_milliseconds(&self) -> Timestamp {
+        self.blockchain()
+            .get_block_round_time_millis()
+            .as_u64_millis()
+    }
+
+    fn get_safe_price_timestamp_save_interval(&self) -> Timestamp {
+        let safe_price_timestamp_save_interval = self
+            .get_safe_price_timestamp_save_interval_mapper(self.router_address().get())
             .get();
         require!(
-            safe_price_round_save_interval > 0,
-            "Safe price round save interval not set"
+            safe_price_timestamp_save_interval > 0,
+            "Safe price timestamp save interval not set"
         );
-        safe_price_round_save_interval
+        safe_price_timestamp_save_interval
     }
 
     #[storage_mapper("price_observations")]
@@ -315,4 +316,7 @@ pub trait SafePriceModule:
     #[view(getCurrentPriceObservation)]
     #[storage_mapper("current_price_observation")]
     fn current_price_observation(&self) -> SingleValueMapper<PriceObservation<Self::Api>>;
+
+    #[storage_mapper("safe_price_legacy_cutover")]
+    fn safe_price_legacy_cutover(&self) -> SingleValueMapper<(Round, Timestamp)>;
 }

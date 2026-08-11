@@ -155,13 +155,6 @@ where
                     },
                     managed_address!(wegld_usdc_pair_wrapper.address_ref()),
                 );
-
-                let safe_price_save_interval = 1u64;
-                let default_safe_price_rounds_offset = 10 * 60u64;
-                sc.safe_price_round_save_interval()
-                    .set(safe_price_save_interval);
-                sc.default_safe_price_rounds_offset()
-                    .set(default_safe_price_rounds_offset);
             })
             .assert_ok();
 

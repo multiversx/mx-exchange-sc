@@ -11,7 +11,7 @@ use multiversx_sc::{
 };
 use pair::{
     config::ConfigModule as PairConfigModule, pair_actions::initial_liq::InitialLiquidityModule,
-    Pair,
+    safe_price::SafePriceModule, Pair,
 };
 use pausable::{PausableModule, State};
 use router::{
@@ -32,6 +32,93 @@ use simple_lock::{
 #[test]
 fn test_router_setup() {
     let _ = RouterSetup::new(router::contract_obj, pair::contract_obj);
+}
+
+#[test]
+fn test_router_upgrade_defaults_empty_safe_price_config() {
+    let mut setup = RouterSetup::new(router::contract_obj, pair::contract_obj);
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_address,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.safe_price_timestamp_save_interval().clear();
+                sc.default_safe_price_timestamp_offset().clear();
+                sc.upgrade();
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.router_wrapper, |sc| {
+            assert_eq!(sc.safe_price_timestamp_save_interval().get(), 6_000u64);
+            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 3_600_000u64);
+            assert!(!sc.state().get());
+        })
+        .assert_ok();
+    setup
+        .b_mock
+        .execute_query(&setup.mex_pair_wrapper, |sc| {
+            assert_eq!(sc.get_safe_price_timestamp_save_interval(), 6_000u64);
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_router_upgrade_preserves_preseeded_safe_price_config() {
+    let mut setup = RouterSetup::new(router::contract_obj, pair::contract_obj);
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_address,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.safe_price_timestamp_save_interval().set(12_345u64);
+                sc.default_safe_price_timestamp_offset().set(67_890u64);
+                sc.upgrade();
+            },
+        )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.router_wrapper, |sc| {
+            assert_eq!(sc.safe_price_timestamp_save_interval().get(), 12_345u64);
+            assert_eq!(sc.default_safe_price_timestamp_offset().get(), 67_890u64);
+            assert!(!sc.state().get());
+        })
+        .assert_ok();
+}
+
+#[test]
+fn test_safe_price_timestamp_setters_reject_zero() {
+    let mut setup = RouterSetup::new(router::contract_obj, pair::contract_obj);
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_address,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| sc.set_safe_price_timestamp_save_interval(0u64),
+        )
+        .assert_user_error("Timestamp save interval must be greater than 0");
+
+    setup
+        .b_mock
+        .execute_tx(
+            &setup.owner_address,
+            &setup.router_wrapper,
+            &rust_biguint!(0),
+            |sc| sc.set_default_safe_price_timestamp_offset(0u64),
+        )
+        .assert_user_error("Default safe price timestamp offset must be greater than 0");
 }
 
 #[test]
@@ -119,8 +206,10 @@ fn test_router_upgrade_pair() {
 
     b_mock
         .execute_query(&pair_wrapper, |sc| {
-            let inital_liquidity_adder = sc.initial_liquidity_adder().get().unwrap();
-            assert_eq!(inital_liquidity_adder, managed_address!(&user))
+            let initial_liquidity_adder = sc.initial_liquidity_adder().get().unwrap();
+            assert_eq!(initial_liquidity_adder, managed_address!(&user));
+            assert!(sc.safe_price_legacy_cutover().is_empty());
+            assert!(sc.current_price_observation().is_empty());
         })
         .assert_ok();
 }

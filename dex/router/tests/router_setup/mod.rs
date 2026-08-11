@@ -145,11 +145,6 @@ where
                     },
                     managed_address!(usdc_pair_wrapper.address_ref()),
                 );
-
-                let safe_price_round_save_interval = 1u64;
-                let default_safe_price_rounds_offset = 600u64;
-                sc.set_safe_price_round_save_interval(safe_price_round_save_interval);
-                sc.set_default_safe_price_rounds_offset(default_safe_price_rounds_offset);
             })
             .assert_ok();
 
