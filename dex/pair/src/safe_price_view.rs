@@ -17,6 +17,8 @@ use crate::{
     },
 };
 
+const MILLISECONDS_PER_SECOND: u64 = 1_000;
+
 struct PriceObservationWeightedAmounts<M: ManagedTypeApi> {
     weighted_first_token_reserve: BigUint<M>,
     weighted_second_token_reserve: BigUint<M>,
@@ -57,7 +59,7 @@ pub trait SafePriceViewModule:
         liquidity: BigUint,
     ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
         let default_timestamp_offset = self.get_default_timestamp_offset(&pair_address);
-        self.get_lp_tokens_safe_price_by_timestamp_offset(
+        self.get_lp_tokens_safe_price_by_timestamp_offset_ms(
             pair_address,
             default_timestamp_offset,
             liquidity,
@@ -82,11 +84,28 @@ pub trait SafePriceViewModule:
     fn get_lp_tokens_safe_price_by_timestamp_offset(
         &self,
         pair_address: ManagedAddress,
-        timestamp_offset: Timestamp,
+        timestamp_offset_seconds: Timestamp,
         liquidity: BigUint,
     ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
-        let (start_timestamp, end_timestamp) =
-            self.get_range_by_offset(self.get_current_timestamp_milliseconds(), timestamp_offset);
+        self.get_lp_tokens_safe_price_by_timestamp_offset_ms(
+            pair_address,
+            self.seconds_to_milliseconds(timestamp_offset_seconds),
+            liquidity,
+        )
+    }
+
+    #[label("safe-price-view")]
+    #[view(getLpTokensSafePriceByTimestampOffsetMs)]
+    fn get_lp_tokens_safe_price_by_timestamp_offset_ms(
+        &self,
+        pair_address: ManagedAddress,
+        timestamp_offset_milliseconds: Timestamp,
+        liquidity: BigUint,
+    ) -> MultiValue2<EsdtTokenPayment, EsdtTokenPayment> {
+        let (start_timestamp, end_timestamp) = self.get_range_by_offset(
+            self.get_current_timestamp_milliseconds(),
+            timestamp_offset_milliseconds,
+        );
         self.get_lp_tokens_safe_price_by_timestamp_range(
             pair_address,
             start_timestamp,
@@ -180,7 +199,7 @@ pub trait SafePriceViewModule:
         input_payment: EsdtTokenPayment,
     ) -> EsdtTokenPayment {
         let default_timestamp_offset = self.get_default_timestamp_offset(&pair_address);
-        self.get_safe_price_by_timestamp_offset(
+        self.get_safe_price_by_timestamp_offset_ms(
             pair_address,
             default_timestamp_offset,
             input_payment,
@@ -205,11 +224,28 @@ pub trait SafePriceViewModule:
     fn get_safe_price_by_timestamp_offset(
         &self,
         pair_address: ManagedAddress,
-        timestamp_offset: Timestamp,
+        timestamp_offset_seconds: Timestamp,
         input_payment: EsdtTokenPayment,
     ) -> EsdtTokenPayment {
-        let (start_timestamp, end_timestamp) =
-            self.get_range_by_offset(self.get_current_timestamp_milliseconds(), timestamp_offset);
+        self.get_safe_price_by_timestamp_offset_ms(
+            pair_address,
+            self.seconds_to_milliseconds(timestamp_offset_seconds),
+            input_payment,
+        )
+    }
+
+    #[label("safe-price-view")]
+    #[view(getSafePriceByTimestampOffsetMs)]
+    fn get_safe_price_by_timestamp_offset_ms(
+        &self,
+        pair_address: ManagedAddress,
+        timestamp_offset_milliseconds: Timestamp,
+        input_payment: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
+        let (start_timestamp, end_timestamp) = self.get_range_by_offset(
+            self.get_current_timestamp_milliseconds(),
+            timestamp_offset_milliseconds,
+        );
         self.get_safe_price_by_timestamp_range(
             pair_address,
             start_timestamp,
@@ -261,6 +297,13 @@ pub trait SafePriceViewModule:
     fn get_range_by_offset(&self, current: u64, offset: u64) -> (u64, u64) {
         require!(offset > 0 && offset < current, ERROR_PARAMETERS);
         (current - offset, current)
+    }
+
+    fn seconds_to_milliseconds(&self, seconds: Timestamp) -> Timestamp {
+        let Some(milliseconds) = seconds.checked_mul(MILLISECONDS_PER_SECOND) else {
+            sc_panic!(ERROR_PARAMETERS);
+        };
+        milliseconds
     }
 
     fn get_safe_price_by_timestamp_range(

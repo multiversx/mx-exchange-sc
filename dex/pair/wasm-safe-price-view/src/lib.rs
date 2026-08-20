@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                            9
+// Endpoints:                           11
 // Async Callback (empty):               1
-// Total number of exported functions:  12
+// Total number of exported functions:  14
 
 #![no_std]
 
@@ -24,10 +24,12 @@ multiversx_sc_wasm_adapter::external_view_endpoints! {
         getLpTokensSafePriceByDefaultOffset => get_lp_tokens_safe_price_by_default_offset
         getLpTokensSafePriceByRoundOffset => get_lp_tokens_safe_price_by_round_offset
         getLpTokensSafePriceByTimestampOffset => get_lp_tokens_safe_price_by_timestamp_offset
+        getLpTokensSafePriceByTimestampOffsetMs => get_lp_tokens_safe_price_by_timestamp_offset_ms
         getLpTokensSafePrice => get_lp_tokens_safe_price
         getSafePriceByDefaultOffset => get_safe_price_by_default_offset
         getSafePriceByRoundOffset => get_safe_price_by_round_offset
         getSafePriceByTimestampOffset => get_safe_price_by_timestamp_offset
+        getSafePriceByTimestampOffsetMs => get_safe_price_by_timestamp_offset_ms
         getSafePrice => get_safe_price
         getPriceObservation => get_price_observation_view
     )

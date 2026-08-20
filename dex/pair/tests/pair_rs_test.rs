@@ -2022,7 +2022,7 @@ fn test_price_observation_view_rejects_round_progress_without_timestamp_progress
 }
 
 #[test]
-fn test_safe_price_timestamp_offset_uses_current_price_observation() {
+fn test_safe_price_timestamp_offset_ms_uses_current_price_observation() {
     let mut pair_setup = PairSetup::new(pair::contract_obj, router::contract_obj);
     let pair_address = pair_setup.pair_wrapper.address_ref().clone();
 

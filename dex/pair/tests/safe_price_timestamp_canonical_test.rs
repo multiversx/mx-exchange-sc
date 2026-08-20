@@ -193,7 +193,7 @@ fn test_safe_price_round_views_use_exact_protocol_timestamp_window() {
             0,
             managed_biguint!(100u64),
         );
-        let timestamp_price = sc.get_safe_price_by_timestamp_offset(
+        let timestamp_price = sc.get_safe_price_by_timestamp_offset_ms(
             pair_address.clone(),
             timestamp_offset,
             input_payment.clone(),
@@ -219,7 +219,7 @@ fn test_safe_price_round_views_use_exact_protocol_timestamp_window() {
         assert_eq!(round_offset_price, timestamp_price);
 
         let timestamp_lp_price = sc
-            .get_lp_tokens_safe_price_by_timestamp_offset(
+            .get_lp_tokens_safe_price_by_timestamp_offset_ms(
                 pair_address.clone(),
                 timestamp_offset,
                 managed_biguint!(100u64),
@@ -301,7 +301,7 @@ fn test_all_new_post_supernova_history_has_zero_legacy_rounds() {
             0,
             managed_biguint!(100u64),
         );
-        let timestamp_price = sc.get_safe_price_by_timestamp_offset(
+        let timestamp_price = sc.get_safe_price_by_timestamp_offset_ms(
             pair_address.clone(),
             timestamp_offset,
             input_payment.clone(),
@@ -316,7 +316,7 @@ fn test_all_new_post_supernova_history_has_zero_legacy_rounds() {
         assert_eq!(round_price, timestamp_price);
 
         let timestamp_lp_price = sc
-            .get_lp_tokens_safe_price_by_timestamp_offset(
+            .get_lp_tokens_safe_price_by_timestamp_offset_ms(
                 pair_address.clone(),
                 timestamp_offset,
                 managed_biguint!(100u64),
@@ -413,12 +413,24 @@ fn test_every_public_safe_price_view_and_legacy_compatibility_endpoint() {
             explicit_price
         );
         assert_eq!(
-            sc.get_safe_price_by_timestamp_offset(
+            sc.get_safe_price_by_timestamp_offset_ms(
                 pair_address.clone(),
                 2_400u64,
                 input_payment.clone(),
             ),
             explicit_price
+        );
+        assert_eq!(
+            sc.get_safe_price_by_timestamp_offset(
+                pair_address.clone(),
+                2u64,
+                input_payment.clone(),
+            ),
+            sc.get_safe_price_by_timestamp_offset_ms(
+                pair_address.clone(),
+                2_000u64,
+                input_payment.clone(),
+            )
         );
 
         let default_price =
@@ -447,13 +459,27 @@ fn test_every_public_safe_price_view_and_legacy_compatibility_endpoint() {
             explicit_lp_price
         );
         assert_eq!(
-            sc.get_lp_tokens_safe_price_by_timestamp_offset(
+            sc.get_lp_tokens_safe_price_by_timestamp_offset_ms(
                 pair_address.clone(),
                 2_400u64,
                 managed_biguint!(100u64),
             )
             .into_tuple(),
             explicit_lp_price
+        );
+        assert_eq!(
+            sc.get_lp_tokens_safe_price_by_timestamp_offset(
+                pair_address.clone(),
+                2u64,
+                managed_biguint!(100u64),
+            )
+            .into_tuple(),
+            sc.get_lp_tokens_safe_price_by_timestamp_offset_ms(
+                pair_address.clone(),
+                2_000u64,
+                managed_biguint!(100u64),
+            )
+            .into_tuple()
         );
 
         let default_lp_price = sc
