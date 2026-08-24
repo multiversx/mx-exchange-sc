@@ -317,6 +317,7 @@ pub trait SafePriceModule:
     #[storage_mapper("current_price_observation")]
     fn current_price_observation(&self) -> SingleValueMapper<PriceObservation<Self::Api>>;
 
+    #[view(getSafePriceLegacyCutover)]
     #[storage_mapper("safe_price_legacy_cutover")]
     fn safe_price_legacy_cutover(&self) -> SingleValueMapper<(Round, Timestamp)>;
 }
