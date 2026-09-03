@@ -6,7 +6,7 @@ use common_structs::FarmTokenAttributes;
 use farm::external_interaction::ExternalInteractionsModule;
 use farm_setup::multi_user_farm_setup::{
     MultiUserFarmSetup, BOOSTED_YIELDS_PERCENTAGE, FARMING_TOKEN_ID, FARM_TOKEN_ID, MAX_PERCENTAGE,
-    PER_BLOCK_REWARD_AMOUNT, REWARD_TOKEN_ID,
+    PER_SECOND_REWARD_AMOUNT, REWARD_TOKEN_ID,
 };
 use multiversx_sc_scenario::{
     imports::TxTokenTransfer, managed_address, managed_biguint, rust_biguint, DebugApi,
@@ -38,11 +38,11 @@ fn test_enter_and_claim_farm_on_behalf() {
     farm_setup.enter_farm_on_behalf(&authorized_address, &external_user, farm_token_amount, 0, 0);
     farm_setup.check_farm_token_supply(farm_token_amount);
 
-    let block_nonce = 10u64;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    let block_timestamp = 10u64;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
 
-    // 1000 rewards per block
-    let total_rewards = 1000 * block_nonce;
+    // 1000 rewards per second
+    let total_rewards = 1000 * block_timestamp;
 
     // Only base rewards are given
     let base_rewards =
@@ -71,8 +71,8 @@ fn test_multiple_positions_on_behalf() {
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
-    let mut block_nonce = 0u64;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    let mut block_timestamp = 0u64;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
 
     // new external user
     let external_user = farm_setup.b_mock.create_user_account(&rust_biguint!(0));
@@ -88,12 +88,12 @@ fn test_multiple_positions_on_behalf() {
     farm_setup.enter_farm_on_behalf(&authorized_address, &external_user, farm_token_amount, 0, 0);
     farm_setup.check_farm_token_supply(farm_token_amount);
 
-    let block_nonce_diff = 10u64;
-    block_nonce += block_nonce_diff;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    let block_timestamp_diff = 10u64;
+    block_timestamp += block_timestamp_diff;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
 
-    // 1000 rewards per block
-    let total_rewards = PER_BLOCK_REWARD_AMOUNT * block_nonce_diff;
+    // 1000 rewards per second
+    let total_rewards = PER_SECOND_REWARD_AMOUNT * block_timestamp_diff;
     let base_rewards =
         total_rewards * (MAX_PERCENTAGE - BOOSTED_YIELDS_PERCENTAGE) / MAX_PERCENTAGE;
     let boosted_rewards = total_rewards * BOOSTED_YIELDS_PERCENTAGE / MAX_PERCENTAGE;
@@ -119,8 +119,8 @@ fn test_multiple_positions_on_behalf() {
     farm_setup.exit_farm(&temp_user, 3, 1);
 
     // advance 1 week
-    block_nonce += block_nonce_diff;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    block_timestamp += block_timestamp_diff;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
     farm_setup.b_mock.set_block_epoch(10);
     farm_setup.set_user_energy(&external_user, 1_000, 10, 1);
 
@@ -346,8 +346,8 @@ fn test_multiple_position_claim_on_behalf_average_rps_computation() {
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
-    let mut block_nonce = 0u64;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    let mut block_timestamp = 0u64;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
 
     // new external user
     let external_user = farm_setup.b_mock.create_user_account(&rust_biguint!(0));
@@ -378,12 +378,12 @@ fn test_multiple_position_claim_on_behalf_average_rps_computation() {
     );
     farm_setup.check_farm_token_supply(farm_token_amount);
 
-    let block_nonce_diff = 10u64;
-    block_nonce += block_nonce_diff;
-    farm_setup.b_mock.set_block_nonce(block_nonce);
+    let block_timestamp_diff = 10u64;
+    block_timestamp += block_timestamp_diff;
+    farm_setup.b_mock.set_block_timestamp(block_timestamp);
 
-    // 1000 rewards per block
-    let total_rewards = PER_BLOCK_REWARD_AMOUNT * block_nonce_diff;
+    // 1000 rewards per second
+    let total_rewards = PER_SECOND_REWARD_AMOUNT * block_timestamp_diff;
     let base_rewards =
         total_rewards * (MAX_PERCENTAGE - BOOSTED_YIELDS_PERCENTAGE) / MAX_PERCENTAGE;
 
@@ -431,7 +431,7 @@ fn test_multiple_position_claim_on_behalf_average_rps_computation() {
         value: rust_biguint!(farm_token_amount),
     });
 
-    // Second claim, with both position merged, in the same block
+    // Second claim, with both position merged, in the same timestamp
     // Should give the rest of the rewards (for the same positions)
     farm_setup
         .b_mock

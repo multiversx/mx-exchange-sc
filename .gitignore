@@ -11,3 +11,6 @@
 
 # ignore snippets folder from another branch
 dex/erdjs-snippets/
+
+# Other
+**/.DS_Store

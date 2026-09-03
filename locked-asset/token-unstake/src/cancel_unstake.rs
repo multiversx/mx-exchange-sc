@@ -25,7 +25,7 @@ pub trait CancelUnstakeModule:
         require!(!user_entries.is_empty(), "No tokens to unbond");
 
         for entry in &user_entries {
-            let locked_tokens = entry.locked_tokens;
+            let locked_tokens = entry.locked_tokens.clone();
             let attributes: LockedTokenAttributes<Self::Api> = self
                 .blockchain()
                 .get_token_attributes(&locked_tokens.token_identifier, locked_tokens.token_nonce);
@@ -57,10 +57,9 @@ pub trait CancelUnstakeModule:
         self.send().direct_multi(&caller, &output_payments);
 
         let sc_address = self.energy_factory_address().get();
-        let _: IgnoreValue = self
-            .energy_factory_proxy(sc_address)
+        self.energy_factory_proxy(sc_address)
             .revert_unstake(caller.clone(), energy)
-            .execute_on_dest_context();
+            .sync_call();
 
         self.emit_unlocked_tokens_event(&caller, ManagedVec::new());
         output_payments.into()

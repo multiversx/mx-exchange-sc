@@ -11,7 +11,8 @@ static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
 static PAIR_STATE_STORAGE_KEY: &[u8] = b"state";
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
     pub locked_token_id: TokenIdentifier<M>,
     pub min_locked_token_value: BigUint<M>,
@@ -121,11 +122,9 @@ pub trait EnableSwapByUserModule:
         );
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let locked_epochs = if current_epoch < locked_token_attributes.unlock_epoch {
-            locked_token_attributes.unlock_epoch - current_epoch
-        } else {
-            0
-        };
+        let locked_epochs = locked_token_attributes
+            .unlock_epoch
+            .saturating_sub(current_epoch);
         require!(
             locked_epochs >= config.min_lock_period_epochs,
             "Token not locked for long enough"
@@ -179,7 +178,8 @@ pub trait EnableSwapByUserModule:
         let multi_value: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
             self.user_pair_proxy(pair_address)
                 .get_tokens_for_given_position(lp_token_amount)
-                .execute_on_dest_context();
+                .returns(ReturnsResult)
+                .sync_call();
 
         let (first_result, second_result) = multi_value.into_tuple();
         let mut safe_price_result = SafePriceResult {
@@ -229,17 +229,13 @@ pub trait EnableSwapByUserModule:
     }
 
     fn set_fee_percents(&self, pair_address: ManagedAddress) {
-        let _: IgnoreValue = self
-            .user_pair_proxy(pair_address)
+        self.user_pair_proxy(pair_address)
             .set_fee_percent(USER_DEFINED_TOTAL_FEE_PERCENT, DEFAULT_SPECIAL_FEE_PERCENT)
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     fn pair_resume(&self, pair_address: ManagedAddress) {
-        let _: IgnoreValue = self
-            .user_pair_proxy(pair_address)
-            .resume()
-            .execute_on_dest_context();
+        self.user_pair_proxy(pair_address).resume().sync_call();
     }
 
     fn read_storage_from_pair<T: TopDecode>(

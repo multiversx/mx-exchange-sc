@@ -51,6 +51,11 @@ pub trait OutputBuilderModule:
         let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
 
         payments.push(EsdtTokenPayment::new(
+            storage_cache.lp_token_id.clone(),
+            0,
+            add_liq_context.liq_added.clone(),
+        ));
+        payments.push(EsdtTokenPayment::new(
             storage_cache.first_token_id.clone(),
             0,
             &add_liq_context.first_payment.amount - &add_liq_context.first_token_optimal_amount,
@@ -114,7 +119,11 @@ pub trait OutputBuilderModule:
         &self,
         output_payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> RemoveLiquidityResultType<Self::Api> {
-        (output_payments.get(0), output_payments.get(1)).into()
+        (
+            output_payments.get(0).clone(),
+            output_payments.get(1).clone(),
+        )
+            .into()
     }
 
     fn build_swap_output_payments(
@@ -152,13 +161,17 @@ pub trait OutputBuilderModule:
         &self,
         output_payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
-        output_payments.get(0)
+        output_payments.get(0).clone()
     }
 
     fn build_swap_fixed_output_results(
         &self,
         output_payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {
-        (output_payments.get(0), output_payments.get(1)).into()
+        (
+            output_payments.get(0).clone(),
+            output_payments.get(1).clone(),
+        )
+            .into()
     }
 }

@@ -17,6 +17,7 @@ pub trait AddLiquidityModule:
     + crate::events::EventsModule
     + crate::safe_price::SafePriceModule
     + crate::config::ConfigModule
+    + crate::read_pair_storage::ReadPairStorageModule
     + token_send::TokenSendModule
     + permissions_module::PermissionsModule
     + pausable::PausableModule
@@ -38,7 +39,9 @@ pub trait AddLiquidityModule:
         let mut storage_cache = StorageCache::new(self);
         let caller = self.blockchain().get_caller();
 
-        let [first_payment, second_payment] = self.call_value().multi_esdt();
+        let [first_payment_ref, second_payment_ref] = self.call_value().multi_esdt();
+        let first_payment = first_payment_ref.clone();
+        let second_payment = second_payment_ref.clone();
         require!(
             first_payment.token_identifier == storage_cache.first_token_id
                 && first_payment.amount > 0,
@@ -104,15 +107,7 @@ pub trait AddLiquidityModule:
         self.send()
             .esdt_local_mint(&storage_cache.lp_token_id, 0, &add_liq_context.liq_added);
 
-        let lp_payment = EsdtTokenPayment::new(
-            storage_cache.lp_token_id.clone(),
-            0,
-            add_liq_context.liq_added.clone(),
-        );
-
-        let mut output_payments =
-            self.build_add_liq_output_payments(&storage_cache, &add_liq_context);
-        output_payments.push(lp_payment);
+        let output_payments = self.build_add_liq_output_payments(&storage_cache, &add_liq_context);
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 

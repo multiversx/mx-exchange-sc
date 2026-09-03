@@ -40,6 +40,27 @@
         },
         {
             "step": "scCall",
+            "txId": "set-safe-price-timestamp-save-interval",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "setSafePriceTimestampSaveInterval",
+                "arguments": [
+                    "6000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
             "txId": "get-pair",
             "tx": {
                 "from": "address:owner",

@@ -120,14 +120,22 @@ pub trait RouterInteractionsModule:
         let output_payments: PaymentsVec<Self::Api> = self
             .router_proxy(router_address)
             .multi_pair_swap(swap_operations)
-            .esdt(payment)
-            .execute_on_dest_context();
+            .payment(payment)
+            .returns(ReturnsResult)
+            .sync_call();
         require!(
             !output_payments.is_empty(),
             "No payments received from router"
         );
 
-        unsafe { output_payments.iter().next_back().unwrap_unchecked() }
+        let last_payment = unsafe {
+            output_payments
+                .iter()
+                .next_back()
+                .unwrap_unchecked()
+                .clone()
+        };
+        last_payment
     }
 
     #[storage_mapper("routerAddress")]

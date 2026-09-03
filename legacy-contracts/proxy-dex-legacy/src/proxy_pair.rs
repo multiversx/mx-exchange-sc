@@ -17,6 +17,7 @@ use crate::proxy_common::WrappedLpTokenAttributes;
 use super::events;
 use super::proxy_common;
 
+#[allow(dead_code)]
 #[derive(ManagedVecItem, Clone)]
 pub struct WrappedLpToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
@@ -56,7 +57,7 @@ pub trait ProxyPairModule:
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
-        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
+        let (token_id, token_nonce, amount) = self.call_value().single_esdt().clone().into_tuple();
         require!(token_nonce != 0, "Can only be called with an SFT");
         require!(amount != 0, "Payment amount cannot be zero");
 
@@ -163,14 +164,16 @@ pub trait ProxyPairModule:
         first_token_amount_min: &BigUint,
         second_token_amount_min: &BigUint,
     ) -> RemoveLiquidityResultType<Self::Api> {
-        let raw_results: RawResultsType<Self::Api> = self
-            .pair_contract_proxy(pair_address.clone())
-            .remove_liquidity(
-                first_token_amount_min.clone(),
-                second_token_amount_min.clone(),
-            )
-            .with_esdt_transfer((lp_token_id.clone(), 0, liquidity.clone()))
-            .execute_on_dest_context();
+        let raw_results: RawResultsType<Self::Api> = MultiValueEncoded::from(
+            self.pair_contract_proxy(pair_address.clone())
+                .remove_liquidity(
+                    first_token_amount_min.clone(),
+                    second_token_amount_min.clone(),
+                )
+                .with_esdt_transfer((lp_token_id.clone(), 0, liquidity.clone()))
+                .returns(ReturnsRawResult)
+                .sync_call(),
+        );
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
         results_wrapper.trim_results_front(2);
@@ -184,7 +187,8 @@ pub trait ProxyPairModule:
     fn ask_for_lp_token_id(&self, pair_address: &ManagedAddress) -> TokenIdentifier {
         self.pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context()
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     fn require_is_intermediated_pair(&self, address: &ManagedAddress) {

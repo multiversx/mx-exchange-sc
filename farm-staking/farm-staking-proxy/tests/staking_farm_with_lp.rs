@@ -33,6 +33,7 @@ use staking_farm_with_lp_staking_contract_interactions::*;
 fn test_all_setup() {
     let _ = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -45,6 +46,7 @@ fn test_all_setup() {
 fn test_stake_farm_proxy() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -61,6 +63,7 @@ fn test_stake_farm_proxy() {
 fn test_claim_rewards_farm_proxy_full() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -74,14 +77,14 @@ fn test_claim_rewards_farm_proxy_full() {
 
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 20);
 
     let dual_yield_token_amount = expected_staking_token_amount;
     let _dual_yield_token_nonce_after_claim = setup.claim_rewards_proxy(
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_899,
+        316,
         dual_yield_token_amount,
     );
 }
@@ -90,6 +93,7 @@ fn test_claim_rewards_farm_proxy_full() {
 fn test_claim_rewards_farm_proxy_half() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -103,14 +107,14 @@ fn test_claim_rewards_farm_proxy_half() {
 
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 20);
 
     let dual_yield_token_amount = expected_staking_token_amount / 2;
     let _dual_yield_token_nonce_after_claim = setup.claim_rewards_proxy(
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999 / 2,
-        949,
+        158,
         dual_yield_token_amount,
     );
 }
@@ -119,6 +123,7 @@ fn test_claim_rewards_farm_proxy_half() {
 fn test_claim_rewards_farm_proxy_twice() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -133,28 +138,28 @@ fn test_claim_rewards_farm_proxy_twice() {
     // first claim, at block 120
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 20);
 
     let dual_yield_token_amount = expected_staking_token_amount;
     let dual_yield_token_nonce_after_first_claim = setup.claim_rewards_proxy(
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_899,
+        316,
         dual_yield_token_amount,
     );
 
     // second claim, at block 140
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 40);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 40);
 
     let dual_yield_token_amount = expected_staking_token_amount;
     let _ = setup.claim_rewards_proxy(
         dual_yield_token_nonce_after_first_claim,
         dual_yield_token_amount,
         99_999,
-        1_899,
+        316,
         dual_yield_token_amount,
     );
 }
@@ -163,6 +168,7 @@ fn test_claim_rewards_farm_proxy_twice() {
 fn test_unstake_through_proxy_no_claim() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -176,7 +182,7 @@ fn test_unstake_through_proxy_no_claim() {
 
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 20);
     setup.b_mock.set_block_epoch(20);
 
     let dual_yield_token_amount = 1_001_000_000;
@@ -185,7 +191,7 @@ fn test_unstake_through_proxy_no_claim() {
         dual_yield_token_amount,
         1_001_000_000,
         99_999,
-        1_899,
+        316,
         1_001_000_000,
         30,
     );
@@ -195,6 +201,7 @@ fn test_unstake_through_proxy_no_claim() {
 fn unstake_through_proxy_after_claim() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -208,7 +215,7 @@ fn unstake_through_proxy_after_claim() {
 
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 20);
     setup.b_mock.set_block_epoch(20);
 
     let dual_yield_token_amount = expected_staking_token_amount;
@@ -216,7 +223,7 @@ fn unstake_through_proxy_after_claim() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_899,
+        316,
         dual_yield_token_amount,
     );
 
@@ -237,6 +244,7 @@ fn unstake_partial_position_test() {
     DebugApi::dummy();
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -250,7 +258,7 @@ fn unstake_partial_position_test() {
 
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 20);
     setup.b_mock.set_block_epoch(20);
 
     let dual_yield_token_amount = 1_001_000_000;
@@ -290,7 +298,7 @@ fn unstake_partial_position_test() {
                     staking_rewards.token_identifier,
                     managed_token_id!(RIDE_TOKEN_ID)
                 );
-                assert_eq!(staking_rewards.amount, 1_899 / 2);
+                assert_eq!(staking_rewards.amount, 158);
 
                 let unbond_tokens = results.unbond_staking_farm_token;
                 assert_eq!(
@@ -337,7 +345,7 @@ fn unstake_partial_position_test() {
                     staking_rewards.token_identifier,
                     managed_token_id!(RIDE_TOKEN_ID)
                 );
-                assert_eq!(staking_rewards.amount, 1_899 / 2);
+                assert_eq!(staking_rewards.amount, 158);
 
                 let unbond_tokens = results.unbond_staking_farm_token;
                 assert_eq!(
@@ -354,6 +362,7 @@ fn unstake_partial_position_test() {
 fn unbond_test() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -367,7 +376,7 @@ fn unbond_test() {
 
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 20);
     setup.b_mock.set_block_epoch(20);
 
     let dual_yield_token_amount = expected_staking_token_amount;
@@ -375,7 +384,7 @@ fn unbond_test() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_899,
+        316,
         dual_yield_token_amount,
     );
 
@@ -400,6 +409,7 @@ fn unbond_test() {
 fn farm_staking_compound_rewards_and_unstake_test() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -412,10 +422,10 @@ fn farm_staking_compound_rewards_and_unstake_test() {
 
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 100);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 100);
     setup.b_mock.set_block_epoch(10);
 
-    let new_farming_amount = 500_004_700; // 47 * 100, limited by the APR
+    let new_farming_amount = 500_000_792; // adjusted for DIVISION_SAFETY_CONSTANT precision
     farm_staking_nonce =
         setup.staking_farm_compound_rewards(farm_staking_nonce, farming_amount, new_farming_amount);
 
@@ -432,6 +442,7 @@ fn farm_staking_compound_rewards_and_unstake_test() {
 fn test_stake_farm_through_proxy_with_merging() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -509,6 +520,7 @@ fn test_stake_farm_through_proxy_with_merging() {
 fn test_farm_stake_proxy_merging_boosted_rewards() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -563,7 +575,9 @@ fn test_farm_stake_proxy_merging_boosted_rewards() {
     // advance blocks - 10 blocks - 10 * 5_000 = 50_000 total rewards
     // 37_500 base farm, 12_500 boosted yields
     let boosted_rewards = 12_500u64;
-    setup.b_mock.set_block_nonce(110);
+    setup
+        .b_mock
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 10);
 
     // random tx on end of week 1, to cummulate rewards
     setup.b_mock.set_block_epoch(6);
@@ -655,6 +669,7 @@ fn test_farm_stake_proxy_merging_boosted_rewards() {
 fn original_caller_negative_test() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -674,7 +689,7 @@ fn original_caller_negative_test() {
 
     setup
         .b_mock
-        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 20);
     setup.b_mock.set_block_epoch(20);
 
     setup
@@ -698,6 +713,7 @@ fn original_caller_negative_test() {
 fn claim_for_others_positive_test() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -764,10 +780,12 @@ fn claim_for_others_positive_test() {
     // advance blocks - 10 blocks - 10 * 5_000 = 50_000 total rewards
     // 37_500 base farm, 12_500 boosted yields
     let boosted_rewards = 12_500u64;
-    setup.b_mock.set_block_nonce(110);
+    setup
+        .b_mock
+        .set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP + 10);
 
     // farm staking boosted rewards
-    let farm_staking_boosted_rewards = 10u64;
+    let farm_staking_boosted_rewards = 1u64;
 
     // random tx on end of week 1, to cummulate rewards
     setup.b_mock.set_block_epoch(6);
@@ -895,6 +913,7 @@ fn claim_for_others_positive_test() {
 fn stake_farm_through_proxy_migration_test() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -1030,6 +1049,7 @@ fn stake_farm_through_proxy_migration_test() {
 fn total_farm_position_after_claim_and_exit_metastaking_test() {
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -1090,53 +1110,28 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         .b_mock
         .set_esdt_balance(&temp_user, WEGLD_TOKEN_ID, &rust_biguint!(300_000_000u64));
 
-    setup.b_mock.set_block_nonce(700);
-    setup.b_mock.set_block_round(700);
-    setup
-        .b_mock
-        .execute_esdt_transfer(
-            &temp_user,
-            &setup.pair_wrapper,
-            WEGLD_TOKEN_ID,
-            0,
-            &rust_biguint!(100_000_000u64),
-            |sc| {
-                sc.swap_tokens_fixed_input(managed_token_id!(RIDE_TOKEN_ID), managed_biguint!(1));
-            },
-        )
-        .assert_ok();
-
-    setup.b_mock.set_block_nonce(800);
-    setup.b_mock.set_block_round(800);
-    setup
-        .b_mock
-        .execute_esdt_transfer(
-            &temp_user,
-            &setup.pair_wrapper,
-            WEGLD_TOKEN_ID,
-            0,
-            &rust_biguint!(100_000_000u64),
-            |sc| {
-                sc.swap_tokens_fixed_input(managed_token_id!(RIDE_TOKEN_ID), managed_biguint!(1));
-            },
-        )
-        .assert_ok();
-
-    setup.b_mock.set_block_nonce(1250);
-    setup.b_mock.set_block_round(1250);
-    setup
-        .b_mock
-        .execute_esdt_transfer(
-            &temp_user,
-            &setup.pair_wrapper,
-            WEGLD_TOKEN_ID,
-            0,
-            &rust_biguint!(100_000_000u64),
-            |sc| {
-                sc.swap_tokens_fixed_input(managed_token_id!(RIDE_TOKEN_ID), managed_biguint!(1));
-            },
-        )
-        .assert_ok();
+    for swap_round in [700u64, 800u64, 1_250u64] {
+        setup.b_mock.set_block_round(swap_round);
+        setup
+            .b_mock
+            .set_block_timestamp(swap_round * SAFE_PRICE_ROUND_DURATION_SECONDS);
+        setup
+            .b_mock
+            .execute_esdt_transfer(
+                &temp_user,
+                &setup.pair_wrapper,
+                WEGLD_TOKEN_ID,
+                0,
+                &rust_biguint!(100_000_000u64),
+                |sc| {
+                    sc.swap_tokens_fixed_input(
+                        managed_token_id!(RIDE_TOKEN_ID),
+                        managed_biguint!(1),
+                    );
+                },
+            )
+            .assert_ok();
+    }
 
     // random tx on end of week 1, to cummulate rewards
     setup.b_mock.set_block_epoch(6);
@@ -1171,6 +1166,7 @@ fn total_farm_position_after_claim_and_exit_metastaking_test() {
         .assert_ok();
 
     // Total farm position should be updated after claim, as a few swaps happened
+    // 3_600-second TWAP: 300 seconds before swap 1, then 600 and 2_700 seconds.
     let new_expected_token_amount = 92_416_406u64;
     setup.check_user_total_staking_farm_position(&user_address, new_expected_token_amount);
 
@@ -1243,6 +1239,7 @@ fn test_multiple_positions_on_behalf() {
 
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,
@@ -1278,7 +1275,7 @@ fn test_multiple_positions_on_behalf() {
         .b_mock
         .set_esdt_balance(&temp_user, LP_TOKEN_ID, &rust_biguint!(1));
 
-    let mut block_nonce = 2u64;
+    let block_nonce = 2u64;
     setup.b_mock.set_block_epoch(2u64);
 
     setup.set_user_energy(&user_address, 1_000, 2, 1);
@@ -1323,20 +1320,18 @@ fn test_multiple_positions_on_behalf() {
     setup.check_user_total_staking_farm_position(&user_address, farm_amount);
 
     let block_nonce_diff = 100;
-    block_nonce += block_nonce_diff;
+    let mut reward_timestamp = TIMESTAMP_AFTER_PAIR_SETUP + block_nonce;
 
-    setup.b_mock.set_block_nonce(block_nonce);
+    setup.b_mock.set_block_timestamp(reward_timestamp);
 
     // Only base rewards are given
     setup
         .b_mock
         .check_esdt_balance(&user_address, STAKING_REWARD_TOKEN_ID, &rust_biguint!(0));
     setup.claim_rewards_on_behalf(&authorized_address, 1, farm_amount);
-    setup.b_mock.check_esdt_balance(
-        &user_address,
-        STAKING_REWARD_TOKEN_ID,
-        &rust_biguint!(14u64),
-    );
+    setup
+        .b_mock
+        .check_esdt_balance(&user_address, STAKING_REWARD_TOKEN_ID, &rust_biguint!(3u64));
 
     // User total farm position should still be the same
     setup.check_user_total_staking_farm_position(&user_address, farm_amount);
@@ -1349,8 +1344,8 @@ fn test_multiple_positions_on_behalf() {
     setup.exit_lp_farm(&temp_user, temp_user_farm_token_nonce, 1);
 
     // advance 1 week
-    block_nonce += block_nonce_diff;
-    setup.b_mock.set_block_nonce(block_nonce);
+    reward_timestamp += block_nonce_diff;
+    setup.b_mock.set_block_timestamp(reward_timestamp);
     setup.b_mock.set_block_epoch(10);
     setup.set_user_energy(&user_address, 1_000, 10, 1);
 
@@ -1365,11 +1360,9 @@ fn test_multiple_positions_on_behalf() {
         3,
         farm_amount * 2,
     );
-    setup.b_mock.check_esdt_balance(
-        &user_address,
-        STAKING_REWARD_TOKEN_ID,
-        &rust_biguint!(14u64 + 4u64),
-    );
+    setup
+        .b_mock
+        .check_esdt_balance(&user_address, STAKING_REWARD_TOKEN_ID, &rust_biguint!(3u64));
 
     setup.check_user_total_staking_farm_position(&user_address, farm_amount * 2);
     setup.claim_rewards_on_behalf(&authorized_address, 3, farm_amount * 2);
@@ -1379,7 +1372,7 @@ fn test_multiple_positions_on_behalf() {
     setup.b_mock.check_esdt_balance(
         &user_address,
         STAKING_REWARD_TOKEN_ID,
-        &rust_biguint!(693), // actual amount computation out of scope for this unit test
+        &rust_biguint!(122), // adjusted for DIVISION_SAFETY_CONSTANT precision
     );
     setup.b_mock.check_esdt_balance(
         &authorized_address,
@@ -1410,6 +1403,7 @@ fn test_on_behalf_original_owner_validation() {
 
     let mut setup = FarmStakingSetup::new(
         pair::contract_obj,
+        router::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
         permissions_hub::contract_obj,

@@ -36,7 +36,8 @@ pub trait ExternalContractsInteractionsModule:
             .lp_farm_proxy_obj(lp_farm_address)
             .claim_rewards_endpoint(OptionalValue::Some(orig_caller))
             .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (new_lp_farm_tokens, lp_farm_rewards) = lp_farm_result.into_tuple();
 
         LpFarmClaimRewardsResult {
@@ -57,7 +58,8 @@ pub trait ExternalContractsInteractionsModule:
             .lp_farm_proxy_obj(lp_farm_address)
             .exit_farm_endpoint(OptionalValue::Some(orig_caller))
             .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (lp_tokens, lp_farm_rewards) = exit_farm_result.into_tuple();
 
         LpFarmExitResult {
@@ -84,7 +86,8 @@ pub trait ExternalContractsInteractionsModule:
         self.lp_farm_proxy_obj(lp_farm_address)
             .merge_farm_tokens_endpoint(OptionalValue::Some(orig_caller))
             .with_multi_token_transfer(additional_lp_farm_tokens)
-            .execute_on_dest_context()
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     // staking farm
@@ -100,7 +103,8 @@ pub trait ExternalContractsInteractionsModule:
             .staking_farm_proxy_obj(staking_farm_address)
             .stake_farm_through_proxy(staking_token_amount, orig_caller)
             .with_multi_token_transfer(staking_farm_tokens)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (received_staking_farm_token, boosted_rewards) = enter_result.into_tuple();
 
         StakingFarmEnterResult {
@@ -126,7 +130,8 @@ pub trait ExternalContractsInteractionsModule:
                 staking_farm_token_nonce,
                 staking_farm_token_amount,
             ))
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (new_staking_farm_tokens, staking_farm_rewards) = staking_farm_result.into_tuple();
 
         StakingFarmClaimRewardsResult {
@@ -155,7 +160,8 @@ pub trait ExternalContractsInteractionsModule:
             .staking_farm_proxy_obj(staking_farm_address)
             .unstake_farm_through_proxy(orig_caller)
             .with_multi_token_transfer(payments)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (unbond_staking_farm_token, staking_rewards) = unstake_result.into_tuple();
 
         StakingFarmExitResult {
@@ -177,7 +183,8 @@ pub trait ExternalContractsInteractionsModule:
             .pair_proxy_obj(pair_address)
             .remove_liquidity(pair_first_token_min_amount, pair_second_token_min_amount)
             .with_esdt_transfer(lp_tokens)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (pair_first_token_payment, pair_second_token_payment) =
             pair_withdraw_result.into_tuple();
 
@@ -202,7 +209,8 @@ pub trait ExternalContractsInteractionsModule:
         let result: SafePriceResult<Self::Api> = self
             .pair_proxy_obj(pair_address)
             .update_and_get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (first_token_info, second_token_info) = result.into_tuple();
         let staking_token_id = self.staking_token_id().get();
 

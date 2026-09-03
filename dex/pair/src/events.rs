@@ -6,7 +6,8 @@ use crate::contexts::swap::SwapContext;
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct SwapEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     token_id_in: TokenIdentifier<M>,
@@ -18,10 +19,11 @@ pub struct SwapEvent<M: ManagedTypeApi> {
     token_out_reserve: BigUint<M>,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct SwapNoFeeAndForwardEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     token_id_in: TokenIdentifier<M>,
@@ -31,10 +33,11 @@ pub struct SwapNoFeeAndForwardEvent<M: ManagedTypeApi> {
     destination: ManagedAddress<M>,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct AddLiquidityEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     first_token_id: TokenIdentifier<M>,
@@ -48,10 +51,11 @@ pub struct AddLiquidityEvent<M: ManagedTypeApi> {
     second_token_reserves: BigUint<M>,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     first_token_id: TokenIdentifier<M>,
@@ -65,7 +69,7 @@ pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
     second_token_reserves: BigUint<M>,
     block: u64,
     epoch: u64,
-    timestamp: u64,
+    timestamp: TimestampSeconds,
 }
 
 #[multiversx_sc::module]
@@ -98,7 +102,7 @@ pub trait EventsModule:
                     .clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                timestamp: self.blockchain().get_block_timestamp_seconds(),
             },
         )
     }
@@ -123,7 +127,7 @@ pub trait EventsModule:
                 destination,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                timestamp: self.blockchain().get_block_timestamp_seconds(),
             },
         )
     }
@@ -153,7 +157,7 @@ pub trait EventsModule:
                 second_token_reserves: storage_cache.second_token_reserve.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                timestamp: self.blockchain().get_block_timestamp_seconds(),
             },
         )
     }
@@ -183,7 +187,7 @@ pub trait EventsModule:
                 second_token_reserves: storage_cache.second_token_reserve.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                timestamp: self.blockchain().get_block_timestamp_seconds(),
             },
         )
     }

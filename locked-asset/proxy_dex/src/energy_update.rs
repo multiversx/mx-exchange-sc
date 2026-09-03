@@ -73,7 +73,8 @@ pub trait EnergyUpdateModule:
         self.energy_factory_proxy(energy_factory_addr)
             .extend_lock_period(lock_epochs, user)
             .with_esdt_transfer(old_tokens)
-            .execute_on_dest_context()
+            .returns(ReturnsResult)
+            .sync_call()
     }
 
     fn set_energy_in_factory(
@@ -85,6 +86,6 @@ pub trait EnergyUpdateModule:
         let _: () = self
             .energy_factory_proxy(energy_factory_addr)
             .set_user_energy_after_locked_token_transfer(user, energy)
-            .execute_on_dest_context();
+            .sync_call();
     }
 }

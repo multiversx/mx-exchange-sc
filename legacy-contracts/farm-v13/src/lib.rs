@@ -11,22 +11,16 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq)]
 pub enum State {
     Inactive,
     Active,
 }
 
+#[type_abi]
 #[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    TypeAbi,
-    Clone,
-    PartialEq,
-    Debug,
+    ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug,
 )]
 pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
@@ -37,7 +31,8 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub current_farm_amount: BigUint<M>,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone)]
 pub struct FarmTokenAttributesV1_2<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub original_entering_epoch: u64,
@@ -49,14 +44,16 @@ pub struct FarmTokenAttributesV1_2<M: ManagedTypeApi> {
     pub current_farm_amount: BigUint<M>,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq)]
 pub enum FarmMigrationRole {
     Old,
     New,
     NewWithLock,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct FarmMigrationConfig<M: ManagedTypeApi> {
     migration_role: FarmMigrationRole,
     old_farm_address: ManagedAddress<M>,

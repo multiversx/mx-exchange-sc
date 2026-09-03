@@ -62,20 +62,18 @@ pub trait UnstakeModule:
         payments.push(locked_tokens);
         payments.push(unlocked_tokens);
 
-        let _: IgnoreValue = self
-            .token_unstake_sc_proxy_obj(locking_sc_address)
+        self.token_unstake_sc_proxy_obj(locking_sc_address)
             .deposit_user_tokens(caller)
             .with_multi_token_transfer(payments)
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     fn send_fees_to_unstake_sc(&self, fees: EsdtTokenPayment) {
         let locking_sc_address = self.token_unstake_sc_address().get();
-        let _: IgnoreValue = self
-            .token_unstake_sc_proxy_obj(locking_sc_address)
+        self.token_unstake_sc_proxy_obj(locking_sc_address)
             .deposit_fees()
             .with_esdt_transfer(fees)
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     fn require_caller_unstake_sc(&self) {

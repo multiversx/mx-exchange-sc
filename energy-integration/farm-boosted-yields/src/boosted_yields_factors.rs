@@ -8,7 +8,8 @@ static INVALID_CONFIG_WEEK_ERR_MSG: &[u8] = b"Invalid config week";
 static NO_CONFIG_ERR_MSG: &[u8] = b"No config";
 const BOOSTED_YIELDS_FACTORS_ARRAY_LEN: usize = USER_MAX_CLAIM_WEEKS + 1;
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug)]
 pub struct BoostedYieldsFactors<M: ManagedTypeApi> {
     pub max_rewards_factor: BigUint<M>,
     pub user_rewards_energy_const: BigUint<M>,
@@ -17,7 +18,8 @@ pub struct BoostedYieldsFactors<M: ManagedTypeApi> {
     pub min_farm_amount: BigUint<M>,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, Clone, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, Clone, PartialEq, Debug)]
 pub struct BoostedYieldsConfig<M: ManagedTypeApi> {
     last_update_week: Week,
     factors_per_week: ArrayVec<BoostedYieldsFactors<M>, BOOSTED_YIELDS_FACTORS_ARRAY_LEN>,

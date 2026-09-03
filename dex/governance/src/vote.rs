@@ -3,13 +3,15 @@ multiversx_sc::derive_imports!();
 
 use crate::config;
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone)]
 pub enum VoteType {
     Upvote = 1,
     DownVote = 2,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, PartialEq, Debug)]
 pub struct VoteNFTAttributes<M: ManagedTypeApi> {
     pub proposal_id: u64,
     pub vote_type: VoteType,

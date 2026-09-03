@@ -16,7 +16,8 @@ use common_types::PaymentsVec;
 use energy_query::Energy;
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
-#[derive(TypeAbi, TopEncode, TopDecode, Clone, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, Clone, PartialEq, Debug)]
 pub struct ClaimProgress<M: ManagedTypeApi> {
     pub energy: Energy<M>,
     pub week: Week,

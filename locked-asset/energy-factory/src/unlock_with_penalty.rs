@@ -52,7 +52,7 @@ pub trait UnlockWithPenaltyModule:
         );
 
         self.set_energy_entry(&caller, reduce_result.energy);
-        self.unstake_tokens(caller, payment, unlocked_tokens);
+        self.unstake_tokens(caller, payment.clone(), unlocked_tokens);
     }
 
     /// Reduce the locking period of a locked token. This incures a penalty.
@@ -84,7 +84,7 @@ pub trait UnlockWithPenaltyModule:
         );
         if penalty_amount > 0 {
             let fees = EsdtTokenPayment::new(
-                payment.token_identifier,
+                payment.token_identifier.clone(),
                 payment.token_nonce,
                 penalty_amount,
             );

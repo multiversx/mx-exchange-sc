@@ -4,7 +4,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "0"
+                "blockTimestamp": "0"
             }
         },
         {
@@ -63,7 +63,7 @@
                         "str:router_address": "address:alice",
                         "str:penalty_percent": "0",
                         "str:division_safety_constant": "1000000000000",
-                        "str:per_block_reward_amount": "100",
+                        "str:per_second_reward_amount": "100",
                         "str:produce_rewards_enabled": "1",
                         "str:permissions|address:alice": "5"
                     },
@@ -96,7 +96,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "3"
+                "blockTimestamp": "3"
             }
         },
         {
@@ -174,7 +174,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "6"
+                "blockTimestamp": "6"
             }
         },
         {
@@ -216,7 +216,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "8"
+                "blockTimestamp": "8"
             }
         },
         {
@@ -225,7 +225,7 @@
             "tx": {
                 "from": "address:alice",
                 "to": "sc:farm_contract",
-                "function": "setPerBlockRewardAmount",
+                "function": "setPerSecondRewardAmount",
                 "arguments": [
                     "50"
                 ],
@@ -243,7 +243,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "10"
+                "blockTimestamp": "10"
             }
         },
         {
@@ -286,7 +286,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "13"
+                "blockTimestamp": "13"
             }
         },
         {
@@ -329,7 +329,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockNonce": "16"
+                "blockTimestamp": "16"
             }
         },
         {

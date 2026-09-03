@@ -40,7 +40,7 @@ pub trait UnstakeFarmModule:
     ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().single_esdt().clone();
 
         self.unstake_farm_common(original_caller, payment, None)
     }
@@ -54,17 +54,21 @@ pub trait UnstakeFarmModule:
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
 
-        let [first_payment, second_payment] = self.call_value().multi_esdt();
+        let [first_payment_ref, second_payment_ref] = self.call_value().multi_esdt();
 
         // first payment are the staking tokens, taken from the liquidity pool
         // they will be sent to the user on unbond
         let staking_token_id = self.farming_token_id().get();
         require!(
-            first_payment.token_identifier == staking_token_id,
+            first_payment_ref.token_identifier == staking_token_id,
             "Invalid staking token received"
         );
 
-        self.unstake_farm_common(original_caller, second_payment, Some(first_payment.amount))
+        self.unstake_farm_common(
+            original_caller,
+            second_payment_ref.clone(),
+            Some(first_payment_ref.amount.clone()),
+        )
     }
 
     fn unstake_farm_common(
@@ -76,7 +80,7 @@ pub trait UnstakeFarmModule:
         let migrated_amount = self.migrate_old_farm_positions(&original_caller);
 
         let exit_result =
-            self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment);
+            self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), &payment);
 
         self.decrease_old_farm_positions(migrated_amount, &original_caller);
 

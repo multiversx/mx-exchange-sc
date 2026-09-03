@@ -103,8 +103,7 @@ pub trait TokenMergingModule:
         let locked_token_mapper = self.locked_token();
         locked_token_mapper.require_all_same_token(&payments);
 
-        let first_payment = payments.get(0);
-        payments.remove(0);
+        let first_payment = payments.take(0);
 
         let current_epoch = self.blockchain().get_block_epoch();
         let first_token_attributes: LockedTokenAttributes<Self::Api> =
@@ -122,8 +121,10 @@ pub trait TokenMergingModule:
 
         locked_token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
 
-        let mut output_pair =
-            LockedAmountWeightAttributesPair::new(first_payment.amount, first_token_attributes);
+        let mut output_pair = LockedAmountWeightAttributesPair::new(
+            first_payment.amount.clone(),
+            first_token_attributes,
+        );
         for payment in &payments {
             let attributes: LockedTokenAttributes<Self::Api> =
                 locked_token_mapper.get_token_attributes(payment.token_nonce);
@@ -137,7 +138,7 @@ pub trait TokenMergingModule:
             locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
             let amount_attr_pair =
-                LockedAmountWeightAttributesPair::new(payment.amount, attributes);
+                LockedAmountWeightAttributesPair::new(payment.amount.clone(), attributes);
             output_pair.merge_with(amount_attr_pair);
         }
 

@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           63
+// Endpoints:                           67
 // Async Callback (empty):               1
-// Total number of exported functions:  66
+// Total number of exported functions:  70
 
 #![no_std]
 
@@ -45,6 +45,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getInitialLiquidtyAdder => initial_liquidity_adder
         getReserve => pair_reserve
         getSafePriceCurrentIndex => safe_price_current_index
+        getCurrentPriceObservation => current_price_observation
+        getSafePriceLegacyCutover => safe_price_legacy_cutover
         updateAndGetTokensForGivenPositionWithSafePrice => update_and_get_tokens_for_given_position_with_safe_price
         updateAndGetSafePrice => update_and_get_safe_price
         setLockingDeadlineEpoch => set_locking_deadline_epoch
@@ -77,10 +79,12 @@ multiversx_sc_wasm_adapter::endpoints! {
         getLpTokensSafePriceByDefaultOffset => get_lp_tokens_safe_price_by_default_offset
         getLpTokensSafePriceByRoundOffset => get_lp_tokens_safe_price_by_round_offset
         getLpTokensSafePriceByTimestampOffset => get_lp_tokens_safe_price_by_timestamp_offset
+        getLpTokensSafePriceByTimestampOffsetMs => get_lp_tokens_safe_price_by_timestamp_offset_ms
         getLpTokensSafePrice => get_lp_tokens_safe_price
         getSafePriceByDefaultOffset => get_safe_price_by_default_offset
         getSafePriceByRoundOffset => get_safe_price_by_round_offset
         getSafePriceByTimestampOffset => get_safe_price_by_timestamp_offset
+        getSafePriceByTimestampOffsetMs => get_safe_price_by_timestamp_offset_ms
         getSafePrice => get_safe_price
         getPriceObservation => get_price_observation_view
     )

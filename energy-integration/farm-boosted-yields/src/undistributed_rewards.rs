@@ -56,7 +56,7 @@ pub trait UndistributedRewardsModule:
             let _: () = self
                 .energy_factory_proxy(energy_factory)
                 .transfer_unlocked_token(total_rewards.clone())
-                .execute_on_dest_context();
+                .sync_call();
         } else {
             let owner = self.blockchain().get_caller();
             self.send()

@@ -3,7 +3,8 @@ multiversx_sc::derive_imports!();
 
 use crate::energy::Energy;
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct EnergyUpdatedEvent<M: ManagedTypeApi> {
     pub old_energy_entry: Energy<M>,
     pub new_energy_entry: Energy<M>,
@@ -25,7 +26,7 @@ pub trait EventsModule {
             user,
             self.blockchain().get_block_nonce(),
             self.blockchain().get_block_epoch(),
-            self.blockchain().get_block_timestamp(),
+            self.blockchain().get_block_timestamp_seconds(),
             data,
         );
     }
@@ -36,7 +37,7 @@ pub trait EventsModule {
         #[indexed] caller: &ManagedAddress,
         #[indexed] block: u64,
         #[indexed] epoch: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         data: EnergyUpdatedEvent<Self::Api>,
     );
 }

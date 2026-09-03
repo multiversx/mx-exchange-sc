@@ -28,8 +28,6 @@ multiversx_sc::imports!();
 ///
 /// Please note that although the main contract can modify the module's storage directly, it is not recommended to do so,
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
-///
-
 const MIN_VOTING_DELAY: u64 = 1;
 const MAX_VOTING_DELAY: u64 = 100_800; // 1 Week
 const MIN_VOTING_PERIOD: u64 = 14_400; // 24 Hours

@@ -8,7 +8,8 @@ use unwrappable::Unwrappable;
 static NOT_ENOUGH_RESULTS_ERR_MSG: &[u8] = b"Not enough results";
 const FIRST_VEC_INDEX: usize = 0;
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Eq)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Eq)]
 pub struct TokenPair<M: ManagedTypeApi> {
     pub first_token: TokenIdentifier<M>,
     pub second_token: TokenIdentifier<M>,
@@ -20,7 +21,8 @@ impl<M: ManagedTypeApi> TokenPair<M> {
     }
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode)]
 pub struct NonceAmountPair<M: ManagedTypeApi> {
     pub nonce: u64,
     pub amount: BigUint<M>,
@@ -33,9 +35,8 @@ impl<M: ManagedTypeApi> NonceAmountPair<M> {
     }
 }
 
-#[derive(
-    TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Debug,
-)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Debug)]
 pub struct EpochAmountPair<M: ManagedTypeApi> {
     pub epoch: u64,
     pub amount: BigUint<M>,
@@ -73,7 +74,7 @@ impl<M: ManagedTypeApi> RawResultWrapper<M> {
         }
 
         let new_start_index = current_len - size_after_trim;
-        let opt_new_raw_results = self.raw_results.slice(new_start_index, current_len);
+        let opt_new_raw_results = self.raw_results.clone_range(new_start_index, current_len);
         self.raw_results = opt_new_raw_results.unwrap_or_panic::<M>();
     }
 

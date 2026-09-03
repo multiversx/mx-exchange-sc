@@ -17,7 +17,7 @@ pub trait EnergyFactoryMock {
         total_locked_tokens: BigUint,
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
-        self.user_energy(&user).set(&Energy::new(
+        self.user_energy(&user).set(Energy::new(
             BigInt::from(energy_amount),
             current_epoch,
             total_locked_tokens,

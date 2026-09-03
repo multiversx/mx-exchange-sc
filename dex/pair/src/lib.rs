@@ -68,10 +68,6 @@ pub trait Pair<ContractReader>:
         );
         require!(first_token_id != second_token_id, ERROR_SAME_TOKENS);
 
-        let lp_token_id = self.lp_token_identifier().get();
-        require!(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-        require!(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-
         self.set_fee_percents(total_fee_percent, special_fee_percent);
         self.state().set(State::Inactive);
 
@@ -102,7 +98,21 @@ pub trait Pair<ContractReader>:
     }
 
     #[upgrade]
-    fn upgrade(&self) {}
+    fn upgrade(&self) {
+        let cutover_mapper = self.safe_price_legacy_cutover();
+        if !cutover_mapper.is_empty() || self.price_observations().is_empty() {
+            return;
+        }
+
+        let cutover_round = self.blockchain().get_block_round();
+        let cutover_timestamp = self.get_current_timestamp_milliseconds();
+        require!(
+            cutover_round > 0 && cutover_timestamp > 0,
+            ERROR_SAFE_PRICE_LEGACY_NORMALIZATION
+        );
+        cutover_mapper.set((cutover_round, cutover_timestamp));
+        self.initialize_current_price_observation();
+    }
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) {

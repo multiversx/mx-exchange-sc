@@ -9,7 +9,8 @@ use super::common_result_types::{SwapTokensFixedInputResultType, SwapTokensFixed
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy)]
 pub enum SwapType {
     FixedInput,
     FixedOutput,
@@ -25,6 +26,7 @@ pub trait SwapModule:
     + crate::safe_price::SafePriceModule
     + crate::fee::FeeModule
     + crate::config::ConfigModule
+    + crate::read_pair_storage::ReadPairStorageModule
     + token_send::TokenSendModule
     + permissions_module::PermissionsModule
     + pausable::PausableModule
@@ -59,13 +61,13 @@ pub trait SwapModule:
         );
 
         let mut swap_context = SwapContext::new(
-            payment.token_identifier,
+            payment.token_identifier.clone(),
             payment.amount.clone(),
             token_out,
             BigUint::from(1u32),
             swap_tokens_order,
         );
-        swap_context.final_input_amount = payment.amount;
+        swap_context.final_input_amount = payment.amount.clone();
 
         let amount_out = self.swap_safe_no_fee(
             &mut storage_cache,
@@ -124,8 +126,8 @@ pub trait SwapModule:
         );
 
         let mut swap_context = SwapContext::new(
-            payment.token_identifier,
-            payment.amount,
+            payment.token_identifier.clone(),
+            payment.amount.clone(),
             token_out,
             amount_out_min,
             swap_tokens_order,
@@ -149,11 +151,6 @@ pub trait SwapModule:
 
         let caller = self.blockchain().get_caller();
         let output_payments = self.build_swap_output_payments(&swap_context);
-
-        require!(
-            output_payments.get(0).amount >= swap_context.output_token_amount,
-            ERROR_SLIPPAGE_EXCEEDED
-        );
 
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
@@ -196,8 +193,8 @@ pub trait SwapModule:
         );
 
         let mut swap_context = SwapContext::new(
-            payment.token_identifier,
-            payment.amount,
+            payment.token_identifier.clone(),
+            payment.amount.clone(),
             token_out,
             amount_out,
             swap_tokens_order,

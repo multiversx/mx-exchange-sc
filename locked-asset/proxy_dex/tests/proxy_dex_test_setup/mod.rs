@@ -12,7 +12,6 @@ use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     contract_base::{CallableContract, ContractBase},
-    storage::mappers::StorageTokenWrapper,
     types::{Address, EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded},
 };
 use multiversx_sc_modules::pause::PauseModule;
@@ -26,6 +25,7 @@ use pausable::{PausableModule, State};
 use proxy_dex::{
     other_sc_whitelist::OtherScWhitelistModule, proxy_common::ProxyCommonModule, ProxyDexImpl,
 };
+use router::Router;
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 
@@ -41,7 +41,7 @@ pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
 // Farm
 pub static FARM_LOCKED_TOKEN_ID: &[u8] = b"FARML-123456";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000_000_000;
-pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
+pub const PER_SECOND_REWARD_AMOUNT: u64 = 5_000;
 pub const USER_REWARDS_BASE_CONST: u64 = 10;
 pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
@@ -58,10 +58,16 @@ pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 pub static WRAPPED_LP_TOKEN_ID: &[u8] = b"WPLP-123456";
 pub static WRAPPED_FARM_TOKEN_ID: &[u8] = b"WPFARM-123456";
 
-pub struct ProxySetup<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
-where
+pub struct ProxySetup<
+    ProxyObjBuilder,
+    PairObjBuilder,
+    RouterObjBuilder,
+    FarmLockedObjBuilder,
+    SimpleLockObjBuilder,
+> where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
     FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
@@ -71,23 +77,38 @@ where
     pub second_user: Address,
     pub proxy_wrapper: ContractObjWrapper<proxy_dex::ContractObj<DebugApi>, ProxyObjBuilder>,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    pub router_wrapper: ContractObjWrapper<router::ContractObj<DebugApi>, RouterObjBuilder>,
     pub farm_locked_wrapper:
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmLockedObjBuilder>,
     pub simple_lock_wrapper:
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, SimpleLockObjBuilder>,
 }
 
-impl<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
-    ProxySetup<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
+impl<
+        ProxyObjBuilder,
+        PairObjBuilder,
+        RouterObjBuilder,
+        FarmLockedObjBuilder,
+        SimpleLockObjBuilder,
+    >
+    ProxySetup<
+        ProxyObjBuilder,
+        PairObjBuilder,
+        RouterObjBuilder,
+        FarmLockedObjBuilder,
+        SimpleLockObjBuilder,
+    >
 where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
     FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub fn new(
         proxy_builder: ProxyObjBuilder,
         pair_builder: PairObjBuilder,
+        router_builder: RouterObjBuilder,
         farm_locked_builder: FarmLockedObjBuilder,
         simple_lock_builder: SimpleLockObjBuilder,
     ) -> Self {
@@ -101,7 +122,8 @@ where
 
         b_mock.set_block_epoch(1);
 
-        let pair_wrapper = setup_pair(&mut b_mock, &owner, pair_builder);
+        let (pair_wrapper, router_wrapper) =
+            setup_pair(&mut b_mock, &owner, pair_builder, router_builder);
         let simple_lock_wrapper = setup_simple_lock(&mut b_mock, &owner, simple_lock_builder);
         let farm_locked_wrapper = setup_farm_locked(
             &mut b_mock,
@@ -229,6 +251,7 @@ where
             second_user,
             proxy_wrapper,
             pair_wrapper,
+            router_wrapper,
             farm_locked_wrapper,
             simple_lock_wrapper,
         }
@@ -242,22 +265,29 @@ pub fn to_rust_biguint(
     num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
 }
 
-fn setup_pair<PairObjBuilder>(
+fn setup_pair<PairObjBuilder, RouterObjBuilder>(
     b_mock: &mut BlockchainStateWrapper,
     owner: &Address,
     pair_builder: PairObjBuilder,
-) -> ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>
+    router_builder: RouterObjBuilder,
+) -> (
+    ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    ContractObjWrapper<router::ContractObj<DebugApi>, RouterObjBuilder>,
+)
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let pair_wrapper = b_mock.create_sc_account(&rust_zero, Some(owner), pair_builder, "pair");
+    let router_wrapper =
+        b_mock.create_sc_account(&rust_zero, Some(owner), router_builder, "router");
 
     b_mock
         .execute_tx(owner, &pair_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(MEX_TOKEN_ID);
             let second_token_id = managed_token_id!(WEGLD_TOKEN_ID);
-            let router_address = managed_address!(owner);
+            let router_address = managed_address!(router_wrapper.address_ref());
             let router_owner_address = managed_address!(owner);
             let total_fee_percent = 300u64;
             let special_fee_percent = 50u64;
@@ -280,10 +310,16 @@ where
         })
         .assert_ok();
 
+    b_mock
+        .execute_tx(owner, &router_wrapper, &rust_zero, |sc| {
+            sc.init(OptionalValue::None);
+        })
+        .assert_ok();
+
     let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
     b_mock.set_esdt_local_roles(pair_wrapper.address_ref(), LP_TOKEN_ID, &lp_token_roles[..]);
 
-    pair_wrapper
+    (pair_wrapper, router_wrapper)
 }
 
 fn setup_farm_locked<FarmLockedObjBuilder>(
@@ -322,8 +358,8 @@ where
             let farm_token_id = managed_token_id!(FARM_LOCKED_TOKEN_ID);
             sc.farm_token().set_token_id(farm_token_id);
 
-            sc.per_block_reward_amount()
-                .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
+            sc.per_second_reward_amount()
+                .set(&managed_biguint!(PER_SECOND_REWARD_AMOUNT));
 
             sc.state().set(State::Active);
             sc.produce_rewards_enabled().set(true);

@@ -1,7 +1,8 @@
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
     pub lp_token_id: TokenIdentifier<M>,
     pub first_token_id: TokenIdentifier<M>,
@@ -31,7 +32,8 @@ pub trait ProxyLpModule: crate::locked_token::LockedTokenModule {
             &payment.amount,
         );
 
-        let output_token_payment = EsdtTokenPayment::new(unlocked_lp_token_id, 0, payment.amount);
+        let output_token_payment =
+            EsdtTokenPayment::new(unlocked_lp_token_id, 0, payment.amount.clone());
         self.send().direct_esdt(
             &caller,
             &output_token_payment.token_identifier,

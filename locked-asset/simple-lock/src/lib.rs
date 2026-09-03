@@ -66,7 +66,7 @@ pub trait SimpleLock:
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let payment = self.call_value().single_esdt();
         let dest_address = self.dest_from_optional(opt_destination);
-        self.unlock_and_send(&dest_address, payment)
+        self.unlock_and_send(&dest_address, payment.clone())
     }
 
     fn dest_from_optional(&self, opt_destination: OptionalValue<ManagedAddress>) -> ManagedAddress {

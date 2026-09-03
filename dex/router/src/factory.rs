@@ -4,15 +4,17 @@ multiversx_sc::derive_imports!();
 use crate::config;
 use pair::read_pair_storage;
 
-const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
+const TEMPORARY_OWNER_PERIOD_SECONDS: DurationSeconds = DurationSeconds::new(300);
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq)]
 pub struct PairTokens<M: ManagedTypeApi> {
     pub first_token_id: TokenIdentifier<M>,
     pub second_token_id: TokenIdentifier<M>,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[type_abi]
+#[derive(ManagedVecItem, TopEncode, TopDecode, PartialEq)]
 pub struct PairContractMetadata<M: ManagedTypeApi> {
     first_token_id: TokenIdentifier<M>,
     second_token_id: TokenIdentifier<M>,
@@ -30,7 +32,7 @@ pub trait FactoryModule: config::ConfigModule + read_pair_storage::ReadPairStora
         }
 
         self.temporary_owner_period()
-            .set_if_empty(TEMPORARY_OWNER_PERIOD_BLOCKS);
+            .set_if_empty(TEMPORARY_OWNER_PERIOD_SECONDS);
     }
 
     fn create_pair(
@@ -76,7 +78,7 @@ pub trait FactoryModule: config::ConfigModule + read_pair_storage::ReadPairStora
             new_address.clone(),
             (
                 self.blockchain().get_caller(),
-                self.blockchain().get_block_nonce(),
+                self.blockchain().get_block_timestamp_seconds(),
             ),
         );
         new_address
@@ -156,10 +158,10 @@ pub trait FactoryModule: config::ConfigModule + read_pair_storage::ReadPairStora
         let result = self.pair_temporary_owner().get(pair_address);
 
         match result {
-            Some((temporary_owner, creation_block)) => {
-                let expire_block = creation_block + self.temporary_owner_period().get();
+            Some((temporary_owner, creation_time)) => {
+                let expire_time = creation_time + self.temporary_owner_period().get();
 
-                if expire_block <= self.blockchain().get_block_nonce() {
+                if expire_time <= self.blockchain().get_block_timestamp_seconds() {
                     self.pair_temporary_owner().remove(pair_address);
                     None
                 } else {

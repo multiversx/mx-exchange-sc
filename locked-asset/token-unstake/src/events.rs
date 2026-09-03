@@ -14,7 +14,7 @@ pub trait EventsModule {
             caller,
             self.blockchain().get_block_nonce(),
             self.blockchain().get_block_epoch(),
-            self.blockchain().get_block_timestamp(),
+            self.blockchain().get_block_timestamp_seconds(),
             unlocked_tokens,
         );
     }
@@ -25,7 +25,7 @@ pub trait EventsModule {
         #[indexed] caller: &ManagedAddress,
         #[indexed] block: u64,
         #[indexed] epoch: u64,
-        #[indexed] timestamp: u64,
+        #[indexed] timestamp: TimestampSeconds,
         data: ManagedVec<UnstakePair<Self::Api>>,
     );
 }

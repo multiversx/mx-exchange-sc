@@ -19,10 +19,9 @@ pub trait EnergyUpdate {
         farm_addresses: MultiValueEncoded<ManagedAddress>,
     ) {
         for farm_addr in farm_addresses {
-            let _: IgnoreValue = self
-                .farm_proxy(farm_addr)
+            self.farm_proxy(farm_addr)
                 .update_energy_for_user(user.clone())
-                .execute_on_dest_context();
+                .sync_call();
         }
     }
 

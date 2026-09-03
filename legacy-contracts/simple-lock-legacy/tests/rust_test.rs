@@ -9,7 +9,6 @@ use multiversx_sc_scenario::{
 };
 use multiversx_sc_scenario::{managed_token_id_wrapped, whitebox_legacy::*};
 
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use simple_lock_legacy::proxy_farm::{FarmProxyTokenAttributes, FarmType, ProxyFarmModule};
 use simple_lock_legacy::proxy_lp::{LpProxyTokenAttributes, ProxyLpModule};
 use simple_lock_legacy::{locked_token::*, SimpleLockLegacy};

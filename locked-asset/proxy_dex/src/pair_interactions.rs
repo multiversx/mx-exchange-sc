@@ -42,7 +42,8 @@ pub trait PairInteractionsModule {
             .pair_contract_proxy(pair_address)
             .add_liquidity(first_token_amount_min, second_token_amount_min)
             .with_multi_token_transfer(all_token_payments)
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (lp_tokens_received, first_tokens_used, second_tokens_used) = raw_result.into_tuple();
         let first_token_leftover_amount = &first_token_amount_desired - &first_tokens_used.amount;
         let second_token_leftover_amount =
@@ -78,7 +79,8 @@ pub trait PairInteractionsModule {
             .pair_contract_proxy(pair_address)
             .remove_liquidity(first_token_amount_min, second_token_amount_min)
             .with_esdt_transfer((lp_token_id, 0, lp_token_amount))
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         let (first_token_received, second_token_received) = raw_result.into_tuple();
 
         RemoveLiqudityResultWrapper {

@@ -3,7 +3,8 @@ multiversx_sc::derive_imports!();
 
 use crate::LockedFunds;
 
-#[derive(TypeAbi, TopEncode)]
+#[type_abi]
+#[derive(TopEncode)]
 pub struct LkmexTransferEvent<M: ManagedTypeApi> {
     sender: ManagedAddress<M>,
     receiver: ManagedAddress<M>,

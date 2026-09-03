@@ -9,7 +9,6 @@ use energy_factory::{
 };
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
-    storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
 use multiversx_sc_modules::pause::PauseModule;
@@ -184,8 +183,7 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                if opt_address.is_some() {
-                    let address = opt_address.unwrap();
+                if let Some(address) = opt_address {
                     sc.lock_tokens_endpoint(
                         lock_epochs,
                         OptionalValue::Some(managed_address!(&address)),

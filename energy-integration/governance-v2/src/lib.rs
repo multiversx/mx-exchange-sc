@@ -92,7 +92,7 @@ pub trait GovernanceV2:
         let min_energy_for_propose = self.min_energy_for_propose().get();
         require!(user_energy >= min_energy_for_propose, NOT_ENOUGH_ENERGY);
 
-        let user_fee = self.call_value().single_esdt();
+        let user_fee = self.call_value().single_esdt().clone();
         require!(
             self.fee_token_id().get() == user_fee.token_identifier,
             WRONG_TOKEN_ID
@@ -170,12 +170,15 @@ pub trait GovernanceV2:
             let last_global_update_week: Week = self
                 .fees_collector_proxy(fees_collector_addr.clone())
                 .last_global_update_week()
-                .execute_on_dest_context();
+                .returns(ReturnsResultUnmanaged)
+                .sync_call();
 
             let total_quorum: BigUint = self
                 .fees_collector_proxy(fees_collector_addr)
                 .total_energy_for_week(last_global_update_week)
-                .execute_on_dest_context();
+                .returns(ReturnsResultUnmanaged)
+                .sync_call()
+                .into();
 
             let mut proposal = self.proposals().get(proposal_id);
             proposal.total_quorum = total_quorum;

@@ -23,6 +23,8 @@ const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
 const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
+const DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS: u64 = 6_000;
+const DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET_MILLISECONDS: u64 = 3_600_000;
 
 #[multiversx_sc::contract]
 pub trait Router:
@@ -38,41 +40,50 @@ pub trait Router:
     fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
         self.state().set_if_empty(true);
         self.pair_creation_enabled().set_if_empty(false);
+        self.init_safe_price_config();
 
         self.init_factory(pair_template_address_opt.into_option());
-        self.owner().set(&self.blockchain().get_caller());
+        self.owner().set(self.blockchain().get_caller());
     }
 
     #[upgrade]
     fn upgrade(&self) {
+        self.init_safe_price_config();
+
         self.state().set(false);
+    }
+
+    fn init_safe_price_config(&self) {
+        self.safe_price_timestamp_save_interval()
+            .set_if_empty(DEFAULT_SAFE_PRICE_TIMESTAMP_SAVE_INTERVAL_MILLISECONDS);
+
+        self.default_safe_price_timestamp_offset()
+            .set_if_empty(DEFAULT_SAFE_PRICE_TIMESTAMP_OFFSET_MILLISECONDS);
     }
 
     #[only_owner]
     #[endpoint]
-    fn pause(&self, address: ManagedAddress) {
-        if address == self.blockchain().get_sc_address() {
-            self.state().set(false);
-        } else {
-            self.check_is_pair_sc(&address);
-            let _: IgnoreValue = self
-                .pair_contract_proxy(address)
-                .pause()
-                .execute_on_dest_context();
+    fn pause(&self, addresses: MultiValueEncoded<ManagedAddress>) {
+        for address in addresses {
+            if address == self.blockchain().get_sc_address() {
+                self.state().set(false);
+            } else {
+                self.check_is_pair_sc(&address);
+                self.pair_contract_proxy(address).pause().sync_call();
+            }
         }
     }
 
     #[only_owner]
     #[endpoint]
-    fn resume(&self, address: ManagedAddress) {
-        if address == self.blockchain().get_sc_address() {
-            self.state().set(true);
-        } else {
-            self.check_is_pair_sc(&address);
-            let _: IgnoreValue = self
-                .pair_contract_proxy(address)
-                .resume()
-                .execute_on_dest_context();
+    fn resume(&self, addresses: MultiValueEncoded<ManagedAddress>) {
+        for address in addresses {
+            if address == self.blockchain().get_sc_address() {
+                self.state().set(true);
+            } else {
+                self.check_is_pair_sc(&address);
+                self.pair_contract_proxy(address).resume().sync_call();
+            }
         }
     }
 
@@ -183,7 +194,7 @@ pub trait Router:
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
     ) {
-        let issue_cost = self.call_value().egld_value().clone_value();
+        let issue_cost = self.call_value().egld().clone_value();
 
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
@@ -203,14 +214,8 @@ pub trait Router:
             }
         };
 
-        let result: TokenIdentifier = self
-            .pair_contract_proxy(pair_address.clone())
-            .get_lp_token_identifier()
-            .execute_on_dest_context();
-        require!(
-            !result.is_valid_esdt_identifier(),
-            "LP Token already issued"
-        );
+        let pair_lp_token_mapper = self.get_pair_lp_token_id_mapper(pair_address.clone());
+        require!(pair_lp_token_mapper.is_empty(), "LP Token already issued");
 
         self.send()
             .esdt_system_sc_proxy()
@@ -218,7 +223,7 @@ pub trait Router:
                 issue_cost,
                 &lp_token_display_name,
                 &lp_token_ticker,
-                &BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
+                BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,
                     can_freeze: true,
@@ -247,7 +252,8 @@ pub trait Router:
         let pair_token: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context();
+            .returns(ReturnsResult)
+            .sync_call();
         require!(pair_token.is_valid_esdt_identifier(), "LP token not issued");
 
         let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
@@ -312,10 +318,9 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        let _: IgnoreValue = self
-            .pair_contract_proxy(pair_address)
+        self.pair_contract_proxy(pair_address)
             .set_fee_on(true, fee_to_address, fee_token)
-            .execute_on_dest_context();
+            .sync_call();
     }
 
     #[only_owner]
@@ -329,10 +334,31 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        let _: IgnoreValue = self
-            .pair_contract_proxy(pair_address)
+        self.pair_contract_proxy(pair_address)
             .set_fee_on(false, fee_to_address, fee_token)
-            .execute_on_dest_context();
+            .sync_call();
+    }
+
+    #[only_owner]
+    #[endpoint(setSafePriceTimestampSaveInterval)]
+    fn set_safe_price_timestamp_save_interval(&self, new_interval_milliseconds: u64) {
+        require!(
+            new_interval_milliseconds > 0,
+            "Timestamp save interval must be greater than 0"
+        );
+        self.safe_price_timestamp_save_interval()
+            .set(new_interval_milliseconds);
+    }
+
+    #[only_owner]
+    #[endpoint(setDefaultSafePriceTimestampOffset)]
+    fn set_default_safe_price_timestamp_offset(&self, new_offset_milliseconds: u64) {
+        require!(
+            new_offset_milliseconds > 0,
+            "Default safe price timestamp offset must be greater than 0"
+        );
+        self.default_safe_price_timestamp_offset()
+            .set(new_offset_milliseconds);
     }
 
     #[only_owner]
@@ -344,17 +370,14 @@ pub trait Router:
         for pair in pairs {
             self.check_is_pair_sc(&pair);
 
-            let _: IgnoreValue = self
-                .send()
-                .claim_developer_rewards(pair)
-                .execute_on_dest_context();
+            self.send().claim_developer_rewards(pair).sync_call();
         }
 
         let egld_balance_after = self.blockchain().get_balance(&sc_address);
         require!(egld_balance_after > egld_balance_before, "No EGLD received");
         let total_egld_received = egld_balance_after - egld_balance_before;
 
-        let owner = self.blockchain().get_caller();
+        let owner = self.blockchain().get_owner_address();
         self.send().direct_egld(&owner, &total_egld_received);
     }
 
@@ -369,10 +392,9 @@ pub trait Router:
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(address);
-                let _: IgnoreValue = self
-                    .pair_contract_proxy(address.clone())
+                self.pair_contract_proxy(address.clone())
                     .set_lp_token_identifier(token_id.unwrap_esdt())
-                    .execute_on_dest_context();
+                    .sync_call();
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {

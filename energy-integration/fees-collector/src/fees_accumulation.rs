@@ -29,7 +29,7 @@ pub trait FeesAccumulationModule:
     #[endpoint(depositSwapFees)]
     fn deposit_swap_fees(&self) {
         let caller = self.blockchain().get_caller();
-        let mut payment = self.call_value().single_esdt();
+        let mut payment = self.call_value().single_esdt().clone();
 
         let current_week = self.get_current_week();
         let base_token_id = self.get_base_token_id();
@@ -115,11 +115,7 @@ pub trait FeesAccumulationModule:
     }
 
     fn get_week_range(&self, current_week: Week) -> WeekRange {
-        let start_week = if current_week >= USER_MAX_CLAIM_WEEKS {
-            current_week - USER_MAX_CLAIM_WEEKS
-        } else {
-            0
-        };
+        let start_week = current_week.saturating_sub(USER_MAX_CLAIM_WEEKS);
         WeekRange {
             start_week,
             end_week: current_week,

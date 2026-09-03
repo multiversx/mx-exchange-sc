@@ -5,8 +5,9 @@ use energy_factory::SimpleLockEnergy;
 use energy_query::EnergyQueryModule;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
-use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc::types::{
+    Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded, TimestampSeconds,
+};
 use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::whitebox_legacy::TxTokenTransfer;
 use multiversx_sc_scenario::{
@@ -14,11 +15,11 @@ use multiversx_sc_scenario::{
 };
 use pair::pair_actions::add_liq::AddLiquidityModule;
 use pair::pair_actions::remove_liq::RemoveLiquidityModule;
+use router::Router;
 use simple_lock::locked_token::LockedTokenModule;
 
 use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
-use pair::safe_price_view::{SafePriceViewModule, DEFAULT_SAFE_PRICE_ROUNDS_OFFSET};
 use pair::*;
 use pair_config::ConfigModule as _;
 use pausable::{PausableModule, State};
@@ -31,24 +32,33 @@ use farm_with_locked_rewards::*;
 
 use crate::constants::*;
 
-pub fn setup_pair<PairObjBuilder>(
+const SAFE_PRICE_HISTORY_ROUNDS: u64 = 10 * 60;
+
+pub fn setup_pair<PairObjBuilder, RouterObjBuilder>(
     owner_addr: &Address,
     user_addr: &Address,
     b_mock: &mut BlockchainStateWrapper,
     pair_builder: PairObjBuilder,
-) -> ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>
+    router_builder: RouterObjBuilder,
+) -> (
+    ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
+    ContractObjWrapper<router::ContractObj<DebugApi>, RouterObjBuilder>,
+)
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    RouterObjBuilder: 'static + Copy + Fn() -> router::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let pair_wrapper =
         b_mock.create_sc_account(&rust_zero, Some(owner_addr), pair_builder, PAIR_WASM_PATH);
+    let router_wrapper =
+        b_mock.create_sc_account(&rust_zero, Some(owner_addr), router_builder, "router_path");
 
     b_mock
         .execute_tx(owner_addr, &pair_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
             let second_token_id = managed_token_id!(RIDE_TOKEN_ID);
-            let router_address = managed_address!(owner_addr);
+            let router_address = managed_address!(router_wrapper.address_ref());
             let router_owner_address = managed_address!(owner_addr);
             let total_fee_percent = 300u64;
             let special_fee_percent = 50u64;
@@ -71,6 +81,12 @@ where
         })
         .assert_ok();
 
+    b_mock
+        .execute_tx(owner_addr, &router_wrapper, &rust_zero, |sc| {
+            sc.init(OptionalValue::None);
+        })
+        .assert_ok();
+
     let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
     b_mock.set_esdt_local_roles(pair_wrapper.address_ref(), LP_TOKEN_ID, &lp_token_roles[..]);
 
@@ -88,7 +104,7 @@ where
 
     let mut block_round: u64 = 1;
     b_mock.set_block_round(block_round);
-    b_mock.set_block_nonce(BLOCK_NONCE_FIRST_ADD_LIQ);
+    b_mock.set_block_timestamp(TIMESTAMP_FIRST_ADD_LIQ);
 
     let temp_user_addr = b_mock.create_user_account(&rust_zero);
     b_mock.set_esdt_balance(
@@ -117,7 +133,7 @@ where
 
     block_round += 1;
     b_mock.set_block_round(block_round);
-    b_mock.set_block_nonce(BLOCK_NONCE_SECOND_ADD_LIQ);
+    b_mock.set_block_timestamp(TIMESTAMP_SECOND_ADD_LIQ);
 
     add_liquidity(
         user_addr,
@@ -133,8 +149,9 @@ where
     );
 
     // Extra operations to record the new reserves
-    block_round += DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+    block_round += SAFE_PRICE_HISTORY_ROUNDS;
     b_mock.set_block_round(block_round);
+    b_mock.set_block_timestamp(block_round * SAFE_PRICE_ROUND_DURATION_SECONDS);
     add_liquidity(
         &temp_user_addr,
         b_mock,
@@ -150,19 +167,13 @@ where
     // Remove liquidity to have the correct lp token supply
     remove_liquidity(&temp_user_addr, b_mock, &pair_wrapper, USER_TOTAL_LP_TOKENS);
 
-    b_mock
-        .execute_tx(user_addr, &pair_wrapper, &rust_biguint!(0), |sc| {
-            sc.get_lp_tokens_safe_price_by_round_offset(
-                managed_address!(pair_wrapper.address_ref()),
-                1,
-                managed_biguint!(1_000_000_000),
-            );
-        })
-        .assert_ok();
+    // Farm reward time starts in the first round after the completed safe-price history.
+    block_round += 1;
+    assert_eq!(block_round, ROUND_AFTER_PAIR_SETUP);
+    b_mock.set_block_round(block_round);
+    b_mock.set_block_timestamp(TIMESTAMP_AFTER_PAIR_SETUP);
 
-    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP);
-
-    pair_wrapper
+    (pair_wrapper, router_wrapper)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -287,10 +298,10 @@ where
 
             sc.state().set(State::Active);
             sc.produce_rewards_enabled().set(true);
-            sc.per_block_reward_amount()
-                .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
-            sc.last_reward_block_nonce()
-                .set(BLOCK_NONCE_AFTER_PAIR_SETUP);
+            sc.per_second_reward_amount()
+                .set(&managed_biguint!(LP_FARM_PER_SECOND_REWARD_AMOUNT));
+            sc.last_reward_timestamp()
+                .set(TimestampSeconds::new(TIMESTAMP_AFTER_PAIR_SETUP));
             sc.lock_epochs().set(LOCK_OPTIONS[2]);
             sc.locking_sc_address()
                 .set(managed_address!(energy_factory_address));

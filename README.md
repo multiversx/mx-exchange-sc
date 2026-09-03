@@ -38,11 +38,11 @@ The owner of all the Pair SCs is the Router SC. It is used for deploying, upgrad
 
 ### Farm Contract
 
-In order to gain users trust, the liquidity inside the DEX must be somewhat stable. To achieve that, Farm contracts come in place to incentivise liquidity providers to lock their LP tokens in exchange for MEX rewards. Rewards are generated per block and their rate is configurable in sync with the MEX tokenomics.
+In order to gain users trust, the liquidity inside the DEX must be somewhat stable. To achieve that, Farm contracts come in place to incentivise liquidity providers to lock their LP tokens in exchange for MEX rewards. Rewards are generated based on timestamps and their rate is configurable in sync with the MEX tokenomics.
 
 ### Farm with Lock Contract
 
-Works the same as the regular Farm with the exception that it does not generate MEX as rewards. Instead, it generates Locked MEX, with the help of the Factory SC. The reason one would choose to go with the locked rewards (LKMEX) instead of the regular rewards (MEX) is that the reward emission rate (reward per block rate) is bigger, meaning the APR is higher.
+It works the same as a regular Farm SC, with the exception that it does not generate MEX as rewards. Instead, it generates Locked MEX (XMEX), with the help of the Energy Factory smart contract. Users may choose to receive locked rewards instead of regular MEX because XMEX also provides Energy, which can be used across the entire xExchange protocol.
 
 ### Price discovery
 
