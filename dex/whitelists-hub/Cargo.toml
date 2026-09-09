@@ -1,0 +1,21 @@
+[package]
+name = "whitelists-hub"
+version = "0.0.0"
+publish = false
+edition = "2021"
+authors = ["you"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "0.53.2"
+
+[dev-dependencies]
+num-bigint = "0.4"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.53.2"
+
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"

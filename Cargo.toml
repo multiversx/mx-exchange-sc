@@ -22,6 +22,8 @@ members = [
   "dex/pair-mock/meta",
   "dex/permissions-hub",
   "dex/permissions-hub/meta",
+  "dex/whitelists-hub",
+  "dex/whitelists-hub/meta",
 
   "energy-integration/energy-factory-mock",
   "energy-integration/energy-factory-mock/meta",
