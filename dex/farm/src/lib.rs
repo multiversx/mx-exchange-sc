@@ -74,8 +74,6 @@ pub trait Farm:
         self.pair_contract_address().set(&pair_contract_address);
     }
 
-    #[payable("*")]
-    #[endpoint(enterFarm)]
     fn enter_farm(
         &self,
         #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
@@ -199,8 +197,6 @@ pub trait Farm:
         self.construct_and_get_result(&context)
     }
 
-    #[payable("*")]
-    #[endpoint(claimRewards)]
     fn claim_rewards(
         &self,
         #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
@@ -290,8 +286,6 @@ pub trait Farm:
         self.construct_and_get_result(&context)
     }
 
-    #[payable("*")]
-    #[endpoint(compoundRewards)]
     fn compound_rewards(
         &self,
         #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,

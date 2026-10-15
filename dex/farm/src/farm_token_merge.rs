@@ -14,8 +14,6 @@ pub trait FarmTokenMergeModule:
     + config::ConfigModule
     + token_merge::TokenMergeModule
 {
-    #[payable("*")]
-    #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
