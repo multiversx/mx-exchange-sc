@@ -74,6 +74,9 @@ pub trait Farm:
         self.pair_contract_address().set(&pair_contract_address);
     }
 
+    #[endpoint(upgrade)]
+    fn upgrade(&self) {}
+
     fn enter_farm(
         &self,
         #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,

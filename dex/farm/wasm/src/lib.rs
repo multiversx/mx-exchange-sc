@@ -43,5 +43,6 @@ elrond_wasm_node::wasm_endpoints! {
         set_penalty_percent
         set_transfer_exec_gas_limit
         startProduceRewards
+        upgrade
     )
 }
