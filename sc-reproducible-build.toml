@@ -1,0 +1,12 @@
+# Configuration for `sc-meta reproducible-build` (sc-meta >= 0.66).
+#
+# The single place where the reproducible build image is pinned. Used by
+# ./reproducible-build.sh, the release workflow (.github/workflows/release.yml)
+# and `sc-meta reproducible-build build` / `publish` when run directly.
+#
+# Upgrade: bump the tag below and check the Rust and sc-meta versions of the
+# image (labels "rust" and "sc_meta" on Docker Hub) against rust-toolchain.toml
+# and the framework version. Images from v12.0.0 on run `sc-meta reproducible-build`.
+
+[general]
+docker-image = "multiversx/sdk-rust-contract-builder:v12.0.0"

@@ -1,15 +1,119 @@
-name: On release build and attach artifacts
+name: Release
+
+# Reproducible build of selected contracts, attached to an existing GitHub release.
+#
+# 1. Create the release on GitHub (it creates the tag).
+# 2. Actions → Release → Run workflow, from main:
+#      tag:       the release tag, e.g. v3.5.0
+#      contracts: Cargo.toml package names, e.g. "pair router farm-staking"
+#
+# The source is the tag (not the branch the workflow runs from), so any tag can be
+# built with the current scripts. Running again for other contracts adds them to the
+# same release. "dry_run" only builds (any branch, tag or commit) and keeps the
+# files as a workflow artifact. Same build locally: ./reproducible-build.sh
+
+run-name: "${{ inputs.dry_run && 'Dry run' || 'Release' }} ${{ inputs.tag }}: ${{ inputs.contracts }}"
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (for a dry run, any branch, tag or commit)
+        type: string
+        required: true
+      contracts:
+        description: Contracts, Cargo.toml package names separated by spaces or commas (e.g. "pair router")
+        type: string
+        required: true
+      dry_run:
+        description: Dry run - build only, do not touch the release
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  # Host sc-meta only starts the Docker build; the compiler and sc-meta that
+  # produce the wasm come from the image in sc-reproducible-build.toml.
+  SC_META_VERSION: "0.66.3"
+
 jobs:
-  build:
-    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v5.0.0
-    with:
-      image_tag: v10.0.0
-      attach_to_existing_release: true
+  release:
+    name: Reproducible build
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      TAG: ${{ inputs.tag }}
+      CONTRACTS: ${{ inputs.contracts }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # all tags and branches, the build source is exported from $TAG
+          persist-credentials: false
+
+      - name: Check tag and release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! git rev-parse --verify --quiet "refs/tags/${TAG}^{commit}" > /dev/null; then
+            echo "::error::Tag '${TAG}' not found. Create the GitHub release (and its tag) first."
+            exit 1
+          fi
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName > /dev/null; then
+            echo "::error::No GitHub release for tag '${TAG}'. Create the release first."
+            exit 1
+          fi
+
+      - name: Cache sc-meta
+        id: sc-meta-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/sc-meta
+          key: sc-meta-${{ env.SC_META_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install sc-meta
+        if: steps.sc-meta-cache.outputs.cache-hit != 'true'
+        # Outside the repository, so rust-toolchain.toml does not apply.
+        working-directory: ${{ runner.temp }}
+        run: cargo install multiversx-sc-meta --version "$SC_META_VERSION" --locked
+
+      - name: Build
+        run: |
+          ref="$TAG"
+          if [[ "$DRY_RUN" != "true" ]]; then
+            ref="refs/tags/$TAG"
+          fi
+          ./reproducible-build.sh --ref "$ref" --output "$RUNNER_TEMP/reproducible-build" "$CONTRACTS"
+          cat "$RUNNER_TEMP/reproducible-build/codehashes.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save build output
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reproducible-build-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/reproducible-build/release-assets/
+            ${{ runner.temp }}/reproducible-build/codehashes.md
+          if-no-files-found: error
+
+      - name: Attach to the release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          out="$RUNNER_TEMP/reproducible-build"
+          # Notes first: the merge refuses a release built from another commit or image.
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$RUNNER_TEMP/release-body.md"
+          python3 .github/scripts/release_notes.py merge \
+            --body "$RUNNER_TEMP/release-body.md" \
+            --block "$out/codehashes.md" \
+            --output "$RUNNER_TEMP/release-notes.md"
+          gh release upload "$TAG" "$out"/release-assets/* --repo "$GITHUB_REPOSITORY" --clobber
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/release-notes.md"
