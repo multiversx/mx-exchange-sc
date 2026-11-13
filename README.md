@@ -19,6 +19,7 @@ This document is a brief description of the Smart Contracts. It covers the basic
     - [Distribution Contract](#distribution-contract)
     - [DEX Proxy Contract](#dex-proxy-contract)
     - [Locked MEX Factory Contract](#locked-mex-factory-contract)
+  - [Release and reproducible builds](#release-and-reproducible-builds)
 
 Other Smart Contracts that are part of xExchange, but are not part of this repository:
 
@@ -77,3 +78,29 @@ This smart contract allows users to interact with the DEX using Locked MEX as fu
 ### Locked MEX Factory Contract
 
 Locked MEX is a Meta ESDT. Since there can be only one address (per shard) that can hold the role of creating a Meta ESDT, this contract was created so the multiple other contracts that need to create Locked MEX can just request them from only one place.
+
+## Release and reproducible builds
+
+Release builds are reproducible: every contract is built inside the Docker image pinned in [sc-reproducible-build.toml](sc-reproducible-build.toml), so anyone can rebuild the same commit and get the same codehash (this is also what the explorer uses to verify a contract). Only the contracts named for a release are built.
+
+To release:
+
+1. Create the release on GitHub, usually as a pre-release. This creates the tag.
+2. In Actions → **Release** → **Run workflow** (from `main`), fill in:
+   - `tag`: the release tag, e.g. `v3.5.0`;
+   - `contracts`: the Cargo.toml package names, separated by spaces or commas, e.g. `pair router farm-staking`.
+3. The workflow builds the tag and attaches the `.wasm`, `.abi.json`, `.source.json` and `<contract>.artifacts.json` files to the release. It also adds the Docker image, the commit and the blake2b codehashes to the release notes.
+
+Running the workflow again for the same tag adds the new contracts to the release and keeps the codehashes already there. With `dry_run` it only builds (any branch, tag or commit) and keeps the files as a workflow artifact.
+
+The workflow runs [reproducible-build.sh](reproducible-build.sh), which also works locally (needs Docker, `sc-meta` >= 0.66.1 and `python3`). It builds a clean export of a commit, so local changes and untracked files are left out:
+
+```sh
+./reproducible-build.sh --list                       # contract names
+./reproducible-build.sh pair router                  # build HEAD
+./reproducible-build.sh --ref v3.5.0 farm-staking    # check the codehashes of a release
+```
+
+The output goes to `target/reproducible-build/`, with the codehashes in `codehashes.md`.
+
+To upgrade the toolchain, bump the image tag in [sc-reproducible-build.toml](sc-reproducible-build.toml), after checking the image's Rust and sc-meta versions against `rust-toolchain.toml` and the framework version.
