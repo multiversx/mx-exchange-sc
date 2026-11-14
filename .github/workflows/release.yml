@@ -1,20 +1,10 @@
 name: Release
 
-# Reproducible build attached to an existing GitHub release, using the
-# reproducible-build workflow from mx-sc-actions.
-#
-# 1. Create the GitHub release (pre-release) and press "Generate release notes".
-# 2. Actions → Release → Run workflow:
-#      Use workflow from: the release tag (not a branch)
-#      contract_name:     e.g. token-unstake (empty = all contracts)
-#
-# The existing release notes are kept; the Docker image and the codehashes are added after them.
-
 on:
   workflow_dispatch:
     inputs:
       contract_name:
-        description: Contract to build, Cargo.toml package name (e.g. token-unstake). Empty = all contracts.
+        description: Run from the release tag. Contract to build (e.g. token-unstake); empty = all contracts.
         type: string
         required: false
 
@@ -23,8 +13,6 @@ permissions:
 
 jobs:
   build:
-    # mx-sc-actions PR #55 (reproducible builds with sc-meta) + keep the existing release notes
-    # (branch reproducible-build-keep-release-notes), until it is merged and released
     uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@ad3c3fdf74c85e678c2c7b065a981f1bef70e95c
     with:
       image_tag: v12.0.0
