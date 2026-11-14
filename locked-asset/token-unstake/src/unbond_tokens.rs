@@ -20,47 +20,49 @@ pub trait UnbondTokensModule:
         let mut penalty_tokens = ManagedVec::<Self::Api, _>::new();
         let mut processed_count = 0;
 
-        self.unlocked_tokens_for_user(&caller)
-            .update(|user_entries| {
-                while !user_entries.is_empty() && processed_count < MAX_CLAIM_UNLOCKED_TOKENS {
-                    let (unlock_epoch, locked_tokens, unlocked_tokens) = {
-                        let entry = user_entries.get(0);
-                        (
-                            entry.unlock_epoch,
-                            entry.locked_tokens.clone(),
-                            entry.unlocked_tokens.clone(),
-                        )
-                    };
+        let entries_mapper = self.unlocked_tokens_for_user(&caller);
+        let mut user_entries = entries_mapper.get();
 
-                    if current_epoch < unlock_epoch {
-                        break;
-                    }
+        while !user_entries.is_empty() && processed_count < MAX_CLAIM_UNLOCKED_TOKENS {
+            let (unlock_epoch, locked_tokens, unlocked_tokens) = {
+                let entry = user_entries.get(0);
+                (
+                    entry.unlock_epoch,
+                    entry.locked_tokens.clone(),
+                    entry.unlocked_tokens.clone(),
+                )
+            };
 
-                    // we only burn the tokens that are not unlocked
-                    // the rest are sent back as penalty
-                    let locked_tokens_burn_amount = unlocked_tokens.amount.clone();
-                    self.send().esdt_local_burn(
-                        &locked_tokens.token_identifier,
-                        locked_tokens.token_nonce,
-                        &locked_tokens_burn_amount,
-                    );
+            if current_epoch < unlock_epoch {
+                break;
+            }
 
-                    let penalty_amount = &locked_tokens.amount - &unlocked_tokens.amount;
-                    if penalty_amount > 0 {
-                        let penalty = EsdtTokenPayment::new(
-                            locked_tokens.token_identifier,
-                            locked_tokens.token_nonce,
-                            penalty_amount,
-                        );
-                        penalty_tokens.push(penalty);
-                    }
+            // we only burn the tokens that are not unlocked
+            // the rest are sent back as penalty
+            let locked_tokens_burn_amount = unlocked_tokens.amount.clone();
+            self.send().esdt_local_burn(
+                &locked_tokens.token_identifier,
+                locked_tokens.token_nonce,
+                &locked_tokens_burn_amount,
+            );
 
-                    output_payments.push(unlocked_tokens);
-                    user_entries.remove(0);
+            let penalty_amount = &locked_tokens.amount - &unlocked_tokens.amount;
+            if penalty_amount > 0 {
+                let penalty = EsdtTokenPayment::new(
+                    locked_tokens.token_identifier,
+                    locked_tokens.token_nonce,
+                    penalty_amount,
+                );
+                penalty_tokens.push(penalty);
+            }
 
-                    processed_count += 1;
-                }
-            });
+            output_payments.push(unlocked_tokens);
+            user_entries.remove(0);
+
+            processed_count += 1;
+        }
+
+        entries_mapper.set(&user_entries);
 
         require!(!output_payments.is_empty(), "Nothing to unbond");
 
@@ -70,8 +72,7 @@ pub trait UnbondTokensModule:
 
         self.send().direct_multi(&caller, &output_payments);
 
-        let new_unlocked_tokens = self.unlocked_tokens_for_user(&caller).get();
-        self.emit_unlocked_tokens_event(&caller, new_unlocked_tokens);
+        self.emit_unlocked_tokens_event(&caller, user_entries);
 
         output_payments.into()
     }
