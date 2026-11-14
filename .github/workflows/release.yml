@@ -23,8 +23,9 @@ permissions:
 
 jobs:
   build:
-    # mx-sc-actions PR #55 (reproducible builds with sc-meta), until it is merged and released
-    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@81ba4d728a1aa20966cb775e0c4eb1588ac7d100
+    # mx-sc-actions PR #55 (reproducible builds with sc-meta) + keep the existing release notes
+    # (branch reproducible-build-keep-release-notes), until it is merged and released
+    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@ad3c3fdf74c85e678c2c7b065a981f1bef70e95c
     with:
       image_tag: v12.0.0
       contract_name: ${{ inputs.contract_name }}
