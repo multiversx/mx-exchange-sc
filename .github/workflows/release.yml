@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       contract_name:
-        description: Run from the release tag. Contract to build (e.g. token-unstake); empty = all contracts.
+        description: Run from the release tag. Contracts to build, separated by commas (e.g. pair,router); empty = all contracts.
         type: string
         required: false
 
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build:
-    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@ad3c3fdf74c85e678c2c7b065a981f1bef70e95c
+    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@042585813397715819af7c1c6aaaa6a8e576521b
     with:
       image_tag: v12.0.0
       contract_name: ${{ inputs.contract_name }}

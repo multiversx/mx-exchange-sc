@@ -84,7 +84,7 @@ Locked MEX is a Meta ESDT. Since there can be only one address (per shard) that 
 Contracts are built reproducibly with the `reproducible-build.yml` workflow from [mx-sc-actions](https://github.com/multiversx/mx-sc-actions), inside the Docker image `multiversx/sdk-rust-contract-builder` (the tag is set in [release.yml](.github/workflows/release.yml)).
 
 1. Create the release on GitHub, usually as a pre-release, and press **Generate release notes**.
-2. In Actions → **Release** → **Run workflow**, pick the release tag in "Use workflow from" and set `contract_name` (e.g. `token-unstake`; empty builds all contracts).
+2. In Actions → **Release** → **Run workflow**, pick the release tag in "Use workflow from" and set `contract_name`: one contract or a list separated by commas (e.g. `pair,router`); empty builds all contracts.
 3. The workflow attaches the `.wasm`, `.abi.json`, `.source.json` and `artifacts.json` files to the release and adds the Docker image and the codehashes after the existing notes.
 
 To check a release locally, from a clean clone of the tag: `sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0 --contract <name>`.
