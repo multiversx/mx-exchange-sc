@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build:
-    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@042585813397715819af7c1c6aaaa6a8e576521b
+    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v7.1.0
     with:
       image_tag: v12.0.0
       contract_name: ${{ inputs.contract_name }}
