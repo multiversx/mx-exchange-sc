@@ -1,15 +1,20 @@
-name: On release build and attach artifacts
+name: Release
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      contract_name:
+        description: Run from the release tag. Contracts to build, separated by commas (e.g. pair,router); empty = all contracts.
+        type: string
+        required: false
 
 permissions:
   contents: write
 
 jobs:
   build:
-    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v5.0.0
+    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v7.1.0
     with:
-      image_tag: v10.0.0
+      image_tag: v12.0.0
+      contract_name: ${{ inputs.contract_name }}
       attach_to_existing_release: true
